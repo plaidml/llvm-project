@@ -1369,6 +1369,95 @@ static LogicalResult verify(LLVM::NullOp op) {
 }
 
 //===----------------------------------------------------------------------===//
+// Printing/parsing for LLVM::AtomicRMWOp.
+//===----------------------------------------------------------------------===//
+
+static void printAtomicRMWOp(OpAsmPrinter &p, AtomicRMWOp &op) {
+  // auto elemTy = op.getType().cast<LLVM::LLVMType>().getPointerElementTy();
+
+  // auto funcTy = FunctionType::get({op.arraySize()->getType()},
+  // {op.getType()},
+  //                                 op.getContext());
+
+  // p << op.getOperationName() << ' ' << *op.arraySize() << " x " << elemTy;
+  // if (op.alignment().hasValue() && op.alignment()->getSExtValue() != 0)
+  //   p.printOptionalAttrDict(op.getAttrs());
+  // else
+  //   p.printOptionalAttrDict(op.getAttrs(), {"alignment"});
+  // p << " : " << funcTy;
+  p << op.getOperationName(); // << ' ' << *op.value() << ", " << *op.addr();
+  // p.printOptionalAttrDict(op.getAttrs());
+  // p << " : " << op.addr()->getType();
+}
+
+// <operation> ::= `llvm.atomicrmw` string-literal ssa-use `,` ssa-use `,`
+//                 string-literal `:` type
+static ParseResult parseAtomicRMWOp(OpAsmParser &parser,
+                                    OperationState &result) {
+  Attribute op;
+  Attribute ordering;
+  SmallVector<NamedAttribute, 4> attrs;
+  Type type;
+  llvm::SMLoc opLoc, orderingLoc, trailingTypeLoc;
+  OpAsmParser::OperandType ptr, val;
+  if (parser.getCurrentLocation(&opLoc) ||
+      parser.parseAttribute(op, "op", attrs) || parser.parseOperand(ptr) ||
+      parser.parseComma() || parser.parseOperand(val) || parser.parseComma() ||
+      parser.getCurrentLocation(&orderingLoc) ||
+      parser.parseAttribute(ordering, "ordering", attrs) ||
+      parser.parseOptionalAttrDict(attrs) || parser.parseColon() ||
+      parser.getCurrentLocation(&trailingTypeLoc) || parser.parseType(type))
+    return failure();
+
+  // Extract the result type from the trailing function type.
+  auto funcType = type.dyn_cast<FunctionType>();
+  if (!funcType || funcType.getNumInputs() != 2 ||
+      funcType.getNumResults() != 1)
+    return parser.emitError(
+        trailingTypeLoc,
+        "expected trailing function type with two arguments and one result");
+
+  if (parser.resolveOperand(ptr, funcType.getInput(0), result.operands) ||
+      parser.resolveOperand(val, funcType.getInput(1), result.operands))
+    return failure();
+
+  // Replace the string attribute `op` with an integer attribute.
+  auto opStr = op.dyn_cast<StringAttr>();
+  if (!opStr)
+    return parser.emitError(opLoc, "expected 'op' attribute of string type");
+
+  auto opKind = symbolizeAtomicBinOp(opStr.getValue());
+  if (!opKind) {
+    return parser.emitError(opLoc)
+           << "'" << opStr.getValue()
+           << "' is an incorrect value of the 'op' attribute";
+  }
+
+  auto opValue = static_cast<int64_t>(opKind.getValue());
+  attrs[0].second = parser.getBuilder().getI64IntegerAttr(opValue);
+
+  // Replace the string attribute `ordering` with an integer attribute.
+  auto orderingStr = ordering.dyn_cast<StringAttr>();
+  if (!orderingStr)
+    return parser.emitError(orderingLoc,
+                            "expected 'ordering' attribute of string type");
+
+  auto orderingKind = symbolizeAtomicOrdering(orderingStr.getValue());
+  if (!orderingKind) {
+    return parser.emitError(orderingLoc)
+           << "'" << orderingStr.getValue()
+           << "' is an incorrect value of the 'ordering' attribute";
+  }
+
+  auto orderingValue = static_cast<int64_t>(orderingKind.getValue());
+  attrs[1].second = parser.getBuilder().getI64IntegerAttr(orderingValue);
+
+  result.attributes = attrs;
+  result.addTypes(funcType.getResults());
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // LLVMDialect initialization, type parsing, and registration.
 //===----------------------------------------------------------------------===//
 
