@@ -780,6 +780,7 @@ def LLVM_AtomicRMWOp : LLVM_Op<"atomicrmw">,
   }];
   let parser = [{ return parseAtomicRMWOp(parser, result); }];
   let printer = [{ printAtomicRMWOp(p, *this); }];
+  let verifier = "return ::verify(*this);";
 }
 
 #endif // LLVMIR_OPS

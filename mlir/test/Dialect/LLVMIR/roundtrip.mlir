@@ -222,7 +222,8 @@ func @null() {
 // CHECK-LABEL: @atomics
 func @atomics(%arg0 : !llvm.i32, %arg1 : !llvm.float) {
   %0 = llvm.alloca %arg0 x !llvm.float : (!llvm.i32) -> !llvm<"float*">
-  %1 = llvm.getelementptr %1[%arg0, %arg0] : (!llvm<"float*">, !llvm.i32, !llvm.i32) -> !llvm<"float*">
-  %2 = llvm.atomicrmw "fadd" %1, %arg1, "unordered" : (!llvm<"float*">, !llvm.float) -> !llvm.float
+  %1 = llvm.getelementptr %0[%arg0, %arg0] : (!llvm<"float*">, !llvm.i32, !llvm.i32) -> !llvm<"float*">
+  // CHECK: llvm.atomicrmw "fadd" "unordered" %1, %arg1 {volatile} : (!llvm<"float*">, !llvm.float) -> !llvm.float
+  %2 = llvm.atomicrmw "fadd" "unordered" %1, %arg1 {volatile} : (!llvm<"float*">, !llvm.float) -> !llvm.float
   llvm.return
 }

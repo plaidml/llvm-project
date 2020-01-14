@@ -1369,29 +1369,21 @@ static LogicalResult verify(LLVM::NullOp op) {
 }
 
 //===----------------------------------------------------------------------===//
-// Printing/parsing for LLVM::AtomicRMWOp.
+// Printer, parser and verifier for LLVM::AtomicRMWOp.
 //===----------------------------------------------------------------------===//
 
 static void printAtomicRMWOp(OpAsmPrinter &p, AtomicRMWOp &op) {
-  // auto elemTy = op.getType().cast<LLVM::LLVMType>().getPointerElementTy();
-
-  // auto funcTy = FunctionType::get({op.arraySize()->getType()},
-  // {op.getType()},
-  //                                 op.getContext());
-
-  // p << op.getOperationName() << ' ' << *op.arraySize() << " x " << elemTy;
-  // if (op.alignment().hasValue() && op.alignment()->getSExtValue() != 0)
-  //   p.printOptionalAttrDict(op.getAttrs());
-  // else
-  //   p.printOptionalAttrDict(op.getAttrs(), {"alignment"});
-  // p << " : " << funcTy;
-  p << op.getOperationName(); // << ' ' << *op.value() << ", " << *op.addr();
-  // p.printOptionalAttrDict(op.getAttrs());
-  // p << " : " << op.addr()->getType();
+  p << op.getOperationName() << " ";
+  p << "\"" << stringifyAtomicBinOp(op.op()) << "\" ";
+  p << "\"" << stringifyAtomicOrdering(op.ordering()) << "\" ";
+  p << *op.ptr() << ", " << *op.val();
+  p.printOptionalAttrDict(op.getAttrs(), {"op", "ordering"});
+  p << " : (" << op.ptr().getType() << ", " << op.val().getType() << ") -> "
+    << op.res().getType();
 }
 
-// <operation> ::= `llvm.atomicrmw` string-literal ssa-use `,` ssa-use `,`
-//                 string-literal `:` type
+// <operation> ::= `llvm.atomicrmw` string-literal string-literal
+//                 ssa-use `,` ssa-use attribute-dict? `:` type
 static ParseResult parseAtomicRMWOp(OpAsmParser &parser,
                                     OperationState &result) {
   Attribute op;
@@ -1401,12 +1393,13 @@ static ParseResult parseAtomicRMWOp(OpAsmParser &parser,
   llvm::SMLoc opLoc, orderingLoc, trailingTypeLoc;
   OpAsmParser::OperandType ptr, val;
   if (parser.getCurrentLocation(&opLoc) ||
-      parser.parseAttribute(op, "op", attrs) || parser.parseOperand(ptr) ||
-      parser.parseComma() || parser.parseOperand(val) || parser.parseComma() ||
+      parser.parseAttribute(op, "op", attrs) ||
       parser.getCurrentLocation(&orderingLoc) ||
       parser.parseAttribute(ordering, "ordering", attrs) ||
-      parser.parseOptionalAttrDict(attrs) || parser.parseColon() ||
-      parser.getCurrentLocation(&trailingTypeLoc) || parser.parseType(type))
+      parser.parseOperand(ptr) || parser.parseComma() ||
+      parser.parseOperand(val) || parser.parseOptionalAttrDict(attrs) ||
+      parser.parseColon() || parser.getCurrentLocation(&trailingTypeLoc) ||
+      parser.parseType(type))
     return failure();
 
   // Extract the result type from the trailing function type.
@@ -1454,6 +1447,35 @@ static ParseResult parseAtomicRMWOp(OpAsmParser &parser,
 
   result.attributes = attrs;
   result.addTypes(funcType.getResults());
+  return success();
+}
+
+static bool isFPOperation(AtomicBinOp op) {
+  switch (op) {
+  case AtomicBinOp::fadd:
+  case AtomicBinOp::fsub:
+    return true;
+  default:
+    return false;
+  }
+}
+
+static LogicalResult verify(AtomicRMWOp op) {
+  auto ptrType = op.ptr().getType().dyn_cast<LLVM::LLVMType>();
+  if (!ptrType || !ptrType.isPointerTy())
+    return op.emitOpError("expected LLVM IR pointer type for `ptr` operand");
+  auto valType = op.val().getType().dyn_cast<LLVM::LLVMType>();
+  if (!valType || valType != ptrType.getPointerElementTy())
+    return op.emitOpError("expected LLVM IR element type for `ptr` operand to "
+                          "match type for `val` operand");
+  auto resType = op.res().getType().dyn_cast<LLVM::LLVMType>();
+  if (!resType || resType != valType)
+    return op.emitOpError(
+        "expected LLVM IR result type to match type for `val` operand");
+  if (isFPOperation(op.op())) {
+    if (!valType.getUnderlyingType()->isFloatingPointTy())
+      return op.emitOpError("expected LLVM IR floating point type");
+  }
   return success();
 }
 
