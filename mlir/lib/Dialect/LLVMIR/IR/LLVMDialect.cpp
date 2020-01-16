@@ -1388,13 +1388,12 @@ static ParseResult parseAtomicRMWOp(OpAsmParser &parser,
                                     OperationState &result) {
   Type type;
   StringAttr binOp, ordering;
-  SmallVector<NamedAttribute, 4> attrs;
   llvm::SMLoc binOpLoc, orderingLoc, trailingTypeLoc;
   OpAsmParser::OperandType ptr, val;
   if (parser.getCurrentLocation(&binOpLoc) ||
-      parser.parseAttribute(binOp, "bin_op", attrs) ||
+      parser.parseAttribute(binOp, "bin_op", result.attributes) ||
       parser.getCurrentLocation(&orderingLoc) ||
-      parser.parseAttribute(ordering, "ordering", attrs) ||
+      parser.parseAttribute(ordering, "ordering", result.attributes) ||
       parser.parseOperand(ptr) || parser.parseComma() ||
       parser.parseOperand(val) ||
       parser.parseOptionalAttrDict(result.attributes) || parser.parseColon() ||
@@ -1423,7 +1422,7 @@ static ParseResult parseAtomicRMWOp(OpAsmParser &parser,
 
   auto binOpValue = static_cast<int64_t>(binOpKind.getValue());
   auto binOpAttr = parser.getBuilder().getI64IntegerAttr(binOpValue);
-  result.addAttribute("bin_op", binOpAttr);
+  result.attributes[0].second = binOpAttr;
 
   // Replace the string attribute `ordering` with an integer attribute.
   auto orderingKind = symbolizeAtomicOrdering(ordering.getValue());
@@ -1435,7 +1434,7 @@ static ParseResult parseAtomicRMWOp(OpAsmParser &parser,
 
   auto orderingValue = static_cast<int64_t>(orderingKind.getValue());
   auto orderingAttr = parser.getBuilder().getI64IntegerAttr(orderingValue);
-  result.addAttribute("ordering", orderingAttr);
+  result.attributes[1].second = orderingAttr;
 
   result.addTypes(funcType.getResults());
   return success();
