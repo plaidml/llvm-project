@@ -1374,10 +1374,10 @@ static LogicalResult verify(LLVM::NullOp op) {
 
 static void printAtomicRMWOp(OpAsmPrinter &p, AtomicRMWOp &op) {
   p << op.getOperationName() << " ";
-  p << "\"" << stringifyAtomicBinOp(op.op()) << "\" ";
-  p << "\"" << stringifyAtomicOrdering(op.ordering()) << "\" ";
-  p << *op.ptr() << ", " << *op.val();
-  p.printOptionalAttrDict(op.getAttrs(), {"op", "ordering"});
+  p << '"' << stringifyAtomicBinOp(op.bin_op()) << "\" ";
+  p << '"' << stringifyAtomicOrdering(op.ordering()) << "\" ";
+  p << op.ptr() << ", " << op.val();
+  p.printOptionalAttrDict(op.getAttrs(), {"bin_op", "ordering"});
   p << " : (" << op.ptr().getType() << ", " << op.val().getType() << ") -> "
     << op.res().getType();
 }
@@ -1386,20 +1386,19 @@ static void printAtomicRMWOp(OpAsmPrinter &p, AtomicRMWOp &op) {
 //                 ssa-use `,` ssa-use attribute-dict? `:` type
 static ParseResult parseAtomicRMWOp(OpAsmParser &parser,
                                     OperationState &result) {
-  Attribute op;
-  Attribute ordering;
-  SmallVector<NamedAttribute, 4> attrs;
   Type type;
-  llvm::SMLoc opLoc, orderingLoc, trailingTypeLoc;
+  StringAttr binOp, ordering;
+  SmallVector<NamedAttribute, 4> attrs;
+  llvm::SMLoc binOpLoc, orderingLoc, trailingTypeLoc;
   OpAsmParser::OperandType ptr, val;
-  if (parser.getCurrentLocation(&opLoc) ||
-      parser.parseAttribute(op, "op", attrs) ||
+  if (parser.getCurrentLocation(&binOpLoc) ||
+      parser.parseAttribute(binOp, "bin_op", attrs) ||
       parser.getCurrentLocation(&orderingLoc) ||
       parser.parseAttribute(ordering, "ordering", attrs) ||
       parser.parseOperand(ptr) || parser.parseComma() ||
-      parser.parseOperand(val) || parser.parseOptionalAttrDict(attrs) ||
-      parser.parseColon() || parser.getCurrentLocation(&trailingTypeLoc) ||
-      parser.parseType(type))
+      parser.parseOperand(val) ||
+      parser.parseOptionalAttrDict(result.attributes) || parser.parseColon() ||
+      parser.getCurrentLocation(&trailingTypeLoc) || parser.parseType(type))
     return failure();
 
   // Extract the result type from the trailing function type.
@@ -1414,67 +1413,59 @@ static ParseResult parseAtomicRMWOp(OpAsmParser &parser,
       parser.resolveOperand(val, funcType.getInput(1), result.operands))
     return failure();
 
-  // Replace the string attribute `op` with an integer attribute.
-  auto opStr = op.dyn_cast<StringAttr>();
-  if (!opStr)
-    return parser.emitError(opLoc, "expected 'op' attribute of string type");
-
-  auto opKind = symbolizeAtomicBinOp(opStr.getValue());
-  if (!opKind) {
-    return parser.emitError(opLoc)
-           << "'" << opStr.getValue()
-           << "' is an incorrect value of the 'op' attribute";
+  // Replace the string attribute `bin_op` with an integer attribute.
+  auto binOpKind = symbolizeAtomicBinOp(binOp.getValue());
+  if (!binOpKind) {
+    return parser.emitError(binOpLoc)
+           << "'" << binOp.getValue()
+           << "' is an incorrect value of the 'bin_op' attribute";
   }
 
-  auto opValue = static_cast<int64_t>(opKind.getValue());
-  attrs[0].second = parser.getBuilder().getI64IntegerAttr(opValue);
+  auto binOpValue = static_cast<int64_t>(binOpKind.getValue());
+  auto binOpAttr = parser.getBuilder().getI64IntegerAttr(binOpValue);
+  result.addAttribute("bin_op", binOpAttr);
 
   // Replace the string attribute `ordering` with an integer attribute.
-  auto orderingStr = ordering.dyn_cast<StringAttr>();
-  if (!orderingStr)
-    return parser.emitError(orderingLoc,
-                            "expected 'ordering' attribute of string type");
-
-  auto orderingKind = symbolizeAtomicOrdering(orderingStr.getValue());
+  auto orderingKind = symbolizeAtomicOrdering(ordering.getValue());
   if (!orderingKind) {
     return parser.emitError(orderingLoc)
-           << "'" << orderingStr.getValue()
+           << "'" << ordering.getValue()
            << "' is an incorrect value of the 'ordering' attribute";
   }
 
   auto orderingValue = static_cast<int64_t>(orderingKind.getValue());
-  attrs[1].second = parser.getBuilder().getI64IntegerAttr(orderingValue);
+  auto orderingAttr = parser.getBuilder().getI64IntegerAttr(orderingValue);
+  result.addAttribute("ordering", orderingAttr);
 
-  result.attributes = attrs;
   result.addTypes(funcType.getResults());
   return success();
 }
 
-static bool isFPOperation(AtomicBinOp op) {
-  switch (op) {
-  case AtomicBinOp::fadd:
-  case AtomicBinOp::fsub:
-    return true;
-  default:
-    return false;
-  }
-}
-
 static LogicalResult verify(AtomicRMWOp op) {
-  auto ptrType = op.ptr().getType().dyn_cast<LLVM::LLVMType>();
-  if (!ptrType || !ptrType.isPointerTy())
-    return op.emitOpError("expected LLVM IR pointer type for `ptr` operand");
-  auto valType = op.val().getType().dyn_cast<LLVM::LLVMType>();
-  if (!valType || valType != ptrType.getPointerElementTy())
-    return op.emitOpError("expected LLVM IR element type for `ptr` operand to "
-                          "match type for `val` operand");
-  auto resType = op.res().getType().dyn_cast<LLVM::LLVMType>();
-  if (!resType || resType != valType)
+  auto ptrType = op.ptr().getType().cast<LLVM::LLVMType>();
+  if (!ptrType.isPointerTy())
+    return op.emitOpError("expected LLVM IR pointer type for operand #0");
+  auto valType = op.val().getType().cast<LLVM::LLVMType>();
+  if (valType != ptrType.getPointerElementTy())
+    return op.emitOpError("expected LLVM IR element type for operand #0 to "
+                          "match type for operand #1");
+  auto resType = op.res().getType().cast<LLVM::LLVMType>();
+  if (resType != valType)
     return op.emitOpError(
-        "expected LLVM IR result type to match type for `val` operand");
-  if (isFPOperation(op.op())) {
+        "expected LLVM IR result type to match type for operand #1");
+  if (op.bin_op() == AtomicBinOp::fadd || op.bin_op() == AtomicBinOp::fsub) {
     if (!valType.getUnderlyingType()->isFloatingPointTy())
       return op.emitOpError("expected LLVM IR floating point type");
+  } else if (op.bin_op() == AtomicBinOp::xchg) {
+    if (!valType.isIntegerTy(8) && !valType.isIntegerTy(16) &&
+        !valType.isIntegerTy(32) && !valType.isIntegerTy(64) &&
+        !valType.getUnderlyingType()->isHalfTy() && !valType.isFloatTy() &&
+        !valType.isDoubleTy())
+      return op.emitOpError("unexpected LLVM IR type for 'xchg' bin_op");
+  } else {
+    if (!valType.isIntegerTy(8) && !valType.isIntegerTy(16) &&
+        !valType.isIntegerTy(32) && !valType.isIntegerTy(64))
+      return op.emitOpError("expected LLVM IR integer type");
   }
   return success();
 }

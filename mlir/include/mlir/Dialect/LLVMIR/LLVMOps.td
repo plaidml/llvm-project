@@ -771,11 +771,11 @@ def AtomicOrdering : I64EnumAttr<
 }
 
 def LLVM_AtomicRMWOp : LLVM_Op<"atomicrmw">,
-    Arguments<(ins AtomicBinOp:$op, LLVM_Type:$ptr, LLVM_Type:$val,
+    Arguments<(ins AtomicBinOp:$bin_op, LLVM_Type:$ptr, LLVM_Type:$val,
                    AtomicOrdering:$ordering)>,
     Results<(outs LLVM_Type:$res)> {
   let llvmBuilder = [{
-    $res = builder.CreateAtomicRMW(getLLVMAtomicBinOp($op), $ptr, $val,
+    $res = builder.CreateAtomicRMW(getLLVMAtomicBinOp($bin_op), $ptr, $val,
                                    getLLVMAtomicOrdering($ordering));
   }];
   let parser = [{ return parseAtomicRMWOp(parser, result); }];

@@ -1039,3 +1039,10 @@ llvm.func @null() -> !llvm<"i32*"> {
   // CHECK: ret i32* null
   llvm.return %0 : !llvm<"i32*">
 }
+
+// CHECK-LABEL: @atomics
+llvm.func @atomics(%arg0 : !llvm<"float*">, %arg1 : !llvm.float) -> !llvm.float {
+  // CHECK: atomicrmw fadd float* %{{.*}}, float %{{.*}} unordered
+  %0 = llvm.atomicrmw "fadd" "unordered" %arg0, %arg1 : (!llvm<"float*">, !llvm.float) -> !llvm.float
+  llvm.return %0 : !llvm.float
+}
