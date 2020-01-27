@@ -134,9 +134,8 @@ bool mlir::isValidDim(Value value) {
     return false;
   }
   // This value has to be a block argument for a FuncOp or an affine.for.
-  // auto *parentOp = value.cast<BlockArgument>().getOwner()->getParentOp();
-  // return isa<FuncOp>(parentOp) || isa<AffineForOp>(parentOp);
-  return true;
+  auto *parentOp = value.cast<BlockArgument>().getOwner()->getParentOp();
+  return isa<FuncOp>(parentOp) || isa<AffineForOp>(parentOp);
 }
 
 /// Returns true if the 'index' dimension of the `memref` defined by

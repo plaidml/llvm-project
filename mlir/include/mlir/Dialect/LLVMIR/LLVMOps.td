@@ -675,6 +675,7 @@ class LLVM_TernaryIntrinsicOp<string func, list<OpTrait> traits = []> :
 def LLVM_ExpOp : LLVM_UnaryIntrinsicOp<"exp">;
 def LLVM_FAbsOp : LLVM_UnaryIntrinsicOp<"fabs">;
 def LLVM_FCeilOp : LLVM_UnaryIntrinsicOp<"ceil">;
+def LLVM_SqrtOp : LLVM_UnaryIntrinsicOp<"sqrt">;
 def LLVM_CosOp : LLVM_UnaryIntrinsicOp<"cos">;
 def LLVM_CopySignOp : LLVM_BinaryIntrinsicOp<"copysign">;
 def LLVM_FMulAddOp : LLVM_TernaryIntrinsicOp<"fmuladd">;

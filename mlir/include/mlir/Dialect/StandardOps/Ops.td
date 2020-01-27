@@ -1403,13 +1403,7 @@ def SubViewOp : Std_Op<"subview", [AttrSizedOperandSegments, NoSideEffect]> {
 }
 
 def SqrtOp : FloatUnaryOp<"sqrt"> {
-  let summary = "square root of the specified value";
-  let description = [{
-    The `sqrt` operation computes the square root. It takes one operand
-    and returns one result of the same type. This type may be a float scalar
-    type, a vector whose element type is float, or a tensor of floats. It has
-    no standard attributes.
-  }];
+  let summary = "sqrt of the specified value";
 }
 
 def TanhOp : FloatUnaryOp<"tanh"> {
