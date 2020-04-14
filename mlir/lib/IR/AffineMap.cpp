@@ -322,7 +322,7 @@ AffineMap mlir::simplifyAffineMap(AffineMap map) {
     exprs.push_back(
         simplifyAffineExpr(e, map.getNumDims(), map.getNumSymbols()));
   }
-  return AffineMap::get(map.getNumDims(), map.getNumSymbols(), exprs);
+  return AffineMap::get(map.getNumDims(), map.getNumSymbols(), exprs, map.getContext());
 }
 
 AffineMap mlir::removeDuplicateExprs(AffineMap map) {
