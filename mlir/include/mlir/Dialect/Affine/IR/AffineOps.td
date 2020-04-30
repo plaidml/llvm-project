@@ -267,7 +267,7 @@ def AffineForOp : Affine_Op<"for",
 }
 
 def AffineIfOp : Affine_Op<"if",
-                           [ImplicitAffineTerminator, RecursiveSideEffects]> {
+                           [SingleBlockImplicitTerminator<"AffineYieldOp">, RecursiveSideEffects]> {
   let summary = "if-then-else operation";
   let description = [{
     Syntax:
@@ -316,6 +316,7 @@ def AffineIfOp : Affine_Op<"if",
     }
     ```
   }];
+  let results = (outs Variadic<AnyMemRef>:$results);
   let arguments = (ins Variadic<AnyType>);
   let regions = (region SizedRegion<1>:$thenRegion, AnyRegion:$elseRegion);
 
@@ -323,7 +324,9 @@ def AffineIfOp : Affine_Op<"if",
 
   let builders = [
     OpBuilder<"Builder *builder, OperationState &result, "
-              "IntegerSet set, ValueRange args, bool withElseRegion">
+              "IntegerSet set, ValueRange args, bool withElseRegion">,
+    OpBuilder<"Builder *builder, OperationState &result, TypeRange resultTypes, "
+              "IntegerSet set, ValueRange args, bool withElseRegion">,
   ];
 
   let extraClassDeclaration = [{
@@ -429,7 +432,7 @@ def AffineMaxOp : AffineMinMaxOpBase<"max", [NoSideEffect]> {
   }];
 }
 
-def AffineParallelOp : Affine_Op<"parallel", [ImplicitAffineTerminator]> {
+def AffineParallelOp : Affine_Op<"parallel", [SingleBlockImplicitTerminator<"AffineYieldOp">]> {
   let summary = "multi-index parallel band operation";
   let description = [{
     The "affine.parallel" operation represents a hyper-rectangular affine
@@ -466,14 +469,15 @@ def AffineParallelOp : Affine_Op<"parallel", [ImplicitAffineTerminator]> {
      AffineMapAttr:$upperBoundsMap,
      I64ArrayAttr:$steps,
      Variadic<Index>:$mapOperands);
+  let results = (outs Variadic<AnyMemRef>:$results);
   let regions = (region SizedRegion<1>:$region);
 
   let builders = [
-    OpBuilder<"Builder* builder, OperationState& result,"
+    OpBuilder<"Builder* builder, OperationState& result, ArrayRef<Type> resultTypes,"
               "ArrayRef<int64_t> ranges">,
-    OpBuilder<"Builder* builder, OperationState& result, AffineMap lbMap,"
+    OpBuilder<"Builder* builder, OperationState& result, ArrayRef<Type> resultTypes, AffineMap lbMap,"
               "ValueRange lbArgs, AffineMap ubMap, ValueRange ubArgs">,
-    OpBuilder<"Builder* builder, OperationState& result, AffineMap lbMap,"
+    OpBuilder<"Builder* builder, OperationState& result, ArrayRef<Type> resultTypes, AffineMap lbMap,"
               "ValueRange lbArgs, AffineMap ubMap, ValueRange ubArgs,"
               "ArrayRef<int64_t> steps">
   ];
@@ -612,4 +616,26 @@ def AffineTerminatorOp :
   let verifier = ?;
 }
 
+def AffineYieldOp : Affine_Op<"yield", [NoSideEffect, Terminator]>,
+    Arguments<(ins Variadic<AnyMemRef>:$values)> {
+  let summary = "Yield values to parent operation";
+  let description = [{
+    "affine.yield" yields zero or more SSA values from an affine op region and
+    terminates the region. The semantics of how the values yielded are used
+    is defined by the parent operation.
+    If "loop.affine" has any operands, the operands must match the parent
+    operation's results.
+    If the parent operation defines no values, then the "affine.yield" may be
+    left out in the custom syntax and the builders will insert one implicitly.
+    Otherwise, it has to be present in the syntax to indicate which values are
+    yielded.
+    ```
+  }];
+  let arguments = (ins Variadic<AnyMemRef>:$results);
+  let builders = [
+    OpBuilder<"Builder *builder, OperationState &result",
+              [{ /* nothing to do */ }]>
+  ];
+
+}
 #endif // AFFINE_OPS
