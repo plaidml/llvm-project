@@ -2407,31 +2407,31 @@ static ParseResult parseAffineParallelOp(OpAsmParser &parser,
 }
 
 //===----------------------------------------------------------------------===//
-// AffineYieldOp
+// AffineTerminatorOp
 //===----------------------------------------------------------------------===//
 
-static LogicalResult verify(AffineYieldOp op) {
+static LogicalResult verify(AffineTerminatorOp op) {
   auto parentOp = op.getParentOp();
   auto results = parentOp->getResults();
   auto operands = op.getOperands();
 
-  if (!isa<AffineParallelOp>(parentOp) && !isa<AffineIfOp>(parentOp)) {
+  if (!isa<AffineParallelOp>(parentOp) && !isa<AffineIfOp>(parentOp) && !isa<AffineForOp>(parentOp)) {
     return op.emitOpError()
-           << "yield only terminates If or Parallel regions";
+           << "affine.terminate only terminates If, For or Parallel regions";
   }
   if (parentOp->getNumResults() != op.getNumOperands())
-    return op.emitOpError() << "parent of yield must have same number of "
+    return op.emitOpError() << "parent of terminator must have same number of "
                                "results as the yield operands";
   for (auto e : llvm::zip(results, operands)) {
     if (std::get<0>(e).getType() != std::get<1>(e).getType())
       return op.emitOpError()
-             << "types mismatch between yield op and its parent";
+             << "types mismatch between terminate op and its parent";
   }
 
   return success();
 }
 
-static ParseResult parseAffineYieldOp(OpAsmParser &parser, OperationState &result) {
+static ParseResult parseAffineTerminatorOp(OpAsmParser &parser, OperationState &result) {
   SmallVector<OpAsmParser::OperandType, 4> operands;
   SmallVector<Type, 4> types;
   llvm::SMLoc loc = parser.getCurrentLocation();
@@ -2444,7 +2444,7 @@ static ParseResult parseAffineYieldOp(OpAsmParser &parser, OperationState &resul
   return success();
 }
 
-static void print(OpAsmPrinter &p, AffineYieldOp op) {
+static void print(OpAsmPrinter &p, AffineTerminatorOp op) {
   p << op.getOperationName();
   if (op.getNumOperands() != 0)
     p << ' ' << op.getOperands() << " : " << op.getOperandTypes();

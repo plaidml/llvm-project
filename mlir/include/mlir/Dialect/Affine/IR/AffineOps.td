@@ -267,7 +267,7 @@ def AffineForOp : Affine_Op<"for",
 }
 
 def AffineIfOp : Affine_Op<"if",
-                           [SingleBlockImplicitTerminator<"AffineYieldOp">, RecursiveSideEffects]> {
+                           [ImplicitAffineTerminator, RecursiveSideEffects]> {
   let summary = "if-then-else operation";
   let description = [{
     Syntax:
@@ -432,7 +432,7 @@ def AffineMaxOp : AffineMinMaxOpBase<"max", [NoSideEffect]> {
   }];
 }
 
-def AffineParallelOp : Affine_Op<"parallel", [SingleBlockImplicitTerminator<"AffineYieldOp">]> {
+def AffineParallelOp : Affine_Op<"parallel", [ImplicitAffineTerminator]> {
   let summary = "multi-index parallel band operation";
   let description = [{
     The "affine.parallel" operation represents a hyper-rectangular affine
@@ -585,42 +585,11 @@ def AffinePrefetchOp : Affine_Op<"prefetch"> {
   let hasFolder = 1;
 }
 
-def AffineTerminatorOp :
-    Affine_Op<"terminator", [NoSideEffect, Terminator]> {
-  let summary = "affine terminator operation";
-  let description = [{
-    Syntax:
-
-    ```
-    operation ::= `"affine.terminator"() : () -> ()`
-    ```
-
-    Affine terminator is a special terminator operation for blocks inside affine
-    loops ([`affine.for`](#affinefor-operation)) and branches
-    ([`affine.if`](#affineif-operation)). It unconditionally transmits the
-    control flow to the successor of the operation enclosing the region.
-
-    *Rationale*: bodies of affine operations are [blocks](../LangRef.md#blocks)
-    that must have terminators. Loops and branches represent structured control
-    flow and should not accept arbitrary branches as terminators.
-
-    This operation does _not_ have a custom syntax. However, affine control
-    operations omit the terminator in their custom syntax for brevity.
-  }];
-
-  // No custom parsing/printing form.
-  let parser = ?;
-  let printer = ?;
-
-  // Fully specified by traits.
-  let verifier = ?;
-}
-
-def AffineYieldOp : Affine_Op<"yield", [NoSideEffect, Terminator]>,
+def AffineTerminatorOp : Affine_Op<"terminator", [NoSideEffect, Terminator]>,
     Arguments<(ins Variadic<AnyMemRef>:$values)> {
   let summary = "Yield values to parent operation";
   let description = [{
-    "affine.yield" yields zero or more SSA values from an affine op region and
+    "affine.terminator" yields zero or more SSA values from an affine op region and
     terminates the region. The semantics of how the values yielded are used
     is defined by the parent operation.
     If "loop.affine" has any operands, the operands must match the parent
