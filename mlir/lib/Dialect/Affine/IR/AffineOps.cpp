@@ -1407,7 +1407,7 @@ struct AffineForEmptyLoopFolder : public OpRewritePattern<AffineForOp> {
 
   LogicalResult matchAndRewrite(AffineForOp forOp,
                                 PatternRewriter &rewriter) const override {
-    // Check that the body only contains a terminator.
+    // Check that the body only contains a yield.
     if (!llvm::hasSingleElement(*forOp.getBody()))
       return failure();
     rewriter.eraseOp(forOp);
@@ -1571,7 +1571,7 @@ void mlir::extractForInductionVars(ArrayRef<AffineForOp> forInsts,
 //===----------------------------------------------------------------------===//
 
 namespace {
-/// Remove else blocks that have nothing other than the terminator.
+/// Remove else blocks that have nothing other than a zero value yield.
 struct SimplifyDeadElse : public OpRewritePattern<AffineIfOp> {
   using OpRewritePattern<AffineIfOp>::OpRewritePattern;
 
@@ -2407,10 +2407,10 @@ static ParseResult parseAffineParallelOp(OpAsmParser &parser,
 }
 
 //===----------------------------------------------------------------------===//
-// AffineTerminatorOp
+// AffineYieldOp
 //===----------------------------------------------------------------------===//
 
-static LogicalResult verify(AffineTerminatorOp op) {
+static LogicalResult verify(AffineYieldOp op) {
   auto parentOp = op.getParentOp();
   auto results = parentOp->getResults();
   auto operands = op.getOperands();
@@ -2420,7 +2420,7 @@ static LogicalResult verify(AffineTerminatorOp op) {
            << "affine.terminate only terminates If, For or Parallel regions";
   }
   if (parentOp->getNumResults() != op.getNumOperands())
-    return op.emitOpError() << "parent of terminator must have same number of "
+    return op.emitOpError() << "parent of yield must have same number of "
                                "results as the yield operands";
   for (auto e : llvm::zip(results, operands)) {
     if (std::get<0>(e).getType() != std::get<1>(e).getType())
@@ -2431,7 +2431,7 @@ static LogicalResult verify(AffineTerminatorOp op) {
   return success();
 }
 
-static ParseResult parseAffineTerminatorOp(OpAsmParser &parser, OperationState &result) {
+static ParseResult parseAffineYieldOp(OpAsmParser &parser, OperationState &result) {
   SmallVector<OpAsmParser::OperandType, 4> operands;
   SmallVector<Type, 4> types;
   llvm::SMLoc loc = parser.getCurrentLocation();
@@ -2444,7 +2444,7 @@ static ParseResult parseAffineTerminatorOp(OpAsmParser &parser, OperationState &
   return success();
 }
 
-static void print(OpAsmPrinter &p, AffineTerminatorOp op) {
+static void print(OpAsmPrinter &p, AffineYieldOp op) {
   p << op.getOperationName();
   if (op.getNumOperands() != 0)
     p << ' ' << op.getOperands() << " : " << op.getOperandTypes();

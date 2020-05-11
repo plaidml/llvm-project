@@ -37,9 +37,9 @@ class Affine_Op<string mnemonic, list<OpTrait> traits = []> :
   let parser = [{ return ::parse$cppClass(parser, result); }];
 }
 
-// Require regions to have affine terminator.
+// Require regions to have affine.yield.
 def ImplicitAffineTerminator
-    : SingleBlockImplicitTerminator<"AffineTerminatorOp">;
+    : SingleBlockImplicitTerminator<"AffineYieldOp">;
 
 def AffineApplyOp : Affine_Op<"apply", [NoSideEffect]> {
   let summary = "affine apply operation";
@@ -114,7 +114,7 @@ def AffineForOp : Affine_Op<"for",
 
     The `affine.for` operation represents an affine loop nest. It has one region
     containing its body. This region must contain one block that terminates with
-    [`affine.terminator`](#affineterminator-operation). *Note:* when
+    [`affine.yield`](#affinyield-operation). *Note:* when
     `affine.for` is printed in custom format, the terminator is omitted. The
     block has one argument of [`index`](../LangRef.md#index-type) type that
     represents the induction variable of the loop.
@@ -292,7 +292,7 @@ def AffineIfOp : Affine_Op<"if",
     clauses. The latter may be empty (i.e. contain no blocks), meaning the
     absence of the else clause. When non-empty, both regions must contain
     exactly one block terminating with
-    [`affine.terminator`](#affineterminator-operation). *Note:* when `affine.if`
+    [`affine.yield`](#affineyield-operation). *Note:* when `affine.if`
     is printed in custom format, the terminator is omitted. These blocks must
     not have any arguments.
 
@@ -443,7 +443,7 @@ def AffineParallelOp : Affine_Op<"parallel", [ImplicitAffineTerminator]> {
     steps, are positive constant integers which defaults to "1" if not present.
     The lower and upper bounds specify a half-open range: the range includes the
     lower bound but does not include the upper bound. The body region must
-    contain exactly one block that terminates with "affine.terminator".
+    contain exactly one block that terminates with "affine.yield".
 
     The lower and upper bounds of a parallel operation are represented as an
     application of an affine mapping to a list of SSA values passed to the map.
@@ -585,11 +585,11 @@ def AffinePrefetchOp : Affine_Op<"prefetch"> {
   let hasFolder = 1;
 }
 
-def AffineTerminatorOp : Affine_Op<"terminator", [NoSideEffect, Terminator]>,
+def AffineYieldOp : Affine_Op<"yield", [NoSideEffect, Terminator]>,
     Arguments<(ins Variadic<AnyMemRef>:$values)> {
   let summary = "Yield values to parent operation";
   let description = [{
-    "affine.terminator" yields zero or more SSA values from an affine op region and
+    "affine.yield" yields zero or more SSA values from an affine op region and
     terminates the region. The semantics of how the values yielded are used
     is defined by the parent operation.
     If "loop.affine" has any operands, the operands must match the parent
