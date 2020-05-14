@@ -2326,6 +2326,7 @@ static void print(OpAsmPrinter &p, AffineParallelOp op) {
     llvm::interleaveComma(steps, p);
     p << ')';
   }
+
   p.printRegion(op.region(), /*printEntryBlockArgs=*/false,
                 /*printBlockTerminators=*/op.getNumResults());
   p.printOptionalAttrDict(
@@ -2393,6 +2394,9 @@ static ParseResult parseAffineParallelOp(OpAsmParser &parser,
     result.addAttribute(AffineParallelOp::getStepsAttrName(),
                         builder.getI64ArrayAttr(steps));
   }
+
+  if (parser.parseOptionalColonTypeList(result.types))
+    return failure();
 
   // Now parse the body.
   Region *body = result.addRegion();
