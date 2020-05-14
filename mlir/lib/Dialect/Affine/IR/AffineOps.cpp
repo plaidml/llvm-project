@@ -1708,8 +1708,8 @@ void AffineIfOp::setConditional(IntegerSet set, ValueRange operands) {
 void AffineIfOp::build(Builder *builder, OperationState &result, TypeRange resultsTypes,
 		IntegerSet set, ValueRange args, bool withElseRegion) {
   assert(resultsTypes.empty() || withElseRegion);
-  for (Type t : resultsTypes) {
-    result.addTypes(t);
+  for (Type type : resultsTypes) {
+    result.addTypes(type);
   }
   result.addOperands(args);
   result.addAttribute(getConditionAttrName(), IntegerSetAttr::get(set));
@@ -2214,8 +2214,8 @@ void AffineParallelOp::build(Builder *builder, OperationState &result, ArrayRef<
          "num dims and num results mismatch");
   assert(numDims == steps.size() && "num dims and num steps mismatch");
   // Add the types
-  for (Type t : resultTypes) {
-    result.addTypes(t);
+  for (Type type : resultTypes) {
+    result.addTypes(type);
   }
   // Add the attributes
   result.addAttribute(getLowerBoundsMapAttrName(), AffineMapAttr::get(lbMap));
@@ -2429,7 +2429,7 @@ static LogicalResult verify(AffineYieldOp op) {
   for (auto e : llvm::zip(results, operands)) {
     if (std::get<0>(e).getType() != std::get<1>(e).getType())
       return op.emitOpError()
-             << "types mismatch between terminate op and its parent";
+             << "types mismatch between yield op and its parent";
   }
 
   return success();
@@ -2441,11 +2441,9 @@ static ParseResult parseAffineYieldOp(OpAsmParser &parser, OperationState &resul
   llvm::SMLoc loc = parser.getCurrentLocation();
   // Parse variadic operands list, their types, and resolve operands to SSA
   // values.
-  if (parser.parseOperandList(operands) ||
+  return failure(parser.parseOperandList(operands) ||
       parser.parseOptionalColonTypeList(types) ||
-      parser.resolveOperands(operands, types, loc, result.operands))
-    return failure();
-  return success();
+      parser.resolveOperands(operands, types, loc, result.operands));
 }
 
 static void print(OpAsmPrinter &p, AffineYieldOp op) {

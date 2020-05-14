@@ -592,7 +592,7 @@ def AffineYieldOp : Affine_Op<"yield", [NoSideEffect, Terminator]>,
     "affine.yield" yields zero or more SSA values from an affine op region and
     terminates the region. The semantics of how the values yielded are used
     is defined by the parent operation.
-    If "loop.affine" has any operands, the operands must match the parent
+    If "affine.yield" has any operands, the operands must match the parent
     operation's results.
     If the parent operation defines no values, then the "affine.yield" may be
     left out in the custom syntax and the builders will insert one implicitly.
