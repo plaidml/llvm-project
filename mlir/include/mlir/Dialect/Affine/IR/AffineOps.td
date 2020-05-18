@@ -549,6 +549,7 @@ def AffineParallelOp : Affine_Op<"parallel", [ImplicitAffineTerminator]> {
      AffineMapAttr:$lowerBoundsMap,
      AffineMapAttr:$upperBoundsMap,
      I64ArrayAttr:$steps,
+     OptionalAttr<UnitAttr>:$structural,
      Variadic<Index>:$mapOperands);
   let regions = (region SizedRegion<1>:$region);
 

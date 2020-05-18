@@ -619,3 +619,17 @@ func @remove_rank0_affine_parallel(%out: memref<f32>) {
   }
   return
 }
+
+// -----
+
+// CHECK: func @keep_structural_affine_parallel(%[[OUT:.*]]: memref<f32>)
+func @keep_structural_affine_parallel(%out: memref<f32>) {
+  // CHECK-NEXT: %[[CST:.*]] = constant
+  %cst = constant 0.0 : f32
+  // CHECK-NEXT: affine.parallel () = () to ()
+  affine.parallel () = () to () {
+    // CHECK-NEXT: affine.store %[[CST]], %[[OUT]][] : memref<f32>
+    affine.store %cst, %out[] : memref<f32>
+  } {structural}
+  return
+}

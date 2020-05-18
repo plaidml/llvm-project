@@ -2622,8 +2622,8 @@ struct AffineParallelRank0LoopRemover
 
   LogicalResult matchAndRewrite(AffineParallelOp op,
                                 PatternRewriter &rewriter) const override {
-    // Check that there are no induction variables
-    if (op.lowerBoundsMap().getNumResults() != 0)
+    // Check that there are no induction variables & op isn't structural
+    if (op.lowerBoundsMap().getNumResults() != 0 || op.getAttr("structural"))
       return failure();
     // Remove the affine.parallel wrapper, retain the body in the same location
     auto &parentOps = rewriter.getInsertionBlock()->getOperations();
