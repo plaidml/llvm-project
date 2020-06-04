@@ -87,3 +87,23 @@ func @unknown_source() -> i32 {
   // expected-error@+1 {{must be LLVM dialect type}}
   return %1 : i32
 }
+
+// -----
+
+// CHECK-LABEL: @tanh_float
+func @tanh_float() {
+  %c0 = constant 1.0 : f32
+  // CHECK: %[[.*]] = llvm.call @tanh(%[[.*]]) : (!llvm.float) -> !llvm.float
+  %1 = tanh %c0 : f32
+  return
+}
+
+// -----
+
+// CHECK-LABEL: @tanh_double
+func @tanh_double() {
+  %c0 = constant 1.0 : f64
+  // CHECK: %[[.*]] = llvm.call @tanh(%[[.*]]) : (!llvm.double) -> !llvm.double
+  %1 = tanh %c0 : f64
+  return
+}

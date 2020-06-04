@@ -1368,6 +1368,44 @@ struct ReOpLowering : public ConvertOpToLLVMPattern<ReOp> {
   }
 };
 
+struct TanhOpLowering : public ConvertOpToLLVMPattern<TanhOp> {
+  using ConvertOpToLLVMPattern<TanhOp>::ConvertOpToLLVMPattern;
+
+  LogicalResult
+  matchAndRewrite(Operation *op, ArrayRef<Value> operands,
+                  ConversionPatternRewriter &rewriter) const override {
+    if (operands.size() != 1)
+      return failure();
+    Type resultType = op->getResult(0).getType();
+    const char* funcName;
+    LLVM::LLVMType llvmResultType;
+    if (resultType.isF32()) {
+      funcName = static_cast<const char*>("tanhf");
+      llvmResultType = LLVM::LLVMType::getFloatTy(&getDialect());
+    }
+    else if (resultType.isF64()) {
+      funcName = static_cast<const char*>("tanh");
+      llvmResultType = LLVM::LLVMType::getDoubleTy(&getDialect());
+    }
+    else
+      return failure();
+
+    // Insert the appropriate tanh declaration if it is not already present.
+    auto tanhFunc =
+        op->getParentOfType<ModuleOp>().lookupSymbol<LLVM::LLVMFuncOp>(funcName);
+    if (!tanhFunc) {
+      OpBuilder moduleBuilder(op->getParentOfType<ModuleOp>().getBodyRegion());
+      tanhFunc = moduleBuilder.create<LLVM::LLVMFuncOp>(
+          op->getLoc(), funcName,
+          LLVM::LLVMType::getFunctionTy(llvmResultType, {llvmResultType},
+          /*isVarArg=*/false));
+    }
+    rewriter.replaceOpWithNewOp<LLVM::CallOp>(
+        op, ArrayRef<Type>(llvmResultType), rewriter.getSymbolRefAttr(tanhFunc), operands);
+    return success();
+  }
+};
+
 struct ImOpLowering : public ConvertOpToLLVMPattern<ImOp> {
   using ConvertOpToLLVMPattern<ImOp>::ConvertOpToLLVMPattern;
 
@@ -2977,6 +3015,7 @@ void mlir::populateStdToLLVMNonMemoryConversionPatterns(
       SubCFOpLowering,
       SubFOpLowering,
       SubIOpLowering,
+      TanhOpLowering,
       TruncateIOpLowering,
       UnsignedDivIOpLowering,
       UnsignedRemIOpLowering,
@@ -3147,7 +3186,6 @@ mlir::LLVMConversionTarget::LLVMConversionTarget(MLIRContext &ctx)
     : ConversionTarget(ctx) {
   this->addLegalDialect<LLVM::LLVMDialect>();
   this->addIllegalOp<LLVM::DialectCastOp>();
-  this->addIllegalOp<TanhOp>();
 }
 
 std::unique_ptr<OperationPass<ModuleOp>>
