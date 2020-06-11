@@ -2489,7 +2489,7 @@ struct AffineParallelRange1IndexRemover
         curArgNum++;
       }
     }
-    // If no arguments were removed, return failur to match
+    // If no arguments were removed, return failure to match
     if (newLowerBounds.size() == op.lowerBoundsMap().getNumResults())
       return failure();
     // Update attributes and return success
