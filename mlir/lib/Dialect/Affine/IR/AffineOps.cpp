@@ -2393,6 +2393,7 @@ LogicalResult AffinePrefetchOp::fold(ArrayRef<Attribute> cstOperands,
 
 void AffineParallelOp::build(OpBuilder &builder, OperationState &result,
                              ArrayRef<Type> resultTypes,
+                             ArrayRef<AtomicRMWKind> aggOps,
                              ArrayRef<int64_t> ranges) {
   SmallVector<AffineExpr, 8> lbExprs(ranges.size(),
                                      builder.getAffineConstantExpr(0));
@@ -2401,11 +2402,12 @@ void AffineParallelOp::build(OpBuilder &builder, OperationState &result,
   for (int64_t range : ranges)
     ubExprs.push_back(builder.getAffineConstantExpr(range));
   auto ubMap = AffineMap::get(0, 0, ubExprs, builder.getContext());
-  build(builder, result, resultTypes, lbMap, {}, ubMap, {});
+  build(builder, result, resultTypes, aggOps, lbMap, {}, ubMap, {});
 }
 
 void AffineParallelOp::build(OpBuilder &builder, OperationState &result,
-                             ArrayRef<Type> resultTypes, AffineMap lbMap,
+                             ArrayRef<Type> resultTypes,
+                             ArrayRef<AtomicRMWKind> aggOps, AffineMap lbMap,
                              ValueRange lbArgs, AffineMap ubMap,
                              ValueRange ubArgs) {
   auto numDims = lbMap.getNumResults();
@@ -2414,11 +2416,13 @@ void AffineParallelOp::build(OpBuilder &builder, OperationState &result,
          "num dims and num results mismatch");
   // Make default step sizes of 1.
   SmallVector<int64_t, 8> steps(numDims, 1);
-  build(builder, result, resultTypes, lbMap, lbArgs, ubMap, ubArgs, steps);
+  build(builder, result, resultTypes, aggOps, lbMap, lbArgs, ubMap, ubArgs,
+        steps);
 }
 
 void AffineParallelOp::build(OpBuilder &builder, OperationState &result,
-                             ArrayRef<Type> resultTypes, AffineMap lbMap,
+                             ArrayRef<Type> resultTypes,
+                             ArrayRef<AtomicRMWKind> aggOps, AffineMap lbMap,
                              ValueRange lbArgs, AffineMap ubMap,
                              ValueRange ubArgs, ArrayRef<int64_t> steps) {
   auto numDims = lbMap.getNumResults();
@@ -2430,7 +2434,13 @@ void AffineParallelOp::build(OpBuilder &builder, OperationState &result,
   for (Type type : resultTypes) {
     result.addTypes(type);
   }
+  // Convert the aggOps to integer attributes
+  SmallVector<Attribute, 4> aggOpAttrs;
+  for (auto agg : aggOps) {
+    aggOpAttrs.push_back(builder.getI64IntegerAttr(static_cast<int64_t>(agg)));
+  }
   // Add the attributes
+  result.addAttribute(getAggOpsAttrName(), builder.getArrayAttr(aggOpAttrs));
   result.addAttribute(getLowerBoundsMapAttrName(), AffineMapAttr::get(lbMap));
   result.addAttribute(getUpperBoundsMapAttrName(), AffineMapAttr::get(ubMap));
   result.addAttribute(getStepsAttrName(), builder.getI64ArrayAttr(steps));
@@ -2519,6 +2529,17 @@ static LogicalResult verify(AffineParallelOp op) {
     return op.emitOpError("region argument count and num results of upper "
                           "bounds, lower bounds, and steps must all match");
   }
+  if (op.aggOps().size() != op.getNumResults()) {
+    return op.emitOpError("Aggregation must be specified for each output");
+  }
+  // Verify agg ops are all valid
+  for (auto attr : op.aggOps()) {
+    auto intAttr = attr.dyn_cast<IntegerAttr>();
+    if (!intAttr || !symbolizeAtomicRMWKind(intAttr.getInt())) {
+      return op.emitOpError("Invalid aggregation attribute");
+    }
+  }
+
   // Verify that the bound operands are valid dimension/symbols.
   /// Lower bounds.
   if (failed(verifyDimAndSymbolIdentifiers(op, op.getLowerBoundsOperands(),
@@ -2638,17 +2659,24 @@ static void print(OpAsmPrinter &p, AffineParallelOp op) {
     p << ')';
   }
   if (op.getNumResults()) {
-    p << " : ";
-    for (auto type : op.getResultTypes()) {
-      p << type;
+    p << " agg (";
+    bool first = true;
+    for (auto attr : op.aggOps()) {
+      auto sym = *symbolizeAtomicRMWKind(attr.cast<IntegerAttr>().getInt());
+      if (!first)
+        p << ", ";
+      first = false;
+      p << "\"" << stringifyAtomicRMWKind(sym) << "\"";
     }
+    p << ") -> (" << op.getResultTypes() << ")";
   }
 
   p.printRegion(op.region(), /*printEntryBlockArgs=*/false,
                 /*printBlockTerminators=*/op.getNumResults());
   p.printOptionalAttrDict(
       op.getAttrs(),
-      /*elidedAttrs=*/{AffineParallelOp::getLowerBoundsMapAttrName(),
+      /*elidedAttrs=*/{AffineParallelOp::getAggOpsAttrName(),
+                       AffineParallelOp::getLowerBoundsMapAttrName(),
                        AffineParallelOp::getUpperBoundsMapAttrName(),
                        AffineParallelOp::getStepsAttrName()});
 }
@@ -2711,9 +2739,30 @@ static ParseResult parseAffineParallelOp(OpAsmParser &parser,
     result.addAttribute(AffineParallelOp::getStepsAttrName(),
                         builder.getI64ArrayAttr(steps));
   }
-
-  if (parser.parseOptionalColonTypeList(result.types))
+  SmallVector<Attribute, 4> aggOps;
+  if (succeeded(parser.parseOptionalKeyword("agg"))) {
+    if (parser.parseLParen())
+      return failure();
+    do {
+      StringAttr attrVal;
+      NamedAttrList attrStorage;
+      auto loc = parser.getCurrentLocation();
+      if (parser.parseAttribute(attrVal, builder.getNoneType(), "agg",
+                                attrStorage))
+        return failure();
+      auto attrOptional = ::mlir::symbolizeAtomicRMWKind(attrVal.getValue());
+      if (!attrOptional)
+        return parser.emitError(loc, "invalid aggOp value: ") << attrVal;
+      aggOps.push_back(builder.getI64IntegerAttr(
+          static_cast<int64_t>(attrOptional.getValue())));
+    } while (succeeded(parser.parseOptionalComma()));
+    if (parser.parseRParen())
+      return failure();
+  }
+  if (parser.parseOptionalArrowTypeList(result.types))
     return failure();
+  result.addAttribute(AffineParallelOp::getAggOpsAttrName(),
+                      builder.getArrayAttr(aggOps));
 
   // Now parse the body.
   Region *body = result.addRegion();

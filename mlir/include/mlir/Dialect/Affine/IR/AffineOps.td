@@ -14,6 +14,7 @@
 #define AFFINE_OPS
 
 include "mlir/Dialect/Affine/IR/AffineOpsBase.td"
+include "mlir/Dialect/StandardOps/IR/StandardOpsBase.td"
 include "mlir/Dialect/Affine/IR/AffineMemoryOpInterfaces.td"
 include "mlir/Interfaces/LoopLikeInterface.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
@@ -550,22 +551,27 @@ def AffineParallelOp : Affine_Op<"parallel",
   }];
 
   let arguments = (ins
+     TypedArrayAttrBase<AtomicRMWKindAttr, "list of aggregation ops">:$aggOps,
      AffineMapAttr:$lowerBoundsMap,
      AffineMapAttr:$upperBoundsMap,
      I64ArrayAttr:$steps,
      Variadic<Index>:$mapOperands);
-  let results = (outs Variadic<AnyMemRef>:$results);
+  let results = (outs Variadic<AnyType>:$results);
   let regions = (region SizedRegion<1>:$region);
 
   let builders = [
     OpBuilder<"OpBuilder &builder, OperationState& result, "
-              "ArrayRef<Type> resultTypes, ArrayRef<int64_t> ranges">,
+              "ArrayRef<Type> resultTypes, ArrayRef<AtomicRMWKind> aggOps, "
+              "ArrayRef<int64_t> ranges">,
     OpBuilder<"OpBuilder &builder, OperationState& result, "
-              "ArrayRef<Type> resultTypes, AffineMap lbMap, "
-              "ValueRange lbArgs, AffineMap ubMap, ValueRange ubArgs">,
+              "ArrayRef<Type> resultTypes, ArrayRef<AtomicRMWKind> aggOps, "
+              "AffineMap lbMap, ValueRange lbArgs, "
+              "AffineMap ubMap, ValueRange ubArgs">,
     OpBuilder<"OpBuilder &builder, OperationState& result, "
-              "ArrayRef<Type> resultTypes, AffineMap lbMap, ValueRange lbArgs, "
-              "AffineMap ubMap, ValueRange ubArgs, ArrayRef<int64_t> steps">
+              "ArrayRef<Type> resultTypes, ArrayRef<AtomicRMWKind> aggOps, "
+              "AffineMap lbMap, ValueRange lbArgs, "
+              "AffineMap ubMap, ValueRange ubArgs, "
+              "ArrayRef<int64_t> steps">
   ];
 
   let extraClassDeclaration = [{
@@ -589,6 +595,7 @@ def AffineParallelOp : Affine_Op<"parallel",
     }
     void setSteps(ArrayRef<int64_t> newSteps);
 
+    static StringRef getAggOpsAttrName() { return "aggOps"; }
     static StringRef getLowerBoundsMapAttrName() { return "lowerBoundsMap"; }
     static StringRef getUpperBoundsMapAttrName() { return "upperBoundsMap"; }
     static StringRef getStepsAttrName() { return "steps"; }
