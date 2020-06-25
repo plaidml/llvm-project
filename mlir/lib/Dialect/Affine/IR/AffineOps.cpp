@@ -1913,20 +1913,18 @@ void AffineIfOp::build(OpBuilder &builder, OperationState &result,
                        TypeRange resultTypes, IntegerSet set, ValueRange args,
                        bool withElseRegion) {
   assert(resultTypes.empty() || withElseRegion);
-  for (Type type : resultTypes) {
-    result.addTypes(type);
-  }
+  result.addTypes(resultTypes);
   result.addOperands(args);
   result.addAttribute(getConditionAttrName(), IntegerSetAttr::get(set));
 
   Region *thenRegion = result.addRegion();
-  thenRegion->push_back(new Block());
+  builder.createBlock(thenRegion);
   if (resultTypes.empty())
     AffineIfOp::ensureTerminator(*thenRegion, builder, result.location);
 
   Region *elseRegion = result.addRegion();
   if (withElseRegion) {
-    elseRegion->push_back(new Block());
+    builder.createBlock(elseRegion);
     if (resultTypes.empty())
       AffineIfOp::ensureTerminator(*elseRegion, builder, result.location);
   }
@@ -1934,7 +1932,8 @@ void AffineIfOp::build(OpBuilder &builder, OperationState &result,
 
 void AffineIfOp::build(OpBuilder &builder, OperationState &result,
                        IntegerSet set, ValueRange args, bool withElseRegion) {
-  AffineIfOp::build(builder, result, {}, set, args, withElseRegion);
+  AffineIfOp::build(builder, result, /*resultTypes=*/{}, set, args,
+                    withElseRegion);
 }
 
 /// Canonicalize an affine if op's conditional (integer set + operands).
@@ -2430,16 +2429,11 @@ void AffineParallelOp::build(OpBuilder &builder, OperationState &result,
   assert(numDims == ubMap.getNumResults() &&
          "num dims and num results mismatch");
   assert(numDims == steps.size() && "num dims and num steps mismatch");
-  // Add the types
-  for (Type type : resultTypes) {
-    result.addTypes(type);
-  }
-  // Convert the aggOps to integer attributes
+  result.addTypes(resultTypes);
+  // Convert the aggOps to integer attributes.
   SmallVector<Attribute, 4> aggOpAttrs;
-  for (auto agg : aggOps) {
+  for (AtomicRMWKind agg : aggOps)
     aggOpAttrs.push_back(builder.getI64IntegerAttr(static_cast<int64_t>(agg)));
-  }
-  // Add the attributes
   result.addAttribute(getAggOpsAttrName(), builder.getArrayAttr(aggOpAttrs));
   result.addAttribute(getLowerBoundsMapAttrName(), AffineMapAttr::get(lbMap));
   result.addAttribute(getUpperBoundsMapAttrName(), AffineMapAttr::get(ubMap));
@@ -2464,7 +2458,7 @@ bool AffineParallelOp::isDefinedOutsideOfLoop(Value value) {
 }
 
 LogicalResult AffineParallelOp::moveOutOfLoop(ArrayRef<Operation *> ops) {
-  for (auto *op : ops)
+  for (Operation *op : ops)
     op->moveBefore(*this);
   return success();
 }
@@ -2525,19 +2519,18 @@ static LogicalResult verify(AffineParallelOp op) {
   if (op.lowerBoundsMap().getNumResults() != numDims ||
       op.upperBoundsMap().getNumResults() != numDims ||
       op.steps().size() != numDims ||
-      op.getBody()->getNumArguments() != numDims) {
+      op.getBody()->getNumArguments() != numDims)
     return op.emitOpError("region argument count and num results of upper "
                           "bounds, lower bounds, and steps must all match");
-  }
-  if (op.aggOps().size() != op.getNumResults()) {
+
+  if (op.aggOps().size() != op.getNumResults())
     return op.emitOpError("aggregation must be specified for each output");
-  }
+
   // Verify agg ops are all valid
-  for (auto attr : op.aggOps()) {
+  for (Attribute attr : op.aggOps()) {
     auto intAttr = attr.dyn_cast<IntegerAttr>();
-    if (!intAttr || !symbolizeAtomicRMWKind(intAttr.getInt())) {
+    if (!intAttr || !symbolizeAtomicRMWKind(intAttr.getInt()))
       return op.emitOpError("invalid aggregation attribute");
-    }
   }
 
   // Verify that the bound operands are valid dimension/symbols.
@@ -2566,13 +2559,10 @@ struct AffineParallelRank0LoopRemover
     // Remove the affine.parallel wrapper, retain the body in the same location
     auto &parentOps = rewriter.getInsertionBlock()->getOperations();
     auto &parallelBodyOps = op.region().front().getOperations();
-    auto yield = mlir::cast<AffineYieldOp>(std::prev(parallelBodyOps.end()));
-    for (auto it : zip(op.getResults(), yield.operands())) {
-      std::get<0>(it).replaceAllUsesWith(std::get<1>(it));
-    }
-    parentOps.splice(mlir::Block::iterator(op), parallelBodyOps,
+    auto yield = cast<AffineYieldOp>(std::prev(parallelBodyOps.end()));
+    parentOps.splice(Block::iterator(op), parallelBodyOps,
                      parallelBodyOps.begin(), std::prev(parallelBodyOps.end()));
-    rewriter.eraseOp(op);
+    rewriter.replaceOp(op, yield.operands());
     return success();
   }
 };
@@ -2783,15 +2773,14 @@ static LogicalResult verify(AffineYieldOp op) {
   auto operands = op.getOperands();
 
   if (!isa<AffineParallelOp>(parentOp) && !isa<AffineIfOp>(parentOp) &&
-      !isa<AffineForOp>(parentOp)) {
+      !isa<AffineForOp>(parentOp))
     return op.emitOpError()
            << "affine.terminate only terminates If, For or Parallel regions";
-  }
   if (parentOp->getNumResults() != op.getNumOperands())
     return op.emitOpError() << "parent of yield must have same number of "
                                "results as the yield operands";
-  for (auto e : llvm::zip(results, operands)) {
-    if (std::get<0>(e).getType() != std::get<1>(e).getType())
+  for (auto it : llvm::zip(results, operands)) {
+    if (std::get<0>(it).getType() != std::get<1>(it).getType())
       return op.emitOpError()
              << "types mismatch between yield op and its parent";
   }
