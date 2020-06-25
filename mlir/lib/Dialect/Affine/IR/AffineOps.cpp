@@ -2530,13 +2530,13 @@ static LogicalResult verify(AffineParallelOp op) {
                           "bounds, lower bounds, and steps must all match");
   }
   if (op.aggOps().size() != op.getNumResults()) {
-    return op.emitOpError("Aggregation must be specified for each output");
+    return op.emitOpError("aggregation must be specified for each output");
   }
   // Verify agg ops are all valid
   for (auto attr : op.aggOps()) {
     auto intAttr = attr.dyn_cast<IntegerAttr>();
     if (!intAttr || !symbolizeAtomicRMWKind(intAttr.getInt())) {
-      return op.emitOpError("Invalid aggregation attribute");
+      return op.emitOpError("invalid aggregation attribute");
     }
   }
 
@@ -2578,7 +2578,7 @@ struct AffineParallelRank0LoopRemover
 };
 
 /// This pattern removes indexes that go over an empty range.
-struct AffineParallelRange1IndexRemover
+struct AffineParallelTripCount1IndexRemover
     : public OpRewritePattern<AffineParallelOp> {
   using OpRewritePattern<AffineParallelOp>::OpRewritePattern;
 
@@ -2593,8 +2593,9 @@ struct AffineParallelRange1IndexRemover
     for (unsigned i = 0; i < origNumArgs; i++) {
       // Is the range a constant value of 1?
       auto constExpr = ranges.getResult(i).dyn_cast<AffineConstantExpr>();
-      if (constExpr && constExpr.getValue() == 1) {
-        // Remove argument and replace with 0
+      int64_t step = op.steps()[i].template cast<IntegerAttr>().getInt();
+      if (constExpr && constExpr.getValue() == step) {
+        // Remove argument and replace with lower bound
         auto curArg = op.getBody()->getArgument(curArgNum);
         auto lowerBoundValue = rewriter.create<AffineApplyOp>(
             op.getLoc(), op.lowerBoundsMap().getSubMap({i}),
@@ -2605,7 +2606,7 @@ struct AffineParallelRange1IndexRemover
         // Keep argument
         newLowerBounds.push_back(op.lowerBoundsMap().getResult(i));
         newUpperBounds.push_back(op.upperBoundsMap().getResult(i));
-        newSteps.push_back(op.steps()[i].template cast<IntegerAttr>().getInt());
+        newSteps.push_back(step);
         curArgNum++;
       }
     }
@@ -2633,9 +2634,8 @@ struct AffineParallelRange1IndexRemover
 
 void AffineParallelOp::getCanonicalizationPatterns(
     OwningRewritePatternList &results, MLIRContext *context) {
-  results
-      .insert<AffineParallelRank0LoopRemover, AffineParallelRange1IndexRemover>(
-          context);
+  results.insert<AffineParallelRank0LoopRemover,
+                 AffineParallelTripCount1IndexRemover>(context);
 }
 
 static void print(OpAsmPrinter &p, AffineParallelOp op) {
@@ -2660,14 +2660,11 @@ static void print(OpAsmPrinter &p, AffineParallelOp op) {
   }
   if (op.getNumResults()) {
     p << " agg (";
-    bool first = true;
-    for (auto attr : op.aggOps()) {
-      auto sym = *symbolizeAtomicRMWKind(attr.cast<IntegerAttr>().getInt());
-      if (!first)
-        p << ", ";
-      first = false;
+    llvm::interleaveComma(op.aggOps(), p, [&](auto &attr) {
+      auto sym =
+          *symbolizeAtomicRMWKind(attr.template cast<IntegerAttr>().getInt());
       p << "\"" << stringifyAtomicRMWKind(sym) << "\"";
-    }
+    });
     p << ") -> (" << op.getResultTypes() << ")";
   }
 
@@ -2750,7 +2747,7 @@ static ParseResult parseAffineParallelOp(OpAsmParser &parser,
       if (parser.parseAttribute(attrVal, builder.getNoneType(), "agg",
                                 attrStorage))
         return failure();
-      auto attrOptional = ::mlir::symbolizeAtomicRMWKind(attrVal.getValue());
+      auto attrOptional = symbolizeAtomicRMWKind(attrVal.getValue());
       if (!attrOptional)
         return parser.emitError(loc, "invalid aggOp value: ") << attrVal;
       aggOps.push_back(builder.getI64IntegerAttr(
