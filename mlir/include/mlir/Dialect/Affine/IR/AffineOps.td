@@ -569,14 +569,14 @@ def AffineParallelOp : Affine_Op<"parallel",
   let regions = (region SizedRegion<1>:$region);
 
   let builders = [
-    OpBuilder<"OpBuilder &builder, OperationState& result, "
+    OpBuilder<"OpBuilder &builder, OperationState &result, "
               "ArrayRef<Type> resultTypes, ArrayRef<AtomicRMWKind> aggOps, "
               "ArrayRef<int64_t> ranges">,
-    OpBuilder<"OpBuilder &builder, OperationState& result, "
+    OpBuilder<"OpBuilder &builder, OperationState &result, "
               "ArrayRef<Type> resultTypes, ArrayRef<AtomicRMWKind> aggOps, "
               "AffineMap lbMap, ValueRange lbArgs, "
               "AffineMap ubMap, ValueRange ubArgs">,
-    OpBuilder<"OpBuilder &builder, OperationState& result, "
+    OpBuilder<"OpBuilder &builder, OperationState &result, "
               "ArrayRef<Type> resultTypes, ArrayRef<AtomicRMWKind> aggOps, "
               "AffineMap lbMap, ValueRange lbArgs, "
               "AffineMap ubMap, ValueRange ubArgs, "

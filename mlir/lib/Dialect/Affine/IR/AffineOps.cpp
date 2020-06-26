@@ -1918,13 +1918,13 @@ void AffineIfOp::build(OpBuilder &builder, OperationState &result,
   result.addAttribute(getConditionAttrName(), IntegerSetAttr::get(set));
 
   Region *thenRegion = result.addRegion();
-  builder.createBlock(thenRegion);
+  thenRegion->push_back(new Block());
   if (resultTypes.empty())
     AffineIfOp::ensureTerminator(*thenRegion, builder, result.location);
 
   Region *elseRegion = result.addRegion();
   if (withElseRegion) {
-    builder.createBlock(elseRegion);
+    elseRegion->push_back(new Block());
     if (resultTypes.empty())
       AffineIfOp::ensureTerminator(*elseRegion, builder, result.location);
   }
@@ -2401,7 +2401,7 @@ void AffineParallelOp::build(OpBuilder &builder, OperationState &result,
   for (int64_t range : ranges)
     ubExprs.push_back(builder.getAffineConstantExpr(range));
   auto ubMap = AffineMap::get(0, 0, ubExprs, builder.getContext());
-  build(builder, result, resultTypes, aggOps, lbMap, {}, ubMap, {});
+  build(builder, result, resultTypes, aggOps, lbMap, /*lbArgs=*/{}, ubMap, /*ubArgs*/{});
 }
 
 void AffineParallelOp::build(OpBuilder &builder, OperationState &result,
@@ -2429,6 +2429,7 @@ void AffineParallelOp::build(OpBuilder &builder, OperationState &result,
   assert(numDims == ubMap.getNumResults() &&
          "num dims and num results mismatch");
   assert(numDims == steps.size() && "num dims and num steps mismatch");
+
   result.addTypes(resultTypes);
   // Convert the aggOps to integer attributes.
   SmallVector<Attribute, 4> aggOpAttrs;
@@ -2581,11 +2582,11 @@ struct AffineParallelTripCount1IndexRemover
     SmallVector<AffineExpr, 6> newUpperBounds;
     SmallVector<int64_t, 6> newSteps;
     for (unsigned i = 0; i < origNumArgs; i++) {
-      // Is the range a constant value of 1?
+      // Ts the range equal to the step count (trip count = 1)?
       auto constExpr = ranges.getResult(i).dyn_cast<AffineConstantExpr>();
       int64_t step = op.steps()[i].template cast<IntegerAttr>().getInt();
       if (constExpr && constExpr.getValue() == step) {
-        // Remove argument and replace with lower bound
+        // Remove the argument and replace with lower bound.
         auto curArg = op.getBody()->getArgument(curArgNum);
         auto lowerBoundValue = rewriter.create<AffineApplyOp>(
             op.getLoc(), op.lowerBoundsMap().getSubMap({i}),
@@ -2593,17 +2594,17 @@ struct AffineParallelTripCount1IndexRemover
         curArg.replaceAllUsesWith(lowerBoundValue);
         op.getBody()->eraseArgument(curArgNum);
       } else {
-        // Keep argument
+        // Keep the argument.
         newLowerBounds.push_back(op.lowerBoundsMap().getResult(i));
         newUpperBounds.push_back(op.upperBoundsMap().getResult(i));
         newSteps.push_back(step);
         curArgNum++;
       }
     }
-    // If no arguments were removed, return failure to match
+    // If no arguments were removed, return failure to match.
     if (newLowerBounds.size() == op.lowerBoundsMap().getNumResults())
       return failure();
-    // Update attributes and return success
+    // Update attributes and return success.
     auto newLower = AffineMap::get(op.lowerBoundsMap().getNumDims(),
                                    op.lowerBoundsMap().getNumSymbols(),
                                    newLowerBounds, op.getContext());
