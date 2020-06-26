@@ -538,7 +538,7 @@ def AffineParallelOp : Affine_Op<"parallel",
 
     Each value yielded by affine.yield will be acccumulated/reduced via one of 
     the reduction methods defined in the AtomicRMWKind enum.  The order of
-    reductionis unspecified, and lowering may produce any valid ordering.
+    reduction is unspecified, and lowering may produce any valid ordering.
     Loops with a 0 trip count will produce as a result the identity value
     associated with each reduction (i.e. 0.0 for addf, 1.0 for mulf).  Assign
     reductions for loops with a trip count != 1 produces undefined results.
