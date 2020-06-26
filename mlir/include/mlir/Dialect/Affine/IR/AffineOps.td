@@ -536,19 +536,17 @@ def AffineParallelOp : Affine_Op<"parallel",
     The same restrictions hold for these SSA values as for all bindings of SSA
     values to dimensions and symbols.
 
-    Each value yielded by affine.yield will be accumulated by one of the
-    aggregation ops defined in the AtomicRMWKind enum.  The order of
-    accumulation is unspecified, and lowering may produce any valid ordering.
+    Each value yielded by affine.yield will be acccumulated/reduced via one of 
+    the reduction methods defined in the AtomicRMWKind enum.  The order of
+    reductionis unspecified, and lowering may produce any valid ordering.
     Loops with a 0 trip count will produce as a result the identity value
-    associated with each accumulation (i.e. 0.0 for addf, 1.0 for mulf).
-    'assign' accumulation for loops with a trip count != 1 produces undefined
-    results.
+    associated with each reduction (i.e. 0.0 for addf, 1.0 for mulf).  Assign
+    reductions for loops with a trip count != 1 produces undefined results.
 
     Note: Calling AffineParallelOp::build will create the required region and
-    block, and insert the required terminator if it is trivial (i.e. no
-    values are yielded).  Parsing will also create the required region,
-    block, and terminator, even when they are missing from the textual
-    representation.
+    block, and insert the required terminator if it is trivial (i.e. no values
+    are yielded).  Parsing will also create the required region, block, and 
+    terminator, even when they are missing from the textual representation.
 
     Example:
 
@@ -560,7 +558,7 @@ def AffineParallelOp : Affine_Op<"parallel",
   }];
 
   let arguments = (ins
-     TypedArrayAttrBase<AtomicRMWKindAttr, "list of aggregation ops">:$aggOps,
+     TypedArrayAttrBase<AtomicRMWKindAttr, "Reductions ops">:$reductions,
      AffineMapAttr:$lowerBoundsMap,
      AffineMapAttr:$upperBoundsMap,
      I64ArrayAttr:$steps,
@@ -570,14 +568,17 @@ def AffineParallelOp : Affine_Op<"parallel",
 
   let builders = [
     OpBuilder<"OpBuilder &builder, OperationState &result, "
-              "ArrayRef<Type> resultTypes, ArrayRef<AtomicRMWKind> aggOps, "
+              "ArrayRef<Type> resultTypes, "
+              "ArrayRef<AtomicRMWKind> reductions, "
               "ArrayRef<int64_t> ranges">,
     OpBuilder<"OpBuilder &builder, OperationState &result, "
-              "ArrayRef<Type> resultTypes, ArrayRef<AtomicRMWKind> aggOps, "
+              "ArrayRef<Type> resultTypes, "
+              "ArrayRef<AtomicRMWKind> reductions, "
               "AffineMap lbMap, ValueRange lbArgs, "
               "AffineMap ubMap, ValueRange ubArgs">,
     OpBuilder<"OpBuilder &builder, OperationState &result, "
-              "ArrayRef<Type> resultTypes, ArrayRef<AtomicRMWKind> aggOps, "
+              "ArrayRef<Type> resultTypes, "
+              "ArrayRef<AtomicRMWKind> reductions, "
               "AffineMap lbMap, ValueRange lbArgs, "
               "AffineMap ubMap, ValueRange ubArgs, "
               "ArrayRef<int64_t> steps">
@@ -604,7 +605,7 @@ def AffineParallelOp : Affine_Op<"parallel",
     }
     void setSteps(ArrayRef<int64_t> newSteps);
 
-    static StringRef getAggOpsAttrName() { return "aggOps"; }
+    static StringRef getReductionsAttrName() { return "reductions"; }
     static StringRef getLowerBoundsMapAttrName() { return "lowerBoundsMap"; }
     static StringRef getUpperBoundsMapAttrName() { return "upperBoundsMap"; }
     static StringRef getStepsAttrName() { return "steps"; }

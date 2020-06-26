@@ -270,7 +270,7 @@ func @affine_parallel(%arg0 : index, %arg1 : index, %arg2 : index) {
 
 func @affine_parallel(%arg0 : index, %arg1 : index, %arg2 : index) {
   %0 = alloc() : memref<100x100xf32>
-  //  expected-error@+1 {{op aggregation must be specified for each output}}
+  //  expected-error@+1 {{reduction must be specified for each output}}
   %1 = affine.parallel (%i, %j) = (0, 0) to (100, 100) step (10, 10) -> (f32) {
     %2 = affine.load %0[%i, %j] : memref<100x100xf32>
     affine.yield %2 : f32
@@ -284,8 +284,8 @@ func @affine_parallel(%arg0 : index, %arg1 : index, %arg2 : index) {
 
 func @affine_parallel(%arg0 : index, %arg1 : index, %arg2 : index) {
   %0 = alloc() : memref<100x100xf32>
-  //  expected-error@+1 {{invalid aggOp value: "bad"}}
-  %1 = affine.parallel (%i, %j) = (0, 0) to (100, 100) step (10, 10) agg ("bad") -> (f32) {
+  //  expected-error@+1 {{invalid reduction value: "bad"}}
+  %1 = affine.parallel (%i, %j) = (0, 0) to (100, 100) step (10, 10) reduce ("bad") -> (f32) {
     %2 = affine.load %0[%i, %j] : memref<100x100xf32>
     affine.yield %2 : f32
   }
@@ -297,7 +297,7 @@ func @affine_parallel(%arg0 : index, %arg1 : index, %arg2 : index) {
 
 func @affine_parallel(%arg0 : index, %arg1 : index, %arg2 : index) {
   %0 = alloc() : memref<100x100xi32>
-  %1 = affine.parallel (%i, %j) = (0, 0) to (100, 100) step (10, 10) agg ("minf") -> (f32) {
+  %1 = affine.parallel (%i, %j) = (0, 0) to (100, 100) step (10, 10) reduce ("minf") -> (f32) {
     %2 = affine.load %0[%i, %j] : memref<100x100xi32>
     //  expected-error@+1 {{types mismatch between yield op and its parent}}
     affine.yield %2 : i32

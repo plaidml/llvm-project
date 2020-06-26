@@ -2392,7 +2392,7 @@ LogicalResult AffinePrefetchOp::fold(ArrayRef<Attribute> cstOperands,
 
 void AffineParallelOp::build(OpBuilder &builder, OperationState &result,
                              ArrayRef<Type> resultTypes,
-                             ArrayRef<AtomicRMWKind> aggOps,
+                             ArrayRef<AtomicRMWKind> reductions,
                              ArrayRef<int64_t> ranges) {
   SmallVector<AffineExpr, 8> lbExprs(ranges.size(),
                                      builder.getAffineConstantExpr(0));
@@ -2401,29 +2401,31 @@ void AffineParallelOp::build(OpBuilder &builder, OperationState &result,
   for (int64_t range : ranges)
     ubExprs.push_back(builder.getAffineConstantExpr(range));
   auto ubMap = AffineMap::get(0, 0, ubExprs, builder.getContext());
-  build(builder, result, resultTypes, aggOps, lbMap, /*lbArgs=*/{}, ubMap, /*ubArgs*/{});
+  build(builder, result, resultTypes, reductions, lbMap, /*lbArgs=*/{}, ubMap,
+        /*ubArgs=*/{});
 }
 
 void AffineParallelOp::build(OpBuilder &builder, OperationState &result,
                              ArrayRef<Type> resultTypes,
-                             ArrayRef<AtomicRMWKind> aggOps, AffineMap lbMap,
-                             ValueRange lbArgs, AffineMap ubMap,
-                             ValueRange ubArgs) {
+                             ArrayRef<AtomicRMWKind> reductions,
+                             AffineMap lbMap, ValueRange lbArgs,
+                             AffineMap ubMap, ValueRange ubArgs) {
   auto numDims = lbMap.getNumResults();
   // Verify that the dimensionality of both maps are the same.
   assert(numDims == ubMap.getNumResults() &&
          "num dims and num results mismatch");
   // Make default step sizes of 1.
   SmallVector<int64_t, 8> steps(numDims, 1);
-  build(builder, result, resultTypes, aggOps, lbMap, lbArgs, ubMap, ubArgs,
+  build(builder, result, resultTypes, reductions, lbMap, lbArgs, ubMap, ubArgs,
         steps);
 }
 
 void AffineParallelOp::build(OpBuilder &builder, OperationState &result,
                              ArrayRef<Type> resultTypes,
-                             ArrayRef<AtomicRMWKind> aggOps, AffineMap lbMap,
-                             ValueRange lbArgs, AffineMap ubMap,
-                             ValueRange ubArgs, ArrayRef<int64_t> steps) {
+                             ArrayRef<AtomicRMWKind> reductions,
+                             AffineMap lbMap, ValueRange lbArgs,
+                             AffineMap ubMap, ValueRange ubArgs,
+                             ArrayRef<int64_t> steps) {
   auto numDims = lbMap.getNumResults();
   // Verify that the dimensionality of the maps matches the number of steps.
   assert(numDims == ubMap.getNumResults() &&
@@ -2431,11 +2433,13 @@ void AffineParallelOp::build(OpBuilder &builder, OperationState &result,
   assert(numDims == steps.size() && "num dims and num steps mismatch");
 
   result.addTypes(resultTypes);
-  // Convert the aggOps to integer attributes.
-  SmallVector<Attribute, 4> aggOpAttrs;
-  for (AtomicRMWKind agg : aggOps)
-    aggOpAttrs.push_back(builder.getI64IntegerAttr(static_cast<int64_t>(agg)));
-  result.addAttribute(getAggOpsAttrName(), builder.getArrayAttr(aggOpAttrs));
+  // Convert the reductions to integer attributes.
+  SmallVector<Attribute, 4> reductionAttrs;
+  for (AtomicRMWKind reduction : reductions)
+    reductionAttrs.push_back(
+        builder.getI64IntegerAttr(static_cast<int64_t>(reduction)));
+  result.addAttribute(getReductionsAttrName(),
+                      builder.getArrayAttr(reductionAttrs));
   result.addAttribute(getLowerBoundsMapAttrName(), AffineMapAttr::get(lbMap));
   result.addAttribute(getUpperBoundsMapAttrName(), AffineMapAttr::get(ubMap));
   result.addAttribute(getStepsAttrName(), builder.getI64ArrayAttr(steps));
@@ -2524,14 +2528,14 @@ static LogicalResult verify(AffineParallelOp op) {
     return op.emitOpError("region argument count and num results of upper "
                           "bounds, lower bounds, and steps must all match");
 
-  if (op.aggOps().size() != op.getNumResults())
-    return op.emitOpError("aggregation must be specified for each output");
+  if (op.reductions().size() != op.getNumResults())
+    return op.emitOpError("a reduction must be specified for each output");
 
-  // Verify agg ops are all valid
-  for (Attribute attr : op.aggOps()) {
+  // Verify reduction  ops are all valid
+  for (Attribute attr : op.reductions()) {
     auto intAttr = attr.dyn_cast<IntegerAttr>();
     if (!intAttr || !symbolizeAtomicRMWKind(intAttr.getInt()))
-      return op.emitOpError("invalid aggregation attribute");
+      return op.emitOpError("invalid reduction attribute");
   }
 
   // Verify that the bound operands are valid dimension/symbols.
@@ -2567,8 +2571,8 @@ static void print(OpAsmPrinter &p, AffineParallelOp op) {
     p << ')';
   }
   if (op.getNumResults()) {
-    p << " agg (";
-    llvm::interleaveComma(op.aggOps(), p, [&](auto &attr) {
+    p << " reduce (";
+    llvm::interleaveComma(op.reductions(), p, [&](auto &attr) {
       auto sym =
           *symbolizeAtomicRMWKind(attr.template cast<IntegerAttr>().getInt());
       p << "\"" << stringifyAtomicRMWKind(sym) << "\"";
@@ -2580,7 +2584,7 @@ static void print(OpAsmPrinter &p, AffineParallelOp op) {
                 /*printBlockTerminators=*/op.getNumResults());
   p.printOptionalAttrDict(
       op.getAttrs(),
-      /*elidedAttrs=*/{AffineParallelOp::getAggOpsAttrName(),
+      /*elidedAttrs=*/{AffineParallelOp::getReductionsAttrName(),
                        AffineParallelOp::getLowerBoundsMapAttrName(),
                        AffineParallelOp::getUpperBoundsMapAttrName(),
                        AffineParallelOp::getStepsAttrName()});
@@ -2644,21 +2648,21 @@ static ParseResult parseAffineParallelOp(OpAsmParser &parser,
     result.addAttribute(AffineParallelOp::getStepsAttrName(),
                         builder.getI64ArrayAttr(steps));
   }
-  SmallVector<Attribute, 4> aggOps;
-  if (succeeded(parser.parseOptionalKeyword("agg"))) {
+  SmallVector<Attribute, 4> reductions;
+  if (succeeded(parser.parseOptionalKeyword("reduce"))) {
     if (parser.parseLParen())
       return failure();
     do {
       StringAttr attrVal;
       NamedAttrList attrStorage;
       auto loc = parser.getCurrentLocation();
-      if (parser.parseAttribute(attrVal, builder.getNoneType(), "agg",
+      if (parser.parseAttribute(attrVal, builder.getNoneType(), "reduce",
                                 attrStorage))
         return failure();
       auto attrOptional = symbolizeAtomicRMWKind(attrVal.getValue());
       if (!attrOptional)
-        return parser.emitError(loc, "invalid aggOp value: ") << attrVal;
-      aggOps.push_back(builder.getI64IntegerAttr(
+        return parser.emitError(loc, "invalid reduction value: ") << attrVal;
+      reductions.push_back(builder.getI64IntegerAttr(
           static_cast<int64_t>(attrOptional.getValue())));
     } while (succeeded(parser.parseOptionalComma()));
     if (parser.parseRParen())
@@ -2666,8 +2670,8 @@ static ParseResult parseAffineParallelOp(OpAsmParser &parser,
   }
   if (parser.parseOptionalArrowTypeList(result.types))
     return failure();
-  result.addAttribute(AffineParallelOp::getAggOpsAttrName(),
-                      builder.getArrayAttr(aggOps));
+  result.addAttribute(AffineParallelOp::getReductionsAttrName(),
+                      builder.getArrayAttr(reductions));
 
   // Now parse the body.
   Region *body = result.addRegion();
