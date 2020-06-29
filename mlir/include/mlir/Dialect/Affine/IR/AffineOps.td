@@ -536,7 +536,7 @@ def AffineParallelOp : Affine_Op<"parallel",
     The same restrictions hold for these SSA values as for all bindings of SSA
     values to dimensions and symbols.
 
-    Each value yielded by affine.yield will be acccumulated/reduced via one of 
+    Each value yielded by affine.yield will be accumulated/reduced via one of
     the reduction methods defined in the AtomicRMWKind enum.  The order of
     reduction is unspecified, and lowering may produce any valid ordering.
     Loops with a 0 trip count will produce as a result the identity value
@@ -558,7 +558,7 @@ def AffineParallelOp : Affine_Op<"parallel",
   }];
 
   let arguments = (ins
-     TypedArrayAttrBase<AtomicRMWKindAttr, "Reductions ops">:$reductions,
+     TypedArrayAttrBase<AtomicRMWKindAttr, "Reduction ops">:$reductions,
      AffineMapAttr:$lowerBoundsMap,
      AffineMapAttr:$upperBoundsMap,
      I64ArrayAttr:$steps,
