@@ -2713,8 +2713,12 @@ struct SimplifyAffineParallel : public OpRewritePattern<AffineParallelOp> {
 
       // Use an 'affine.apply' op that will be simplified later in subsequent
       // canonicalizations.
-      SmallVector<Value, 8> applyOperands{op.getLowerBoundsOperands()};
+      auto lbOperands = op.getLowerBoundsOperands();
+      auto dimOperands = lbOperands.take_front(nDims);
+      auto symbolOperands = lbOperands.drop_front(nDims);
+      SmallVector<Value, 8> applyOperands{dimOperands};
       applyOperands.push_back(iv);
+      applyOperands.append(symbolOperands.begin(), symbolOperands.end());
       auto apply =
           rewriter.create<AffineApplyOp>(op.getLoc(), map, applyOperands);
       iv.replaceAllUsesExcept(apply, SmallPtrSet<Operation *, 1>{apply});
