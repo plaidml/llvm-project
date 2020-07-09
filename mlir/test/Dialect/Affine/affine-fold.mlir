@@ -56,7 +56,7 @@ func @simplify_parallel() {
   affine.parallel (%i, %j) = (0, 1) to (10, 5) step (3, 2) {
     // CHECK: affine.parallel (%[[k:.*]]) = (0) to (%[[j]] * 2 - %[[i]] * 3 + 1) {
     affine.parallel (%k) = (%i) to (%j) {
-    // CHECK: affine.store %{{.*}}, %{{.*}}[%[[i]] * 3, %[[i]] * 3 + %[[k]]] : memref<2x4xf32>
+      // CHECK: affine.store %{{.*}}, %{{.*}}[%[[i]] * 3, %[[i]] * 3 + %[[k]]] : memref<2x4xf32>
       affine.store %cst, %0[%i, %k] : memref<2x4xf32>
     }
   }
