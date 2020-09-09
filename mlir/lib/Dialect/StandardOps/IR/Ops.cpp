@@ -223,12 +223,13 @@ static LogicalResult foldMemRefCast(Operation *op) {
 // //===----------------------------------------------------------------------===//
 
 // // Type compatibility for vector casts.
-static bool areVectorCastSimpleCompatible(Type a, Type b,
-    std::function<bool(Type, Type)> areElementsCastCompatible) {
+static bool areVectorCastSimpleCompatible(
+    Type a, Type b, std::function<bool(Type, Type)> areElementsCastCompatible) {
   if (auto va = a.dyn_cast<VectorType>())
     if (auto vb = b.dyn_cast<VectorType>())
       return va.getShape().equals(vb.getShape()) &&
-             areElementsCastCompatible(va.getElementType(), vb.getElementType());
+             areElementsCastCompatible(va.getElementType(),
+                                       vb.getElementType());
   return false;
 }
 
