@@ -5,9 +5,6 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-
-#include <functional>
-
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 
 #include "mlir/Dialect/CommonFolders.h"
@@ -224,7 +221,7 @@ static LogicalResult foldMemRefCast(Operation *op) {
 
 // // Type compatibility for vector casts.
 static bool areVectorCastSimpleCompatible(
-    Type a, Type b, std::function<bool(Type, Type)> areElementsCastCompatible) {
+    Type a, Type b, function_ref<bool(Type, Type)> areElementsCastCompatible) {
   if (auto va = a.dyn_cast<VectorType>())
     if (auto vb = b.dyn_cast<VectorType>())
       return va.getShape().equals(vb.getShape()) &&
