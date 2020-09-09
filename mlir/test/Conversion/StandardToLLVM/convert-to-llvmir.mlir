@@ -594,6 +594,24 @@ func @sitofp(%arg0 : i32, %arg1 : i64) {
   return
 }
 
+// Checking conversion of integer vectors to floating point vector types.
+// CHECK-LABEL: @sitofp_vector
+func @sitofp_vector(%arg0 : vector<2xi16>, %arg1 : vector<2xi32>, %arg2 : vector<2xi64>) {
+// CHECK-NEXT: = llvm.sitofp {{.*}} : !llvm.vec<2 x i16> to !llvm.vec<2 x float>
+  %0 = sitofp %arg0: vector<2xi16> to vector<2xf32>
+// CHECK-NEXT: = llvm.sitofp {{.*}} : !llvm.vec<2 x i16> to !llvm.vec<2 x double>
+  %1 = sitofp %arg0: vector<2xi16> to vector<2xf64>
+// CHECK-NEXT: = llvm.sitofp {{.*}} : !llvm.vec<2 x i32> to !llvm.vec<2 x float>
+  %2 = sitofp %arg1: vector<2xi32> to vector<2xf32>
+// CHECK-NEXT: = llvm.sitofp {{.*}} : !llvm.vec<2 x i32> to !llvm.vec<2 x double>
+  %3 = sitofp %arg1: vector<2xi32> to vector<2xf64>
+// CHECK-NEXT: = llvm.sitofp {{.*}} : !llvm.vec<2 x i64> to !llvm.vec<2 x float>
+  %4 = sitofp %arg2: vector<2xi64> to vector<2xf32>
+// CHECK-NEXT: = llvm.sitofp {{.*}} : !llvm.vec<2 x i64> to !llvm.vec<2 x double>
+  %5 = sitofp %arg2: vector<2xi64> to vector<2xf64>
+  return
+}
+
 // Checking conversion of unsigned integer types to floating point.
 // CHECK-LABEL: @uitofp
 func @uitofp(%arg0 : i32, %arg1 : i64) {
@@ -693,6 +711,24 @@ func @fptoui_vector(%arg0 : vector<2xf16>, %arg1 : vector<2xf32>, %arg2 : vector
   %4 = fptoui %arg2: vector<2xf64> to vector<2xi32>
 // CHECK-NEXT: = llvm.fptoui {{.*}} : !llvm.vec<2 x double> to !llvm.vec<2 x i64>
   %5 = fptoui %arg2: vector<2xf64> to vector<2xi64>
+  return
+}
+
+// Checking conversion of integer vectors to floating point vector types.
+// CHECK-LABEL: @uitofp_vector
+func @uitofp_vector(%arg0 : vector<2xi16>, %arg1 : vector<2xi32>, %arg2 : vector<2xi64>) {
+// CHECK-NEXT: = llvm.uitofp {{.*}} : !llvm.vec<2 x i16> to !llvm.vec<2 x float>
+  %0 = uitofp %arg0: vector<2xi16> to vector<2xf32>
+// CHECK-NEXT: = llvm.uitofp {{.*}} : !llvm.vec<2 x i16> to !llvm.vec<2 x double>
+  %1 = uitofp %arg0: vector<2xi16> to vector<2xf64>
+// CHECK-NEXT: = llvm.uitofp {{.*}} : !llvm.vec<2 x i32> to !llvm.vec<2 x float>
+  %2 = uitofp %arg1: vector<2xi32> to vector<2xf32>
+// CHECK-NEXT: = llvm.uitofp {{.*}} : !llvm.vec<2 x i32> to !llvm.vec<2 x double>
+  %3 = uitofp %arg1: vector<2xi32> to vector<2xf64>
+// CHECK-NEXT: = llvm.uitofp {{.*}} : !llvm.vec<2 x i64> to !llvm.vec<2 x float>
+  %4 = uitofp %arg2: vector<2xi64> to vector<2xf32>
+// CHECK-NEXT: = llvm.uitofp {{.*}} : !llvm.vec<2 x i64> to !llvm.vec<2 x double>
+  %5 = uitofp %arg2: vector<2xi64> to vector<2xf64>
   return
 }
 
