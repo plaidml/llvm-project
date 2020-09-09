@@ -5,6 +5,7 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
+
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 
 #include "mlir/Dialect/CommonFolders.h"
