@@ -25,7 +25,6 @@
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/raw_ostream.h"
-
 // Pull in all enum type definitions and utility function declarations.
 #include "mlir/Dialect/StandardOps/IR/OpsEnums.cpp.inc"
 
@@ -215,6 +214,21 @@ static LogicalResult foldMemRefCast(Operation *op) {
     }
   }
   return success(folded);
+}
+
+// //===----------------------------------------------------------------------===//
+// // Common cast compatibility check for vector types
+// //===----------------------------------------------------------------------===//
+
+// // Type compatibility for vector casts.
+static bool areVectorCastSimpleCompatible(
+    Type a, Type b, function_ref<bool(Type, Type)> areElementsCastCompatible) {
+  if (auto va = a.dyn_cast<VectorType>())
+    if (auto vb = b.dyn_cast<VectorType>())
+      return va.getShape().equals(vb.getShape()) &&
+             areElementsCastCompatible(va.getElementType(),
+                                       vb.getElementType());
+  return false;
 }
 
 //===----------------------------------------------------------------------===//
@@ -1764,11 +1778,7 @@ bool FPExtOp::areCastCompatible(Type a, Type b) {
   if (auto fa = a.dyn_cast<FloatType>())
     if (auto fb = b.dyn_cast<FloatType>())
       return fa.getWidth() < fb.getWidth();
-  if (auto va = a.dyn_cast<VectorType>())
-    if (auto vb = b.dyn_cast<VectorType>())
-      return va.getShape().equals(vb.getShape()) &&
-             areCastCompatible(va.getElementType(), vb.getElementType());
-  return false;
+  return areVectorCastSimpleCompatible(a, b, areCastCompatible);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1776,7 +1786,9 @@ bool FPExtOp::areCastCompatible(Type a, Type b) {
 //===----------------------------------------------------------------------===//
 
 bool FPToSIOp::areCastCompatible(Type a, Type b) {
-  return a.isa<FloatType>() && b.isSignlessInteger();
+  if (a.isa<FloatType>() && b.isSignlessInteger())
+    return true;
+  return areVectorCastSimpleCompatible(a, b, areCastCompatible);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1784,7 +1796,9 @@ bool FPToSIOp::areCastCompatible(Type a, Type b) {
 //===----------------------------------------------------------------------===//
 
 bool FPToUIOp::areCastCompatible(Type a, Type b) {
-  return a.isa<FloatType>() && b.isSignlessInteger();
+  if (a.isa<FloatType>() && b.isSignlessInteger())
+    return true;
+  return areVectorCastSimpleCompatible(a, b, areCastCompatible);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1795,11 +1809,7 @@ bool FPTruncOp::areCastCompatible(Type a, Type b) {
   if (auto fa = a.dyn_cast<FloatType>())
     if (auto fb = b.dyn_cast<FloatType>())
       return fa.getWidth() > fb.getWidth();
-  if (auto va = a.dyn_cast<VectorType>())
-    if (auto vb = b.dyn_cast<VectorType>())
-      return va.getShape().equals(vb.getShape()) &&
-             areCastCompatible(va.getElementType(), vb.getElementType());
-  return false;
+  return areVectorCastSimpleCompatible(a, b, areCastCompatible);
 }
 
 //===----------------------------------------------------------------------===//
@@ -2239,7 +2249,9 @@ OpFoldResult SignedRemIOp::fold(ArrayRef<Attribute> operands) {
 
 // sitofp is applicable from integer types to float types.
 bool SIToFPOp::areCastCompatible(Type a, Type b) {
-  return a.isSignlessInteger() && b.isa<FloatType>();
+  if (a.isSignlessInteger() && b.isa<FloatType>())
+    return true;
+  return areVectorCastSimpleCompatible(a, b, areCastCompatible);
 }
 
 //===----------------------------------------------------------------------===//
@@ -2319,7 +2331,9 @@ OpFoldResult SubIOp::fold(ArrayRef<Attribute> operands) {
 
 // uitofp is applicable from integer types to float types.
 bool UIToFPOp::areCastCompatible(Type a, Type b) {
-  return a.isSignlessInteger() && b.isa<FloatType>();
+  if (a.isSignlessInteger() && b.isa<FloatType>())
+    return true;
+  return areVectorCastSimpleCompatible(a, b, areCastCompatible);
 }
 
 //===----------------------------------------------------------------------===//
