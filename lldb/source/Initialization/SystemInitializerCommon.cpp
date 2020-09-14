@@ -14,7 +14,7 @@
 #include "lldb/Host/HostInfo.h"
 #include "lldb/Host/Socket.h"
 #include "lldb/Utility/Log.h"
-#include "lldb/Utility/Reproducer.h"
+#include "lldb/Utility/ReproducerProvider.h"
 #include "lldb/Utility/Timer.h"
 #include "lldb/lldb-private.h"
 
@@ -51,17 +51,23 @@ static llvm::Error InitializeFileSystem() {
       FileSystem::Initialize();
     }
 
-    llvm::Expected<std::string> cwd =
-        loader->LoadBuffer<WorkingDirectoryProvider>();
-    if (!cwd)
-      return cwd.takeError();
-
-    llvm::StringRef working_dir = llvm::StringRef(*cwd).rtrim();
+    // Set the current working directory form the reproducer.
+    llvm::Expected<std::string> working_dir =
+        repro::GetDirectoryFrom<WorkingDirectoryProvider>(loader);
+    if (!working_dir)
+      return working_dir.takeError();
     if (std::error_code ec = FileSystem::Instance()
                                  .GetVirtualFileSystem()
-                                 ->setCurrentWorkingDirectory(working_dir)) {
+                                 ->setCurrentWorkingDirectory(*working_dir)) {
       return llvm::errorCodeToError(ec);
     }
+
+    // Set the home directory from the reproducer.
+    llvm::Expected<std::string> home_dir =
+        repro::GetDirectoryFrom<HomeDirectoryProvider>(loader);
+    if (!home_dir)
+      return home_dir.takeError();
+    FileSystem::Instance().SetHomeDirectory(*home_dir);
 
     return llvm::Error::success();
   }
@@ -73,9 +79,10 @@ static llvm::Error InitializeFileSystem() {
     repro::FileProvider &fp = g->GetOrCreate<repro::FileProvider>();
     FileSystem::Initialize(fp.GetFileCollector());
 
-    repro::WorkingDirectoryProvider &wp =
-        g->GetOrCreate<repro::WorkingDirectoryProvider>();
-    fp.RecordInterestingDirectory(wp.GetWorkingDirectory());
+    fp.RecordInterestingDirectory(
+        g->GetOrCreate<repro::WorkingDirectoryProvider>().GetDirectory());
+    fp.RecordInterestingDirectory(
+        g->GetOrCreate<repro::HomeDirectoryProvider>().GetDirectory());
 
     return llvm::Error::success();
   }

@@ -245,9 +245,9 @@ void RocmInstallationDetector::detectDeviceLibrary() {
     // - ${ROCM_ROOT}/lib/*
     // - ${ROCM_ROOT}/lib/bitcode/*
     // so try to detect these layouts.
-    static llvm::SmallVector<const char *, 2> SubDirsList[] = {
+    static constexpr std::array<const char *, 2> SubDirsList[] = {
         {"amdgcn", "bitcode"},
-        {"lib"},
+        {"lib", ""},
         {"lib", "bitcode"},
     };
 
@@ -351,6 +351,7 @@ void amdgpu::Linker::ConstructJob(Compilation &C, const JobAction &JA,
 
   std::string Linker = getToolChain().GetProgramPath(getShortName());
   ArgStringList CmdArgs;
+  addLinkerCompressDebugSectionsOption(getToolChain(), Args, CmdArgs);
   AddLinkerInputs(getToolChain(), Inputs, Args, CmdArgs, JA);
   CmdArgs.push_back("-shared");
   CmdArgs.push_back("-o");

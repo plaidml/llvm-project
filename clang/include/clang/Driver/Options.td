@@ -56,6 +56,13 @@ def NoDriverOption : OptionFlag;
 // be used), add this flag.
 def LinkOption : OptionFlag;
 
+// FlangOption - This is considered a "core" Flang option, available in
+// flang mode.
+def FlangOption : OptionFlag;
+
+// FC1Option - This option should be accepted by flang -fc1.
+def FC1Option : OptionFlag;
+
 // A short name to show in documentation. The name will be interpreted as rST.
 class DocName<string name> { string DocName = name; }
 
@@ -698,7 +705,7 @@ def emit_ast : Flag<["-"], "emit-ast">,
 def emit_llvm : Flag<["-"], "emit-llvm">, Flags<[CC1Option]>, Group<Action_Group>,
   HelpText<"Use the LLVM representation for assembler and object files">;
 def emit_interface_stubs : Flag<["-"], "emit-interface-stubs">, Flags<[CC1Option]>, Group<Action_Group>,
-  HelpText<"Generate Inteface Stub Files.">;
+  HelpText<"Generate Interface Stub Files.">;
 def emit_merged_ifs : Flag<["-"], "emit-merged-ifs">,
   Flags<[CC1Option]>, Group<Action_Group>,
   HelpText<"Generate Interface Stub Files, emit merged text not binary.">;
@@ -994,6 +1001,8 @@ defm cxx_static_destructors : OptOutFFlag<"c++-static-destructors", "",
   "Disable C++ static destructor registration">;
 def fsymbol_partition_EQ : Joined<["-"], "fsymbol-partition=">, Group<f_Group>,
   Flags<[CC1Option]>;
+
+defm memory_profile : OptInFFlag<"memory-profile", "Enable", "Disable", " heap memory profiling">;
 
 // Begin sanitizer flags. These should all be core options exposed in all driver
 // modes.
@@ -1809,7 +1818,7 @@ def fstack_protector : Flag<["-"], "fstack-protector">, Group<f_Group>,
            "This uses a loose heuristic which considers functions vulnerable if they "
            "contain a char (or 8bit integer) array or constant sized calls to alloca "
            ", which are of greater size than ssp-buffer-size (default: 8 bytes). All "
-           "variable sized calls to alloca are considered vulnerable. A function with"
+           "variable sized calls to alloca are considered vulnerable. A function with "
            "a stack protector has a guard value added to the stack frame that is "
            "checked on function exit. The guard value must be positioned in the "
            "stack frame such that a buffer overflow from a vulnerable variable will "
@@ -1940,6 +1949,17 @@ def fvisibility_EQ : Joined<["-"], "fvisibility=">, Group<f_Group>,
   HelpText<"Set the default symbol visibility for all global declarations">, Values<"hidden,default">;
 def fvisibility_inlines_hidden : Flag<["-"], "fvisibility-inlines-hidden">, Group<f_Group>,
   HelpText<"Give inline C++ member functions hidden visibility by default">,
+  Flags<[CC1Option]>;
+def fvisibility_inlines_hidden_static_local_var :
+  Flag<["-"], "fvisibility-inlines-hidden-static-local-var">, Group<f_Group>,
+  HelpText<"When -fvisibility-inlines-hidden is enabled, static variables in "
+           "inline C++ member functions will also be given hidden visibility "
+           "by default">,
+  Flags<[CC1Option]>;
+def fno_visibility_inlines_hidden_static_local_var :
+  Flag<["-"], "fno-visibility-inlines-hidden-static-local-var">, Group<f_Group>,
+  HelpText<"Disables -fvisibility-inlines-hidden-static-local-var "
+           "(this is the default on non-darwin targets)">,
   Flags<[CC1Option]>;
 def fvisibility_ms_compat : Flag<["-"], "fvisibility-ms-compat">, Group<f_Group>,
   HelpText<"Give global types 'default' visibility and global functions and "
@@ -2087,7 +2107,7 @@ def gno_embed_source : Flag<["-"], "gno-embed-source">, Group<g_flags_Group>,
     Flags<[DriverOption]>,
     HelpText<"Restore the default behavior of not embedding source text in DWARF debug sections">;
 def headerpad__max__install__names : Joined<["-"], "headerpad_max_install_names">;
-def help : Flag<["-", "--"], "help">, Flags<[CC1Option,CC1AsOption]>,
+def help : Flag<["-", "--"], "help">, Flags<[CC1Option,CC1AsOption, FC1Option, FlangOption]>,
   HelpText<"Display available options">;
 def ibuiltininc : Flag<["-"], "ibuiltininc">,
   HelpText<"Enable builtin #include directories even when -nostdinc is used "
@@ -2506,6 +2526,8 @@ def mlongcall: Flag<["-"], "mlongcall">,
     Group<m_ppc_Features_Group>;
 def mno_longcall : Flag<["-"], "mno-longcall">,
     Group<m_ppc_Features_Group>;
+def mmma: Flag<["-"], "mmma">, Group<m_ppc_Features_Group>;
+def mno_mma: Flag<["-"], "mno-mma">, Group<m_ppc_Features_Group>;
 def maix_struct_return : Flag<["-"], "maix-struct-return">,
   Group<m_Group>, Flags<[CC1Option]>,
   HelpText<"Return all structs in memory (PPC32 only)">;
@@ -2745,7 +2767,7 @@ def no_pie : Flag<["-"], "no-pie">, Alias<nopie>;
 def noprebind : Flag<["-"], "noprebind">;
 def noprofilelib : Flag<["-"], "noprofilelib">;
 def noseglinkedit : Flag<["-"], "noseglinkedit">;
-def nostartfiles : Flag<["-"], "nostartfiles">;
+def nostartfiles : Flag<["-"], "nostartfiles">, Group<Link_Group>;
 def nostdinc : Flag<["-"], "nostdinc">, Flags<[CoreOption]>;
 def nostdlibinc : Flag<["-"], "nostdlibinc">;
 def nostdincxx : Flag<["-"], "nostdinc++">, Flags<[CC1Option]>,
@@ -2846,7 +2868,7 @@ def segs__read__ : Joined<["-"], "segs_read_">;
 def shared_libgcc : Flag<["-"], "shared-libgcc">;
 def shared : Flag<["-", "--"], "shared">, Group<Link_Group>;
 def single__module : Flag<["-"], "single_module">;
-def specs_EQ : Joined<["-", "--"], "specs=">;
+def specs_EQ : Joined<["-", "--"], "specs=">, Group<Link_Group>;
 def specs : Separate<["-", "--"], "specs">, Flags<[Unsupported]>;
 def static_libgcc : Flag<["-"], "static-libgcc">;
 def static_libstdcxx : Flag<["-"], "static-libstdc++">;
@@ -3034,7 +3056,8 @@ def _rtlib : Separate<["--"], "rtlib">, Alias<rtlib_EQ>;
 def _serialize_diags : Separate<["-", "--"], "serialize-diagnostics">, Flags<[DriverOption]>,
   HelpText<"Serialize compiler diagnostics to a file">;
 // We give --version different semantics from -version.
-def _version : Flag<["--"], "version">, Flags<[CoreOption, CC1Option]>,
+def _version : Flag<["--"], "version">,
+  Flags<[CoreOption, CC1Option, FC1Option, FlangOption]>,
   HelpText<"Print version information">;
 def _signed_char : Flag<["--"], "signed-char">, Alias<fsigned_char>;
 def _std : Separate<["--"], "std">, Alias<std_EQ>;
@@ -3868,6 +3891,9 @@ def fdebug_pass_manager : Flag<["-"], "fdebug-pass-manager">,
     HelpText<"Prints debug information for the new pass manager">;
 def fno_debug_pass_manager : Flag<["-"], "fno-debug-pass-manager">,
     HelpText<"Disables debug printing for the new pass manager">;
+def fexperimental_debug_variable_locations : Flag<["-"],
+    "fexperimental-debug-variable-locations">,
+    HelpText<"Use experimental new value-tracking variable locations">;
 // The driver option takes the key as a parameter to the -msign-return-address=
 // and -mbranch-protection= options, but CC1 has a separate option so we
 // don't have to parse the parameter twice.
@@ -4043,8 +4069,7 @@ def frecovery_ast : Flag<["-"], "frecovery-ast">,
            "encountering semantic errors">;
 def fno_recovery_ast : Flag<["-"], "fno-recovery-ast">;
 def frecovery_ast_type : Flag<["-"], "frecovery-ast-type">,
-  HelpText<"Preserve the type for recovery expressions when possible "
-          "(experimental)">;
+  HelpText<"Preserve the type for recovery expressions when possible">;
 def fno_recovery_ast_type : Flag<["-"], "fno-recovery-ast-type">;
 
 let Group = Action_Group in {
@@ -4297,6 +4322,9 @@ def fno_signed_wchar : Flag<["-"], "fno-signed-wchar">,
 def fcompatibility_qualified_id_block_param_type_checking : Flag<["-"], "fcompatibility-qualified-id-block-type-checking">,
   HelpText<"Allow using blocks with parameters of more specific type than "
            "the type system guarantees when a parameter is qualified id">;
+def fpass_by_value_is_noalias: Flag<["-"], "fpass-by-value-is-noalias">,
+  HelpText<"Allows assuming by-value parameters do not alias any other value. "
+           "Has no effect on non-trivially-copyable classes in C++.">, Group<f_Group>;
 
 // FIXME: Remove these entirely once functionality/tests have been excised.
 def fobjc_gc_only : Flag<["-"], "fobjc-gc-only">, Group<f_Group>,
@@ -4679,6 +4707,9 @@ def _SLASH_openmp : CLFlag<"openmp">, HelpText<"Enable OpenMP support">,
 def _SLASH_openmp_experimental : CLFlag<"openmp:experimental">,
   HelpText<"Enable OpenMP support with experimental SIMD support">,
   Alias<fopenmp>;
+def _SLASH_tune : CLCompileJoined<"tune:">,
+  HelpText<"Set CPU for optimization without affecting instruction set">,
+  Alias<mtune_EQ>;
 
 // Non-aliases:
 
@@ -4742,6 +4773,8 @@ def _SLASH_TC : CLCompileFlag<"TC">, HelpText<"Treat all source files as C">;
 def _SLASH_Tp : CLCompileJoinedOrSeparate<"Tp">,
   HelpText<"Treat <file> as C++ source file">, MetaVarName<"<file>">;
 def _SLASH_TP : CLCompileFlag<"TP">, HelpText<"Treat all source files as C++">;
+def _SLASH_vctoolsdir : CLJoinedOrSeparate<"vctoolsdir">,
+  HelpText<"Path to the VCToolChain">, MetaVarName<"<dir>">;
 def _SLASH_volatile_iso : Option<["/", "-"], "volatile:iso", KIND_FLAG>,
   Group<_SLASH_volatile_Group>, Flags<[CLOption, DriverOption]>,
   HelpText<"Volatile loads and stores have standard semantics">;
