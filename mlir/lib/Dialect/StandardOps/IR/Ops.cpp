@@ -216,21 +216,6 @@ static LogicalResult foldMemRefCast(Operation *op) {
   return success(folded);
 }
 
-// //===----------------------------------------------------------------------===//
-// // Common cast compatibility check for vector types
-// //===----------------------------------------------------------------------===//
-
-// // Type compatibility for vector casts.
-static bool areVectorCastSimpleCompatible(
-    Type a, Type b, function_ref<bool(Type, Type)> areElementsCastCompatible) {
-  if (auto va = a.dyn_cast<VectorType>())
-    if (auto vb = b.dyn_cast<VectorType>())
-      return va.getShape().equals(vb.getShape()) &&
-             areElementsCastCompatible(va.getElementType(),
-                                       vb.getElementType());
-  return false;
-}
-
 //===----------------------------------------------------------------------===//
 // Common cast compatibility check for vector types.
 //===----------------------------------------------------------------------===//
