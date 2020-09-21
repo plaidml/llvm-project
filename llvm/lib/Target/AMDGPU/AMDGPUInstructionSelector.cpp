@@ -72,6 +72,7 @@ const char *AMDGPUInstructionSelector::getName() { return DEBUG_TYPE; }
 void AMDGPUInstructionSelector::setupMF(MachineFunction &MF, GISelKnownBits &KB,
                                         CodeGenCoverage &CoverageInfo) {
   MRI = &MF.getRegInfo();
+  Subtarget = &MF.getSubtarget<GCNSubtarget>();
   InstructionSelector::setupMF(MF, KB, CoverageInfo);
 }
 
@@ -1422,6 +1423,20 @@ bool AMDGPUInstructionSelector::selectDSAppendConsume(MachineInstr &MI,
   return constrainSelectedInstRegOperands(*MIB, TII, TRI, RBI);
 }
 
+bool AMDGPUInstructionSelector::selectSBarrier(MachineInstr &MI) const {
+  if (TM.getOptLevel() > CodeGenOpt::None) {
+    unsigned WGSize = STI.getFlatWorkGroupSizes(MF->getFunction()).second;
+    if (WGSize <= STI.getWavefrontSize()) {
+      MachineBasicBlock *MBB = MI.getParent();
+      const DebugLoc &DL = MI.getDebugLoc();
+      BuildMI(*MBB, &MI, DL, TII.get(AMDGPU::WAVE_BARRIER));
+      MI.eraseFromParent();
+      return true;
+    }
+  }
+  return selectImpl(MI, *CoverageInfo);
+}
+
 static bool parseTexFail(uint64_t TexFailCtrl, bool &TFE, bool &LWE,
                          bool &IsTexFail) {
   if (TexFailCtrl)
@@ -1726,6 +1741,8 @@ bool AMDGPUInstructionSelector::selectG_INTRINSIC_W_SIDE_EFFECTS(
     return selectDSAppendConsume(I, true);
   case Intrinsic::amdgcn_ds_consume:
     return selectDSAppendConsume(I, false);
+  case Intrinsic::amdgcn_s_barrier:
+    return selectSBarrier(I);
   default: {
     return selectImpl(I, *CoverageInfo);
   }
@@ -3150,7 +3167,7 @@ AMDGPUInstructionSelector::selectVOP3Mods_nnan(MachineOperand &Root) const {
   Register Src;
   unsigned Mods;
   std::tie(Src, Mods) = selectVOP3ModsImpl(Root);
-  if (!TM.Options.NoNaNsFPMath && !isKnownNeverNaN(Src, *MRI))
+  if (!isKnownNeverNaN(Src, *MRI))
     return None;
 
   return {{
@@ -3545,9 +3562,20 @@ AMDGPUInstructionSelector::selectDS1Addr1Offset(MachineOperand &Root) const {
 
 InstructionSelector::ComplexRendererFns
 AMDGPUInstructionSelector::selectDS64Bit4ByteAligned(MachineOperand &Root) const {
+  return selectDSReadWrite2(Root, false);
+}
+
+InstructionSelector::ComplexRendererFns
+AMDGPUInstructionSelector::selectDS128Bit8ByteAligned(MachineOperand &Root) const {
+  return selectDSReadWrite2(Root, true);
+}
+
+InstructionSelector::ComplexRendererFns
+AMDGPUInstructionSelector::selectDSReadWrite2(MachineOperand &Root,
+                                              bool IsDS128) const {
   Register Reg;
   unsigned Offset;
-  std::tie(Reg, Offset) = selectDS64Bit4ByteAlignedImpl(Root);
+  std::tie(Reg, Offset) = selectDSReadWrite2Impl(Root, IsDS128);
   return {{
       [=](MachineInstrBuilder &MIB) { MIB.addReg(Reg); },
       [=](MachineInstrBuilder &MIB) { MIB.addImm(Offset); },
@@ -3556,7 +3584,8 @@ AMDGPUInstructionSelector::selectDS64Bit4ByteAligned(MachineOperand &Root) const
 }
 
 std::pair<Register, unsigned>
-AMDGPUInstructionSelector::selectDS64Bit4ByteAlignedImpl(MachineOperand &Root) const {
+AMDGPUInstructionSelector::selectDSReadWrite2Impl(MachineOperand &Root,
+                                                  bool IsDS128) const {
   const MachineInstr *RootDef = MRI->getVRegDef(Root.getReg());
   if (!RootDef)
     return std::make_pair(Root.getReg(), 0);
@@ -3569,11 +3598,11 @@ AMDGPUInstructionSelector::selectDS64Bit4ByteAlignedImpl(MachineOperand &Root) c
     getPtrBaseWithConstantOffset(Root.getReg(), *MRI);
 
   if (Offset) {
-    int64_t DWordOffset0 = Offset / 4;
-    int64_t DWordOffset1 = DWordOffset0 + 1;
-    if (isDSOffsetLegal(PtrBase, DWordOffset1, 8)) {
+    int64_t OffsetValue0 = Offset / (IsDS128 ? 8 : 4);
+    int64_t OffsetValue1 = OffsetValue0 + 1;
+    if (isDSOffsetLegal(PtrBase, OffsetValue1, (IsDS128 ? 16 : 8))) {
       // (add n0, c0)
-      return std::make_pair(PtrBase, DWordOffset0);
+      return std::make_pair(PtrBase, OffsetValue0);
     }
   } else if (RootDef->getOpcode() == AMDGPU::G_SUB) {
     // TODO
