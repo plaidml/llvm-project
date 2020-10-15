@@ -26,9 +26,12 @@ you are looking for a simple overview, check out :doc:`TableGen Overview <./inde
 
 An example of a backend is ``RegisterInfo``, which generates the register
 file information for a particular target machine, for use by the LLVM
-target-independent code generator. See :doc:`TableGen Backends <./BackEnds>` for
-a description of the LLVM TableGen backends. Here are a few of the things
-backends can do.
+target-independent code generator. See :doc:`TableGen Backends <./BackEnds>`
+for a description of the LLVM TableGen backends, and :doc:`TableGen
+Backend Developer's Guide <./BackGuide>` for a guide to writing a new
+backend.
+
+Here are a few of the things backends can do.
 
 * Generate the register file information for a particular target machine.
 
@@ -285,10 +288,11 @@ wide range of records conveniently and compactly.
 
 ``dag``
     This type represents a nestable directed acyclic graph (DAG) of nodes.
-    Each node has an operator and one or more operands. A operand can be
+    Each node has an operator and zero or more operands. A operand can be
     another ``dag`` object, allowing an arbitrary tree of nodes and edges.
-    As an example, DAGs are used to represent code and patterns for use by
-    the code generator instruction selection algorithms.
+    As an example, DAGs are used to represent code patterns for use by
+    the code generator instruction selection algorithms. See `Directed
+    acyclic graphs (DAGs)`_ for more details;
 
 :token:`ClassID`
     Specifying a class name in a type context indicates
@@ -374,6 +378,7 @@ sometimes not when the value is the empty list (``[]``).
 
 This represents a DAG initializer (note the parentheses).  The first
 :token:`DagArg` is called the "operator" of the DAG and must be a record.
+See `Directed acyclic graphs (DAGs)`_ for more details.
 
 .. productionlist::
    SimpleValue6: `TokIdentifier`
@@ -439,8 +444,11 @@ sense after reading the remainder of this guide.
 
 This form creates a new anonymous record definition (as would be created by an
 unnamed ``def`` inheriting from the given class with the given template
-arguments; see `def`_) and the value is that record. (A field of the record can be
-obtained using a suffix; see `Suffixed Values`_.)
+arguments; see `def`_) and the value is that record. A field of the record can be
+obtained using a suffix; see `Suffixed Values`_.
+
+Invoking a class in this manner can provide a simple subroutine facility.
+See `Using Classes as Subroutines`_ for more information.
 
 .. productionlist::
    SimpleValue8: `BangOperator` ["<" `Type` ">"] "(" `ValueListNE` ")"
@@ -536,7 +544,7 @@ their declarations are parsed, and thus before the class is finally defined.
 
 .. _NAME:
 
-Every class has an implicit template argument named ``NAME`` (uppercse),
+Every class has an implicit template argument named ``NAME`` (uppercase),
 which is bound to the name of the :token:`Def` or :token:`Defm` inheriting
 the class. The value of ``NAME`` is undefined if the class is inherited by
 an anonymous record.
@@ -582,7 +590,7 @@ in a ``bit<n>`` field.
 The ``defvar`` form defines a variable whose value can be used in other
 value expressions within the body. The variable is not a field: it does not
 become a field of the class or record being defined. Variables are provided
-to hold temporary values while processing the body. See `Defvar in Record
+to hold temporary values while processing the body. See `Defvar in a Record
 Body`_ for more details.
 
 When class ``C2`` inherits from class ``C1``, it acquires all the field
@@ -1129,7 +1137,7 @@ the next iteration.  The following ``defvar`` will not work::
   defvar i = !add(i, 1)
 
 Variables can also be defined with ``defvar`` in a record body. See
-`Defvar in Record Body`_ for more details.
+`Defvar in a Record Body`_ for more details.
 
 ``foreach`` --- iterate over a sequence of statements
 -----------------------------------------------------
@@ -1193,7 +1201,7 @@ the usual way: in a case like ``if v1 then if v2 then {...} else {...}``, the
 
 The :token:`IfBody` of the then and else arms of the ``if`` establish an
 inner scope. Any ``defvar`` variables defined in the bodies go out of scope
-when the bodies are finished (see `Defvar in Record Body`_ for more details).
+when the bodies are finished (see `Defvar in a Record Body`_ for more details).
 
 The ``if`` statement can also be used in a record :token:`Body`.
 
@@ -1201,8 +1209,41 @@ The ``if`` statement can also be used in a record :token:`Body`.
 Additional Details
 ==================
 
-Defvar in record body
----------------------
+Directed acyclic graphs (DAGs)
+------------------------------
+
+A directed acyclic graph can be represented directly in TableGen using the
+``dag`` datatype. A DAG node consists of an operator and zero or more
+operands. Each operand can be of any desired type. By using another DAG node
+as an operand, an arbitrary graph of DAG nodes can be built. 
+
+The syntax of a ``dag`` instance is:
+
+  ``(`` *operator* *operand1*\ ``,`` *operand2*\ ``,`` ... ``)``
+
+The operator must be present and must be a record. There can be zero or more
+operands, separated by commas. The operator and operands can have three
+formats. 
+
+====================== =============================================
+Format                 Meaning
+====================== =============================================
+*value*                operand value
+*value*\ ``:``\ *name* operand value and associated name
+*name*                 operand name with unset (uninitialized) value
+====================== =============================================
+
+The *value* can be any TableGen value. The *name*, if present, must be a
+:token:`TokVarName`, which starts with a dollar sign (``$``). The purpose of
+a name is to tag an operator or operand in a DAG with a particular meaning,
+or to associate an operand in one DAG with a like-named operand in another
+DAG.
+
+The following bang operators manipulate DAGs: ``!con``, ``!dag``, ``!foreach``, 
+``!getop``, ``!setop``.
+
+Defvar in a record body
+-----------------------
 
 In addition to defining global variables, the ``defvar`` statement can
 be used inside the :token:`Body` of a class or record definition to define
@@ -1214,7 +1255,7 @@ list of a ``foreach``, which establishes a scope.
 A variable named ``V`` in an inner scope shadows (hides) any variables ``V``
 in outer scopes. In particular, ``V`` in a record body shadows a global
 ``V``, and ``V`` in a ``foreach`` statement list shadows any ``V`` in
-surrounding global or record scopes.
+surrounding record or global scopes.
 
 Variables defined in a ``foreach`` go out of scope at the end of
 each loop iteration, so their value in one iteration is not available in
@@ -1249,7 +1290,6 @@ abstract records and so go through the same steps.
 5. Make a pass over all the fields to resolve any inter-field references.
 
 6. Add the record to the master record list.
-
 
 Because references between fields are resolved (step 5) after ``let`` bindings are
 applied (step 3), the ``let`` statement has unusual power. For example:
@@ -1290,6 +1330,52 @@ where a local ``let`` does the same thing, the results are:
 ``Yplus1`` is 11 because the ``let Y`` is performed before the ``!add(Y,
 1)`` is resolved. Use this power wisely.
 
+
+Using Classes as Subroutines
+============================
+
+As described in `Simple values`_, a class can be invoked in an expression
+and passed template arguments. This causes TableGen to create a new anonymous
+record inheriting from that class. As usual, the record receives all the
+fields defined in the class.
+
+This feature can be employed as a simple subroutine facility. The class can
+use the template arguments to define various variables and fields, which end
+up in the anonymous record. Those fields can then be retrieved in the
+expression invoking the class as follows. Assume that the field ``ret``
+contains the final value of the subroutine.
+
+.. code-block:: text
+
+  int Result = ... CalcValue<arg>.ret ...;
+
+The ``CalcValue`` class is invoked with the template argument ``arg``. It
+calculates a value for the ``ret`` field, which is then retrieved at the
+"point of call" in the initialization for the Result field. The anonymous
+record created in this example serves no other purpose than to carry the
+result value.
+
+Here is a practical example. The class ``isValidSize`` determines whether a
+specified number of bytes represents a valid data size. The bit ``ret`` is
+set appropriately. The field ``ValidSize`` obtains its initial value by
+invoking ``isValidSize`` with the data size and retrieving the ``ret`` field
+from the resulting anonymous record.
+
+.. code-block:: text
+
+  class isValidSize<int size> {
+    bit ret = !cond(!eq(size,  1): 1,
+                    !eq(size,  2): 1,
+                    !eq(size,  4): 1,
+                    !eq(size,  8): 1,
+                    !eq(size, 16): 1,
+                    1: 0);
+  }
+
+  def Data1 {
+    int Size = ...;
+    bit ValidSize = isValidSize<Size>.ret;
+  }
 
 Preprocessing Facilities
 ========================
@@ -1334,8 +1420,8 @@ A macro test region begins with an ``#ifdef`` or ``#ifndef`` directive. If
 the macro name is defined (``#ifdef``) or undefined (``#ifndef``), then the
 source code between the directive and the corresponding ``#else`` or
 ``#endif`` is processed. If the test fails but there is an ``#else``
-portion, the source code between the ``#else`` and the ``#endif`` is
-processed. If the test fails and there is no ``#else`` portion, then no
+clause, the source code between the ``#else`` and the ``#endif`` is
+processed. If the test fails and there is no ``#else`` clause, then no
 source code in the test region is processed.
 
 Test regions may be nested, but they must be properly nested. A region
@@ -1343,7 +1429,7 @@ started in a file must end in that file; that is, must have its
 ``#endif`` in the same file.
 
 A :token:`MacroName` may be defined externally using the ``-D`` option on the
-``llvm-tblgen`` command line::
+``xxx-tblgen`` command line::
 
   llvm-tblgen self-reference.td -Dmacro1 -Dmacro3
 

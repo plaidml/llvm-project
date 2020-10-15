@@ -889,6 +889,18 @@ void CastOperation::CheckDynamicCast() {
     return;
   }
 
+  // Warns when dynamic_cast is used with RTTI data disabled.
+  if (!Self.getLangOpts().RTTIData) {
+    bool MicrosoftABI =
+        Self.getASTContext().getTargetInfo().getCXXABI().isMicrosoft();
+    bool isClangCL = Self.getDiagnostics().getDiagnosticOptions().getFormat() ==
+                     DiagnosticOptions::MSVC;
+    if (MicrosoftABI || !DestPointee->isVoidType())
+      Self.Diag(OpRange.getBegin(),
+                diag::warn_no_dynamic_cast_with_rtti_disabled)
+          << isClangCL;
+  }
+
   // Done. Everything else is run-time checks.
   Kind = CK_Dynamic;
 }
@@ -2692,6 +2704,17 @@ void CastOperation::CheckCStyleCast() {
 
     // Cast to void allows any expr type.
     Kind = CK_ToVoid;
+    return;
+  }
+
+  // If the type is dependent, we won't do any other semantic analysis now.
+  if (Self.getASTContext().isDependenceAllowed() &&
+      (DestType->isDependentType() || SrcExpr.get()->isTypeDependent() ||
+       SrcExpr.get()->isValueDependent())) {
+    assert((DestType->containsErrors() || SrcExpr.get()->containsErrors() ||
+            SrcExpr.get()->containsErrors()) &&
+           "should only occur in error-recovery path.");
+    assert(Kind == CK_Dependent);
     return;
   }
 

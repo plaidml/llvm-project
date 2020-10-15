@@ -557,11 +557,10 @@ static void computeBlockInfo(CodeGenModule &CGM, CodeGenFunction *CGF,
     // Theoretically, this could be in a different address space, so
     // don't assume standard pointer size/align.
     llvm::Type *llvmType = CGM.getTypes().ConvertType(thisType);
-    std::pair<CharUnits,CharUnits> tinfo
-      = CGM.getContext().getTypeInfoInChars(thisType);
-    maxFieldAlign = std::max(maxFieldAlign, tinfo.second);
+    auto TInfo = CGM.getContext().getTypeInfoInChars(thisType);
+    maxFieldAlign = std::max(maxFieldAlign, TInfo.Align);
 
-    layout.push_back(BlockLayoutChunk(tinfo.second, tinfo.first,
+    layout.push_back(BlockLayoutChunk(TInfo.Align, TInfo.Width,
                                       Qualifiers::OCL_None,
                                       nullptr, llvmType, thisType));
   }
@@ -580,7 +579,7 @@ static void computeBlockInfo(CodeGenModule &CGM, CodeGenFunction *CGF,
 
       // Since a __block variable cannot be captured by lambdas, its type and
       // the capture field type should always match.
-      assert(getCaptureFieldType(*CGF, CI) == variable->getType() &&
+      assert(CGF && getCaptureFieldType(*CGF, CI) == variable->getType() &&
              "capture type differs from the variable type");
       layout.push_back(BlockLayoutChunk(align, CGM.getPointerSize(),
                                         Qualifiers::OCL_None, &CI,

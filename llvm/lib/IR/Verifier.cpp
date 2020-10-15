@@ -282,6 +282,9 @@ class Verifier : public InstVisitor<Verifier>, VerifierSupport {
   /// Whether the current function has a DISubprogram attached to it.
   bool HasDebugInfo = false;
 
+  /// The current source language.
+  dwarf::SourceLanguage CurrentSourceLang = dwarf::DW_LANG_lo_user;
+
   /// Whether source was present on the first DIFile encountered in each CU.
   DenseMap<const DICompileUnit *, bool> HasSourceDebugInfo;
 
@@ -895,7 +898,9 @@ void Verifier::visitDIScope(const DIScope &N) {
 
 void Verifier::visitDISubrange(const DISubrange &N) {
   AssertDI(N.getTag() == dwarf::DW_TAG_subrange_type, "invalid tag", &N);
-  AssertDI(N.getRawCountNode() || N.getRawUpperBound(),
+  bool HasAssumedSizedArraySupport = dwarf::isFortran(CurrentSourceLang);
+  AssertDI(HasAssumedSizedArraySupport || N.getRawCountNode() ||
+               N.getRawUpperBound(),
            "Subrange must contain count or upperBound", &N);
   AssertDI(!N.getRawCountNode() || !N.getRawUpperBound(),
            "Subrange can have any one of count or upperBound", &N);
@@ -1051,6 +1056,11 @@ void Verifier::visitDICompositeType(const DICompositeType &N) {
     AssertDI(N.getTag() == dwarf::DW_TAG_array_type,
              "allocated can only appear in array type");
   }
+
+  if (N.getRawRank()) {
+    AssertDI(N.getTag() == dwarf::DW_TAG_array_type,
+             "rank can only appear in array type");
+  }
 }
 
 void Verifier::visitDISubroutineType(const DISubroutineType &N) {
@@ -1099,6 +1109,8 @@ void Verifier::visitDICompileUnit(const DICompileUnit &N) {
            N.getRawFile());
   AssertDI(!N.getFile()->getFilename().empty(), "invalid filename", &N,
            N.getFile());
+
+  CurrentSourceLang = (dwarf::SourceLanguage)N.getSourceLanguage();
 
   verifySourceDebugInfo(N, *N.getFile());
 
@@ -2426,6 +2438,10 @@ void Verifier::visitFunction(const Function &F) {
                  "function must have a single !dbg attachment", &F, I.second);
         AssertDI(isa<DISubprogram>(I.second),
                  "function !dbg attachment must be a subprogram", &F, I.second);
+        AssertDI(cast<DISubprogram>(I.second)->isDistinct(),
+                 "function definition may only have a distinct !dbg attachment",
+                 &F);
+
         auto *SP = cast<DISubprogram>(I.second);
         const Function *&AttachedTo = DISubprogramAttachments[SP];
         AssertDI(!AttachedTo || AttachedTo == &F,
@@ -5008,6 +5024,14 @@ void Verifier::visitIntrinsicCall(Intrinsic::ID ID, CallBase &Call) {
     Type *Ty = Call.getType();
     unsigned Size = Ty->getScalarSizeInBits();
     Assert(Size % 16 == 0, "bswap must be an even number of bytes", &Call);
+    break;
+  }
+  case Intrinsic::invariant_start: {
+    ConstantInt *InvariantSize = dyn_cast<ConstantInt>(Call.getArgOperand(0));
+    Assert(InvariantSize &&
+               (!InvariantSize->isNegative() || InvariantSize->isMinusOne()),
+           "invariant_start parameter must be -1, 0 or a positive number",
+           &Call);
     break;
   }
   case Intrinsic::matrix_multiply:

@@ -95,6 +95,8 @@ INITIALIZE_PASS_BEGIN(IRTranslator, DEBUG_TYPE, "IRTranslator LLVM IR -> MI",
                 false, false)
 INITIALIZE_PASS_DEPENDENCY(TargetPassConfig)
 INITIALIZE_PASS_DEPENDENCY(GISelCSEAnalysisWrapperPass)
+INITIALIZE_PASS_DEPENDENCY(BlockFrequencyInfoWrapperPass)
+INITIALIZE_PASS_DEPENDENCY(StackProtector)
 INITIALIZE_PASS_END(IRTranslator, DEBUG_TYPE, "IRTranslator LLVM IR -> MI",
                 false, false)
 
@@ -2917,6 +2919,7 @@ bool IRTranslator::runOnMachineFunction(MachineFunction &CurMF) {
   DL = &F.getParent()->getDataLayout();
   ORE = std::make_unique<OptimizationRemarkEmitter>(&F);
   const TargetMachine &TM = MF->getTarget();
+  TM.resetTargetOptions(F);
   EnableOpts = OptLevel != CodeGenOpt::None && !skipFunction(F);
   FuncInfo.MF = MF;
   if (EnableOpts)
