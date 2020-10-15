@@ -2641,8 +2641,8 @@ define i8 @select_replacement_add_nuw(i8 %x, i8 %y) {
   ret i8 %sel
 }
 
-define i8 @select_replacement_sub(i8 %x, i8 %y, i8 %z) {
-; CHECK-LABEL: @select_replacement_sub(
+define i8 @select_replacement_sub_noundef(i8 %x, i8 noundef %y, i8 %z) {
+; CHECK-LABEL: @select_replacement_sub_noundef(
 ; CHECK-NEXT:    [[CMP:%.*]] = icmp eq i8 [[X:%.*]], [[Y:%.*]]
 ; CHECK-NEXT:    [[SEL:%.*]] = select i1 [[CMP]], i8 0, i8 [[Z:%.*]]
 ; CHECK-NEXT:    ret i8 [[SEL]]
@@ -2653,11 +2653,43 @@ define i8 @select_replacement_sub(i8 %x, i8 %y, i8 %z) {
   ret i8 %sel
 }
 
+; TODO: The transform is also safe without noundef.
+define i8 @select_replacement_sub(i8 %x, i8 %y, i8 %z) {
+; CHECK-LABEL: @select_replacement_sub(
+; CHECK-NEXT:    [[CMP:%.*]] = icmp eq i8 [[X:%.*]], [[Y:%.*]]
+; CHECK-NEXT:    [[SUB:%.*]] = sub i8 [[X]], [[Y]]
+; CHECK-NEXT:    [[SEL:%.*]] = select i1 [[CMP]], i8 [[SUB]], i8 [[Z:%.*]]
+; CHECK-NEXT:    ret i8 [[SEL]]
+;
+  %cmp = icmp eq i8 %x, %y
+  %sub = sub i8 %x, %y
+  %sel = select i1 %cmp, i8 %sub, i8 %z
+  ret i8 %sel
+}
+
+define i8 @select_replacement_shift_noundef(i8 %x, i8 %y, i8 %z) {
+; CHECK-LABEL: @select_replacement_shift_noundef(
+; CHECK-NEXT:    [[SHR:%.*]] = lshr exact i8 [[X:%.*]], 1
+; CHECK-NEXT:    call void @use_i8(i8 noundef [[SHR]])
+; CHECK-NEXT:    [[CMP:%.*]] = icmp eq i8 [[SHR]], [[Y:%.*]]
+; CHECK-NEXT:    [[SEL:%.*]] = select i1 [[CMP]], i8 [[X]], i8 [[Z:%.*]]
+; CHECK-NEXT:    ret i8 [[SEL]]
+;
+  %shr = lshr exact i8 %x, 1
+  call void @use_i8(i8 noundef %shr)
+  %cmp = icmp eq i8 %shr, %y
+  %shl = shl i8 %y, 1
+  %sel = select i1 %cmp, i8 %shl, i8 %z
+  ret i8 %sel
+}
+
+; TODO: The transform is also safe without noundef.
 define i8 @select_replacement_shift(i8 %x, i8 %y, i8 %z) {
 ; CHECK-LABEL: @select_replacement_shift(
 ; CHECK-NEXT:    [[SHR:%.*]] = lshr exact i8 [[X:%.*]], 1
 ; CHECK-NEXT:    [[CMP:%.*]] = icmp eq i8 [[SHR]], [[Y:%.*]]
-; CHECK-NEXT:    [[SEL:%.*]] = select i1 [[CMP]], i8 [[X]], i8 [[Z:%.*]]
+; CHECK-NEXT:    [[SHL:%.*]] = shl i8 [[Y]], 1
+; CHECK-NEXT:    [[SEL:%.*]] = select i1 [[CMP]], i8 [[SHL]], i8 [[Z:%.*]]
 ; CHECK-NEXT:    ret i8 [[SEL]]
 ;
   %shr = lshr exact i8 %x, 1
@@ -2678,5 +2710,33 @@ define i8 @select_replacement_loop(i8 %x, i8 %y, i8 %z) {
   ret i8 %sel
 }
 
+define i32 @select_replacement_loop2(i32 %arg, i32 %arg2) {
+; CHECK-LABEL: @select_replacement_loop2(
+; CHECK-NEXT:    [[DIV:%.*]] = udiv i32 [[ARG:%.*]], [[ARG2:%.*]]
+; CHECK-NEXT:    [[MUL:%.*]] = mul nsw i32 [[DIV]], [[ARG2]]
+; CHECK-NEXT:    [[CMP:%.*]] = icmp eq i32 [[MUL]], [[ARG]]
+; CHECK-NEXT:    [[SEL:%.*]] = select i1 [[CMP]], i32 [[DIV]], i32 undef
+; CHECK-NEXT:    ret i32 [[SEL]]
+;
+  %div = udiv i32 %arg, %arg2
+  %mul = mul nsw i32 %div, %arg2
+  %cmp = icmp eq i32 %mul, %arg
+  %sel = select i1 %cmp, i32 %div, i32 undef
+  ret i32 %sel
+}
+
+; TODO: Dropping the inbounds flag should not be necessary for this fold.
+define i8* @select_replacement_gep_inbounds(i8* %base, i64 %offset) {
+; CHECK-LABEL: @select_replacement_gep_inbounds(
+; CHECK-NEXT:    [[GEP:%.*]] = getelementptr i8, i8* [[BASE:%.*]], i64 [[OFFSET:%.*]]
+; CHECK-NEXT:    ret i8* [[GEP]]
+;
+  %cmp = icmp eq i64 %offset, 0
+  %gep = getelementptr inbounds i8, i8* %base, i64 %offset
+  %sel = select i1 %cmp, i8* %base, i8* %gep
+  ret i8* %sel
+}
+
 declare void @use(i1)
+declare void @use_i8(i8)
 declare i32 @llvm.cttz.i32(i32, i1 immarg)

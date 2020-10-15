@@ -146,6 +146,18 @@ bool CXXTypeidExpr::isPotentiallyEvaluated() const {
   return false;
 }
 
+bool CXXTypeidExpr::isMostDerived(ASTContext &Context) const {
+  assert(!isTypeOperand() && "Cannot call isMostDerived for typeid(type)");
+  const Expr *E = getExprOperand()->IgnoreParenNoopCasts(Context);
+  if (const auto *DRE = dyn_cast<DeclRefExpr>(E)) {
+    QualType Ty = DRE->getDecl()->getType();
+    if (!Ty->isPointerType() && !Ty->isReferenceType())
+      return true;
+  }
+
+  return false;
+}
+
 QualType CXXTypeidExpr::getTypeOperand(ASTContext &Context) const {
   assert(isTypeOperand() && "Cannot call getTypeOperand for typeid(expr)");
   Qualifiers Quals;
@@ -947,7 +959,7 @@ CXXDefaultInitExpr::CXXDefaultInitExpr(const ASTContext &Ctx,
   CXXDefaultInitExprBits.Loc = Loc;
   assert(Field->hasInClassInitializer());
 
-  setDependence(ExprDependence::None);
+  setDependence(computeDependence(this));
 }
 
 CXXTemporary *CXXTemporary::Create(const ASTContext &C,
@@ -1304,12 +1316,12 @@ ExprWithCleanups *ExprWithCleanups::Create(const ASTContext &C,
   return new (buffer) ExprWithCleanups(empty, numObjects);
 }
 
-CXXUnresolvedConstructExpr::CXXUnresolvedConstructExpr(TypeSourceInfo *TSI,
+CXXUnresolvedConstructExpr::CXXUnresolvedConstructExpr(QualType T,
+                                                       TypeSourceInfo *TSI,
                                                        SourceLocation LParenLoc,
                                                        ArrayRef<Expr *> Args,
                                                        SourceLocation RParenLoc)
-    : Expr(CXXUnresolvedConstructExprClass,
-           TSI->getType().getNonReferenceType(),
+    : Expr(CXXUnresolvedConstructExprClass, T,
            (TSI->getType()->isLValueReferenceType()
                 ? VK_LValue
                 : TSI->getType()->isRValueReferenceType() ? VK_XValue
@@ -1324,10 +1336,11 @@ CXXUnresolvedConstructExpr::CXXUnresolvedConstructExpr(TypeSourceInfo *TSI,
 }
 
 CXXUnresolvedConstructExpr *CXXUnresolvedConstructExpr::Create(
-    const ASTContext &Context, TypeSourceInfo *TSI, SourceLocation LParenLoc,
+    const ASTContext &Context, QualType T, TypeSourceInfo *TSI, SourceLocation LParenLoc,
     ArrayRef<Expr *> Args, SourceLocation RParenLoc) {
   void *Mem = Context.Allocate(totalSizeToAlloc<Expr *>(Args.size()));
-  return new (Mem) CXXUnresolvedConstructExpr(TSI, LParenLoc, Args, RParenLoc);
+  return new (Mem)
+      CXXUnresolvedConstructExpr(T, TSI, LParenLoc, Args, RParenLoc);
 }
 
 CXXUnresolvedConstructExpr *

@@ -692,7 +692,7 @@ static std::string maybeReportDiscarded(Undefined &sym) {
   if (sym.type == ELF::STT_SECTION) {
     msg = "relocation refers to a discarded section: ";
     msg += CHECK(
-        file->getObj().getSectionName(&objSections[sym.discardedSecIdx]), file);
+        file->getObj().getSectionName(objSections[sym.discardedSecIdx]), file);
   } else {
     msg = "relocation refers to a symbol in a discarded section: " +
           toString(sym);
@@ -1357,6 +1357,19 @@ static void scanReloc(InputSectionBase &sec, OffsetGetter &getOffset, RelTy *&i,
     if (type == R_PPC64_TOC16_LO && sym.isSection() && isa<Defined>(sym) &&
         cast<Defined>(sym).section->name == ".toc")
       ppc64noTocRelax.insert({&sym, addend});
+
+    if (type == R_PPC64_TLSGD && expr == R_TLSDESC_CALL) {
+      if (i == end) {
+        errorOrWarn("R_PPC64_TLSGD may not be the last relocation" +
+                    getLocation(sec, sym, offset));
+        return;
+      }
+
+      // Offset the 4-byte aligned R_PPC64_TLSGD by one byte in the NOTOC case,
+      // so we can discern it later from the toc-case.
+      if (i->getType(/*isMips64EL=*/false) == R_PPC64_REL24_NOTOC)
+        ++offset;
+    }
   }
 
   // Relax relocations.

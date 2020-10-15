@@ -436,6 +436,10 @@ public:
   /// next instruction number.
   unsigned DebugInstrNumberingCount = 0;
 
+  /// Set value of DebugInstrNumberingCount field. Avoid using this unless
+  /// you're deserializing this data.
+  void setDebugInstrNumberingCount(unsigned Num);
+
   MachineFunction(Function &F, const LLVMTargetMachine &Target,
                   const TargetSubtargetInfo &STI, unsigned FunctionNum,
                   MachineModuleInfo &MMI);
@@ -772,7 +776,7 @@ public:
   /// CreateMachineInstr - Allocate a new MachineInstr. Use this instead
   /// of `new MachineInstr'.
   MachineInstr *CreateMachineInstr(const MCInstrDesc &MCID, const DebugLoc &DL,
-                                   bool NoImp = false);
+                                   bool NoImplicit = false);
 
   /// Create a new MachineInstr which is a copy of \p Orig, identical in all
   /// ways except the instruction has no parent, prev, or next. Bundling flags

@@ -337,6 +337,7 @@ private:
   SDValue PromoteIntRes_TRUNCATE(SDNode *N);
   SDValue PromoteIntRes_UADDSUBO(SDNode *N, unsigned ResNo);
   SDValue PromoteIntRes_ADDSUBCARRY(SDNode *N, unsigned ResNo);
+  SDValue PromoteIntRes_SADDSUBO_CARRY(SDNode *N, unsigned ResNo);
   SDValue PromoteIntRes_UNDEF(SDNode *N);
   SDValue PromoteIntRes_VAARG(SDNode *N);
   SDValue PromoteIntRes_VSCALE(SDNode *N);
@@ -429,6 +430,7 @@ private:
   void ExpandIntRes_ADDSUBC           (SDNode *N, SDValue &Lo, SDValue &Hi);
   void ExpandIntRes_ADDSUBE           (SDNode *N, SDValue &Lo, SDValue &Hi);
   void ExpandIntRes_ADDSUBCARRY       (SDNode *N, SDValue &Lo, SDValue &Hi);
+  void ExpandIntRes_SADDSUBO_CARRY    (SDNode *N, SDValue &Lo, SDValue &Hi);
   void ExpandIntRes_BITREVERSE        (SDNode *N, SDValue &Lo, SDValue &Hi);
   void ExpandIntRes_BSWAP             (SDNode *N, SDValue &Lo, SDValue &Hi);
   void ExpandIntRes_PARITY            (SDNode *N, SDValue &Lo, SDValue &Hi);
@@ -548,6 +550,7 @@ private:
   SDValue SoftenFloatRes_UNDEF(SDNode *N);
   SDValue SoftenFloatRes_VAARG(SDNode *N);
   SDValue SoftenFloatRes_XINT_TO_FP(SDNode *N);
+  SDValue SoftenFloatRes_VECREDUCE(SDNode *N);
 
   // Convert Float Operand to Integer.
   bool SoftenFloatOperand(SDNode *N, unsigned OpNo);
@@ -666,6 +669,7 @@ private:
   SDValue PromoteFloatRes_UNDEF(SDNode *N);
   SDValue BitcastToInt_ATOMIC_SWAP(SDNode *N);
   SDValue PromoteFloatRes_XINT_TO_FP(SDNode *N);
+  SDValue PromoteFloatRes_VECREDUCE(SDNode *N);
 
   bool PromoteFloatOperand(SDNode *N, unsigned OpNo);
   SDValue PromoteFloatOp_BITCAST(SDNode *N, unsigned OpNo);
@@ -703,6 +707,7 @@ private:
   SDValue SoftPromoteHalfRes_UnaryOp(SDNode *N);
   SDValue SoftPromoteHalfRes_XINT_TO_FP(SDNode *N);
   SDValue SoftPromoteHalfRes_UNDEF(SDNode *N);
+  SDValue SoftPromoteHalfRes_VECREDUCE(SDNode *N);
 
   bool SoftPromoteHalfOperand(SDNode *N, unsigned OpNo);
   SDValue SoftPromoteHalfOp_BITCAST(SDNode *N);
@@ -940,13 +945,6 @@ private:
   ///   StChain: list of chains for the stores we have generated
   ///   ST:      store of a widen value
   void GenWidenVectorStores(SmallVectorImpl<SDValue> &StChain, StoreSDNode *ST);
-
-  /// Helper function to generate a set of stores to store a truncate widen
-  /// vector into non-widen memory.
-  ///   StChain: list of chains for the stores we have generated
-  ///   ST:      store of a widen value
-  void GenWidenVectorTruncStores(SmallVectorImpl<SDValue> &StChain,
-                                 StoreSDNode *ST);
 
   /// Modifies a vector input (widen or narrows) to a vector of NVT.  The
   /// input vector must have the same element type as NVT.
