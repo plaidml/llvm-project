@@ -51,7 +51,7 @@ class EffectOpInterfaceBase<string name, string baseEffect>
         Collects all of the operation's effects into `effects`.
       }],
       "void", "getEffects",
-         (ins "SmallVectorImpl<::mlir::SideEffects::EffectInstance<"
+         (ins "::mlir::SmallVectorImpl<::mlir::SideEffects::EffectInstance<"
               # baseEffect # ">> &":$effects)
     >,
   ];
@@ -60,7 +60,7 @@ class EffectOpInterfaceBase<string name, string baseEffect>
     /// Collect all of the effect instances that correspond to the given
     /// `Effect` and place them in 'effects'.
     template <typename Effect> void getEffects(
-      SmallVectorImpl<::mlir::SideEffects::EffectInstance<
+      ::mlir::SmallVectorImpl<::mlir::SideEffects::EffectInstance<
                                               }] # baseEffect # [{>> &effects) {
       getEffects(effects);
       llvm::erase_if(effects, [&](auto &it) {
@@ -70,7 +70,7 @@ class EffectOpInterfaceBase<string name, string baseEffect>
 
     /// Returns true if this operation exhibits the given effect.
     template <typename Effect> bool hasEffect() {
-      SmallVector<SideEffects::EffectInstance<}] # baseEffect # [{>, 4> effects;
+      ::mlir::SmallVector<::mlir::SideEffects::EffectInstance<}] # baseEffect # [{>, 4> effects;
       getEffects(effects);
       return llvm::any_of(effects, [](const auto &it) {
         return llvm::isa<Effect>(it.getEffect());
@@ -79,7 +79,7 @@ class EffectOpInterfaceBase<string name, string baseEffect>
 
     /// Returns true if this operation only has the given effect.
     template <typename Effect> bool onlyHasEffect() {
-      SmallVector<SideEffects::EffectInstance<}] # baseEffect # [{>, 4> effects;
+      ::mlir::SmallVector<::mlir::SideEffects::EffectInstance<}] # baseEffect # [{>, 4> effects;
       getEffects(effects);
       return !effects.empty() && llvm::all_of(effects, [](const auto &it) {
         return isa<Effect>(it.getEffect());
@@ -88,14 +88,14 @@ class EffectOpInterfaceBase<string name, string baseEffect>
 
     /// Returns true if this operation has no effects.
     bool hasNoEffect() {
-      SmallVector<::mlir::SideEffects::EffectInstance<}] # baseEffect # [{>, 4> effects;
+      ::mlir::SmallVector<::mlir::SideEffects::EffectInstance<}] # baseEffect # [{>, 4> effects;
       getEffects(effects);
       return effects.empty();
     }
 
     /// Returns true if the given operation has no effects for this interface.
-    static bool hasNoEffect(Operation *op) {
-      if (auto interface = dyn_cast<}] # name # [{>(op))
+    static bool hasNoEffect(::mlir::Operation *op) {
+      if (auto interface = ::mlir::dyn_cast<}] # name # [{>(op))
         return interface.hasNoEffect();
       return op->hasTrait<::mlir::OpTrait::HasRecursiveSideEffects>();
     }

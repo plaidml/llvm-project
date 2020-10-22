@@ -174,7 +174,7 @@ static const char *const typeDefParsePrint = R"(
 ///
 /// {0}: List of parameters, parameters style.
 static const char *const typeDefDeclVerifyStr = R"(
-    static ::mlir::LogicalResult verifyConstructionInvariants(Location loc{0});
+    static ::mlir::LogicalResult verifyConstructionInvariants(::mlir::Location loc{0});
     static ::mlir::Type getChecked(Location loc{0});
 )";
 
@@ -326,7 +326,7 @@ static const char *const typeDefStorageClassConstructorReturn = R"(
 /// {1}: C++ type class name.
 /// {2}: Comma separated list of parameter names.
 static const char *const typeDefDefGetCheckeStr = R"(
-    ::mlir::Type {1}::getChecked(Location loc{0}) {{
+    ::mlir::Type {1}::getChecked(::mlir::Location loc{0}) {{
       return Base::getChecked(loc{2});
     }
 )";
