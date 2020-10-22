@@ -436,12 +436,21 @@ inline uint64_t maxUIntN(uint64_t N) {
   return UINT64_MAX >> (64 - N);
 }
 
+#ifdef _MSC_VER
+#  pragma warning(push)
+#  pragma warning(disable: 4146) // unary minus operator applied to unsigned type, result still unsigned
+#endif // _MSC_VER
+
 /// Gets the minimum value for a N-bit signed integer.
 inline int64_t minIntN(int64_t N) {
   assert(N > 0 && N <= 64 && "integer width out of range");
 
   return -(UINT64_C(1)<<(N-1));
 }
+
+#ifdef _MSC_VER
+#  pragma warning(pop)
+#endif // _MSC_VER
 
 /// Gets the maximum value for a N-bit signed integer.
 inline int64_t maxIntN(int64_t N) {
