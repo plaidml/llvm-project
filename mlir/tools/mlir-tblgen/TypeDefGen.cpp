@@ -172,10 +172,11 @@ static const char *const typeDefParsePrint = R"(
 
 /// The code block for the verifyConstructionInvariants and getChecked.
 ///
-/// {0}: List of parameters, parameters style.
+/// {0}: The name of the typeDef class.
+/// {1}: List of parameters, parameters style.
 static const char *const typeDefDeclVerifyStr = R"(
-    static ::mlir::LogicalResult verifyConstructionInvariants(::mlir::Location loc{0});
-    static ::mlir::Type getChecked(Location loc{0});
+    static ::mlir::LogicalResult verifyConstructionInvariants(::mlir::Location loc{1});
+    static {0} getChecked(::mlir::Location loc{1});
 )";
 
 /// Generate the declaration for the given typeDef class.
@@ -204,7 +205,8 @@ static void emitTypeDefDecl(const TypeDef &typeDef, raw_ostream &os) {
 
   // Emit the verify invariants declaration.
   if (typeDef.genVerifyInvariantsDecl())
-    os << llvm::formatv(typeDefDeclVerifyStr, emitTypeNamePairsAfterComma);
+    os << llvm::formatv(typeDefDeclVerifyStr,
+                        typeDef.getCppClassName(), emitTypeNamePairsAfterComma);
 
   // Emit the mnenomic, if specified.
   if (auto mnenomic = typeDef.getMnemonic()) {
@@ -326,7 +328,7 @@ static const char *const typeDefStorageClassConstructorReturn = R"(
 /// {1}: C++ type class name.
 /// {2}: Comma separated list of parameter names.
 static const char *const typeDefDefGetCheckeStr = R"(
-    ::mlir::Type {1}::getChecked(::mlir::Location loc{0}) {{
+    {1} {1}::getChecked(::mlir::Location loc{0}) {{
       return Base::getChecked(loc{2});
     }
 )";
