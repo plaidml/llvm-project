@@ -18,6 +18,7 @@
 #ifndef LLVM_ADT_ITERATOR_RANGE_H
 #define LLVM_ADT_ITERATOR_RANGE_H
 
+#include <type_traits>
 #include <utility>
 
 namespace llvm {
@@ -29,6 +30,9 @@ namespace llvm {
 template <typename IteratorT>
 class iterator_range {
   IteratorT begin_iterator, end_iterator;
+
+public:
+  using value_type = std::decay_t<decltype(*std::declval<IteratorT>())>;
 
 public:
   //TODO: Add SFINAE to test that the Container's iterators match the range's

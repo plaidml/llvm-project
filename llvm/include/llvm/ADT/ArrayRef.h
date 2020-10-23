@@ -40,10 +40,12 @@ namespace llvm {
   template<typename T>
   class LLVM_GSL_POINTER LLVM_NODISCARD ArrayRef {
   public:
+    using value_type = T;
     using iterator = const T *;
     using const_iterator = const T *;
-    using size_type = size_t;
     using reverse_iterator = std::reverse_iterator<iterator>;
+    using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+    using size_type = size_t;
 
   private:
     /// The start of the array, in an external buffer.
