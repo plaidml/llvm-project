@@ -582,11 +582,13 @@ def AnyShaped: ShapedContainerType<[AnyType], IsShapedTypePred, "shaped">;
 class TensorOf<list<Type> allowedTypes> :
   ShapedContainerType<allowedTypes, IsTensorTypePred, "tensor">;
 
+class RankedTensorOf<list<Type> allowedTypes> :
+  ShapedContainerType<allowedTypes, And<[IsTensorTypePred, HasRankPred]>,
+  "ranked tensor">;
+
 def AnyTensor : TensorOf<[AnyType]>;
 
-def AnyRankedTensor :
-  ShapedContainerType<[AnyType], And<[IsTensorTypePred, HasRankPred]>,
-  "ranked tensor">;
+def AnyRankedTensor : RankedTensorOf<[AnyType]>;
 
 // TODO: Have an easy way to add another constraint to a type.
 class StaticShapeTensorOf<list<Type> allowedTypes>
