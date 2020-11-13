@@ -411,6 +411,7 @@ ModuleTranslation::convertOmpParallel(Operation &opInst,
       llvm::BasicBlock *curLLVMBB = blockMapping[bb];
       if (bb->isEntryBlock())
         codeGenIPBBTI->setSuccessor(0, curLLVMBB);
+
       // TODO: Error not returned up the hierarchy
       if (failed(convertBlock(*bb, /*ignoreArguments=*/indexedBB.index() == 0)))
         return;
@@ -521,7 +522,9 @@ LogicalResult ModuleTranslation::convertOperation(Operation &opInst,
       position.push_back(v.cast<IntegerAttr>().getValue().getZExtValue());
     return position;
   };
+
 #include "mlir/Dialect/LLVMIR/LLVMConversions.inc"
+
   // Emit function calls.  If the "callee" attribute is present, this is a
   // direct function call and we also need to look up the remapped function
   // itself.  Otherwise, this is an indirect call and the callee is the first
@@ -542,6 +545,7 @@ LogicalResult ModuleTranslation::convertOperation(Operation &opInst,
                                 operandsRef.drop_front());
     }
   };
+
   // Emit calls.  If the called function has a result, remap the corresponding
   // value.  Note that LLVM IR dialect CallOp has either 0 or 1 result.
   if (isa<LLVM::CallOp>(opInst)) {
@@ -553,6 +557,7 @@ LogicalResult ModuleTranslation::convertOperation(Operation &opInst,
     // Check that LLVM call returns void for 0-result functions.
     return success(result->getType()->isVoidTy());
   }
+
   if (auto invOp = dyn_cast<LLVM::InvokeOp>(opInst)) {
     auto operands = lookupValues(opInst.getOperands());
     ArrayRef<llvm::Value *> operandsRef(operands);
@@ -571,6 +576,7 @@ LogicalResult ModuleTranslation::convertOperation(Operation &opInst,
     }
     return success();
   }
+
   if (auto lpOp = dyn_cast<LLVM::LandingpadOp>(opInst)) {
     llvm::Type *ty = convertType(lpOp.getType().cast<LLVMType>());
     llvm::LandingPadInst *lpi =
@@ -642,6 +648,7 @@ LogicalResult ModuleTranslation::convertOperation(Operation &opInst,
 LogicalResult ModuleTranslation::convertBlock(Block &bb, bool ignoreArguments) {
   llvm::IRBuilder<> builder(blockMapping[&bb]);
   auto *subprogram = builder.GetInsertBlock()->getParent()->getSubprogram();
+
   // Before traversing operations, make block arguments available through
   // value remapping and PHI nodes, but do not add incoming edges for the PHI
   // nodes just yet: those values may be defined by this or following blocks.
@@ -662,14 +669,17 @@ LogicalResult ModuleTranslation::convertBlock(Block &bb, bool ignoreArguments) {
       valueMapping[arg] = phi;
     }
   }
+
   // Traverse operations.
   for (auto &op : bb) {
     // Set the current debug location within the builder.
     builder.SetCurrentDebugLocation(
         debugTranslation->translateLoc(op.getLoc(), subprogram));
+
     if (failed(convertOperation(op, builder)))
       return failure();
   }
+
   return success();
 }
 
