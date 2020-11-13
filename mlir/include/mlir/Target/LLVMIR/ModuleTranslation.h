@@ -111,6 +111,7 @@ private:
   LogicalResult convertGlobals();
   LogicalResult convertOneFunction(LLVMFuncOp func);
   LogicalResult convertBlock(Block &bb, bool ignoreArguments);
+  void captureOmpParallelParams(LLVMFuncOp func);
 
   llvm::Constant *getLLVMConstant(llvm::Type *llvmType, Attribute attr,
                                   Location loc);

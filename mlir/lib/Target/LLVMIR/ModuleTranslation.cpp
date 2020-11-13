@@ -17,6 +17,7 @@
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/OpenMP/OpenMPDialect.h"
 #include "mlir/IR/Attributes.h"
+#include "mlir/IR/Builders.h"
 #include "mlir/IR/Module.h"
 #include "mlir/IR/RegionGraphTraits.h"
 #include "mlir/IR/StandardTypes.h"
@@ -24,6 +25,7 @@
 #include "mlir/Target/LLVMIR/TypeTranslation.h"
 #include "llvm/ADT/TypeSwitch.h"
 
+#include "mlir/Transforms/RegionUtils.h"
 #include "llvm/ADT/PostOrderIterator.h"
 #include "llvm/ADT/SetVector.h"
 #include "llvm/Frontend/OpenMP/OMPIRBuilder.h"
@@ -409,7 +411,6 @@ ModuleTranslation::convertOmpParallel(Operation &opInst,
       llvm::BasicBlock *curLLVMBB = blockMapping[bb];
       if (bb->isEntryBlock())
         codeGenIPBBTI->setSuccessor(0, curLLVMBB);
-
       // TODO: Error not returned up the hierarchy
       if (failed(convertBlock(*bb, /*ignoreArguments=*/indexedBB.index() == 0)))
         return;
@@ -520,9 +521,7 @@ LogicalResult ModuleTranslation::convertOperation(Operation &opInst,
       position.push_back(v.cast<IntegerAttr>().getValue().getZExtValue());
     return position;
   };
-
 #include "mlir/Dialect/LLVMIR/LLVMConversions.inc"
-
   // Emit function calls.  If the "callee" attribute is present, this is a
   // direct function call and we also need to look up the remapped function
   // itself.  Otherwise, this is an indirect call and the callee is the first
@@ -543,7 +542,6 @@ LogicalResult ModuleTranslation::convertOperation(Operation &opInst,
                                 operandsRef.drop_front());
     }
   };
-
   // Emit calls.  If the called function has a result, remap the corresponding
   // value.  Note that LLVM IR dialect CallOp has either 0 or 1 result.
   if (isa<LLVM::CallOp>(opInst)) {
@@ -555,7 +553,6 @@ LogicalResult ModuleTranslation::convertOperation(Operation &opInst,
     // Check that LLVM call returns void for 0-result functions.
     return success(result->getType()->isVoidTy());
   }
-
   if (auto invOp = dyn_cast<LLVM::InvokeOp>(opInst)) {
     auto operands = lookupValues(opInst.getOperands());
     ArrayRef<llvm::Value *> operandsRef(operands);
@@ -574,7 +571,6 @@ LogicalResult ModuleTranslation::convertOperation(Operation &opInst,
     }
     return success();
   }
-
   if (auto lpOp = dyn_cast<LLVM::LandingpadOp>(opInst)) {
     llvm::Type *ty = convertType(lpOp.getType().cast<LLVMType>());
     llvm::LandingPadInst *lpi =
@@ -646,7 +642,6 @@ LogicalResult ModuleTranslation::convertOperation(Operation &opInst,
 LogicalResult ModuleTranslation::convertBlock(Block &bb, bool ignoreArguments) {
   llvm::IRBuilder<> builder(blockMapping[&bb]);
   auto *subprogram = builder.GetInsertBlock()->getParent()->getSubprogram();
-
   // Before traversing operations, make block arguments available through
   // value remapping and PHI nodes, but do not add incoming edges for the PHI
   // nodes just yet: those values may be defined by this or following blocks.
@@ -667,17 +662,14 @@ LogicalResult ModuleTranslation::convertBlock(Block &bb, bool ignoreArguments) {
       valueMapping[arg] = phi;
     }
   }
-
   // Traverse operations.
   for (auto &op : bb) {
     // Set the current debug location within the builder.
     builder.SetCurrentDebugLocation(
         debugTranslation->translateLoc(op.getLoc(), subprogram));
-
     if (failed(convertOperation(op, builder)))
       return failure();
   }
-
   return success();
 }
 
@@ -803,7 +795,74 @@ forwardPassthroughAttributes(Location loc, Optional<ArrayAttr> attributes,
   return success();
 }
 
+// Captures "above-defined" parameters passed to omp::ParaqllelOp and wrapes
+// them in a struct to make sure the varargs are passed properly to the
+// synthetically generated fork function.
+void ModuleTranslation::captureOmpParallelParams(LLVMFuncOp func) {
+  OpBuilder builder{func.getContext()};
+  func.walk([&](omp::ParallelOp parOp) {
+    llvm::SetVector<Value> values;
+
+    visitUsedValuesDefinedAbove({parOp.region()}, [&](OpOperand *opOperand) {
+      auto value = opOperand->get();
+
+      // If it's not an LLVM type, or if it's an LLVM pointer type, we
+      // don't need or want to smuggle this value in via a struct.
+      auto llvmType = value.getType().dyn_cast<LLVM::LLVMType>();
+      if (!llvmType || llvmType.isPointerTy())
+        return;
+
+      // Otherwise, we need to smuggle the value through an alloca'd
+      // struct.
+      values.insert(value);
+    });
+
+    if (!values.size())
+      return;
+
+    // Build the structure.
+    builder.setInsertionPoint(parOp);
+    LLVM::LLVMType structTy;
+    {
+      SmallVector<LLVM::LLVMType, 8> types;
+      for (auto val : values) {
+        types.push_back(val.getType().cast<LLVM::LLVMType>());
+      }
+      structTy = LLVM::LLVMType::getStructTy(func.getContext(), types);
+    }
+    auto structPtrTy = structTy.getPointerTo();
+    auto numElements = builder.create<LLVM::ConstantOp>(
+        parOp.getLoc(), LLVM::LLVMType::getInt64Ty(func.getContext()),
+        builder.getIndexAttr(1));
+    auto structPtr = builder.create<LLVM::AllocaOp>(parOp.getLoc(), structPtrTy,
+                                                    numElements, 0);
+    Value srcStructVal =
+        builder.create<LLVM::UndefOp>(parOp.getLoc(), structTy);
+    for (auto srcIdx : llvm::enumerate(values)) {
+      srcStructVal = builder.create<LLVM::InsertValueOp>(
+          parOp.getLoc(), srcStructVal, srcIdx.value(),
+          builder.getI64ArrayAttr(srcIdx.index()));
+    }
+    builder.create<LLVM::StoreOp>(parOp.getLoc(), srcStructVal, structPtr);
+
+    // Unpack the structure, rewriting the affected values.
+    builder.setInsertionPointToStart(&parOp.region().front());
+    auto dstStructVal = builder.create<LLVM::LoadOp>(parOp.getLoc(), structPtr);
+    for (auto srcIdx : llvm::enumerate(values)) {
+      auto capturedValue = builder.create<LLVM::ExtractValueOp>(
+          parOp.getLoc(), srcIdx.value().getType(), dstStructVal,
+          builder.getI64ArrayAttr(srcIdx.index()));
+      replaceAllUsesInRegionWith(srcIdx.value(), capturedValue, parOp.region());
+    }
+  });
+}
+
 LogicalResult ModuleTranslation::convertOneFunction(LLVMFuncOp func) {
+  // Capture and pass the parameters for the omp::ParallelOp.
+  // If we don't do this the SSE(UP) passed parameters will not be passed
+  // properly.
+  captureOmpParallelParams(func);
+
   // Clear the block and value mappings, they are only relevant within one
   // function.
   blockMapping.clear();
