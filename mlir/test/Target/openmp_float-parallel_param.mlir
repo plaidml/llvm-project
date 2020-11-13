@@ -37,7 +37,7 @@ module {
     %15 = llvm.insertvalue %1, %13[3, 0] : !llvm.struct<(ptr<float>, ptr<float>, i64, array<1 x i64>, array<1 x i64>)>
     %16 = llvm.insertvalue %14, %15[4, 0] : !llvm.struct<(ptr<float>, ptr<float>, i64, array<1 x i64>, array<1 x i64>)>
     %17 = llvm.mlir.constant(4.200000e+01 : f32) : !llvm.float
-        // CHECK: %{{.*}} = alloca { {{.*}}, float }, i64 1
+    // CHECK: %{{.*}} = alloca { {{.*}}, float }, i64 1
     // CHECK-NEXT %{{.*}} = insertvalue { {{.*}}, float } undef, {{.*}}, 0
     // CHECK-NEXT %{{.*}} = insertvalue { {{.*}}, float } %{{.*}}, float 4.200000e+01, 1
     // CHECK-NEXT store { {{.*}}, float } %{{.*}}, { {{.*}}, float }* %{{.*}}
