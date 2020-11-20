@@ -10,7 +10,6 @@
 
 #include "../PassDetail.h"
 #include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVM.h"
-#include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVMPass.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/Dialect/Vector/VectorOps.h"
@@ -1603,11 +1602,15 @@ void mlir::populateVectorToLLVMMatrixConversionPatterns(
 namespace {
 struct LowerVectorToLLVMPass
     : public ConvertVectorToLLVMBase<LowerVectorToLLVMPass> {
-  LowerVectorToLLVMPass(const LowerVectorToLLVMOptions &options) {
+  LowerVectorToLLVMPass(const LowerVectorToLLVMOptions &options,
+                        const LowerToLLVMOptions &llvmOptions) {
     this->reassociateFPReductions = options.reassociateFPReductions;
     this->enableIndexOptimizations = options.enableIndexOptimizations;
+    this->llvmOptions = llvmOptions;
   }
   void runOnOperation() override;
+private:
+  LowerToLLVMOptions llvmOptions;
 };
 } // namespace
 
@@ -1623,7 +1626,7 @@ void LowerVectorToLLVMPass::runOnOperation() {
   }
 
   // Convert to the LLVM IR dialect.
-  LLVMTypeConverter converter(&getContext());
+  LLVMTypeConverter converter(&getContext(), llvmOptions);
   OwningRewritePatternList patterns;
   populateVectorToLLVMMatrixConversionPatterns(converter, patterns);
   populateVectorToLLVMConversionPatterns(
@@ -1637,6 +1640,7 @@ void LowerVectorToLLVMPass::runOnOperation() {
 }
 
 std::unique_ptr<OperationPass<ModuleOp>>
-mlir::createConvertVectorToLLVMPass(const LowerVectorToLLVMOptions &options) {
-  return std::make_unique<LowerVectorToLLVMPass>(options);
+mlir::createConvertVectorToLLVMPass(const LowerVectorToLLVMOptions &options,
+                                    const LowerToLLVMOptions &llvmOptions) {
+  return std::make_unique<LowerVectorToLLVMPass>(options, llvmOptions);
 }

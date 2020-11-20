@@ -8,6 +8,7 @@
 #ifndef MLIR_CONVERSION_VECTORTOLLVM_CONVERTVECTORTOLLVM_H_
 #define MLIR_CONVERSION_VECTORTOLLVM_CONVERTVECTORTOLLVM_H_
 
+#include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVMPass.h"
 #include "mlir/Transforms/DialectConversion.h"
 
 namespace mlir {
@@ -46,7 +47,8 @@ void populateVectorToLLVMConversionPatterns(
 
 /// Create a pass to convert vector operations to the LLVMIR dialect.
 std::unique_ptr<OperationPass<ModuleOp>> createConvertVectorToLLVMPass(
-    const LowerVectorToLLVMOptions &options = LowerVectorToLLVMOptions());
+    const LowerVectorToLLVMOptions &options = LowerVectorToLLVMOptions(),
+    const LowerToLLVMOptions &llvmOptions = LowerToLLVMOptions());
 
 } // namespace mlir
 
