@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "mlir/TableGen/Attribute.h"
+#include "mlir/TableGen/Format.h"
 #include "mlir/TableGen/GenInfo.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringExtras.h"
@@ -26,8 +27,12 @@ using llvm::raw_ostream;
 using llvm::Record;
 using llvm::RecordKeeper;
 using llvm::StringRef;
+using llvm::PrintFatalError;
+using mlir::tblgen::Attribute;
 using mlir::tblgen::EnumAttr;
 using mlir::tblgen::EnumAttrCase;
+using mlir::tblgen::FmtContext;
+using mlir::tblgen::tgfmt;
 
 static std::string makeIdentifier(StringRef str) {
   if (!str.empty() && isDigit(static_cast<unsigned char>(str.front()))) {
@@ -304,6 +309,68 @@ static void emitUnderlyingToSymFnForIntEnum(const Record &enumDef,
      << "}\n\n";
 }
 
+static void emitDecoratedAttrDef(const Record &enumDef,
+                                 raw_ostream &os) {
+  EnumAttr enumAttr(enumDef);
+  StringRef enumName = enumAttr.getEnumClassName();
+  StringRef symToStrFnName = enumAttr.getSymbolToStringFnName();
+  StringRef strToSymFnName = enumAttr.getStringToSymbolFnName();
+  StringRef decoratedAttrClassName = enumAttr.getDecoratedAttrClassName();
+  Attribute baseAttr = enumAttr.getBaseAttrClass();
+  auto* baseAttrDef = enumAttr.getBaseAttrClassDef();
+
+  // Emit classof method
+
+  os << formatv("bool {0}::classof(::mlir::Attribute attr) {{\n", decoratedAttrClassName);
+  os << "  if (!attr) return false;\n";
+
+  auto baseAttrPred = baseAttr.getPredicate();
+  if (baseAttrPred.isNull()) {
+    PrintFatalError("ERROR: baseAttrClass for EnumAttr has no Predicate\n");
+  }
+  auto condition = baseAttrPred.getCondition();
+  FmtContext verifyCtx;
+  verifyCtx.withSelf("attr");
+  os << tgfmt("  return $0;\n", /*ctx=*/nullptr, tgfmt(condition, &verifyCtx));
+
+  os << "}\n";
+
+  // Emit get method
+
+  os << formatv("{0} {0}::get({1} val, ::mlir::MLIRContext *context) {{\n", decoratedAttrClassName, enumName);
+
+  if (enumAttr.isSubClassOf("StrEnumAttr")) {
+    os << formatv("  return ::mlir::StringAttr::get({1}(val), context).cast<{0}>();\n", decoratedAttrClassName, symToStrFnName);
+  } else {
+    StringRef underlyingType = enumAttr.getUnderlyingType();
+
+    // Assuming that it is IntegerAttr constraint
+    int64_t bitwidth = 64;
+    if (baseAttrDef->getValue("valueType") != nullptr) {
+      if (baseAttrDef->getValueAsDef("valueType")->getValue("bitwidth") != nullptr) {
+        bitwidth = baseAttrDef->getValueAsDef("valueType")->getValueAsInt("bitwidth");
+      }
+    }
+
+    os << formatv("  ::mlir::Type intType = ::mlir::IntegerType::get({0}, mlir::IntegerType::Signless, context);\n", bitwidth);
+    os << formatv("  return ::mlir::IntegerAttr::get(intType, static_cast<{1}>(val)).cast<{0}>();\n", decoratedAttrClassName, underlyingType);
+  }
+
+  os << "}\n";
+
+  // Emit getValue method
+
+  os << formatv("{1} {0}::getValue() const {{\n", decoratedAttrClassName, enumName);
+
+  if (enumAttr.isSubClassOf("StrEnumAttr")) {
+    os << formatv("  return {0}(::mlir::StringAttr::getValue()).getValue();\n", strToSymFnName);
+  } else {
+    os << formatv("  return static_cast<{0}>(::mlir::IntegerAttr::getInt());\n", enumName);
+  }
+
+  os << "}\n";
+}
+
 static void emitUnderlyingToSymFnForBitEnum(const Record &enumDef,
                                             raw_ostream &os) {
   EnumAttr enumAttr(enumDef);
@@ -341,6 +408,7 @@ static void emitEnumDecl(const Record &enumDef, raw_ostream &os) {
   StringRef symToStrFnName = enumAttr.getSymbolToStringFnName();
   StringRef symToStrFnRetType = enumAttr.getSymbolToStringFnRetType();
   StringRef underlyingToSymFnName = enumAttr.getUnderlyingToSymbolFnName();
+  StringRef decoratedAttrClassName = enumAttr.getDecoratedAttrClassName();
   auto enumerants = enumAttr.getAllCases();
 
   llvm::SmallVector<StringRef, 2> namespaces;
@@ -392,6 +460,19 @@ inline ::llvm::Optional<{0}> symbolizeEnum<{0}>(::llvm::StringRef str) {
 )";
   os << formatv(symbolizeEnumStr, enumName, strToSymFnName);
 
+  const char *const enumAttrClassDecl = R"(
+class {1} : public ::mlir::{2} {
+public:
+  using ValueType = {0};
+  using ::mlir::{2}::{2};
+  static bool classof(::mlir::Attribute attr);
+  static {1} get({0} val, ::mlir::MLIRContext *context);
+  {0} getValue() const;
+};
+)";
+  StringRef baseAttrClassName = enumAttr.isSubClassOf("StrEnumAttr") ? "StringAttr" : "IntegerAttr";
+  os << formatv(enumAttrClassDecl, enumName, decoratedAttrClassName, baseAttrClassName);
+
   for (auto ns : llvm::reverse(namespaces))
     os << "} // namespace " << ns << "\n";
 
@@ -428,6 +509,8 @@ static void emitEnumDef(const Record &enumDef, raw_ostream &os) {
     emitStrToSymFnForIntEnum(enumDef, os);
     emitUnderlyingToSymFnForIntEnum(enumDef, os);
   }
+
+  emitDecoratedAttrDef(enumDef, os);
 
   for (auto ns : llvm::reverse(namespaces))
     os << "} // namespace " << ns << "\n";
