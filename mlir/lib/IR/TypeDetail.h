@@ -208,17 +208,17 @@ struct UnrankedTensorTypeStorage : public ShapedTypeStorage {
 };
 
 struct BaseMemRefTypeStorage : public ShapedTypeStorage {
-  BaseMemRefTypeStorage(Type elementType, unsigned memorySpace)
+  BaseMemRefTypeStorage(Type elementType, Attribute memorySpace)
       : ShapedTypeStorage(elementType), memorySpace(memorySpace) {}
 
   /// Memory space in which data referenced by memref resides.
-  const unsigned memorySpace;
+  Attribute memorySpace;
 };
 
 struct MemRefTypeStorage : public BaseMemRefTypeStorage {
   MemRefTypeStorage(unsigned shapeSize, Type elementType,
                     const int64_t *shapeElements, const unsigned numAffineMaps,
-                    AffineMap const *affineMapList, const unsigned memorySpace)
+                    AffineMap const *affineMapList, Attribute memorySpace)
       : BaseMemRefTypeStorage(elementType, memorySpace),
         shapeElements(shapeElements), shapeSize(shapeSize),
         numAffineMaps(numAffineMaps), affineMapList(affineMapList) {}
@@ -227,7 +227,7 @@ struct MemRefTypeStorage : public BaseMemRefTypeStorage {
   // MemRefs are uniqued based on their shape, element type, affine map
   // composition, and memory space.
   using KeyTy =
-      std::tuple<ArrayRef<int64_t>, Type, ArrayRef<AffineMap>, unsigned>;
+      std::tuple<ArrayRef<int64_t>, Type, ArrayRef<AffineMap>, Attribute>;
   bool operator==(const KeyTy &key) const {
     return key == KeyTy(getShape(), elementType, getAffineMaps(), memorySpace);
   }
@@ -271,11 +271,11 @@ struct MemRefTypeStorage : public BaseMemRefTypeStorage {
 /// Only element type and memory space are known
 struct UnrankedMemRefTypeStorage : public BaseMemRefTypeStorage {
 
-  UnrankedMemRefTypeStorage(Type elementTy, const unsigned memorySpace)
+  UnrankedMemRefTypeStorage(Type elementTy, Attribute memorySpace)
       : BaseMemRefTypeStorage(elementTy, memorySpace) {}
 
   /// The hash key used for uniquing.
-  using KeyTy = std::tuple<Type, unsigned>;
+  using KeyTy = std::tuple<Type, Attribute>;
   bool operator==(const KeyTy &key) const {
     return key == KeyTy(elementType, memorySpace);
   }

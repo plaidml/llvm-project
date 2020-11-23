@@ -9,6 +9,7 @@
 #ifndef MLIR_IR_STANDARDTYPES_H
 #define MLIR_IR_STANDARDTYPES_H
 
+#include "mlir/IR/Attributes.h"
 #include "mlir/IR/Types.h"
 
 namespace llvm {
@@ -464,7 +465,7 @@ public:
   static bool classof(Type type);
 
   /// Returns the memory space in which data referred to by this memref resides.
-  unsigned getMemorySpace() const;
+  Attribute getMemorySpace() const;
 };
 
 //===----------------------------------------------------------------------===//
@@ -489,7 +490,7 @@ public:
 
     // Build from scratch.
     Builder(ArrayRef<int64_t> shape, Type elementType)
-        : shape(shape), elementType(elementType), affineMaps(), memorySpace(0) {
+        : shape(shape), elementType(elementType), affineMaps() {
     }
 
     Builder &setShape(ArrayRef<int64_t> newShape) {
@@ -507,7 +508,7 @@ public:
       return *this;
     }
 
-    Builder &setMemorySpace(unsigned newMemorySpace) {
+    Builder &setMemorySpace(Attribute newMemorySpace) {
       memorySpace = newMemorySpace;
       return *this;
     }
@@ -520,7 +521,7 @@ public:
     ArrayRef<int64_t> shape;
     Type elementType;
     ArrayRef<AffineMap> affineMaps;
-    unsigned memorySpace;
+    Attribute memorySpace;
   };
 
   using Base::Base;
@@ -531,7 +532,7 @@ public:
   /// construction failures.
   static MemRefType get(ArrayRef<int64_t> shape, Type elementType,
                         ArrayRef<AffineMap> affineMapComposition = {},
-                        unsigned memorySpace = 0);
+                        Attribute memorySpace = {});
 
   /// Get or create a new MemRefType based on shape, element type, affine
   /// map composition, and memory space declared at the given location.
@@ -541,7 +542,7 @@ public:
   /// the error stream) and returns nullptr.
   static MemRefType getChecked(ArrayRef<int64_t> shape, Type elementType,
                                ArrayRef<AffineMap> affineMapComposition,
-                               unsigned memorySpace, Location location);
+                               Attribute memorySpace, Location location);
 
   ArrayRef<int64_t> getShape() const;
 
@@ -562,7 +563,7 @@ private:
   /// emit detailed error messages.
   static MemRefType getImpl(ArrayRef<int64_t> shape, Type elementType,
                             ArrayRef<AffineMap> affineMapComposition,
-                            unsigned memorySpace, Optional<Location> location);
+                            Attribute memorySpace, Optional<Location> location);
   using Base::getImpl;
 };
 
@@ -579,19 +580,19 @@ public:
 
   /// Get or create a new UnrankedMemRefType of the provided element
   /// type and memory space
-  static UnrankedMemRefType get(Type elementType, unsigned memorySpace);
+  static UnrankedMemRefType get(Type elementType, Attribute memorySpace);
 
   /// Get or create a new UnrankedMemRefType of the provided element
   /// type and memory space declared at the given, potentially unknown,
   /// location. If the UnrankedMemRefType defined by the arguments would be
   /// ill-formed, emit errors and return a nullptr-wrapping type.
-  static UnrankedMemRefType getChecked(Type elementType, unsigned memorySpace,
+  static UnrankedMemRefType getChecked(Type elementType, Attribute memorySpace,
                                        Location location);
 
   /// Verify the construction of a unranked memref type.
   static LogicalResult verifyConstructionInvariants(Location loc,
                                                     Type elementType,
-                                                    unsigned memorySpace);
+                                                    Attribute memorySpace);
 
   ArrayRef<int64_t> getShape() const { return llvm::None; }
 };

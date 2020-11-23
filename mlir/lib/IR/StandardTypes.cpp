@@ -363,7 +363,7 @@ UnrankedTensorType::verifyConstructionInvariants(Location loc,
 // BaseMemRefType
 //===----------------------------------------------------------------------===//
 
-unsigned BaseMemRefType::getMemorySpace() const {
+Attribute BaseMemRefType::getMemorySpace() const {
   return static_cast<ImplType *>(impl)->memorySpace;
 }
 
@@ -377,7 +377,7 @@ unsigned BaseMemRefType::getMemorySpace() const {
 /// construction failures.
 MemRefType MemRefType::get(ArrayRef<int64_t> shape, Type elementType,
                            ArrayRef<AffineMap> affineMapComposition,
-                           unsigned memorySpace) {
+                           Attribute memorySpace) {
   auto result = getImpl(shape, elementType, affineMapComposition, memorySpace,
                         /*location=*/llvm::None);
   assert(result && "Failed to construct instance of MemRefType.");
@@ -392,7 +392,7 @@ MemRefType MemRefType::get(ArrayRef<int64_t> shape, Type elementType,
 /// the error stream) and returns nullptr.
 MemRefType MemRefType::getChecked(ArrayRef<int64_t> shape, Type elementType,
                                   ArrayRef<AffineMap> affineMapComposition,
-                                  unsigned memorySpace, Location location) {
+                                  Attribute memorySpace, Location location) {
   return getImpl(shape, elementType, affineMapComposition, memorySpace,
                  location);
 }
@@ -403,7 +403,7 @@ MemRefType MemRefType::getChecked(ArrayRef<int64_t> shape, Type elementType,
 /// pass in an instance of UnknownLoc.
 MemRefType MemRefType::getImpl(ArrayRef<int64_t> shape, Type elementType,
                                ArrayRef<AffineMap> affineMapComposition,
-                               unsigned memorySpace,
+                               Attribute memorySpace,
                                Optional<Location> location) {
   auto *context = elementType.getContext();
 
@@ -462,19 +462,19 @@ ArrayRef<AffineMap> MemRefType::getAffineMaps() const {
 //===----------------------------------------------------------------------===//
 
 UnrankedMemRefType UnrankedMemRefType::get(Type elementType,
-                                           unsigned memorySpace) {
+                                           Attribute memorySpace) {
   return Base::get(elementType.getContext(), elementType, memorySpace);
 }
 
 UnrankedMemRefType UnrankedMemRefType::getChecked(Type elementType,
-                                                  unsigned memorySpace,
+                                                  Attribute memorySpace,
                                                   Location location) {
   return Base::getChecked(location, elementType, memorySpace);
 }
 
 LogicalResult
 UnrankedMemRefType::verifyConstructionInvariants(Location loc, Type elementType,
-                                                 unsigned memorySpace) {
+                                                 Attribute memorySpace) {
   if (!BaseMemRefType::isValidElementType(elementType))
     return emitError(loc, "invalid memref element type");
   return success();

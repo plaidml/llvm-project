@@ -226,7 +226,7 @@ MLIR_CAPI_EXPORTED MlirType mlirMemRefTypeGet(MlirType elementType,
                                               intptr_t rank, int64_t *shape,
                                               intptr_t numMaps,
                                               MlirAttribute const *affineMaps,
-                                              unsigned memorySpace);
+                                              MlirAttribute memorySpace);
 
 /** Creates a MemRef type with the given rank, shape, memory space and element
  * type in the same context as the element type. The type has no affine maps,
@@ -235,23 +235,23 @@ MLIR_CAPI_EXPORTED MlirType mlirMemRefTypeGet(MlirType elementType,
 MLIR_CAPI_EXPORTED MlirType mlirMemRefTypeContiguousGet(MlirType elementType,
                                                         intptr_t rank,
                                                         int64_t *shape,
-                                                        unsigned memorySpace);
+                                                        MlirAttribute memorySpace);
 
 /** Same as "mlirMemRefTypeContiguousGet" but returns a nullptr wrapping
  * MlirType on illegal arguments, emitting appropriate diagnostics. */
 MLIR_CAPI_EXPORTED MlirType mlirMemRefTypeContiguousGetChecked(
-    MlirType elementType, intptr_t rank, int64_t *shape, unsigned memorySpace,
+    MlirType elementType, intptr_t rank, int64_t *shape, MlirAttribute memorySpace,
     MlirLocation loc);
 
 /** Creates an Unranked MemRef type with the given element type and in the given
  * memory space. The type is owned by the context of element type. */
 MLIR_CAPI_EXPORTED MlirType mlirUnrankedMemRefTypeGet(MlirType elementType,
-                                                      unsigned memorySpace);
+                                                      MlirAttribute memorySpace);
 
 /** Same as "mlirUnrankedMemRefTypeGet" but returns a nullptr wrapping
  * MlirType on illegal arguments, emitting appropriate diagnostics. */
 MLIR_CAPI_EXPORTED MlirType mlirUnrankedMemRefTypeGetChecked(
-    MlirType elementType, unsigned memorySpace, MlirLocation loc);
+    MlirType elementType, MlirAttribute memorySpace, MlirLocation loc);
 
 /// Returns the number of affine layout maps in the given MemRef type.
 MLIR_CAPI_EXPORTED intptr_t mlirMemRefTypeGetNumAffineMaps(MlirType type);
@@ -261,10 +261,10 @@ MLIR_CAPI_EXPORTED MlirAffineMap mlirMemRefTypeGetAffineMap(MlirType type,
                                                             intptr_t pos);
 
 /// Returns the memory space of the given MemRef type.
-MLIR_CAPI_EXPORTED unsigned mlirMemRefTypeGetMemorySpace(MlirType type);
+MLIR_CAPI_EXPORTED MlirAttribute mlirMemRefTypeGetMemorySpace(MlirType type);
 
 /// Returns the memory spcae of the given Unranked MemRef type.
-MLIR_CAPI_EXPORTED unsigned mlirUnrankedMemrefGetMemorySpace(MlirType type);
+MLIR_CAPI_EXPORTED MlirAttribute mlirUnrankedMemrefGetMemorySpace(MlirType type);
 
 //===----------------------------------------------------------------------===//
 // Tuple type.
