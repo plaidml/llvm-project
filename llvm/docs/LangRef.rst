@@ -3667,12 +3667,12 @@ a poison value.
 
 Poison value behavior is defined in terms of value *dependence*:
 
--  Values other than :ref:`phi <i_phi>` nodes and :ref:`select <i_select>`
-   instructions depend on their operands.
+-  Values other than :ref:`phi <i_phi>` nodes, :ref:`select <i_select>`, and
+   :ref:`freeze <i_freeze>` instructions depend on their operands.
 -  :ref:`Phi <i_phi>` nodes depend on the operand corresponding to
    their dynamic predecessor basic block.
--  Select instructions depend on their condition operand and their
-   selected operand.
+-  :ref:`Select <i_select>` instructions depend on their condition operand and
+   their selected operand.
 -  Function arguments depend on the corresponding actual argument values
    in the dynamic callers of their functions.
 -  :ref:`Call <i_call>` instructions depend on the :ref:`ret <i_ret>`
@@ -5955,6 +5955,21 @@ vectorization:
 
    !0 = !{!"llvm.loop.vectorize.predicate.enable", i1 0}
    !1 = !{!"llvm.loop.vectorize.predicate.enable", i1 1}
+
+'``llvm.loop.vectorize.scalable.enable``' Metadata
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This metadata selectively enables or disables scalable vectorization for the
+loop, and only has any effect if vectorization for the loop is already enabled.
+The first operand is the string ``llvm.loop.vectorize.scalable.enable``
+and the second operand is a bit. If the bit operand value is 1 scalable
+vectorization is enabled, whereas a value of 0 reverts to the default fixed
+width vectorization:
+
+.. code-block:: llvm
+
+   !0 = !{!"llvm.loop.vectorize.scalable.enable", i1 0}
+   !1 = !{!"llvm.loop.vectorize.scalable.enable", i1 1}
 
 '``llvm.loop.vectorize.width``' Metadata
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

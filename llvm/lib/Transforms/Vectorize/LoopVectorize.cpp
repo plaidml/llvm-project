@@ -159,11 +159,10 @@ using namespace llvm;
 
 /// @{
 /// Metadata attribute names
-static const char *const LLVMLoopVectorizeFollowupAll =
-    "llvm.loop.vectorize.followup_all";
-static const char *const LLVMLoopVectorizeFollowupVectorized =
+const char LLVMLoopVectorizeFollowupAll[] = "llvm.loop.vectorize.followup_all";
+const char LLVMLoopVectorizeFollowupVectorized[] =
     "llvm.loop.vectorize.followup_vectorized";
-static const char *const LLVMLoopVectorizeFollowupEpilogue =
+const char LLVMLoopVectorizeFollowupEpilogue[] =
     "llvm.loop.vectorize.followup_epilogue";
 /// @}
 
@@ -1443,7 +1442,8 @@ private:
   /// \return An upper bound for the vectorization factor, a power-of-2 larger
   /// than zero. One is returned if vectorization should best be avoided due
   /// to cost.
-  ElementCount computeFeasibleMaxVF(unsigned ConstTripCount);
+  ElementCount computeFeasibleMaxVF(unsigned ConstTripCount,
+                                    ElementCount UserVF);
 
   /// The vectorization cost is a combination of the cost itself and a boolean
   /// indicating whether any of the contributing operations will actually
@@ -5270,9 +5270,11 @@ LoopVectorizationCostModel::computeMaxVF(ElementCount UserVF, unsigned UserIC) {
     return None;
   }
 
+  ElementCount MaxVF = computeFeasibleMaxVF(TC, UserVF);
+
   switch (ScalarEpilogueStatus) {
   case CM_ScalarEpilogueAllowed:
-    return UserVF ? UserVF : computeFeasibleMaxVF(TC);
+    return MaxVF;
   case CM_ScalarEpilogueNotNeededUsePredicate:
     LLVM_DEBUG(
         dbgs() << "LV: vector predicate hint/switch found.\n"
@@ -5308,7 +5310,6 @@ LoopVectorizationCostModel::computeMaxVF(ElementCount UserVF, unsigned UserIC) {
     InterleaveInfo.invalidateGroupsRequiringScalarEpilogue();
   }
 
-  ElementCount MaxVF = UserVF ? UserVF : computeFeasibleMaxVF(TC);
   assert(!MaxVF.isScalable() &&
          "Scalable vectors do not yet support tail folding");
   assert((UserVF.isNonZero() || isPowerOf2_32(MaxVF.getFixedValue())) &&
@@ -5361,7 +5362,9 @@ LoopVectorizationCostModel::computeMaxVF(ElementCount UserVF, unsigned UserIC) {
 }
 
 ElementCount
-LoopVectorizationCostModel::computeFeasibleMaxVF(unsigned ConstTripCount) {
+LoopVectorizationCostModel::computeFeasibleMaxVF(unsigned ConstTripCount,
+                                                 ElementCount UserVF) {
+  assert(!UserVF.isScalable() && "scalable vectorization not yet handled");
   MinBWs = computeMinimumValueSizes(TheLoop->getBlocks(), *DB, &TTI);
   unsigned SmallestType, WidestType;
   std::tie(SmallestType, WidestType) = getSmallestAndWidestTypes();
@@ -5372,6 +5375,27 @@ LoopVectorizationCostModel::computeFeasibleMaxVF(unsigned ConstTripCount) {
   // the memory accesses that is most restrictive (involved in the smallest
   // dependence distance).
   unsigned MaxSafeVectorWidthInBits = Legal->getMaxSafeVectorWidthInBits();
+
+  if (UserVF.isNonZero()) {
+    // If legally unsafe, clamp the user vectorization factor to a safe value.
+    unsigned MaxSafeVF = PowerOf2Floor(MaxSafeVectorWidthInBits / WidestType);
+    if (UserVF.getFixedValue() <= MaxSafeVF)
+      return UserVF;
+
+    LLVM_DEBUG(dbgs() << "LV: User VF=" << UserVF
+                      << " is unsafe, clamping to max safe VF=" << MaxSafeVF
+                      << ".\n");
+    ORE->emit([&]() {
+      return OptimizationRemarkAnalysis(DEBUG_TYPE, "VectorizationFactor",
+                                        TheLoop->getStartLoc(),
+                                        TheLoop->getHeader())
+             << "User-specified vectorization factor "
+             << ore::NV("UserVectorizationFactor", UserVF)
+             << " is unsafe, clamping to maximum safe vectorization factor "
+             << ore::NV("VectorizationFactor", MaxSafeVF);
+    });
+    return ElementCount::getFixed(MaxSafeVF);
+  }
 
   WidestRegister = std::min(WidestRegister, MaxSafeVectorWidthInBits);
 
@@ -6853,6 +6877,8 @@ unsigned LoopVectorizationCostModel::getInstructionCost(Instruction *I,
       return std::min(CallCost, getVectorIntrinsicCost(CI, VF));
     return CallCost;
   }
+  case Instruction::ExtractValue:
+    return TTI.getInstructionCost(I, TTI::TCK_RecipThroughput);
   default:
     // The cost of executing VF copies of the scalar instruction. This opcode
     // is unknown. Assume that it is the same as 'mul'.
@@ -7029,9 +7055,12 @@ LoopVectorizationPlanner::plan(ElementCount UserVF, unsigned UserIC) {
       CM.invalidateCostModelingDecisions();
   }
 
-  if (!UserVF.isZero()) {
+  ElementCount MaxVF = MaybeMaxVF.getValue();
+  assert(MaxVF.isNonZero() && "MaxVF is zero.");
+
+  if (!UserVF.isZero() && UserVF.getFixedValue() <= MaxVF.getFixedValue()) {
     LLVM_DEBUG(dbgs() << "LV: Using user VF " << UserVF << ".\n");
-    assert(isPowerOf2_32(UserVF.getKnownMinValue()) &&
+    assert(isPowerOf2_32(UserVF.getFixedValue()) &&
            "VF needs to be a power of two");
     // Collect the instructions (and their associated costs) that will be more
     // profitable to scalarize.
@@ -7041,9 +7070,6 @@ LoopVectorizationPlanner::plan(ElementCount UserVF, unsigned UserIC) {
     LLVM_DEBUG(printPlans(dbgs()));
     return {{UserVF, 0}};
   }
-
-  ElementCount MaxVF = MaybeMaxVF.getValue();
-  assert(MaxVF.isNonZero() && "MaxVF is zero.");
 
   for (ElementCount VF = ElementCount::getFixed(1);
        ElementCount::isKnownLE(VF, MaxVF); VF *= 2) {
@@ -7593,8 +7619,9 @@ VPRegionBlock *VPRecipeBuilder::createReplicateRegion(Instruction *Instr,
   assert(Instr->getParent() && "Predicated instruction not in any basic block");
   auto *BOMRecipe = new VPBranchOnMaskRecipe(BlockInMask);
   auto *Entry = new VPBasicBlock(Twine(RegionName) + ".entry", BOMRecipe);
-  auto *PHIRecipe =
-      Instr->getType()->isVoidTy() ? nullptr : new VPPredInstPHIRecipe(Instr);
+  auto *PHIRecipe = Instr->getType()->isVoidTy()
+                        ? nullptr
+                        : new VPPredInstPHIRecipe(Plan->getOrAddVPValue(Instr));
   auto *Exit = new VPBasicBlock(Twine(RegionName) + ".continue", PHIRecipe);
   auto *Pred = new VPBasicBlock(Twine(RegionName) + ".if", PredRecipe);
   VPRegionBlock *Region = new VPRegionBlock(Entry, Exit, RegionName, true);
@@ -8169,8 +8196,8 @@ void VPBranchOnMaskRecipe::execute(VPTransformState &State) {
 
 void VPPredInstPHIRecipe::execute(VPTransformState &State) {
   assert(State.Instance && "Predicated instruction PHI works per instance.");
-  Instruction *ScalarPredInst = cast<Instruction>(
-      State.ValueMap.getScalarValue(PredInst, *State.Instance));
+  Instruction *ScalarPredInst =
+      cast<Instruction>(State.get(getOperand(0), *State.Instance));
   BasicBlock *PredicatedBB = ScalarPredInst->getParent();
   BasicBlock *PredicatingBB = PredicatedBB->getSinglePredecessor();
   assert(PredicatingBB && "Predicated block has no single predecessor.");
@@ -8182,6 +8209,8 @@ void VPPredInstPHIRecipe::execute(VPTransformState &State) {
   // also do that packing, thereby "hoisting" the insert-element sequence.
   // Otherwise, a phi node for the scalar value is needed.
   unsigned Part = State.Instance->Part;
+  Instruction *PredInst =
+      cast<Instruction>(getOperand(0)->getUnderlyingValue());
   if (State.ValueMap.hasVectorValue(PredInst, Part)) {
     Value *VectorValue = State.ValueMap.getVectorValue(PredInst, Part);
     InsertElementInst *IEI = cast<InsertElementInst>(VectorValue);
@@ -8285,11 +8314,16 @@ static bool processLoopInVPlanNativePath(
   LoopVectorizationPlanner LVP(L, LI, TLI, TTI, LVL, CM, IAI, PSE);
 
   // Get user vectorization factor.
-  const unsigned UserVF = Hints.getWidth();
+  ElementCount UserVF = Hints.getWidth();
+  if (UserVF.isScalable()) {
+    // TODO: Use scalable UserVF once we've added initial support for scalable
+    // vectorization. For now we convert it to fixed width, but this will be
+    // removed in a later patch.
+    UserVF = ElementCount::getFixed(UserVF.getKnownMinValue());
+  }
 
   // Plan how to best vectorize, return the best VF and its cost.
-  const VectorizationFactor VF =
-      LVP.planInVPlanNativePath(ElementCount::getFixed(UserVF));
+  const VectorizationFactor VF = LVP.planInVPlanNativePath(UserVF);
 
   // If we are stress testing VPlan builds, do not attempt to generate vector
   // code. Masked vector code generation support will follow soon.
@@ -8451,12 +8485,18 @@ bool LoopVectorizePass::processLoop(Loop *L) {
   LoopVectorizationPlanner LVP(L, LI, TLI, TTI, &LVL, CM, IAI, PSE);
 
   // Get user vectorization factor and interleave count.
-  unsigned UserVF = Hints.getWidth();
+  ElementCount UserVF = Hints.getWidth();
+  if (UserVF.isScalable()) {
+    // TODO: Use scalable UserVF once we've added initial support for scalable
+    // vectorization. For now we convert it to fixed width, but this will be
+    // removed in a later patch.
+    UserVF = ElementCount::getFixed(UserVF.getKnownMinValue());
+  }
+
   unsigned UserIC = Hints.getInterleave();
 
   // Plan how to best vectorize, return the best VF and its cost.
-  Optional<VectorizationFactor> MaybeVF =
-      LVP.plan(ElementCount::getFixed(UserVF), UserIC);
+  Optional<VectorizationFactor> MaybeVF = LVP.plan(UserVF, UserIC);
 
   VectorizationFactor VF = VectorizationFactor::Disabled();
   unsigned IC = 1;
