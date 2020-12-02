@@ -340,7 +340,9 @@ static void emitDecoratedAttrDef(const Record &enumDef,
   os << formatv("{0} {0}::get({1} val, ::mlir::MLIRContext *context) {{\n", decoratedAttrClassName, enumName);
 
   if (enumAttr.isSubClassOf("StrEnumAttr")) {
-    os << formatv("  return ::mlir::StringAttr::get({1}(val), context).cast<{0}>();\n", decoratedAttrClassName, symToStrFnName);
+    os << formatv("  auto attr = ::mlir::StringAttr::get({0}(val), context).cast<{1}>();\n", symToStrFnName, decoratedAttrClassName);
+    os <<         "  attr.setCaseIndex(static_cast<int64_t>(val));\n";
+    os <<         "  return attr;\n";
   } else {
     StringRef underlyingType = enumAttr.getUnderlyingType();
 
@@ -363,7 +365,11 @@ static void emitDecoratedAttrDef(const Record &enumDef,
   os << formatv("{1} {0}::getValue() const {{\n", decoratedAttrClassName, enumName);
 
   if (enumAttr.isSubClassOf("StrEnumAttr")) {
-    os << formatv("  return {0}(::mlir::StringAttr::getValue()).getValue();\n", strToSymFnName);
+    os <<         "  if (auto caseIndex = ::mlir::StringAttr::getCaseIndex()) {\n";
+    os << formatv("    return static_cast<{0}>(caseIndex.getValue());\n", enumName);
+    os <<         "  } else {\n";
+    os << formatv("    return {0}(::mlir::StringAttr::getValue()).getValue();\n", strToSymFnName);
+    os <<         "  }\n";
   } else {
     os << formatv("  return static_cast<{0}>(::mlir::IntegerAttr::getInt());\n", enumName);
   }

@@ -21,6 +21,7 @@
 #include "mlir/IR/StandardTypes.h"
 #include "mlir/Support/StorageUniquer.h"
 #include "llvm/ADT/APFloat.h"
+#include "llvm/ADT/Optional.h"
 #include "llvm/ADT/PointerIntPair.h"
 #include "llvm/Support/TrailingObjects.h"
 
@@ -285,7 +286,16 @@ struct StringAttributeStorage : public AttributeStorage {
         StringAttributeStorage(allocator.copyInto(key.first), key.second);
   }
 
+  LogicalResult mutate(AttributeStorageAllocator&, int64_t caseIndex) {
+    if (this->caseIndex.hasValue() && this->caseIndex.getValue() != caseIndex)
+      return failure();
+    this->caseIndex = caseIndex;
+    return success();
+  }
+
   StringRef value;
+  // The Integer representation of StrEnum Attribute
+  llvm::Optional<int64_t> caseIndex;
 };
 
 /// An attribute representing a symbol reference.
