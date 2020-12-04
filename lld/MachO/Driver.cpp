@@ -24,6 +24,7 @@
 #include "lld/Common/ErrorHandler.h"
 #include "lld/Common/LLVM.h"
 #include "lld/Common/Memory.h"
+#include "lld/Common/Reproduce.h"
 #include "lld/Common/Version.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/StringExtras.h"
@@ -230,11 +231,17 @@ static std::vector<ArchiveMember> getArchiveMembers(MemoryBufferRef mb) {
 
   std::vector<ArchiveMember> v;
   Error err = Error::success();
+
+  // Thin archives refer to .o files, so --reproduces needs the .o files too.
+  bool addToTar = archive->isThin() && tar;
+
   for (const Archive::Child &c : archive->children(err)) {
     MemoryBufferRef mbref =
         CHECK(c.getMemoryBufferRef(),
               mb.getBufferIdentifier() +
                   ": could not get the buffer for a child of the archive");
+    if (addToTar)
+      tar->append(relativeToRoot(check(c.getFullName())), mbref.getBuffer());
     uint32_t modTime = toTimeT(
         CHECK(c.getLastModified(), mb.getBufferIdentifier() +
                                        ": could not get the modification "
@@ -255,7 +262,8 @@ static InputFile *addFile(StringRef path, bool forceLoadArchive) {
   MemoryBufferRef mbref = *buffer;
   InputFile *newFile = nullptr;
 
-  switch (identify_magic(mbref.getBuffer())) {
+  auto magic = identify_magic(mbref.getBuffer());
+  switch (magic) {
   case file_magic::archive: {
     std::unique_ptr<object::Archive> file = CHECK(
         object::Archive::create(mbref), path + ": failed to parse archive");
@@ -268,6 +276,9 @@ static InputFile *addFile(StringRef path, bool forceLoadArchive) {
         for (const ArchiveMember &member : getArchiveMembers(*buffer)) {
           inputFiles.push_back(
               make<ObjFile>(member.mbref, member.modTime, path));
+          printArchiveMemberLoad(
+              (forceLoadArchive ? "-force_load" : "-all_load"),
+              inputFiles.back());
         }
       }
     } else if (config->forceLoadObjC) {
@@ -284,6 +295,7 @@ static InputFile *addFile(StringRef path, bool forceLoadArchive) {
           if (hasObjCSection(member.mbref)) {
             inputFiles.push_back(
                 make<ObjFile>(member.mbref, member.modTime, path));
+            printArchiveMemberLoad("-ObjC", inputFiles.back());
           }
         }
       }
@@ -310,8 +322,13 @@ static InputFile *addFile(StringRef path, bool forceLoadArchive) {
   default:
     error(path + ": unhandled file type");
   }
-  if (newFile)
+  if (newFile) {
+    // printArchiveMemberLoad() prints both .a and .o names, so no need to
+    // print the .a name here.
+    if (config->printEachFile && magic != file_magic::archive)
+      lld::outs() << toString(newFile) << '\n';
     inputFiles.push_back(newFile);
+  }
   return newFile;
 }
 
@@ -630,6 +647,8 @@ bool macho::link(llvm::ArrayRef<const char *> argsArr, bool canExitEarly,
   config->headerPad = args::getHex(args, OPT_headerpad, /*Default=*/32);
   config->headerPadMaxInstallNames =
       args.hasArg(OPT_headerpad_max_install_names);
+  config->printEachFile = args.hasArg(OPT_t);
+  config->printWhyLoad = args.hasArg(OPT_why_load);
   config->outputType = getOutputType(args);
   config->runtimePaths = args::getStrings(args, OPT_rpath);
   config->allLoad = args.hasArg(OPT_all_load);

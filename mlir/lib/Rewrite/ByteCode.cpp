@@ -14,7 +14,7 @@
 #include "mlir/Analysis/Liveness.h"
 #include "mlir/Dialect/PDL/IR/PDLTypes.h"
 #include "mlir/Dialect/PDLInterp/IR/PDLInterp.h"
-#include "mlir/IR/Function.h"
+#include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/RegionGraphTraits.h"
 #include "llvm/ADT/IntervalMap.h"
 #include "llvm/ADT/PostOrderIterator.h"
@@ -769,8 +769,10 @@ private:
 
     // Check to see if the attribute value is within the case list. Jump to
     // the correct successor index based on the result.
-    auto it = llvm::find(cases, value);
-    selectJump(it == cases.end() ? size_t(0) : ((it - cases.begin()) + 1));
+    for (auto it = cases.begin(), e = cases.end(); it != e; ++it)
+      if (*it == value)
+        return selectJump(size_t((it - cases.begin()) + 1));
+    selectJump(size_t(0));
   }
 
   /// Internal implementation of reading various data types from the bytecode

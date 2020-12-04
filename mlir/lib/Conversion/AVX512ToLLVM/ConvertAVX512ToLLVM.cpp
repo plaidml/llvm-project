@@ -8,10 +8,7 @@
 
 #include "mlir/Conversion/AVX512ToLLVM/ConvertAVX512ToLLVM.h"
 
-#include "../PassDetail.h"
 #include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVM.h"
-#include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVMPass.h"
-#include "mlir/Conversion/VectorToLLVM/ConvertVectorToLLVM.h"
 #include "mlir/Dialect/AVX512/AVX512Dialect.h"
 #include "mlir/Dialect/LLVMIR/LLVMAVX512Dialect.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
@@ -19,7 +16,6 @@
 #include "mlir/Dialect/Vector/VectorOps.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/PatternMatch.h"
-#include "mlir/Pass/Pass.h"
 
 using namespace mlir;
 using namespace mlir::vector;
@@ -58,8 +54,7 @@ matchAndRewriteOneToOne(const ConvertToLLVMPattern &lowering,
   if (numResults == 0)
     return rewriter.eraseOp(op), success();
   if (numResults == 1)
-    return rewriter.replaceOp(op, newOp.getOperation()->getResult(0)),
-           success();
+    return rewriter.replaceOp(op, newOp->getResult(0)), success();
 
   // Otherwise, it had been converted to an operation producing a structure.
   // Extract individual results from the structure and return them as list.
@@ -68,8 +63,7 @@ matchAndRewriteOneToOne(const ConvertToLLVMPattern &lowering,
   for (unsigned i = 0; i < numResults; ++i) {
     auto type = typeConverter.convertType(op->getResult(i).getType());
     results.push_back(rewriter.create<LLVM::ExtractValueOp>(
-        op->getLoc(), type, newOp.getOperation()->getResult(0),
-        rewriter.getI64ArrayAttr(i)));
+        op->getLoc(), type, newOp->getResult(0), rewriter.getI64ArrayAttr(i)));
   }
   rewriter.replaceOp(op, results);
   return success();
@@ -158,33 +152,4 @@ void mlir::populateAVX512ToLLVMConversionPatterns(
                   ScaleFOpPS512Conversion,
                   ScaleFOpPD512Conversion>(ctx, converter);
   // clang-format on
-}
-
-namespace {
-struct ConvertAVX512ToLLVMPass
-    : public ConvertAVX512ToLLVMBase<ConvertAVX512ToLLVMPass> {
-  void runOnOperation() override;
-};
-} // namespace
-
-void ConvertAVX512ToLLVMPass::runOnOperation() {
-  // Convert to the LLVM IR dialect.
-  OwningRewritePatternList patterns;
-  LLVMTypeConverter converter(&getContext());
-  populateAVX512ToLLVMConversionPatterns(converter, patterns);
-  populateVectorToLLVMConversionPatterns(converter, patterns);
-  populateStdToLLVMConversionPatterns(converter, patterns);
-
-  ConversionTarget target(getContext());
-  target.addLegalDialect<LLVM::LLVMDialect>();
-  target.addLegalDialect<LLVM::LLVMAVX512Dialect>();
-  target.addIllegalDialect<avx512::AVX512Dialect>();
-  if (failed(applyPartialConversion(getOperation(), target,
-                                    std::move(patterns)))) {
-    signalPassFailure();
-  }
-}
-
-std::unique_ptr<OperationPass<ModuleOp>> mlir::createConvertAVX512ToLLVMPass() {
-  return std::make_unique<ConvertAVX512ToLLVMPass>();
 }

@@ -9,6 +9,15 @@
 // BLOCKS:#define __block __attribute__((__blocks__(byref)))
 //
 //
+// RUN: %clang_cc1 -x c++ -fgnuc-version=4.2.1 -std=c++2b -E -dM < /dev/null | FileCheck -match-full-lines -check-prefix CXX2B %s
+//
+// CXX2B:#define __GNUG__ 4
+// CXX2B:#define __GXX_EXPERIMENTAL_CXX0X__ 1
+// CXX2B:#define __GXX_RTTI 1
+// CXX2B:#define __GXX_WEAK__ 1
+// CXX2B:#define __cplusplus 202101L
+// CXX2B:#define __private_extern__ extern
+//
 // RUN: %clang_cc1 -x c++ -fgnuc-version=4.2.1 -std=c++20 -E -dM < /dev/null | FileCheck -match-full-lines -check-prefix CXX2A %s
 // RUN: %clang_cc1 -x c++ -fgnuc-version=4.2.1 -std=c++2a -E -dM < /dev/null | FileCheck -match-full-lines -check-prefix CXX2A %s
 //
@@ -121,6 +130,13 @@
 //
 // RUN: %clang_cc1 -ffreestanding -E -dM < /dev/null | FileCheck -match-full-lines -check-prefix FREESTANDING %s
 // FREESTANDING:#define __STDC_HOSTED__ 0
+//
+// RUN: %clang_cc1 -x c++ -fgnuc-version=4.2.1 -std=gnu++2b -E -dM < /dev/null | FileCheck -match-full-lines -check-prefix GXX2B %s
+//
+// GXX2B:#define __GNUG__ 4
+// GXX2B:#define __GXX_WEAK__ 1
+// GXX2B:#define __cplusplus 202101L
+// GXX2B:#define __private_extern__ extern
 //
 // RUN: %clang_cc1 -x c++ -fgnuc-version=4.2.1 -std=gnu++20 -E -dM < /dev/null | FileCheck -match-full-lines -check-prefix GXX2A %s
 // RUN: %clang_cc1 -x c++ -fgnuc-version=4.2.1 -std=gnu++2a -E -dM < /dev/null | FileCheck -match-full-lines -check-prefix GXX2A %s
@@ -1397,6 +1413,7 @@
 //
 // RUN: %clang_cc1 -triple arm-linux-androideabi -E -dM < /dev/null | FileCheck -match-full-lines -check-prefix ANDROID %s
 // ANDROID-NOT:#define __ANDROID_API__
+// ANDROID-NOT:#define __ANDROID_MIN_SDK_VERSION__
 // ANDROID:#define __ANDROID__ 1
 // ANDROID-NOT:#define __gnu_linux__
 //
@@ -1407,7 +1424,8 @@
 // X86_64-ANDROID-CXX:#define __STDCPP_DEFAULT_NEW_ALIGNMENT__ 16UL
 //
 // RUN: %clang_cc1 -triple arm-linux-androideabi20 -E -dM < /dev/null | FileCheck -match-full-lines -check-prefix ANDROID20 %s
-// ANDROID20:#define __ANDROID_API__ 20
+// ANDROID20:#define __ANDROID_API__ __ANDROID_MIN_SDK_VERSION__
+// ANDROID20:#define __ANDROID_MIN_SDK_VERSION__ 20
 // ANDROID20:#define __ANDROID__ 1
 // ANDROID-NOT:#define __gnu_linux__
 //

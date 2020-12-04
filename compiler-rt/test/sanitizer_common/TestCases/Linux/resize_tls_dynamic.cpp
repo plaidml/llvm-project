@@ -9,7 +9,7 @@
 // UNSUPPORTED: lsan, ubsan, android
 
 // FIXME: Investigate
-// XFAIL: powerpc64 && tsan
+// UNSUPPORTED: powerpc64
 
 #include <string.h>
 
@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
   system(buff);
 
   void *prev_handle = 0;
-  for (int i = 0; i < 300; ++i) {
+  for (int i = 0; i < 600; ++i) {
     sprintf(buff, "cp %s.so %s.so.%d", argv[0], argv[0], i);
     system(buff);
 
@@ -51,8 +51,7 @@ extern "C" void StoreToTLS(char c) {
 }
 #endif // BUILD_DSO
 
-// CHECK:      DTLS_Find [[DTLS:0x[a-f0-9]+]] {{[0-9]+}}
-// CHECK-NEXT: DTLS_NextBlock [[DTLS]] 0
-// CHECK:      DTLS_Find [[DTLS:0x[a-f0-9]+]] 255
-// CHECK-NEXT: DTLS_NextBlock [[DTLS]] 1
-// CHECK-NOT:  DTLS_NextBlock
+// CHECK: DTLS_Find [[DTLS:0x[a-f0-9]+]] {{[0-9]+}}
+// CHECK: DTLS_NextBlock [[DTLS]] 0
+// CHECK: DTLS_Find [[DTLS:0x[a-f0-9]+]] {{[0-9]+}}
+// CHECK: DTLS_NextBlock [[DTLS]] 1
