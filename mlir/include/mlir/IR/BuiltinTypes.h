@@ -186,12 +186,12 @@ public:
 
   /// Input types.
   unsigned getNumInputs() const;
-  Type getInput(unsigned i) const { return getInputs()[i]; }
+  Type getInput(size_t i) const { return getInputs()[i]; }
   ArrayRef<Type> getInputs() const;
 
   /// Result types.
   unsigned getNumResults() const;
-  Type getResult(unsigned i) const { return getResults()[i]; }
+  Type getResult(size_t i) const { return getResults()[i]; }
   ArrayRef<Type> getResults() const;
 
   /// Returns a new function type without the specified arguments and results.
