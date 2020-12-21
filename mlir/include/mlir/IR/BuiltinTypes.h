@@ -64,7 +64,7 @@ public:
   /// Get or create a ComplexType with the provided element type.  This emits
   /// and error at the specified location and returns null if the element type
   /// isn't supported.
-  static ComplexType getChecked(Type elementType, Location location);
+  static ComplexType getChecked(Location location, Type elementType);
 
   /// Verify the construction of an integer type.
   static LogicalResult verifyConstructionInvariants(Location loc,
@@ -94,27 +94,27 @@ public:
   /// The created IntegerType is signless (i.e., no signedness semantics).
   /// Assume the width is within the allowed range and assert on failures. Use
   /// getChecked to handle failures gracefully.
-  static IntegerType get(unsigned width, MLIRContext *context);
+  static IntegerType get(MLIRContext *context, unsigned width);
 
   /// Get or create a new IntegerType of the given width within the context.
   /// The created IntegerType has signedness semantics as indicated via
   /// `signedness`. Assume the width is within the allowed range and assert on
   /// failures. Use getChecked to handle failures gracefully.
-  static IntegerType get(unsigned width, SignednessSemantics signedness,
-                         MLIRContext *context);
+  static IntegerType get(MLIRContext *context, unsigned width,
+                         SignednessSemantics signedness);
 
   /// Get or create a new IntegerType of the given width within the context,
   /// defined at the given, potentially unknown, location.  The created
   /// IntegerType is signless (i.e., no signedness semantics). If the width is
   /// outside the allowed range, emit errors and return a null type.
-  static IntegerType getChecked(unsigned width, Location location);
+  static IntegerType getChecked(Location location, unsigned width);
 
   /// Get or create a new IntegerType of the given width within the context,
   /// defined at the given, potentially unknown, location. The created
   /// IntegerType has signedness semantics as indicated via `signedness`. If the
   /// width is outside the allowed range, emit errors and return a null type.
-  static IntegerType getChecked(unsigned width, SignednessSemantics signedness,
-                                Location location);
+  static IntegerType getChecked(Location location, unsigned width,
+                                SignednessSemantics signedness);
 
   /// Verify the construction of an integer type.
   static LogicalResult
@@ -181,8 +181,8 @@ class FunctionType
 public:
   using Base::Base;
 
-  static FunctionType get(TypeRange inputs, TypeRange results,
-                          MLIRContext *context);
+  static FunctionType get(MLIRContext *context, TypeRange inputs,
+                          TypeRange results);
 
   /// Input types.
   unsigned getNumInputs() const;
@@ -212,14 +212,14 @@ public:
   using Base::Base;
 
   /// Get or create a new OpaqueType with the provided dialect and string data.
-  static OpaqueType get(Identifier dialect, StringRef typeData,
-                        MLIRContext *context);
+  static OpaqueType get(MLIRContext *context, Identifier dialect,
+                        StringRef typeData);
 
   /// Get or create a new OpaqueType with the provided dialect and string data.
   /// If the given identifier is not a valid namespace for a dialect, then a
   /// null type is returned.
-  static OpaqueType getChecked(Identifier dialect, StringRef typeData,
-                               MLIRContext *context, Location location);
+  static OpaqueType getChecked(Location location, Identifier dialect,
+                               StringRef typeData);
 
   /// Returns the dialect namespace of the opaque type.
   Identifier getDialectNamespace() const;
@@ -336,8 +336,8 @@ public:
   /// declared at the given, potentially unknown, location.  If the VectorType
   /// defined by the arguments would be ill-formed, emit errors and return
   /// nullptr-wrapping type.
-  static VectorType getChecked(ArrayRef<int64_t> shape, Type elementType,
-                               Location location);
+  static VectorType getChecked(Location location, ArrayRef<int64_t> shape,
+                               Type elementType);
 
   /// Verify the construction of a vector type.
   static LogicalResult verifyConstructionInvariants(Location loc,
@@ -395,8 +395,8 @@ public:
   /// type declared at the given, potentially unknown, location.  If the
   /// RankedTensorType defined by the arguments would be ill-formed, emit errors
   /// and return a nullptr-wrapping type.
-  static RankedTensorType getChecked(ArrayRef<int64_t> shape, Type elementType,
-                                     Location location);
+  static RankedTensorType getChecked(Location location, ArrayRef<int64_t> shape,
+                                     Type elementType);
 
   /// Verify the construction of a ranked tensor type.
   static LogicalResult verifyConstructionInvariants(Location loc,
@@ -425,7 +425,7 @@ public:
   /// type declared at the given, potentially unknown, location.  If the
   /// UnrankedTensorType defined by the arguments would be ill-formed, emit
   /// errors and return a nullptr-wrapping type.
-  static UnrankedTensorType getChecked(Type elementType, Location location);
+  static UnrankedTensorType getChecked(Location location, Type elementType);
 
   /// Verify the construction of a unranked tensor type.
   static LogicalResult verifyConstructionInvariants(Location loc,
@@ -528,9 +528,10 @@ public:
   /// UnknownLoc.  If the MemRefType defined by the arguments would be
   /// ill-formed, emits errors (to the handler registered with the context or to
   /// the error stream) and returns nullptr.
-  static MemRefType getChecked(ArrayRef<int64_t> shape, Type elementType,
+  static MemRefType getChecked(Location location, ArrayRef<int64_t> shape,
+                               Type elementType,
                                ArrayRef<AffineMap> affineMapComposition,
-                               Attribute memorySpace, Location location);
+                               Attribute memorySpace);
 
   ArrayRef<int64_t> getShape() const;
 
@@ -574,8 +575,8 @@ public:
   /// type and memory space declared at the given, potentially unknown,
   /// location. If the UnrankedMemRefType defined by the arguments would be
   /// ill-formed, emit errors and return a nullptr-wrapping type.
-  static UnrankedMemRefType getChecked(Type elementType, Attribute memorySpace,
-                                       Location location);
+  static UnrankedMemRefType getChecked(Location location, Type elementType,
+                                       Attribute memorySpace);
 
   /// Verify the construction of a unranked memref type.
   static LogicalResult verifyConstructionInvariants(Location loc,
@@ -601,7 +602,7 @@ public:
 
   /// Get or create a new TupleType with the provided element types. Assumes the
   /// arguments define a well-formed type.
-  static TupleType get(TypeRange elementTypes, MLIRContext *context);
+  static TupleType get(MLIRContext *context, TypeRange elementTypes);
 
   /// Get or create an empty tuple type.
   static TupleType get(MLIRContext *context);

@@ -475,8 +475,9 @@ def AnyComplex : Type<CPred<"$_self.isa<::mlir::ComplexType>()">,
 class OpaqueType<string dialect, string name, string description>
   : Type<CPred<"isOpaqueTypeWithName($_self, \""#dialect#"\", \""#name#"\")">,
          description>,
-    BuildableType<"::mlir::OpaqueType::get($_builder.getIdentifier(\""
-                  # dialect # "\"), \"" # name # "\", $_builder.getContext())">;
+    BuildableType<"::mlir::OpaqueType::get($_builder.getContext(), "
+                  "$_builder.getIdentifier(\"" # dialect # "\"), \""
+                  # name # "\")">;
 
 // Function Type
 
@@ -1164,7 +1165,7 @@ class EnumAttrInfo<string name, list<EnumAttrCaseInfo> cases, Attr baseClass, st
   let predicate = CPred<"$_self.isa<" # cppNamespace # "::" # decoratedAttrClassName # ">()">;
   let storageType = decoratedAttrClassName;
   let returnType = cppNamespace # "::" # name;
-  let constBuilderCall = cppNamespace # "::" # decoratedAttrClassName # "::get($0, $_builder.getContext())";
+  let constBuilderCall = cppNamespace # "::" # decoratedAttrClassName # "::get($_builder.getContext(), $0)";
   let valueType = baseClass.valueType;
 }
 

@@ -337,7 +337,7 @@ static void emitDecoratedAttrDef(const Record &enumDef,
 
   // Emit get method
 
-  os << formatv("{0} {0}::get({1} val, ::mlir::MLIRContext *context) {{\n", decoratedAttrClassName, enumName);
+  os << formatv("{0} {0}::get(::mlir::MLIRContext *context, {1} val) {{\n", decoratedAttrClassName, enumName);
 
   if (enumAttr.isSubClassOf("StrEnumAttr")) {
     os << formatv("  auto attr = ::mlir::StringAttr::get({0}(val), context).cast<{1}>();\n", symToStrFnName, decoratedAttrClassName);
@@ -354,7 +354,7 @@ static void emitDecoratedAttrDef(const Record &enumDef,
       }
     }
 
-    os << formatv("  ::mlir::Type intType = ::mlir::IntegerType::get({0}, mlir::IntegerType::Signless, context);\n", bitwidth);
+    os << formatv("  ::mlir::Type intType = ::mlir::IntegerType::get(context, {0}, mlir::IntegerType::Signless);\n", bitwidth);
     os << formatv("  return ::mlir::IntegerAttr::get(intType, static_cast<{1}>(val)).cast<{0}>();\n", decoratedAttrClassName, underlyingType);
   }
 
@@ -472,7 +472,7 @@ public:
   using ValueType = {0};
   using ::mlir::{2}::{2};
   static bool classof(::mlir::Attribute attr);
-  static {1} get({0} val, ::mlir::MLIRContext *context);
+  static {1} get(::mlir::MLIRContext *context, {0} val);
   {0} getValue() const;
 };
 )";
