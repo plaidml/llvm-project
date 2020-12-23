@@ -131,7 +131,7 @@ def quant_ConstFakeQuant : quant_Op<"const_fake_quant",
   }];
 
   let arguments = (ins
-    F32Tensor:$inputs,
+    TensorOf<[AnyFloat]>:$inputs,
     F32Attr:$min,
     F32Attr:$max,
     // The bitwidth of the quantization; between 2 and 16, inclusive.
@@ -143,7 +143,7 @@ def quant_ConstFakeQuant : quant_Op<"const_fake_quant",
   );
 
   let results = (outs
-    F32Tensor:$outputs
+    TensorOf<[AnyFloat]>:$outputs
   );
 }
 
@@ -162,7 +162,7 @@ def quant_ConstFakeQuantPerAxis : quant_Op<"const_fake_quant_per_axis",
   }];
 
   let arguments = (ins
-    F32Tensor:$inputs,
+    TensorOf<[AnyFloat]>:$inputs,
     F32ArrayAttr:$min,
     F32ArrayAttr:$max,
     // The quantized dimension of the inputs tensor.
@@ -176,7 +176,7 @@ def quant_ConstFakeQuantPerAxis : quant_Op<"const_fake_quant_per_axis",
   );
 
   let results = (outs
-    F32Tensor:$outputs
+    TensorOf<[AnyFloat]>:$outputs
   );
 }
 
