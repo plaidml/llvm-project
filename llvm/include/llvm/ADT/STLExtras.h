@@ -1114,7 +1114,7 @@ public:
 
   iterator begin() const { return iterator(base, 0); }
   iterator end() const { return iterator(base, count); }
-  ReferenceT operator[](unsigned index) const {
+  ReferenceT operator[](size_t index) const {
     assert(index < size() && "invalid index for value range");
     return DerivedT::dereference_iterator(base, index);
   }
