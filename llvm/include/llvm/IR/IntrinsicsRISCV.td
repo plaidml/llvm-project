@@ -389,6 +389,27 @@ let TargetPrefix = "riscv" in {
         : Intrinsic<[llvm_anyint_ty],
                     [llvm_anyvector_ty, LLVMMatchType<1>, LLVMMatchType<0>],
                     [IntrNoMem]>, RISCVVIntrinsic;
+  // For mask unary operations with mask type in/out without mask
+  // Output: (mask type output)
+  // Input: (mask type vector_in, vl)
+  class RISCVMaskUnaryMOutNoMask
+        : Intrinsic<[llvm_anyvector_ty],
+                    [LLVMMatchType<0>, llvm_anyint_ty],
+                    [IntrNoMem]>, RISCVVIntrinsic;
+  // For mask unary operations with mask type in/out with mask
+  // Output: (mask type output)
+  // Input: (mask type maskedoff, mask type vector_in, mask, vl)
+  class RISCVMaskUnaryMOutMask
+        : Intrinsic<[llvm_anyint_ty],
+                    [LLVMMatchType<0>, LLVMMatchType<0>,
+                     LLVMMatchType<0>, llvm_anyint_ty],
+                    [IntrNoMem]>, RISCVVIntrinsic;
+  // Output: (vector)
+  // Input: (vl)
+  class RISCVNullaryIntrinsic
+        : Intrinsic<[llvm_anyvector_ty],
+                    [llvm_anyint_ty],
+                    [IntrNoMem]>, RISCVVIntrinsic;
 
   multiclass RISCVUSLoad {
     def "int_riscv_" # NAME : RISCVUSLoad;
@@ -468,6 +489,10 @@ let TargetPrefix = "riscv" in {
   multiclass RISCVMaskUnarySOut {
     def "int_riscv_" # NAME : RISCVMaskUnarySOutNoMask;
     def "int_riscv_" # NAME # "_mask" : RISCVMaskUnarySOutMask;
+  }
+  multiclass RISCVMaskUnaryMOut {
+    def "int_riscv_" # NAME : RISCVMaskUnaryMOutNoMask;
+    def "int_riscv_" # NAME # "_mask" : RISCVMaskUnaryMOutMask;
   }
 
   defm vle : RISCVUSLoad;
@@ -682,8 +707,39 @@ let TargetPrefix = "riscv" in {
   def int_riscv_vmnor: RISCVBinaryAAANoMask;
   def int_riscv_vmornot: RISCVBinaryAAANoMask;
   def int_riscv_vmxnor: RISCVBinaryAAANoMask;
+  def int_riscv_vmclr : RISCVNullaryIntrinsic;
+  def int_riscv_vmset : RISCVNullaryIntrinsic;
 
   defm vpopc : RISCVMaskUnarySOut;
   defm vfirst : RISCVMaskUnarySOut;
+  defm vmsbf : RISCVMaskUnaryMOut;
+  defm vmsof : RISCVMaskUnaryMOut;
+  defm vmsif : RISCVMaskUnaryMOut;
+
+  // Output: (vector)
+  // Input: (mask type input, vl)
+  def int_riscv_viota : Intrinsic<[llvm_anyvector_ty],
+                                  [LLVMScalarOrSameVectorWidth<0, llvm_i1_ty>,
+                                   llvm_anyint_ty],
+                                  [IntrNoMem]>, RISCVVIntrinsic;
+  // Output: (vector)
+  // Input: (maskedoff, mask type vector_in, mask, vl)
+  def int_riscv_viota_mask : Intrinsic<[llvm_anyvector_ty],
+                                       [LLVMMatchType<0>,
+                                        LLVMScalarOrSameVectorWidth<0, llvm_i1_ty>,
+                                        LLVMScalarOrSameVectorWidth<0, llvm_i1_ty>,
+                                        llvm_anyint_ty],
+                                       [IntrNoMem]>, RISCVVIntrinsic;
+  // Output: (vector)
+  // Input: (vl)
+  def int_riscv_vid : RISCVNullaryIntrinsic;
+
+  // Output: (vector)
+  // Input: (maskedoff, mask, vl)
+  def int_riscv_vid_mask : Intrinsic<[llvm_anyvector_ty],
+                                     [LLVMMatchType<0>,
+                                      LLVMScalarOrSameVectorWidth<0, llvm_i1_ty>,
+                                      llvm_anyint_ty],
+                                     [IntrNoMem]>, RISCVVIntrinsic;
 
 } // TargetPrefix = "riscv"
