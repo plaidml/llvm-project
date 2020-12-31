@@ -687,11 +687,13 @@ def F64MemRef  : MemRefOf<[F64]>;
 class MemRefRankOf<list<Type> allowedTypes, list<int> ranks> :
     Type<And<[MemRefOf<allowedTypes>.predicate, HasAnyRankOfPred<ranks>]>,
          StrJoin<!foreach(rank, ranks, rank # "D"), "/">.result # " " #
-         MemRefOf<allowedTypes>.description>;
+         MemRefOf<allowedTypes>.description,
+        "::mlir::MemRefType">;
 
 class StaticShapeMemRefOf<list<Type> allowedTypes>
     : Type<And<[MemRefOf<allowedTypes>.predicate, HasStaticShapePred]>,
-           "statically shaped " # MemRefOf<allowedTypes>.description>;
+           "statically shaped " # MemRefOf<allowedTypes>.description,
+            "::mlir::MemRefType">;
 
 def AnyStaticShapeMemRef : StaticShapeMemRefOf<[AnyType]>;
 
