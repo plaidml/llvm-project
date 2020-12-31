@@ -946,16 +946,31 @@ static bool shouldAssumeDSOLocal(const CodeGenModule &CGM,
   if (TT.isOSBinFormatCOFF() || (TT.isOSWindows() && TT.isOSBinFormatMachO()))
     return true;
 
+  const auto &CGOpts = CGM.getCodeGenOpts();
+  llvm::Reloc::Model RM = CGOpts.RelocationModel;
+  const auto &LOpts = CGM.getLangOpts();
+
+  if (TT.isOSBinFormatMachO()) {
+    if (RM == llvm::Reloc::Static)
+      return true;
+    return GV->isStrongDefinitionForLinker();
+  }
+
   // Only handle COFF and ELF for now.
   if (!TT.isOSBinFormatELF())
     return false;
 
-  // If this is not an executable, don't assume anything is local.
-  const auto &CGOpts = CGM.getCodeGenOpts();
-  llvm::Reloc::Model RM = CGOpts.RelocationModel;
-  const auto &LOpts = CGM.getLangOpts();
-  if (RM != llvm::Reloc::Static && !LOpts.PIE)
-    return false;
+  if (RM != llvm::Reloc::Static && !LOpts.PIE) {
+    // On ELF, if -fno-semantic-interposition is specified, we can set dso_local
+    // if using a local alias is preferable (can avoid GOT indirection).
+    // Currently only x86 supports local alias.
+    if (!TT.isOSBinFormatELF() ||
+        !CGM.getLangOpts().ExplicitNoSemanticInterposition ||
+        !GV->canBenefitFromLocalAlias())
+      return false;
+    // The allowed targets need to match AsmPrinter::getSymbolPreferLocal.
+    return TT.isX86();
+  }
 
   // A definition cannot be preempted from an executable.
   if (!GV->isDeclarationForLinker())

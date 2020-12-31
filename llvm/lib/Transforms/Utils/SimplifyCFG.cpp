@@ -910,13 +910,18 @@ bool SimplifyCFGOpt::SimplifyEqualityComparisonWithOnlyPredecessor(
       (void)NI;
 
       // Remove PHI node entries for the dead edge.
-      ThisCases[0].Dest->removePredecessor(TI->getParent());
+      ThisCases[0].Dest->removePredecessor(PredDef);
 
       LLVM_DEBUG(dbgs() << "Threading pred instr: " << *Pred->getTerminator()
                         << "Through successor TI: " << *TI << "Leaving: " << *NI
                         << "\n");
 
       EraseTerminatorAndDCECond(TI);
+
+      if (DTU)
+        DTU->applyUpdatesPermissive(
+            {{DominatorTree::Delete, PredDef, ThisCases[0].Dest}});
+
       return true;
     }
 
@@ -965,12 +970,15 @@ bool SimplifyCFGOpt::SimplifyEqualityComparisonWithOnlyPredecessor(
   if (!TheRealDest)
     TheRealDest = ThisDef;
 
+  SmallVector<DominatorTree::UpdateType, 2> Updates;
+
   // Remove PHI node entries for dead edges.
   BasicBlock *CheckEdge = TheRealDest;
   for (BasicBlock *Succ : successors(TIBB))
-    if (Succ != CheckEdge)
+    if (Succ != CheckEdge) {
       Succ->removePredecessor(TIBB);
-    else
+      Updates.push_back({DominatorTree::Delete, TIBB, Succ});
+    } else
       CheckEdge = nullptr;
 
   // Insert the new branch.
@@ -982,6 +990,8 @@ bool SimplifyCFGOpt::SimplifyEqualityComparisonWithOnlyPredecessor(
                     << "\n");
 
   EraseTerminatorAndDCECond(TI);
+  if (DTU)
+    DTU->applyUpdatesPermissive(Updates);
   return true;
 }
 
@@ -1066,7 +1076,7 @@ bool SimplifyCFGOpt::FoldValueComparisonIntoPredecessors(Instruction *TI,
       ++NumFoldValueComparisonIntoPredecessors;
   });
 
-  SmallVector<BasicBlock *, 16> Preds(pred_begin(BB), pred_end(BB));
+  SmallVector<BasicBlock *, 16> Preds(predecessors(BB));
   while (!Preds.empty()) {
     BasicBlock *Pred = Preds.pop_back_val();
 
@@ -1498,11 +1508,19 @@ HoistTerminator:
     }
   }
 
+  SmallVector<DominatorTree::UpdateType, 4> Updates;
+
   // Update any PHI nodes in our new successors.
-  for (BasicBlock *Succ : successors(BB1))
+  for (BasicBlock *Succ : successors(BB1)) {
     AddPredecessorToBlock(Succ, BIParent, BB1);
+    Updates.push_back({DominatorTree::Insert, BIParent, Succ});
+  }
+  for (BasicBlock *Succ : successors(BI))
+    Updates.push_back({DominatorTree::Delete, BIParent, Succ});
 
   EraseTerminatorAndDCECond(BI);
+  if (DTU)
+    DTU->applyUpdatesPermissive(Updates);
   return Changed;
 }
 
@@ -1794,7 +1812,8 @@ namespace {
 /// true, sink any common code from the predecessors to BB.
 /// We also allow one predecessor to end with conditional branch (but no more
 /// than one).
-static bool SinkCommonCodeFromPredecessors(BasicBlock *BB) {
+static bool SinkCommonCodeFromPredecessors(BasicBlock *BB,
+                                           DomTreeUpdater *DTU) {
   // We support two situations:
   //   (1) all incoming arcs are unconditional
   //   (2) one incoming arc is conditional
@@ -1912,7 +1931,8 @@ static bool SinkCommonCodeFromPredecessors(BasicBlock *BB) {
     LLVM_DEBUG(dbgs() << "SINK: Splitting edge\n");
     // We have a conditional edge and we're going to sink some instructions.
     // Insert a new block postdominating all blocks we're going to sink from.
-    if (!SplitBlockPredecessors(BB, UnconditionalPreds, ".sink.split"))
+    if (!SplitBlockPredecessors(BB, UnconditionalPreds, ".sink.split",
+                                DTU ? &DTU->getDomTree() : nullptr))
       // Edges couldn't be split.
       return false;
     Changed = true;
@@ -2324,8 +2344,8 @@ static bool BlockIsSimpleEnoughToThreadThrough(BasicBlock *BB) {
 /// If we have a conditional branch on a PHI node value that is defined in the
 /// same block as the branch and if any PHI entries are constants, thread edges
 /// corresponding to that entry to be branches to their ultimate destination.
-static bool FoldCondBranchOnPHI(BranchInst *BI, const DataLayout &DL,
-                                AssumptionCache *AC) {
+static bool FoldCondBranchOnPHI(BranchInst *BI, DomTreeUpdater *DTU,
+                                const DataLayout &DL, AssumptionCache *AC) {
   BasicBlock *BB = BI->getParent();
   PHINode *PN = dyn_cast<PHINode>(BI->getCondition());
   // NOTE: we currently cannot transform this case if the PHI node is used
@@ -2361,6 +2381,8 @@ static bool FoldCondBranchOnPHI(BranchInst *BI, const DataLayout &DL,
     if (isa<IndirectBrInst>(PredBB->getTerminator()))
       continue;
 
+    SmallVector<DominatorTree::UpdateType, 3> Updates;
+
     // The dest block might have PHI nodes, other predecessors and other
     // difficult cases.  Instead of being smart about this, just insert a new
     // block that jumps to the destination block, effectively splitting
@@ -2369,6 +2391,7 @@ static bool FoldCondBranchOnPHI(BranchInst *BI, const DataLayout &DL,
         BasicBlock::Create(BB->getContext(), RealDest->getName() + ".critedge",
                            RealDest->getParent(), RealDest);
     BranchInst *CritEdgeBranch = BranchInst::Create(RealDest, EdgeBB);
+    Updates.push_back({DominatorTree::Insert, EdgeBB, RealDest});
     CritEdgeBranch->setDebugLoc(BI->getDebugLoc());
 
     // Update PHI nodes.
@@ -2427,8 +2450,14 @@ static bool FoldCondBranchOnPHI(BranchInst *BI, const DataLayout &DL,
         PredBBTI->setSuccessor(i, EdgeBB);
       }
 
+    Updates.push_back({DominatorTree::Delete, PredBB, BB});
+    Updates.push_back({DominatorTree::Insert, PredBB, EdgeBB});
+
+    if (DTU)
+      DTU->applyUpdatesPermissive(Updates);
+
     // Recurse, simplifying any other constants.
-    return FoldCondBranchOnPHI(BI, DL, AC) || true;
+    return FoldCondBranchOnPHI(BI, DTU, DL, AC) || true;
   }
 
   return false;
@@ -3209,12 +3238,10 @@ static Value *ensureValueAvailableInSuccessor(Value *V, BasicBlock *BB,
   return PHI;
 }
 
-static bool mergeConditionalStoreToAddress(BasicBlock *PTB, BasicBlock *PFB,
-                                           BasicBlock *QTB, BasicBlock *QFB,
-                                           BasicBlock *PostBB, Value *Address,
-                                           bool InvertPCond, bool InvertQCond,
-                                           const DataLayout &DL,
-                                           const TargetTransformInfo &TTI) {
+static bool mergeConditionalStoreToAddress(
+    BasicBlock *PTB, BasicBlock *PFB, BasicBlock *QTB, BasicBlock *QFB,
+    BasicBlock *PostBB, Value *Address, bool InvertPCond, bool InvertQCond,
+    DomTreeUpdater *DTU, const DataLayout &DL, const TargetTransformInfo &TTI) {
   // For every pointer, there must be exactly two stores, one coming from
   // PTB or PFB, and the other from QTB or QFB. We don't support more than one
   // store (to any address) in PTB,PFB or QTB,QFB.
@@ -3303,8 +3330,9 @@ static bool mergeConditionalStoreToAddress(BasicBlock *PTB, BasicBlock *PFB,
     // If QTB does not exist, then QFB's only predecessor has a conditional
     // branch to QFB and PostBB.
     BasicBlock *TruePred = QTB ? QTB : QFB->getSinglePredecessor();
-    BasicBlock *NewBB = SplitBlockPredecessors(PostBB, { QFB, TruePred},
-                                               "condstore.split");
+    BasicBlock *NewBB =
+        SplitBlockPredecessors(PostBB, {QFB, TruePred}, "condstore.split",
+                               DTU ? &DTU->getDomTree() : nullptr);
     if (!NewBB)
       return false;
     PostBB = NewBB;
@@ -3333,8 +3361,9 @@ static bool mergeConditionalStoreToAddress(BasicBlock *PTB, BasicBlock *PFB,
     QPred = QB.CreateNot(QPred);
   Value *CombinedPred = QB.CreateOr(PPred, QPred);
 
-  auto *T =
-      SplitBlockAndInsertIfThen(CombinedPred, &*QB.GetInsertPoint(), false);
+  auto *T = SplitBlockAndInsertIfThen(
+      CombinedPred, &*QB.GetInsertPoint(), /*Unreachable=*/false,
+      /*BranchWeights=*/nullptr, DTU ? &DTU->getDomTree() : nullptr);
   QB.SetInsertPoint(T);
   StoreInst *SI = cast<StoreInst>(QB.CreateStore(QPHI, Address));
   AAMDNodes AAMD;
@@ -3354,7 +3383,7 @@ static bool mergeConditionalStoreToAddress(BasicBlock *PTB, BasicBlock *PFB,
 }
 
 static bool mergeConditionalStores(BranchInst *PBI, BranchInst *QBI,
-                                   const DataLayout &DL,
+                                   DomTreeUpdater *DTU, const DataLayout &DL,
                                    const TargetTransformInfo &TTI) {
   // The intention here is to find diamonds or triangles (see below) where each
   // conditional block contains a store to the same address. Both of these
@@ -3456,11 +3485,11 @@ static bool mergeConditionalStores(BranchInst *PBI, BranchInst *QBI,
 
   bool Changed = false;
   for (auto *Address : CommonAddresses)
-    Changed |= mergeConditionalStoreToAddress(
-        PTB, PFB, QTB, QFB, PostBB, Address, InvertPCond, InvertQCond, DL, TTI);
+    Changed |=
+        mergeConditionalStoreToAddress(PTB, PFB, QTB, QFB, PostBB, Address,
+                                       InvertPCond, InvertQCond, DTU, DL, TTI);
   return Changed;
 }
-
 
 /// If the previous block ended with a widenable branch, determine if reusing
 /// the target block is profitable and legal.  This will have the effect of
@@ -3507,6 +3536,7 @@ static bool tryWidenCondBranchToCondBranch(BranchInst *PBI, BranchInst *BI) {
 /// that PBI and BI are both conditional branches, and BI is in one of the
 /// successor blocks of PBI - PBI branches to BI.
 static bool SimplifyCondBranchToCondBranch(BranchInst *PBI, BranchInst *BI,
+                                           DomTreeUpdater *DTU,
                                            const DataLayout &DL,
                                            const TargetTransformInfo &TTI) {
   assert(PBI->isConditional() && BI->isConditional());
@@ -3570,7 +3600,7 @@ static bool SimplifyCondBranchToCondBranch(BranchInst *PBI, BranchInst *BI,
   // If both branches are conditional and both contain stores to the same
   // address, remove the stores from the conditionals and create a conditional
   // merged store at the end.
-  if (MergeCondStores && mergeConditionalStores(PBI, BI, DL, TTI))
+  if (MergeCondStores && mergeConditionalStores(PBI, BI, DTU, DL, TTI))
     return true;
 
   // If this is a conditional branch in an empty block, and if any
@@ -3638,6 +3668,8 @@ static bool SimplifyCondBranchToCondBranch(BranchInst *PBI, BranchInst *BI,
   LLVM_DEBUG(dbgs() << "FOLDING BRs:" << *PBI->getParent()
                     << "AND: " << *BI->getParent());
 
+  SmallVector<DominatorTree::UpdateType, 5> Updates;
+
   // If OtherDest *is* BB, then BB is a basic block with a single conditional
   // branch in it, where one edge (OtherDest) goes back to itself but the other
   // exits.  We don't *know* that the program avoids the infinite loop
@@ -3651,6 +3683,7 @@ static bool SimplifyCondBranchToCondBranch(BranchInst *PBI, BranchInst *BI,
     BasicBlock *InfLoopBlock =
         BasicBlock::Create(BB->getContext(), "infloop", BB->getParent());
     BranchInst::Create(InfLoopBlock, InfLoopBlock);
+    Updates.push_back({DominatorTree::Insert, InfLoopBlock, InfLoopBlock});
     OtherDest = InfLoopBlock;
   }
 
@@ -3672,10 +3705,19 @@ static bool SimplifyCondBranchToCondBranch(BranchInst *PBI, BranchInst *BI,
   // Merge the conditions.
   Value *Cond = Builder.CreateOr(PBICond, BICond, "brmerge");
 
+  for (auto *Successor : successors(PBI->getParent()))
+    Updates.push_back({DominatorTree::Delete, PBI->getParent(), Successor});
+
   // Modify PBI to branch on the new condition to the new dests.
   PBI->setCondition(Cond);
   PBI->setSuccessor(0, CommonDest);
   PBI->setSuccessor(1, OtherDest);
+
+  for (auto *Successor : successors(PBI->getParent()))
+    Updates.push_back({DominatorTree::Insert, PBI->getParent(), Successor});
+
+  if (DTU)
+    DTU->applyUpdatesPermissive(Updates);
 
   // Update branch weight for PBI.
   uint64_t PredTrueWeight, PredFalseWeight, SuccTrueWeight, SuccFalseWeight;
@@ -3763,6 +3805,8 @@ bool SimplifyCFGOpt::SimplifyTerminatorOnSelect(Instruction *OldTerm,
   BasicBlock *KeepEdge1 = TrueBB;
   BasicBlock *KeepEdge2 = TrueBB != FalseBB ? FalseBB : nullptr;
 
+  SmallVector<DominatorTree::UpdateType, 4> Updates;
+
   // Then remove the rest.
   for (BasicBlock *Succ : successors(OldTerm)) {
     // Make sure only to keep exactly one copy of each edge.
@@ -3770,9 +3814,11 @@ bool SimplifyCFGOpt::SimplifyTerminatorOnSelect(Instruction *OldTerm,
       KeepEdge1 = nullptr;
     else if (Succ == KeepEdge2)
       KeepEdge2 = nullptr;
-    else
+    else {
       Succ->removePredecessor(OldTerm->getParent(),
                               /*KeepOneInputPHIs=*/true);
+      Updates.push_back({DominatorTree::Delete, OldTerm->getParent(), Succ});
+    }
   }
 
   IRBuilder<> Builder(OldTerm);
@@ -3780,14 +3826,17 @@ bool SimplifyCFGOpt::SimplifyTerminatorOnSelect(Instruction *OldTerm,
 
   // Insert an appropriate new terminator.
   if (!KeepEdge1 && !KeepEdge2) {
-    if (TrueBB == FalseBB)
+    if (TrueBB == FalseBB) {
       // We were only looking for one successor, and it was present.
       // Create an unconditional branch to it.
       Builder.CreateBr(TrueBB);
-    else {
+      Updates.push_back({DominatorTree::Insert, OldTerm->getParent(), TrueBB});
+    } else {
       // We found both of the successors we were looking for.
       // Create a conditional branch sharing the condition of the select.
       BranchInst *NewBI = Builder.CreateCondBr(Cond, TrueBB, FalseBB);
+      Updates.push_back({DominatorTree::Insert, OldTerm->getParent(), TrueBB});
+      Updates.push_back({DominatorTree::Insert, OldTerm->getParent(), FalseBB});
       if (TrueWeight != FalseWeight)
         setBranchWeights(NewBI, TrueWeight, FalseWeight);
     }
@@ -3799,15 +3848,20 @@ bool SimplifyCFGOpt::SimplifyTerminatorOnSelect(Instruction *OldTerm,
     // One of the selected values was a successor, but the other wasn't.
     // Insert an unconditional branch to the one that was found;
     // the edge to the one that wasn't must be unreachable.
-    if (!KeepEdge1)
+    if (!KeepEdge1) {
       // Only TrueBB was found.
       Builder.CreateBr(TrueBB);
-    else
+      Updates.push_back({DominatorTree::Insert, OldTerm->getParent(), TrueBB});
+    } else {
       // Only FalseBB was found.
       Builder.CreateBr(FalseBB);
+      Updates.push_back({DominatorTree::Insert, OldTerm->getParent(), FalseBB});
+    }
   }
 
   EraseTerminatorAndDCECond(OldTerm);
+  if (DTU)
+    DTU->applyUpdatesPermissive(Updates);
   return true;
 }
 
@@ -4047,12 +4101,16 @@ bool SimplifyCFGOpt::SimplifyBranchOnICmpChain(BranchInst *BI,
                     << " cases into SWITCH.  BB is:\n"
                     << *BB);
 
+  SmallVector<DominatorTree::UpdateType, 2> Updates;
+
   // If there are any extra values that couldn't be folded into the switch
   // then we evaluate them with an explicit branch first. Split the block
   // right before the condbr to handle it.
   if (ExtraCase) {
     BasicBlock *NewBB =
-        BB->splitBasicBlock(BI->getIterator(), "switch.early.test");
+        SplitBlock(BB, BI, DTU ? &DTU->getDomTree() : nullptr, /*LI=*/nullptr,
+                   /*MSSAU=*/nullptr, "switch.early.test");
+
     // Remove the uncond branch added to the old block.
     Instruction *OldTI = BB->getTerminator();
     Builder.SetInsertPoint(OldTI);
@@ -4063,6 +4121,8 @@ bool SimplifyCFGOpt::SimplifyBranchOnICmpChain(BranchInst *BI,
       Builder.CreateCondBr(ExtraCase, NewBB, EdgeBB);
 
     OldTI->eraseFromParent();
+
+    Updates.push_back({DominatorTree::Insert, BB, EdgeBB});
 
     // If there are PHI nodes in EdgeBB, then we need to add a new entry to them
     // for the edge we just added.
@@ -4090,6 +4150,7 @@ bool SimplifyCFGOpt::SimplifyBranchOnICmpChain(BranchInst *BI,
   // We added edges from PI to the EdgeBB.  As such, if there were any
   // PHI nodes in EdgeBB, they need entries to be added corresponding to
   // the number of edges added.
+  Updates.push_back({DominatorTree::Insert, BB, EdgeBB});
   for (BasicBlock::iterator BBI = EdgeBB->begin(); isa<PHINode>(BBI); ++BBI) {
     PHINode *PN = cast<PHINode>(BBI);
     Value *InVal = PN->getIncomingValueForBlock(BB);
@@ -4099,6 +4160,8 @@ bool SimplifyCFGOpt::SimplifyBranchOnICmpChain(BranchInst *BI,
 
   // Erase the old branch instruction.
   EraseTerminatorAndDCECond(BI);
+  if (DTU)
+    DTU->applyUpdatesPermissive(Updates);
 
   LLVM_DEBUG(dbgs() << "  ** 'icmp' chain result is:\n" << *BB << '\n');
   return true;
@@ -4543,7 +4606,7 @@ bool SimplifyCFGOpt::simplifyUnreachable(UnreachableInst *UI) {
 
   std::vector<DominatorTree::UpdateType> Updates;
 
-  SmallVector<BasicBlock *, 8> Preds(pred_begin(BB), pred_end(BB));
+  SmallVector<BasicBlock *, 8> Preds(predecessors(BB));
   for (unsigned i = 0, e = Preds.size(); i != e; ++i) {
     auto *Predecessor = Preds[i];
     Instruction *TI = Predecessor->getTerminator();
@@ -5219,13 +5282,16 @@ static Value *ConvertTwoCaseSwitch(const SwitchCaseResultVectorTy &ResultVector,
 // a select, fixing up PHI nodes and basic blocks.
 static void RemoveSwitchAfterSelectConversion(SwitchInst *SI, PHINode *PHI,
                                               Value *SelectValue,
-                                              IRBuilder<> &Builder) {
+                                              IRBuilder<> &Builder,
+                                              DomTreeUpdater *DTU) {
   BasicBlock *SelectBB = SI->getParent();
   while (PHI->getBasicBlockIndex(SelectBB) >= 0)
     PHI->removeIncomingValue(SelectBB);
   PHI->addIncoming(SelectValue, SelectBB);
 
   Builder.CreateBr(PHI->getParent());
+
+  std::vector<DominatorTree::UpdateType> Updates;
 
   // Remove the switch.
   for (unsigned i = 0, e = SI->getNumSuccessors(); i < e; ++i) {
@@ -5234,15 +5300,18 @@ static void RemoveSwitchAfterSelectConversion(SwitchInst *SI, PHINode *PHI,
     if (Succ == PHI->getParent())
       continue;
     Succ->removePredecessor(SelectBB);
+    Updates.push_back({DominatorTree::Delete, SelectBB, Succ});
   }
   SI->eraseFromParent();
+  if (DTU)
+    DTU->applyUpdatesPermissive(Updates);
 }
 
 /// If the switch is only used to initialize one or more
 /// phi nodes in a common successor block with only two different
 /// constant values, replace the switch with select.
 static bool switchToSelect(SwitchInst *SI, IRBuilder<> &Builder,
-                           const DataLayout &DL,
+                           DomTreeUpdater *DTU, const DataLayout &DL,
                            const TargetTransformInfo &TTI) {
   Value *const Cond = SI->getCondition();
   PHINode *PHI = nullptr;
@@ -5262,7 +5331,7 @@ static bool switchToSelect(SwitchInst *SI, IRBuilder<> &Builder,
   Value *SelectValue =
       ConvertTwoCaseSwitch(UniqueResults, DefaultResult, Cond, Builder);
   if (SelectValue) {
-    RemoveSwitchAfterSelectConversion(SI, PHI, SelectValue, Builder);
+    RemoveSwitchAfterSelectConversion(SI, PHI, SelectValue, Builder, DTU);
     return true;
   }
   // The switch couldn't be converted into a select.
@@ -5647,7 +5716,7 @@ static void reuseTableCompare(
 /// successor block with different constant values, replace the switch with
 /// lookup tables.
 static bool SwitchToLookupTable(SwitchInst *SI, IRBuilder<> &Builder,
-                                const DataLayout &DL,
+                                DomTreeUpdater *DTU, const DataLayout &DL,
                                 const TargetTransformInfo &TTI) {
   assert(SI->getNumCases() > 1 && "Degenerate switch?");
 
@@ -5745,6 +5814,8 @@ static bool SwitchToLookupTable(SwitchInst *SI, IRBuilder<> &Builder,
   if (!ShouldBuildLookupTable(SI, TableSize, TTI, DL, ResultTypes))
     return false;
 
+  std::vector<DominatorTree::UpdateType> Updates;
+
   // Create the BB that does the lookups.
   Module &Mod = *CommonDest->getParent()->getParent();
   BasicBlock *LookupBB = BasicBlock::Create(
@@ -5777,6 +5848,7 @@ static bool SwitchToLookupTable(SwitchInst *SI, IRBuilder<> &Builder,
 
   if (!DefaultIsReachable || GeneratingCoveredLookupTable) {
     Builder.CreateBr(LookupBB);
+    Updates.push_back({DominatorTree::Insert, SI->getParent(), LookupBB});
     // Note: We call removeProdecessor later since we need to be able to get the
     // PHI value for the default case in case we're using a bit mask.
   } else {
@@ -5784,6 +5856,9 @@ static bool SwitchToLookupTable(SwitchInst *SI, IRBuilder<> &Builder,
         TableIndex, ConstantInt::get(MinCaseVal->getType(), TableSize));
     RangeCheckBranch =
         Builder.CreateCondBr(Cmp, LookupBB, SI->getDefaultDest());
+    Updates.push_back({DominatorTree::Insert, SI->getParent(), LookupBB});
+    Updates.push_back(
+        {DominatorTree::Insert, SI->getParent(), SI->getDefaultDest()});
   }
 
   // Populate the BB that does the lookups.
@@ -5821,7 +5896,8 @@ static bool SwitchToLookupTable(SwitchInst *SI, IRBuilder<> &Builder,
     Value *LoBit = Builder.CreateTrunc(
         Shifted, Type::getInt1Ty(Mod.getContext()), "switch.lobit");
     Builder.CreateCondBr(LoBit, LookupBB, SI->getDefaultDest());
-
+    Updates.push_back({DominatorTree::Insert, MaskBB, LookupBB});
+    Updates.push_back({DominatorTree::Insert, MaskBB, SI->getDefaultDest()});
     Builder.SetInsertPoint(LookupBB);
     AddPredecessorToBlock(SI->getDefaultDest(), MaskBB, SI->getParent());
   }
@@ -5831,6 +5907,8 @@ static bool SwitchToLookupTable(SwitchInst *SI, IRBuilder<> &Builder,
     // do not delete PHINodes here.
     SI->getDefaultDest()->removePredecessor(SI->getParent(),
                                             /*KeepOneInputPHIs=*/true);
+    Updates.push_back(
+        {DominatorTree::Delete, SI->getParent(), SI->getDefaultDest()});
   }
 
   bool ReturnedEarly = false;
@@ -5867,8 +5945,10 @@ static bool SwitchToLookupTable(SwitchInst *SI, IRBuilder<> &Builder,
     PHI->addIncoming(Result, LookupBB);
   }
 
-  if (!ReturnedEarly)
+  if (!ReturnedEarly) {
     Builder.CreateBr(CommonDest);
+    Updates.push_back({DominatorTree::Insert, LookupBB, CommonDest});
+  }
 
   // Remove the switch.
   for (unsigned i = 0, e = SI->getNumSuccessors(); i < e; ++i) {
@@ -5877,8 +5957,11 @@ static bool SwitchToLookupTable(SwitchInst *SI, IRBuilder<> &Builder,
     if (Succ == SI->getDefaultDest())
       continue;
     Succ->removePredecessor(SI->getParent());
+    Updates.push_back({DominatorTree::Delete, SI->getParent(), Succ});
   }
   SI->eraseFromParent();
+  if (DTU)
+    DTU->applyUpdatesPermissive(Updates);
 
   ++NumLookupTables;
   if (NeedMask)
@@ -6018,7 +6101,7 @@ bool SimplifyCFGOpt::simplifySwitch(SwitchInst *SI, IRBuilder<> &Builder) {
   if (eliminateDeadSwitchCases(SI, Options.AC, DL))
     return requestResimplify();
 
-  if (switchToSelect(SI, Builder, DL, TTI))
+  if (switchToSelect(SI, Builder, DTU, DL, TTI))
     return requestResimplify();
 
   if (Options.ForwardSwitchCondToPhi && ForwardSwitchConditionToPHI(SI))
@@ -6030,7 +6113,7 @@ bool SimplifyCFGOpt::simplifySwitch(SwitchInst *SI, IRBuilder<> &Builder) {
   // CVP. Therefore, only apply this transformation during late stages of the
   // optimisation pipeline.
   if (Options.ConvertSwitchToLookupTable &&
-      SwitchToLookupTable(SI, Builder, DL, TTI))
+      SwitchToLookupTable(SI, Builder, DTU, DL, TTI))
     return requestResimplify();
 
   if (ReduceSwitchRange(SI, Builder, DL, TTI))
@@ -6311,14 +6394,14 @@ bool SimplifyCFGOpt::simplifyCondBranch(BranchInst *BI, IRBuilder<> &Builder) {
   // through this block if any PHI node entries are constants.
   if (PHINode *PN = dyn_cast<PHINode>(BI->getCondition()))
     if (PN->getParent() == BI->getParent())
-      if (FoldCondBranchOnPHI(BI, DL, Options.AC))
+      if (FoldCondBranchOnPHI(BI, DTU, DL, Options.AC))
         return requestResimplify();
 
   // Scan predecessor blocks for conditional branches.
   for (pred_iterator PI = pred_begin(BB), E = pred_end(BB); PI != E; ++PI)
     if (BranchInst *PBI = dyn_cast<BranchInst>((*PI)->getTerminator()))
       if (PBI != BI && PBI->isConditional())
-        if (SimplifyCondBranchToCondBranch(PBI, BI, DL, TTI))
+        if (SimplifyCondBranchToCondBranch(PBI, BI, DTU, DL, TTI))
           return requestResimplify();
 
   // Look for diamond patterns.
@@ -6326,7 +6409,7 @@ bool SimplifyCFGOpt::simplifyCondBranch(BranchInst *BI, IRBuilder<> &Builder) {
     if (BasicBlock *PrevBB = allPredecessorsComeFromSameSource(BB))
       if (BranchInst *PBI = dyn_cast<BranchInst>(PrevBB->getTerminator()))
         if (PBI != BI && PBI->isConditional())
-          if (mergeConditionalStores(PBI, BI, DL, TTI))
+          if (mergeConditionalStores(PBI, BI, DTU, DL, TTI))
             return requestResimplify();
 
   return false;
@@ -6443,7 +6526,7 @@ bool SimplifyCFGOpt::simplifyOnceImpl(BasicBlock *BB) {
     return true;
 
   if (SinkCommon && Options.SinkCommonInsts)
-    Changed |= SinkCommonCodeFromPredecessors(BB);
+    Changed |= SinkCommonCodeFromPredecessors(BB, DTU);
 
   IRBuilder<> Builder(BB);
 
