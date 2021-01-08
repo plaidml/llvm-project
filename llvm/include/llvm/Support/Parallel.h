@@ -204,7 +204,7 @@ ResultTy parallel_transform_reduce(IterTy Begin, IterTy End, ResultTy Init,
   for (ResultTy &PartialResult :
        makeMutableArrayRef(Results.data() + 1, Results.size() - 1))
     FinalResult = Reduce(FinalResult, std::move(PartialResult));
-  return std::move(FinalResult);
+  return FinalResult;
 }
 
 #endif

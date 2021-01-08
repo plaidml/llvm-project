@@ -809,6 +809,8 @@ private:
       return read<Type>();
     case PDLValueKind::Value:
       return read<Value>();
+    default:
+      llvm_unreachable("Uncovered PDLValueKind");
     }
   }
   template <typename T>
