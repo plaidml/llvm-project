@@ -51,8 +51,8 @@ std::string PredOpTrait::getPredTemplate() const {
   return pred.getCondition();
 }
 
-llvm::StringRef PredOpTrait::getDescription() const {
-  return def->getValueAsString("description");
+llvm::StringRef PredOpTrait::getSummary() const {
+  return def->getValueAsString("summary");
 }
 
 OpInterface InterfaceOpTrait::getOpInterface() const {
