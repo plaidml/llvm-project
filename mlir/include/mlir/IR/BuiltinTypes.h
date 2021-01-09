@@ -140,7 +140,7 @@ public:
   IntegerType scaleElementBitwidth(unsigned scale);
 
   /// Integer representation maximal bitwidth.
-  static constexpr unsigned kMaxWidth = 4096;
+  static constexpr unsigned kMaxWidth = (1 << 24) - 1; // Aligned with LLVM
 };
 
 //===----------------------------------------------------------------------===//
