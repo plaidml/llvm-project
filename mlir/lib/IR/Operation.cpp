@@ -709,7 +709,7 @@ void OpState::setAttr(Identifier name, Attribute value) {
   state->setAttr(name, value);
 }
 void OpState::setAttr(StringRef name, Attribute value) {
-  setAttr(Identifier::get(name, getContext()), value);
+  state->setAttr(Identifier::get(name, getContext()), value);
 }
 void OpState::setAttrs(ArrayRef<NamedAttribute> attributes) {
   state->setAttrs(DictionaryAttr::get(attributes, getContext()));

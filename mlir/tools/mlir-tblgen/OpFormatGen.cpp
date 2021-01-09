@@ -1641,7 +1641,7 @@ void OperationFormat::genElementPrinter(Element *element, OpMethodBody &body,
                              lastWasPunctuation);
 
   // Emit a whitespace element.
-  if (NewlineElement *newline = dyn_cast<NewlineElement>(element)) {
+  if (isa<NewlineElement>(element)) {
     body << "  p.printNewline();\n";
     return;
   }
