@@ -61,11 +61,6 @@ inline ArrayRef<uint8_t> arrayRefFromStringRef(StringRef Input) {
   return {Input.bytes_begin(), Input.bytes_end()};
 }
 
-#ifdef _MSC_VER
-#  pragma warning(push)
-#  pragma warning(disable: 4146) // unary minus operator applied to unsigned type, result still unsigned
-#endif // _MSC_VER
-
 /// Interpret the given character \p C as a hexadecimal digit and return its
 /// value.
 ///
@@ -76,7 +71,7 @@ inline unsigned hexDigitValue(char C) {
     constexpr HexTable() {
       // Default initialize everything to invalid.
       for (int i = 0; i < 255; ++i)
-        LUT[i] = -1U;
+        LUT[i] = ~0U;
       // Initialize `0`-`9`.
       for (int i = 0; i < 10; ++i)
         LUT['0' + i] = i;
@@ -89,24 +84,11 @@ inline unsigned hexDigitValue(char C) {
   return Table.LUT[static_cast<unsigned char>(C)];
 }
 
-#ifdef _MSC_VER
-#  pragma warning(pop)
-#endif // _MSC_VER
-
 /// Checks if character \p C is one of the 10 decimal digits.
 inline bool isDigit(char C) { return C >= '0' && C <= '9'; }
 
-#ifdef _MSC_VER
-#  pragma warning(push)
-#  pragma warning(disable: 4146) // unary minus operator applied to unsigned type, result still unsigned
-#endif // _MSC_VER
-
 /// Checks if character \p C is a hexadecimal numeric character.
-inline bool isHexDigit(char C) { return hexDigitValue(C) != -1U; }
-
-#ifdef _MSC_VER
-#  pragma warning(pop)
-#endif // _MSC_VER
+inline bool isHexDigit(char C) { return hexDigitValue(C) != ~0U; }
 
 /// Checks if character \p C is a valid letter as classified by "C" locale.
 inline bool isAlpha(char C) {
@@ -195,11 +177,6 @@ inline std::string toHex(ArrayRef<uint8_t> Input, bool LowerCase = false) {
   return toHex(toStringRef(Input), LowerCase);
 }
 
-#ifdef _MSC_VER
-#  pragma warning(push)
-#  pragma warning(disable: 4146) // unary minus operator applied to unsigned type, result still unsigned
-#endif // _MSC_VER
-
 /// Store the binary representation of the two provided values, \p MSB and
 /// \p LSB, that make up the nibbles of a hexadecimal digit. If \p MSB or \p LSB
 /// do not correspond to proper nibbles of a hexadecimal digit, this method
@@ -207,16 +184,12 @@ inline std::string toHex(ArrayRef<uint8_t> Input, bool LowerCase = false) {
 inline bool tryGetHexFromNibbles(char MSB, char LSB, uint8_t &Hex) {
   unsigned U1 = hexDigitValue(MSB);
   unsigned U2 = hexDigitValue(LSB);
-  if (U1 == -1U || U2 == -1U)
+  if (U1 == ~0U || U2 == ~0U)
     return false;
 
   Hex = static_cast<uint8_t>((U1 << 4) | U2);
   return true;
 }
-
-#ifdef _MSC_VER
-#  pragma warning(pop)
-#endif // _MSC_VER
 
 /// Return the binary representation of the two provided values, \p MSB and
 /// \p LSB, that make up the nibbles of a hexadecimal digit.
@@ -316,21 +289,12 @@ inline std::string utostr(uint64_t X, bool isNeg = false) {
   return std::string(BufPtr, std::end(Buffer));
 }
 
-#ifdef _MSC_VER
-#  pragma warning(push)
-#  pragma warning(disable: 4146) // unary minus operator applied to unsigned type, result still unsigned
-#endif // _MSC_VER
-
 inline std::string itostr(int64_t X) {
   if (X < 0)
-    return utostr(-static_cast<uint64_t>(X), true);
+    return utostr(static_cast<uint64_t>(1) + ~static_cast<uint64_t>(X), true);
   else
     return utostr(static_cast<uint64_t>(X));
 }
-
-#ifdef _MSC_VER
-#  pragma warning(pop)
-#endif // _MSC_VER
 
 /// StrInStrNoCase - Portable version of strcasestr.  Locates the first
 /// occurrence of string 's1' in string 's2', ignoring case.  Returns
