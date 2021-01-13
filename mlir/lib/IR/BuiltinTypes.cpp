@@ -421,6 +421,15 @@ UnrankedTensorType::verifyConstructionInvariants(Location loc,
 // BaseMemRefType
 //===----------------------------------------------------------------------===//
 
+/// Return true if the specified element type is ok in a memref.
+bool BaseMemRefType::isValidElementType(Type type) {
+  // Note: Non standard/builtin types are allowed to exist within memref
+  // types. Dialects are expected to verify that memref types have a valid
+  // element type within that dialect.
+  return type.isIntOrIndexOrFloat() || type.isa<VectorType, ComplexType>() ||
+         !type.getDialect().getNamespace().empty();
+}
+
 Attribute BaseMemRefType::getMemorySpace() const {
   return static_cast<ImplType *>(impl)->memorySpace;
 }

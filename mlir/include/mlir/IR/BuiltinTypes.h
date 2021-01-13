@@ -445,9 +445,7 @@ public:
   using ShapedType::ShapedType;
 
   /// Return true if the specified element type is ok in a memref.
-  static bool isValidElementType(Type type) {
-    return type.isIntOrIndexOrFloat() || type.isa<VectorType, ComplexType>();
-  }
+  static bool isValidElementType(Type type);
 
   /// Methods for support type inquiry through isa, cast, and dyn_cast.
   static bool classof(Type type);
