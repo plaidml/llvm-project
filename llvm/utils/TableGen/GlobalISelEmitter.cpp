@@ -3930,7 +3930,7 @@ Expected<InstructionMatcher &> GlobalISelEmitter::createAndImportSelDAGMatcher(
     auto InsnMatcherOrError = addBuiltinPredicates(
         SrcGIEquivOrNull, Predicate, InsnMatcher, HasAddedBuiltinMatcher);
     if (auto Error = InsnMatcherOrError.takeError())
-      return std::move(Error);
+      return Error;
 
     if (Predicate.hasGISelPredicateCode()) {
       if (Predicate.usesOperands()) {
@@ -4022,11 +4022,11 @@ Expected<InstructionMatcher &> GlobalISelEmitter::createAndImportSelDAGMatcher(
 
       if (auto Error = importChildMatcher(Rule, InsnMatcher, PtrChild, true,
                                           false, 1, TempOpIdx))
-        return std::move(Error);
+        return Error;
 
       if (auto Error = importChildMatcher(Rule, InsnMatcher, ValueChild, false,
                                           false, 0, TempOpIdx))
-        return std::move(Error);
+        return Error;
       return InsnMatcher;
     }
 
@@ -4077,7 +4077,7 @@ Expected<InstructionMatcher &> GlobalISelEmitter::createAndImportSelDAGMatcher(
       if (auto Error =
               importChildMatcher(Rule, InsnMatcher, SrcChild, OperandIsAPointer,
                                  OperandIsImmArg, OpIdx++, TempOpIdx))
-        return std::move(Error);
+        return Error;
     }
   }
 
@@ -4394,7 +4394,7 @@ Expected<action_iterator> GlobalISelEmitter::importExplicitUseRenderer(
       auto InsertPtOrError = createAndImportSubInstructionRenderer(
           ++InsertPt, Rule, DstChild, TempRegID);
       if (auto Error = InsertPtOrError.takeError())
-        return std::move(Error);
+        return Error;
       return InsertPtOrError.get();
     }
 
@@ -4473,7 +4473,7 @@ Expected<BuildMIAction &> GlobalISelEmitter::createAndImportInstructionRenderer(
     const TreePatternNode *Dst) {
   auto InsertPtOrError = createInstructionRenderer(M.actions_end(), M, Dst);
   if (auto Error = InsertPtOrError.takeError())
-    return std::move(Error);
+    return Error;
 
   action_iterator InsertPt = InsertPtOrError.get();
   BuildMIAction &DstMIBuilder = *static_cast<BuildMIAction *>(InsertPt->get());
@@ -4492,11 +4492,11 @@ Expected<BuildMIAction &> GlobalISelEmitter::createAndImportInstructionRenderer(
 
   if (auto Error = importExplicitDefRenderers(InsertPt, M, DstMIBuilder, Dst)
                        .takeError())
-    return std::move(Error);
+    return Error;
 
   if (auto Error = importExplicitUseRenderers(InsertPt, M, DstMIBuilder, Dst)
                        .takeError())
-    return std::move(Error);
+    return Error;
 
   return DstMIBuilder;
 }
@@ -4510,7 +4510,7 @@ GlobalISelEmitter::createAndImportSubInstructionRenderer(
   // TODO: Assert there's exactly one result.
 
   if (auto Error = InsertPtOrError.takeError())
-    return std::move(Error);
+    return Error;
 
   BuildMIAction &DstMIBuilder =
       *static_cast<BuildMIAction *>(InsertPtOrError.get()->get());
@@ -4521,7 +4521,7 @@ GlobalISelEmitter::createAndImportSubInstructionRenderer(
   InsertPtOrError =
       importExplicitUseRenderers(InsertPtOrError.get(), M, DstMIBuilder, Dst);
   if (auto Error = InsertPtOrError.takeError())
-    return std::move(Error);
+    return Error;
 
   // We need to make sure that when we import an INSERT_SUBREG as a
   // subinstruction that it ends up being constrained to the correct super
@@ -4710,7 +4710,7 @@ Expected<action_iterator> GlobalISelEmitter::importExplicitUseRenderers(
       auto InsertPtOrError = createAndImportSubInstructionRenderer(
         ++InsertPt, M, ValChild, TempRegID);
       if (auto Error = InsertPtOrError.takeError())
-        return std::move(Error);
+        return Error;
 
       DstMIBuilder.addRenderer<TempRegRenderer>(TempRegID, false, SubIdx);
       return InsertPt;
@@ -4760,7 +4760,7 @@ Expected<action_iterator> GlobalISelEmitter::importExplicitUseRenderers(
         auto InsertPtOrError =
             importExplicitUseRenderer(InsertPt, M, DstMIBuilder, ValChild);
         if (auto Error = InsertPtOrError.takeError())
-          return std::move(Error);
+          return Error;
         InsertPt = InsertPtOrError.get();
         DstMIBuilder.addRenderer<SubRegIndexRenderer>(SubIdx);
       }
@@ -4821,7 +4821,7 @@ Expected<action_iterator> GlobalISelEmitter::importExplicitUseRenderers(
       DagInit *DefaultOps = DstIOperand.Rec->getValueAsDag("DefaultOps");
       if (auto Error = importDefaultOperandRenderers(
             InsertPt, M, DstMIBuilder, DefaultOps))
-        return std::move(Error);
+        return Error;
       ++NumDefaultOps;
       continue;
     }
@@ -4829,7 +4829,7 @@ Expected<action_iterator> GlobalISelEmitter::importExplicitUseRenderers(
     auto InsertPtOrError = importExplicitUseRenderer(InsertPt, M, DstMIBuilder,
                                                      Dst->getChild(Child));
     if (auto Error = InsertPtOrError.takeError())
-      return std::move(Error);
+      return Error;
     InsertPt = InsertPtOrError.get();
     ++Child;
   }
@@ -5042,7 +5042,7 @@ Expected<RuleMatcher> GlobalISelEmitter::runOnPattern(const PatternToMatch &P) {
                                   llvm::to_string(*P.getDstPattern()));
 
   if (auto Error = importRulePredicates(M, P.getPredicates()))
-    return std::move(Error);
+    return Error;
 
   // Next, analyze the pattern operators.
   TreePatternNode *Src = P.getSrcPattern();
@@ -5082,7 +5082,7 @@ Expected<RuleMatcher> GlobalISelEmitter::runOnPattern(const PatternToMatch &P) {
   auto InsnMatcherOrError =
       createAndImportSelDAGMatcher(M, InsnMatcherTemp, Src, TempOpIdx);
   if (auto Error = InsnMatcherOrError.takeError())
-    return std::move(Error);
+    return Error;
   InstructionMatcher &InsnMatcher = InsnMatcherOrError.get();
 
   if (Dst->isLeaf()) {
@@ -5110,7 +5110,7 @@ Expected<RuleMatcher> GlobalISelEmitter::runOnPattern(const PatternToMatch &P) {
       // We're done with this pattern!  It's eligible for GISel emission; return
       // it.
       ++NumPatternImported;
-      return std::move(M);
+      return M;
     }
 
     return failedImport("Dst pattern root isn't a known leaf");
@@ -5198,13 +5198,13 @@ Expected<RuleMatcher> GlobalISelEmitter::runOnPattern(const PatternToMatch &P) {
   auto DstMIBuilderOrError =
       createAndImportInstructionRenderer(M, InsnMatcher, Src, Dst);
   if (auto Error = DstMIBuilderOrError.takeError())
-    return std::move(Error);
+    return Error;
   BuildMIAction &DstMIBuilder = DstMIBuilderOrError.get();
 
   // Render the implicit defs.
   // These are only added to the root of the result.
   if (auto Error = importImplicitDefRenderers(DstMIBuilder, P.getDstRegs()))
-    return std::move(Error);
+    return Error;
 
   DstMIBuilder.chooseInsnToMutate(M);
 
@@ -5225,7 +5225,7 @@ Expected<RuleMatcher> GlobalISelEmitter::runOnPattern(const PatternToMatch &P) {
     // We're done with this pattern!  It's eligible for GISel emission; return
     // it.
     ++NumPatternImported;
-    return std::move(M);
+    return M;
   }
 
   if (DstIName == "EXTRACT_SUBREG") {
@@ -5261,7 +5261,7 @@ Expected<RuleMatcher> GlobalISelEmitter::runOnPattern(const PatternToMatch &P) {
     // We're done with this pattern!  It's eligible for GISel emission; return
     // it.
     ++NumPatternImported;
-    return std::move(M);
+    return M;
   }
 
   if (DstIName == "INSERT_SUBREG") {
@@ -5282,7 +5282,7 @@ Expected<RuleMatcher> GlobalISelEmitter::runOnPattern(const PatternToMatch &P) {
     M.addAction<ConstrainOperandToRegClassAction>(0, 1, **SuperClass);
     M.addAction<ConstrainOperandToRegClassAction>(0, 2, **SubClass);
     ++NumPatternImported;
-    return std::move(M);
+    return M;
   }
 
   if (DstIName == "SUBREG_TO_REG") {
@@ -5306,7 +5306,7 @@ Expected<RuleMatcher> GlobalISelEmitter::runOnPattern(const PatternToMatch &P) {
     M.addAction<ConstrainOperandToRegClassAction>(0, 0, **SuperClass);
     M.addAction<ConstrainOperandToRegClassAction>(0, 2, **SubClass);
     ++NumPatternImported;
-    return std::move(M);
+    return M;
   }
 
   if (DstIName == "REG_SEQUENCE") {
@@ -5330,14 +5330,14 @@ Expected<RuleMatcher> GlobalISelEmitter::runOnPattern(const PatternToMatch &P) {
     }
 
     ++NumPatternImported;
-    return std::move(M);
+    return M;
   }
 
   M.addAction<ConstrainOperandsToDefinitionAction>(0);
 
   // We're done with this pattern!  It's eligible for GISel emission; return it.
   ++NumPatternImported;
-  return std::move(M);
+  return M;
 }
 
 // Emit imm predicate table and an enum to reference them with.

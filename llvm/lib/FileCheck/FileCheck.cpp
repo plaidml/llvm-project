@@ -364,7 +364,7 @@ Expected<ExpressionValue> BinaryOperation::eval() const {
       Err = joinErrors(std::move(Err), LeftOp.takeError());
     if (!RightOp)
       Err = joinErrors(std::move(Err), RightOp.takeError());
-    return std::move(Err);
+    return Err;
   }
 
   return EvalBinop(*LeftOp, *RightOp);
@@ -380,7 +380,7 @@ BinaryOperation::getImplicitFormat(const SourceMgr &SM) const {
       Err = joinErrors(std::move(Err), LeftFormat.takeError());
     if (!RightFormat)
       Err = joinErrors(std::move(Err), RightFormat.takeError());
-    return std::move(Err);
+    return Err;
   }
 
   if (*LeftFormat != ExpressionFormat::Kind::NoFormat &&
@@ -631,7 +631,7 @@ Pattern::parseBinop(StringRef Expr, StringRef &RemainingExpr,
                     FileCheckPatternContext *Context, const SourceMgr &SM) {
   RemainingExpr = RemainingExpr.ltrim(SpaceChars);
   if (RemainingExpr.empty())
-    return std::move(LeftOp);
+    return LeftOp;
 
   // Check if this is a supported operation and select a function to perform
   // it.
@@ -881,7 +881,7 @@ Expected<std::unique_ptr<Expression>> Pattern::parseNumericSubstitutionBlock(
     DefinedNumericVariable = *ParseResult;
   }
 
-  return std::move(ExpressionPointer);
+  return ExpressionPointer;
 }
 
 bool Pattern::parsePattern(StringRef PatternStr, StringRef Prefix,
@@ -1230,7 +1230,7 @@ Expected<size_t> Pattern::match(StringRef Buffer, size_t &MatchLen,
                                           "unable to substitute variable or "
                                           "numeric expression: overflow error");
             });
-        return std::move(Err);
+        return Err;
       }
 
       // Plop it into the regex at the adjusted offset.

@@ -416,7 +416,7 @@ std::unique_ptr<Input::HNode> Input::createHNodes(Node *N) {
         break;
       SQHNode->Entries.push_back(std::move(Entry));
     }
-    return std::move(SQHNode);
+    return SQHNode;
   } else if (MappingNode *Map = dyn_cast<MappingNode>(N)) {
     auto mapHNode = std::make_unique<MapHNode>(N);
     for (KeyValueNode &KVN : *Map) {
@@ -442,7 +442,7 @@ std::unique_ptr<Input::HNode> Input::createHNodes(Node *N) {
       mapHNode->Mapping[KeyStr] =
           std::make_pair(std::move(ValueHNode), KeyNode->getSourceRange());
     }
-    return std::move(mapHNode);
+    return mapHNode;
   } else if (isa<NullNode>(N)) {
     return std::make_unique<EmptyHNode>(N);
   } else {

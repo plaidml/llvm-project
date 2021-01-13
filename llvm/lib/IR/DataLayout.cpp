@@ -204,7 +204,7 @@ void DataLayout::reset(StringRef Desc) {
 Expected<DataLayout> DataLayout::parse(StringRef LayoutDescription) {
   DataLayout Layout("");
   if (Error Err = Layout.parseSpecifier(LayoutDescription))
-    return std::move(Err);
+    return Err;
   return Layout;
 }
 
