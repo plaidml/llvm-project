@@ -917,8 +917,8 @@ std::string PatternEmitter::handleReplaceWithNativeCodeCall(DagNode tree,
 
   auto fmt = tree.getNativeCodeTemplate();
   // TODO: replace formatv arguments with the exact specified args.
-  SmallVector<std::string, 8> attrs(8);
-  if (tree.getNumArgs() > 8) {
+  SmallVector<std::string, 16> attrs(16);
+  if (tree.getNumArgs() > 16) {
     PrintFatalError(loc,
                     "unsupported NativeCodeCall replace argument numbers: " +
                         Twine(tree.getNumArgs()));
@@ -938,7 +938,8 @@ std::string PatternEmitter::handleReplaceWithNativeCodeCall(DagNode tree,
   }
   return std::string(tgfmt(fmt, &fmtCtx.addSubst("_loc", locToUse), attrs[0],
                            attrs[1], attrs[2], attrs[3], attrs[4], attrs[5],
-                           attrs[6], attrs[7]));
+                           attrs[6], attrs[7], attrs[8], attrs[9], attrs[10],
+                           attrs[11], attrs[12], attrs[13], attrs[14], attrs[15]));
 }
 
 int PatternEmitter::getNodeValueCount(DagNode node) {
