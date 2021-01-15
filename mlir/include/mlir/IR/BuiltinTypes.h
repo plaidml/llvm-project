@@ -435,10 +435,6 @@ inline bool BaseMemRefType::classof(Type type) {
   return type.isa<MemRefType, UnrankedMemRefType>();
 }
 
-inline bool BaseMemRefType::isValidElementType(Type type) {
-  return type.isIntOrIndexOrFloat() || type.isa<ComplexType, VectorType>();
-}
-
 inline bool FloatType::classof(Type type) {
   return type.isa<BFloat16Type, Float16Type, Float32Type, Float64Type>();
 }
