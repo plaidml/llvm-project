@@ -172,7 +172,7 @@ ResultTy parallel_transform_reduce(IterTy Begin, IterTy End, ResultTy Init,
   // overhead on large inputs.
   size_t NumInputs = std::distance(Begin, End);
   if (NumInputs == 0)
-    return Init;
+    return std::move(Init);
   size_t NumTasks = std::min(static_cast<size_t>(MaxTasksPerGroup), NumInputs);
   std::vector<ResultTy> Results(NumTasks, Init);
   {
@@ -262,7 +262,7 @@ ResultTy parallelTransformReduce(IterTy Begin, IterTy End, ResultTy Init,
 #endif
   for (IterTy I = Begin; I != End; ++I)
     Init = Reduce(std::move(Init), Transform(*I));
-  return Init;
+  return std::move(Init);
 }
 
 // Range wrappers.
