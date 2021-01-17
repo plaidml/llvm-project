@@ -318,7 +318,7 @@ Type Parser::parseMemRefType() {
 ///                       | none-type
 ///
 ///   index-type ::= `index`
-///   float-type ::= `f16` | `bf16` | `f32` | `f64`
+///   float-type ::= `f16` | `bf16` | `f32` | `f64` | `f80` | `f128`
 ///   none-type ::= `none`
 ///
 Type Parser::parseNonFunctionType() {
@@ -367,6 +367,12 @@ Type Parser::parseNonFunctionType() {
   case Token::kw_f64:
     consumeToken(Token::kw_f64);
     return builder.getF64Type();
+  case Token::kw_f80:
+    consumeToken(Token::kw_f80);
+    return builder.getF80Type();
+  case Token::kw_f128:
+    consumeToken(Token::kw_f128);
+    return builder.getF128Type();
 
   // index-type
   case Token::kw_index:

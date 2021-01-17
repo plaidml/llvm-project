@@ -52,6 +52,8 @@ public:
   static FloatType getF16(MLIRContext *ctx);
   static FloatType getF32(MLIRContext *ctx);
   static FloatType getF64(MLIRContext *ctx);
+  static FloatType getF80(MLIRContext *ctx);
+  static FloatType getF128(MLIRContext *ctx);
 
   /// Methods for support type inquiry through isa, cast, and dyn_cast.
   static bool classof(Type type);
@@ -436,7 +438,8 @@ inline bool BaseMemRefType::classof(Type type) {
 }
 
 inline bool FloatType::classof(Type type) {
-  return type.isa<BFloat16Type, Float16Type, Float32Type, Float64Type>();
+  return type.isa<BFloat16Type, Float16Type, Float32Type, Float64Type,
+                  Float80Type, Float128Type>();
 }
 
 inline FloatType FloatType::getBF16(MLIRContext *ctx) {
@@ -453,6 +456,14 @@ inline FloatType FloatType::getF32(MLIRContext *ctx) {
 
 inline FloatType FloatType::getF64(MLIRContext *ctx) {
   return Float64Type::get(ctx);
+}
+
+inline FloatType FloatType::getF80(MLIRContext *ctx) {
+  return Float80Type::get(ctx);
+}
+
+inline FloatType FloatType::getF128(MLIRContext *ctx) {
+  return Float128Type::get(ctx);
 }
 
 inline bool ShapedType::classof(Type type) {
