@@ -194,6 +194,33 @@ TEST(DecisionForestRankingModel, ReferencesAffectRanking) {
       ElementsAre(Named("clangA"), Named("clangD")));
 }
 
+TEST(DecisionForestRankingModel, DecisionForestScorerCallbackTest) {
+  clangd::CodeCompleteOptions Opts;
+  constexpr float MagicNumber = 1234.5678f;
+  Opts.RankingModel = CodeCompleteOptions::DecisionForest;
+  Opts.DecisionForestScorer = [&](const SymbolQualitySignals &,
+                                  const SymbolRelevanceSignals &, float Base) {
+    DecisionForestScores Scores;
+    Scores.Total = MagicNumber;
+    Scores.ExcludingName = MagicNumber;
+    return Scores;
+  };
+  llvm::StringRef Code = "int func() { int xyz; xy^ }";
+  auto Results = completions(Code,
+                             /*IndexSymbols=*/{}, Opts);
+  ASSERT_EQ(Results.Completions.size(), 1u);
+  EXPECT_EQ(Results.Completions[0].Score.Total, MagicNumber);
+  EXPECT_EQ(Results.Completions[0].Score.ExcludingName, MagicNumber);
+
+  // Do not use DecisionForestScorer for heuristics model.
+  Opts.RankingModel = CodeCompleteOptions::Heuristics;
+  Results = completions(Code,
+                        /*IndexSymbols=*/{}, Opts);
+  ASSERT_EQ(Results.Completions.size(), 1u);
+  EXPECT_NE(Results.Completions[0].Score.Total, MagicNumber);
+  EXPECT_NE(Results.Completions[0].Score.ExcludingName, MagicNumber);
+}
+
 TEST(CompletionTest, Limit) {
   clangd::CodeCompleteOptions Opts;
   Opts.Limit = 2;
@@ -288,8 +315,7 @@ void testAfterDotCompletion(clangd::CodeCompleteOptions Opts) {
   EXPECT_THAT(Results.Completions,
               Not(Contains(Kind(CompletionItemKind::Snippet))));
   // Check documentation.
-  EXPECT_IFF(Opts.IncludeComments, Results.Completions,
-             Contains(IsDocumented()));
+  EXPECT_THAT(Results.Completions, Contains(IsDocumented()));
 }
 
 void testGlobalScopeCompletion(clangd::CodeCompleteOptions Opts) {
@@ -329,14 +355,13 @@ void testGlobalScopeCompletion(clangd::CodeCompleteOptions Opts) {
                     Has("index_func" /* our fake symbol doesn't include () */),
                     Has("GlobalClass"), Has("IndexClass")));
   // A macro.
-  EXPECT_IFF(Opts.IncludeMacros, Results.Completions, Has("MACRO"));
+  EXPECT_THAT(Results.Completions, Has("MACRO"));
   // Local items. Must be present always.
   EXPECT_THAT(Results.Completions,
               AllOf(Has("local_var"), Has("LocalClass"),
                     Contains(Kind(CompletionItemKind::Snippet))));
   // Check documentation.
-  EXPECT_IFF(Opts.IncludeComments, Results.Completions,
-             Contains(IsDocumented()));
+  EXPECT_THAT(Results.Completions, Contains(IsDocumented()));
 }
 
 TEST(CompletionTest, CompletionOptions) {
@@ -346,9 +371,6 @@ TEST(CompletionTest, CompletionOptions) {
   };
   // We used to test every combination of options, but that got too slow (2^N).
   auto Flags = {
-      &clangd::CodeCompleteOptions::IncludeMacros,
-      &clangd::CodeCompleteOptions::IncludeComments,
-      &clangd::CodeCompleteOptions::IncludeCodePatterns,
       &clangd::CodeCompleteOptions::IncludeIneligibleResults,
   };
   // Test default options.
@@ -1322,6 +1344,11 @@ public:
                  llvm::function_ref<void(const SymbolID &, const Symbol &)>)
       const override {}
 
+  llvm::unique_function<bool(llvm::StringRef) const>
+  indexedFiles() const override {
+    return [](llvm::StringRef) { return false; };
+  }
+
   // This is incorrect, but IndexRequestCollector is not an actual index and it
   // isn't used in production code.
   size_t estimateMemoryUsage() const override { return 0; }
@@ -1601,6 +1628,29 @@ TEST(CompletionTest, OverloadBundling) {
   EXPECT_EQ(A.SnippetSuffix, "($0)");
 }
 
+TEST(CompletionTest, OverloadBundlingSameFileDifferentURI) {
+  clangd::CodeCompleteOptions Opts;
+  Opts.BundleOverloads = true;
+
+  Symbol SymX = sym("ns::X", index::SymbolKind::Function, "@F@\\0#");
+  Symbol SymY = sym("ns::X", index::SymbolKind::Function, "@F@\\0#I#");
+  std::string BarHeader = testPath("bar.h");
+  auto BarURI = URI::create(BarHeader).toString();
+  SymX.CanonicalDeclaration.FileURI = BarURI.c_str();
+  SymY.CanonicalDeclaration.FileURI = BarURI.c_str();
+  // The include header is different, but really it's the same file.
+  SymX.IncludeHeaders.emplace_back("\"bar.h\"", 1);
+  SymY.IncludeHeaders.emplace_back(BarURI.c_str(), 1);
+
+  auto Results = completions("void f() { ::ns::^ }", {SymX, SymY}, Opts);
+  // Expect both results are bundled, despite the different-but-same
+  // IncludeHeader.
+  ASSERT_EQ(1u, Results.Completions.size());
+  const auto &R = Results.Completions.front();
+  EXPECT_EQ("X", R.Name);
+  EXPECT_EQ(2u, R.BundleSize);
+}
+
 TEST(CompletionTest, DocumentationFromChangedFileCrash) {
   MockFS FS;
   auto FooH = testPath("foo.h");
@@ -1631,7 +1681,6 @@ TEST(CompletionTest, DocumentationFromChangedFileCrash) {
   )cpp";
 
   clangd::CodeCompleteOptions Opts;
-  Opts.IncludeComments = true;
   CodeCompleteResult Completions =
       cantFail(runCodeComplete(Server, FooCpp, Source.point(), Opts));
   // We shouldn't crash. Unfortunately, current workaround is to not produce
@@ -2290,7 +2339,6 @@ TEST(CompletionTest, EnableSpeculativeIndexRequest) {
 
   IndexRequestCollector Requests;
   Opts.Index = &Requests;
-  Opts.SpeculativeIndexRequest = true;
 
   auto CompleteAtPoint = [&](StringRef P) {
     cantFail(runCodeComplete(Server, File, Test.point(P), Opts));
@@ -2577,6 +2625,29 @@ TEST(CompletionTest, Lambda) {
   EXPECT_EQ(A.Kind, CompletionItemKind::Variable);
   EXPECT_EQ(A.ReturnType, "float");
   EXPECT_EQ(A.SnippetSuffix, "(${1:int a}, ${2:const double &b})");
+}
+
+TEST(CompletionTest, StructuredBinding) {
+  clangd::CodeCompleteOptions Opts = {};
+
+  auto Results = completions(R"cpp(
+    struct S {
+      using Float = float;
+      int x;
+      Float y;
+    };
+    void function() {
+      const auto &[xxx, yyy] = S{};
+      yyy^
+    }
+  )cpp",
+                             {}, Opts);
+
+  ASSERT_EQ(Results.Completions.size(), 1u);
+  const auto &A = Results.Completions.front();
+  EXPECT_EQ(A.Name, "yyy");
+  EXPECT_EQ(A.Kind, CompletionItemKind::Variable);
+  EXPECT_EQ(A.ReturnType, "const Float");
 }
 
 TEST(CompletionTest, ObjectiveCMethodNoArguments) {

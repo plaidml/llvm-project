@@ -248,13 +248,14 @@ enum IIT_Info {
   IIT_V128 = 47,
   IIT_BF16 = 48,
   IIT_STRUCT9 = 49,
-  IIT_V256 = 50
+  IIT_V256 = 50,
+  IIT_AMX  = 51
 };
 
 static void EncodeFixedValueType(MVT::SimpleValueType VT,
                                  std::vector<unsigned char> &Sig) {
   if (MVT(VT).isInteger()) {
-    unsigned BitWidth = MVT(VT).getSizeInBits();
+    unsigned BitWidth = MVT(VT).getFixedSizeInBits();
     switch (BitWidth) {
     default: PrintFatalError("unhandled integer type width in intrinsic!");
     case 1: return Sig.push_back(IIT_I1);
@@ -276,6 +277,7 @@ static void EncodeFixedValueType(MVT::SimpleValueType VT,
   case MVT::token: return Sig.push_back(IIT_TOKEN);
   case MVT::Metadata: return Sig.push_back(IIT_METADATA);
   case MVT::x86mmx: return Sig.push_back(IIT_MMX);
+  case MVT::x86amx: return Sig.push_back(IIT_AMX);
   // MVT::OtherVT is used to mean the empty struct type here.
   case MVT::Other: return Sig.push_back(IIT_EMPTYSTRUCT);
   // MVT::isVoid is used to represent varargs here.

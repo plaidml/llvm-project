@@ -148,6 +148,8 @@ public:
   ArrayRef<SectionChunk *> getGuardLJmpChunks() { return guardLJmpChunks; }
   ArrayRef<Symbol *> getSymbols() { return symbols; }
 
+  MutableArrayRef<Symbol *> getMutableSymbols() { return symbols; }
+
   ArrayRef<uint8_t> getDebugSection(StringRef secName);
 
   // Returns a Symbol object for the symbolIndex'th symbol in the
@@ -356,7 +358,7 @@ public:
   const coff_import_header *hdr;
   Chunk *location = nullptr;
 
-  // We want to eliminate dllimported symbols if no one actually refers them.
+  // We want to eliminate dllimported symbols if no one actually refers to them.
   // These "Live" bits are used to keep track of which import library members
   // are actually in use.
   //
