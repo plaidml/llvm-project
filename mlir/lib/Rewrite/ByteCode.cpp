@@ -812,6 +812,7 @@ private:
     default:
       llvm_unreachable("Uncovered PDLValueKind");
     }
+    llvm_unreachable("unhandled PDLValueKind");
   }
   template <typename T>
   std::enable_if_t<std::is_same<T, ByteCodeAddr>::value, T> readImpl() {
