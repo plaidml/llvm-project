@@ -179,8 +179,8 @@ llvm::Optional<DocumentSymbol> declToSym(ASTContext &Ctx, const NamedDecl &ND) {
     return llvm::None;
 
   index::SymbolInfo SymInfo = index::getSymbolInfo(&ND);
-  // FIXME: this is not classifying constructors, destructors and operators
-  //        correctly (they're all "methods").
+  // FIXME: This is not classifying constructors, destructors and operators
+  // correctly.
   SymbolKind SK = indexSymbolKindToSymbolKind(SymInfo.Kind);
 
   DocumentSymbol SI;
@@ -247,6 +247,10 @@ private:
   enum class VisitKind { No, OnlyDecl, OnlyChildren, DeclAndChildren };
 
   void traverseDecl(Decl *D, std::vector<DocumentSymbol> &Results) {
+    // Skip symbols which do not originate from the main file.
+    if (!isInsideMainFile(D->getLocation(), AST.getSourceManager()))
+      return;
+
     if (auto *Templ = llvm::dyn_cast<TemplateDecl>(D)) {
       // TemplatedDecl might be null, e.g. concepts.
       if (auto *TD = Templ->getTemplatedDecl())
