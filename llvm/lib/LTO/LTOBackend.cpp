@@ -176,9 +176,7 @@ static void RegisterPassPlugins(ArrayRef<std::string> PassPlugins,
   }
 }
 
-namespace {
-
-std::unique_ptr<TargetMachine>
+static std::unique_ptr<TargetMachine>
 createTargetMachine(const Config &Conf, const Target *TheTarget, Module &M) {
   StringRef TheTriple = M.getTargetTriple();
   SubtargetFeatures Features;
@@ -199,9 +197,11 @@ createTargetMachine(const Config &Conf, const Target *TheTarget, Module &M) {
   else
     CodeModel = M.getCodeModel();
 
-  return std::unique_ptr<TargetMachine>(TheTarget->createTargetMachine(
+  std::unique_ptr<TargetMachine> TM(TheTarget->createTargetMachine(
       TheTriple, Conf.CPU, Features.getString(), Conf.Options, RelocModel,
       CodeModel, Conf.CGOptLevel));
+  assert(TM && "Failed to create target machine");
+  return TM;
 }
 
 static void runNewPMPasses(const Config &Conf, Module &Mod, TargetMachine *TM,
@@ -223,7 +223,7 @@ static void runNewPMPasses(const Config &Conf, Module &Mod, TargetMachine *TM,
   PassInstrumentationCallbacks PIC;
   StandardInstrumentations SI(Conf.DebugPassManager);
   SI.registerCallbacks(PIC);
-  PassBuilder PB(TM, Conf.PTO, PGOOpt, &PIC);
+  PassBuilder PB(Conf.DebugPassManager, TM, Conf.PTO, PGOOpt, &PIC);
   AAManager AA;
 
   // Parse a custom AA pipeline if asked to.
@@ -248,7 +248,9 @@ static void runNewPMPasses(const Config &Conf, Module &Mod, TargetMachine *TM,
   PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
 
   ModulePassManager MPM(Conf.DebugPassManager);
-  // FIXME (davide): verify the input.
+
+  if (!Conf.DisableVerify)
+    MPM.addPass(VerifierPass());
 
   PassBuilder::OptimizationLevel OL;
 
@@ -270,20 +272,21 @@ static void runNewPMPasses(const Config &Conf, Module &Mod, TargetMachine *TM,
   }
 
   if (IsThinLTO)
-    MPM = PB.buildThinLTODefaultPipeline(OL, Conf.DebugPassManager,
-                                         ImportSummary);
+    MPM.addPass(PB.buildThinLTODefaultPipeline(OL, ImportSummary));
   else
-    MPM = PB.buildLTODefaultPipeline(OL, Conf.DebugPassManager, ExportSummary);
-  MPM.run(Mod, MAM);
+    MPM.addPass(PB.buildLTODefaultPipeline(OL, ExportSummary));
 
-  // FIXME (davide): verify the output.
+  if (!Conf.DisableVerify)
+    MPM.addPass(VerifierPass());
+
+  MPM.run(Mod, MAM);
 }
 
 static void runNewPMCustomPasses(const Config &Conf, Module &Mod,
                                  TargetMachine *TM, std::string PipelineDesc,
                                  std::string AAPipelineDesc,
                                  bool DisableVerify) {
-  PassBuilder PB(TM);
+  PassBuilder PB(Conf.DebugPassManager, TM);
   AAManager AA;
 
   // Parse a custom AA pipeline if asked to.
@@ -355,10 +358,10 @@ static void runOldPMPasses(const Config &Conf, Module &Mod, TargetMachine *TM,
   passes.run(Mod);
 }
 
-bool opt(const Config &Conf, TargetMachine *TM, unsigned Task, Module &Mod,
-         bool IsThinLTO, ModuleSummaryIndex *ExportSummary,
-         const ModuleSummaryIndex *ImportSummary,
-         const std::vector<uint8_t> *CmdArgs = nullptr) {
+bool lto::opt(const Config &Conf, TargetMachine *TM, unsigned Task, Module &Mod,
+              bool IsThinLTO, ModuleSummaryIndex *ExportSummary,
+              const ModuleSummaryIndex *ImportSummary,
+              const std::vector<uint8_t> &CmdArgs) {
   if (EmbedBitcode == LTOBitcodeEmbedding::EmbedPostMergePreOptimized) {
     // FIXME: the motivation for capturing post-merge bitcode and command line
     // is replicating the compilation environment from bitcode, without needing
@@ -368,13 +371,13 @@ bool opt(const Config &Conf, TargetMachine *TM, unsigned Task, Module &Mod,
     // It's not very clear how the above motivation would map in the
     // linker-based case, so we currently don't plumb the command line args in
     // that case.
-    if (CmdArgs == nullptr)
+    if (CmdArgs.empty())
       LLVM_DEBUG(
           dbgs() << "Post-(Thin)LTO merge bitcode embedding was requested, but "
                     "command line arguments are not available");
     llvm::EmbedBitcodeInModule(Mod, llvm::MemoryBufferRef(),
-                               /*EmbedBitcode*/ true,
-                               /*EmbedMarker*/ false, CmdArgs);
+                               /*EmbedBitcode*/ true, /*EmbedCmdline*/ true,
+                               /*Cmdline*/ CmdArgs);
   }
   // FIXME: Plumb the combined index into the new pass manager.
   if (!Conf.OptPipeline.empty())
@@ -388,16 +391,17 @@ bool opt(const Config &Conf, TargetMachine *TM, unsigned Task, Module &Mod,
   return !Conf.PostOptModuleHook || Conf.PostOptModuleHook(Task, Mod);
 }
 
-void codegen(const Config &Conf, TargetMachine *TM, AddStreamFn AddStream,
-             unsigned Task, Module &Mod,
-             const ModuleSummaryIndex &CombinedIndex) {
+static void codegen(const Config &Conf, TargetMachine *TM,
+                    AddStreamFn AddStream, unsigned Task, Module &Mod,
+                    const ModuleSummaryIndex &CombinedIndex) {
   if (Conf.PreCodeGenModuleHook && !Conf.PreCodeGenModuleHook(Task, Mod))
     return;
 
   if (EmbedBitcode == LTOBitcodeEmbedding::EmbedOptimized)
     llvm::EmbedBitcodeInModule(Mod, llvm::MemoryBufferRef(),
                                /*EmbedBitcode*/ true,
-                               /*EmbedMarker*/ false, /*CmdArgs*/ nullptr);
+                               /*EmbedCmdline*/ false,
+                               /*CmdArgs*/ std::vector<uint8_t>());
 
   std::unique_ptr<ToolOutputFile> DwoOut;
   SmallString<1024> DwoFile(Conf.SplitDwarfOutput);
@@ -434,10 +438,11 @@ void codegen(const Config &Conf, TargetMachine *TM, AddStreamFn AddStream,
     DwoOut->keep();
 }
 
-void splitCodeGen(const Config &C, TargetMachine *TM, AddStreamFn AddStream,
-                  unsigned ParallelCodeGenParallelismLevel,
-                  std::unique_ptr<Module> Mod,
-                  const ModuleSummaryIndex &CombinedIndex) {
+static void splitCodeGen(const Config &C, TargetMachine *TM,
+                         AddStreamFn AddStream,
+                         unsigned ParallelCodeGenParallelismLevel,
+                         std::unique_ptr<Module> Mod,
+                         const ModuleSummaryIndex &CombinedIndex) {
   ThreadPool CodegenThreadPool(
       heavyweight_hardware_concurrency(ParallelCodeGenParallelismLevel));
   unsigned ThreadCount = 0;
@@ -485,7 +490,8 @@ void splitCodeGen(const Config &C, TargetMachine *TM, AddStreamFn AddStream,
   CodegenThreadPool.wait();
 }
 
-Expected<const Target *> initAndLookupTarget(const Config &C, Module &Mod) {
+static Expected<const Target *> initAndLookupTarget(const Config &C,
+                                                    Module &Mod) {
   if (!C.OverrideTriple.empty())
     Mod.setTargetTriple(C.OverrideTriple);
   else if (Mod.getTargetTriple().empty())
@@ -496,7 +502,6 @@ Expected<const Target *> initAndLookupTarget(const Config &C, Module &Mod) {
   if (!T)
     return make_error<StringError>(Msg, inconvertibleErrorCode());
   return T;
-}
 }
 
 Error lto::finalizeOptimizationRemarks(
@@ -522,7 +527,8 @@ Error lto::backend(const Config &C, AddStreamFn AddStream,
 
   if (!C.CodeGenOnly) {
     if (!opt(C, TM.get(), 0, *Mod, /*IsThinLTO=*/false,
-             /*ExportSummary=*/&CombinedIndex, /*ImportSummary=*/nullptr))
+             /*ExportSummary=*/&CombinedIndex, /*ImportSummary=*/nullptr,
+             /*CmdArgs*/ std::vector<uint8_t>()))
       return Error::success();
   }
 
@@ -561,7 +567,7 @@ Error lto::thinBackend(const Config &Conf, unsigned Task, AddStreamFn AddStream,
                        const FunctionImporter::ImportMapTy &ImportList,
                        const GVSummaryMapTy &DefinedGlobals,
                        MapVector<StringRef, BitcodeModule> &ModuleMap,
-                       const std::vector<uint8_t> *CmdArgs) {
+                       const std::vector<uint8_t> &CmdArgs) {
   Expected<const Target *> TOrErr = initAndLookupTarget(Conf, Mod);
   if (!TOrErr)
     return TOrErr.takeError();
@@ -571,7 +577,8 @@ Error lto::thinBackend(const Config &Conf, unsigned Task, AddStreamFn AddStream,
   // Setup optimization remarks.
   auto DiagFileOrErr = lto::setupLLVMOptimizationRemarks(
       Mod.getContext(), Conf.RemarksFilename, Conf.RemarksPasses,
-      Conf.RemarksFormat, Conf.RemarksWithHotness, Task);
+      Conf.RemarksFormat, Conf.RemarksWithHotness, Conf.RemarksHotnessThreshold,
+      Task);
   if (!DiagFileOrErr)
     return DiagFileOrErr.takeError();
   auto DiagnosticOutputFile = std::move(*DiagFileOrErr);

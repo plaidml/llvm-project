@@ -19,16 +19,7 @@
 
 #include "AMDGPU.h"
 #include "AMDGPUSubtarget.h"
-#include "AMDGPUTargetMachine.h"
-#include "MCTargetDesc/AMDGPUMCTargetDesc.h"
-#include "Utils/AMDGPUBaseInfo.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/Analysis/TargetTransformInfo.h"
 #include "llvm/CodeGen/BasicTTIImpl.h"
-#include "llvm/IR/Function.h"
-#include "llvm/MC/SubtargetFeature.h"
-#include "llvm/Support/MathExtras.h"
-#include <cassert>
 
 namespace llvm {
 
@@ -54,11 +45,7 @@ class AMDGPUTTIImpl final : public BasicTTIImplBase<AMDGPUTTIImpl> {
   const TargetLoweringBase *getTLI() const { return TLI; }
 
 public:
-  explicit AMDGPUTTIImpl(const AMDGPUTargetMachine *TM, const Function &F)
-      : BaseT(TM, F.getParent()->getDataLayout()),
-        TargetTriple(TM->getTargetTriple()),
-        ST(static_cast<const GCNSubtarget *>(TM->getSubtargetImpl(F))),
-        TLI(ST->getTargetLowering()) {}
+  explicit AMDGPUTTIImpl(const AMDGPUTargetMachine *TM, const Function &F);
 
   void getUnrollingPreferences(Loop *L, ScalarEvolution &SE,
                                TTI::UnrollingPreferences &UP);
@@ -76,7 +63,7 @@ class GCNTTIImpl final : public BasicTTIImplBase<GCNTTIImpl> {
   const GCNSubtarget *ST;
   const SITargetLowering *TLI;
   AMDGPUTTIImpl CommonTTI;
-  bool IsGraphicsShader;
+  bool IsGraphics;
   bool HasFP32Denormals;
   bool HasFP64FP16Denormals;
   unsigned MaxVGPRs;
@@ -88,7 +75,6 @@ class GCNTTIImpl final : public BasicTTIImplBase<GCNTTIImpl> {
     AMDGPU::FeatureEnableUnsafeDSOffsetFolding,
     AMDGPU::FeatureFlatForGlobal,
     AMDGPU::FeaturePromoteAlloca,
-    AMDGPU::FeatureUnalignedBufferAccess,
     AMDGPU::FeatureUnalignedScratchAccess,
     AMDGPU::FeatureUnalignedAccessMode,
 
@@ -115,37 +101,30 @@ class GCNTTIImpl final : public BasicTTIImplBase<GCNTTIImpl> {
     return TargetTransformInfo::TCC_Basic;
   }
 
-  static inline int getHalfRateInstrCost() {
-    return 2 * TargetTransformInfo::TCC_Basic;
+  static inline int getHalfRateInstrCost(
+      TTI::TargetCostKind CostKind = TTI::TCK_RecipThroughput) {
+    return CostKind == TTI::TCK_CodeSize ? 2
+                                         : 2 * TargetTransformInfo::TCC_Basic;
   }
 
   // TODO: The size is usually 8 bytes, but takes 4x as many cycles. Maybe
   // should be 2 or 4.
-  static inline int getQuarterRateInstrCost() {
-    return 3 * TargetTransformInfo::TCC_Basic;
+  static inline int getQuarterRateInstrCost(
+      TTI::TargetCostKind CostKind = TTI::TCK_RecipThroughput) {
+    return CostKind == TTI::TCK_CodeSize ? 2
+                                         : 4 * TargetTransformInfo::TCC_Basic;
   }
 
-   // On some parts, normal fp64 operations are half rate, and others
-   // quarter. This also applies to some integer operations.
-  inline int get64BitInstrCost() const {
-    return ST->hasHalfRate64Ops() ?
-      getHalfRateInstrCost() : getQuarterRateInstrCost();
+  // On some parts, normal fp64 operations are half rate, and others
+  // quarter. This also applies to some integer operations.
+  inline int get64BitInstrCost(
+      TTI::TargetCostKind CostKind = TTI::TCK_RecipThroughput) const {
+    return ST->hasHalfRate64Ops() ? getHalfRateInstrCost(CostKind)
+                                  : getQuarterRateInstrCost(CostKind);
   }
 
 public:
-  explicit GCNTTIImpl(const AMDGPUTargetMachine *TM, const Function &F)
-      : BaseT(TM, F.getParent()->getDataLayout()),
-        ST(static_cast<const GCNSubtarget *>(TM->getSubtargetImpl(F))),
-        TLI(ST->getTargetLowering()), CommonTTI(TM, F),
-        IsGraphicsShader(AMDGPU::isShader(F.getCallingConv())),
-        MaxVGPRs(ST->getMaxNumVGPRs(
-            std::max(ST->getWavesPerEU(F).first,
-                     ST->getWavesPerEUForWorkGroup(
-                         ST->getFlatWorkGroupSizes(F).second)))) {
-    AMDGPU::SIModeRegisterDefaults Mode(F);
-    HasFP32Denormals = Mode.allFP32Denormals();
-    HasFP64FP16Denormals = Mode.allFP64FP16Denormals();
-  }
+  explicit GCNTTIImpl(const AMDGPUTargetMachine *TM, const Function &F);
 
   bool hasBranchDivergence() { return true; }
   bool useGPUDivergenceAnalysis() const;
@@ -166,6 +145,7 @@ public:
   unsigned getNumberOfRegisters(unsigned RCID) const;
   unsigned getRegisterBitWidth(bool Vector) const;
   unsigned getMinVectorRegisterBitWidth() const;
+  unsigned getMaximumVF(unsigned ElemWidth, unsigned Opcode) const;
   unsigned getLoadVectorFactor(unsigned VF, unsigned LoadSize,
                                unsigned ChainSizeInBytes,
                                VectorType *VecTy) const;
@@ -217,7 +197,7 @@ public:
   unsigned getFlatAddressSpace() const {
     // Don't bother running InferAddressSpaces pass on graphics shaders which
     // don't use flat addressing.
-    if (IsGraphicsShader)
+    if (IsGraphics)
       return -1;
     return AMDGPUAS::FLAT_ADDRESS;
   }
@@ -227,6 +207,8 @@ public:
   Value *rewriteIntrinsicWithAddressSpace(IntrinsicInst *II, Value *OldV,
                                           Value *NewV) const;
 
+  bool canSimplifyLegacyMulToMul(const Value *Op0, const Value *Op1,
+                                 InstCombiner &IC) const;
   Optional<Instruction *> instCombineIntrinsic(InstCombiner &IC,
                                                IntrinsicInst &II) const;
   Optional<Value *> simplifyDemandedVectorEltsIntrinsic(
@@ -271,11 +253,7 @@ class R600TTIImpl final : public BasicTTIImplBase<R600TTIImpl> {
   AMDGPUTTIImpl CommonTTI;
 
 public:
-  explicit R600TTIImpl(const AMDGPUTargetMachine *TM, const Function &F)
-    : BaseT(TM, F.getParent()->getDataLayout()),
-      ST(static_cast<const R600Subtarget*>(TM->getSubtargetImpl(F))),
-      TLI(ST->getTargetLowering()),
-      CommonTTI(TM, F) {}
+  explicit R600TTIImpl(const AMDGPUTargetMachine *TM, const Function &F);
 
   const R600Subtarget *getST() const { return ST; }
   const AMDGPUTargetLowering *getTLI() const { return TLI; }

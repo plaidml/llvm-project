@@ -17,11 +17,13 @@ function(add_linalg_ods_gen tc_filename output_file)
     ${TC_SOURCE}
     DEPENDS
     ${MLIR_LINALG_ODS_GEN_EXE}
+    ${MLIR_LINALG_ODS_GEN_TARGET}
     VERBATIM)
   add_custom_target(
     MLIR${output_file}IncGen
     DEPENDS
     ${MLIR_LINALG_ODS_GEN_EXE}
+    ${MLIR_LINALG_ODS_GEN_TARGET}
     ${GEN_ODS_FILE} ${GEN_CPP_FILE})
 endfunction()
 
