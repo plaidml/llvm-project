@@ -286,7 +286,7 @@ struct StringAttributeStorage : public AttributeStorage {
         StringAttributeStorage(allocator.copyInto(key.first), key.second);
   }
 
-  LogicalResult mutate(AttributeStorageAllocator&, int64_t caseIndex) {
+  LogicalResult mutate(AttributeStorageAllocator &, int64_t caseIndex) {
     if (this->caseIndex.hasValue() && this->caseIndex.getValue() != caseIndex)
       return failure();
     this->caseIndex = caseIndex;

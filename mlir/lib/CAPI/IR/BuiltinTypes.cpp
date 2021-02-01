@@ -276,8 +276,10 @@ bool mlirTypeIsAUnrankedMemRef(MlirType type) {
   return unwrap(type).isa<UnrankedMemRefType>();
 }
 
-MlirType mlirUnrankedMemRefTypeGet(MlirType elementType, MlirAttribute memorySpace) {
-  return wrap(UnrankedMemRefType::get(unwrap(elementType), unwrap(memorySpace)));
+MlirType mlirUnrankedMemRefTypeGet(MlirType elementType,
+                                   MlirAttribute memorySpace) {
+  return wrap(
+      UnrankedMemRefType::get(unwrap(elementType), unwrap(memorySpace)));
 }
 
 MlirType mlirUnrankedMemRefTypeGetChecked(MlirType elementType,

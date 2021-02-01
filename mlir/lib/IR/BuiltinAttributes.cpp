@@ -422,12 +422,13 @@ StringRef StringAttr::getValue() const { return getImpl()->value; }
 
 void StringAttr::setCaseIndex(int64_t caseIndex) {
   LogicalResult result = Base::mutate(caseIndex);
-  assert(succeeded(result) && "attempting to change the existing caseIndex to another value");
-  (void) result;
+  assert(succeeded(result) &&
+         "attempting to change the existing caseIndex to another value");
+  (void)result;
 }
 
 llvm::Optional<int64_t> StringAttr::getCaseIndex() const {
-    return getImpl()->caseIndex;
+  return getImpl()->caseIndex;
 }
 
 //===----------------------------------------------------------------------===//

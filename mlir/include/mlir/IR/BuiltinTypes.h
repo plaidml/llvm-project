@@ -312,8 +312,7 @@ public:
 
     // Build from scratch.
     Builder(ArrayRef<int64_t> shape, Type elementType)
-        : shape(shape), elementType(elementType), affineMaps() {
-    }
+        : shape(shape), elementType(elementType), affineMaps() {}
 
     Builder &setShape(ArrayRef<int64_t> newShape) {
       shape = newShape;

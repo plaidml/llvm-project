@@ -2435,10 +2435,9 @@ static LogicalResult generateCopy(
   bool existingBuf = fastBufferMap.count(memref) > 0;
   if (!existingBuf) {
     AffineMap fastBufferLayout = b.getMultiDimIdentityMap(rank);
-    auto fastMemRefType =
-        MemRefType::get(fastBufferShape, memRefType.getElementType(),
-                        fastBufferLayout,
-                        IntegerAttr::get(topBuilder.getI32Type(), copyOptions.fastMemorySpace));
+    auto fastMemRefType = MemRefType::get(
+        fastBufferShape, memRefType.getElementType(), fastBufferLayout,
+        IntegerAttr::get(topBuilder.getI32Type(), copyOptions.fastMemorySpace));
 
     // Create the fast memory space buffer just before the 'affine.for'
     // operation.
@@ -2510,8 +2509,9 @@ static LogicalResult generateCopy(
   } else {
     // DMA generation.
     // Create a tag (single element 1-d memref) for the DMA.
-    auto tagMemRefType = MemRefType::get({1}, top.getIntegerType(32), {},
-                                         IntegerAttr::get(top.getI32Type(), copyOptions.tagMemorySpace));
+    auto tagMemRefType = MemRefType::get(
+        {1}, top.getIntegerType(32), {},
+        IntegerAttr::get(top.getI32Type(), copyOptions.tagMemorySpace));
     auto tagMemRef = prologue.create<AllocOp>(loc, tagMemRefType);
 
     SmallVector<Value, 4> tagIndices({zeroIndex});
@@ -2691,13 +2691,17 @@ uint64_t mlir::affineDataCopyGenerate(Block::iterator begin,
     // Gather regions to allocate to buffers in faster memory space.
     if (auto loadOp = dyn_cast<AffineLoadOp>(opInst)) {
       if ((filterMemRef.hasValue() && filterMemRef != loadOp.getMemRef()) ||
-          (loadOp.getMemRefType().getMemorySpace().cast<IntegerAttr>().getInt() !=
-           copyOptions.slowMemorySpace))
+          (loadOp.getMemRefType()
+               .getMemorySpace()
+               .cast<IntegerAttr>()
+               .getInt() != copyOptions.slowMemorySpace))
         return;
     } else if (auto storeOp = dyn_cast<AffineStoreOp>(opInst)) {
       if ((filterMemRef.hasValue() && filterMemRef != storeOp.getMemRef()) ||
-          storeOp.getMemRefType().getMemorySpace().cast<IntegerAttr>().getInt() !=
-              copyOptions.slowMemorySpace)
+          storeOp.getMemRefType()
+                  .getMemorySpace()
+                  .cast<IntegerAttr>()
+                  .getInt() != copyOptions.slowMemorySpace)
         return;
     } else {
       // Neither load nor a store op.

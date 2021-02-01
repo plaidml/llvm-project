@@ -402,15 +402,13 @@ public:
     auto Begin = V.begin();
     auto End = V.end();
     if (Begin != End) {
-      auto Adapter =
-          detail::build_format_adapter(*Begin);
+      auto Adapter = detail::build_format_adapter(*Begin);
       Adapter.format(Stream, ArgStyle);
       ++Begin;
     }
     while (Begin != End) {
       Stream << Sep;
-      auto Adapter =
-          detail::build_format_adapter(*Begin);
+      auto Adapter = detail::build_format_adapter(*Begin);
       Adapter.format(Stream, ArgStyle);
       ++Begin;
     }

@@ -240,7 +240,8 @@ Type Parser::parseMemRefType() {
       if (!memorySpaceInd.hasValue())
         return emitError("invalid memory space in memref type");
 
-      memorySpace = IntegerAttr::get(IntegerType::get(getContext(), 32), memorySpaceInd.getValue());
+      memorySpace = IntegerAttr::get(IntegerType::get(getContext(), 32),
+                                     memorySpaceInd.getValue());
 
       consumeToken(Token::integer);
       return success();

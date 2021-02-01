@@ -264,20 +264,20 @@ static void emitTypeDefDecl(const TypeDef &typeDef, raw_ostream &os) {
   if (!params.empty()) {
     emitTypeBuilderDecls(typeDef, os, emitTypeNamePairsAfterComma);
 
-  // Emit the verify invariants declaration.
-  if (typeDef.genVerifyInvariantsDecl())
+    // Emit the verify invariants declaration.
+    if (typeDef.genVerifyInvariantsDecl())
       os << llvm::formatv(typeDefDeclVerifyStr, typeDef.getCppClassName(),
                           emitTypeNamePairsAfterComma);
   }
 
   // Emit the mnenomic, if specified.
   if (auto mnenomic = typeDef.getMnemonic()) {
-    os << "    static ::llvm::StringLiteral getMnemonic() { return \"" << mnenomic
-       << "\"; }\n";
+    os << "    static ::llvm::StringLiteral getMnemonic() { return \""
+       << mnenomic << "\"; }\n";
 
     // If mnemonic specified, emit print/parse declarations.
     if (typeDef.getParserCode() || typeDef.getPrinterCode() || !params.empty())
-    os << typeDefParsePrint;
+      os << typeDefParsePrint;
   }
 
   if (typeDef.genAccessors()) {
@@ -597,9 +597,9 @@ static void emitTypeDefDef(const TypeDef &typeDef, raw_ostream &os) {
   SmallVector<TypeParameter, 4> parameters;
   typeDef.getParameters(parameters);
   if (!parameters.empty()) {
-  // Emit the storage class, if requested and necessary.
+    // Emit the storage class, if requested and necessary.
     if (typeDef.genStorageClass())
-    emitStorageClass(typeDef, os);
+      emitStorageClass(typeDef, os);
 
     // Emit the builders for this type.
     emitTypeBuilderDefs(typeDef, os, parameters);
@@ -607,14 +607,14 @@ static void emitTypeDefDef(const TypeDef &typeDef, raw_ostream &os) {
     // Generate accessor definitions only if we also generate the storage class.
     // Otherwise, let the user define the exact accessor definition.
     if (typeDef.genAccessors() && typeDef.genStorageClass()) {
-  // Emit the parameter accessors.
-    for (const TypeParameter &parameter : parameters) {
-      SmallString<16> name = parameter.getName();
-      name[0] = llvm::toUpper(name[0]);
-      os << formatv("{0} {3}::get{1}() const { return getImpl()->{2}; }\n",
-                    parameter.getCppType(), name, parameter.getName(),
-                    typeDef.getCppClassName());
-    }
+      // Emit the parameter accessors.
+      for (const TypeParameter &parameter : parameters) {
+        SmallString<16> name = parameter.getName();
+        name[0] = llvm::toUpper(name[0]);
+        os << formatv("{0} {3}::get{1}() const { return getImpl()->{2}; }\n",
+                      parameter.getCppType(), name, parameter.getName(),
+                      typeDef.getCppClassName());
+      }
     }
   }
 
