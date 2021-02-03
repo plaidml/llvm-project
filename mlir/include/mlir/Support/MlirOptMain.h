@@ -10,8 +10,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef MLIR_SUPPORT_MLIR_OPT_MAIN_H
-#define MLIR_SUPPORT_MLIR_OPT_MAIN_H
+#ifndef MLIR_SUPPORT_MLIROPTMAIN_H
+#define MLIR_SUPPORT_MLIROPTMAIN_H
 
 #include "mlir/Support/LogicalResult.h"
 #include "llvm/ADT/StringRef.h"
@@ -63,4 +63,4 @@ LogicalResult MlirOptMain(int argc, char **argv, llvm::StringRef toolName,
 
 } // end namespace mlir
 
-#endif // MLIR_SUPPORT_MLIR_OPT_MAIN_H
+#endif // MLIR_SUPPORT_MLIROPTMAIN_H
