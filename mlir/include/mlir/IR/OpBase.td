@@ -1194,7 +1194,7 @@ class EnumAttrInfo<string name, list<EnumAttrCaseInfo> cases, Attr baseClass, st
 
   // Override Attr class fields
   let predicate = CPred<"$_self.isa<" # cppNamespace # "::" # decoratedAttrClassName # ">()">;
-  let storageType = decoratedAttrClassName;
+  let storageType = cppNamespace # "::" # decoratedAttrClassName;
   let returnType = cppNamespace # "::" # name;
   let constBuilderCall = cppNamespace # "::" # decoratedAttrClassName # "::get($_builder.getContext(), $0)";
   let valueType = baseClass.valueType;
