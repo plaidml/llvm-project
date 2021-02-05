@@ -9,6 +9,7 @@
 #ifndef MLIR_IR_BUILTINTYPES_H
 #define MLIR_IR_BUILTINTYPES_H
 
+#include "mlir/IR/Attributes.h"
 #include "mlir/IR/Types.h"
 
 namespace llvm {
@@ -293,6 +294,13 @@ public:
   static bool classof(Type type);
 
   /// Returns the memory space in which data referred to by this memref resides.
+  Attribute getMemorySpace() const;
+
+  /// Checks if the memorySpace has supported Attribute type.
+  static bool isSupportedMemorySpace(Attribute memorySpace);
+
+  /// [deprecated] Returns the memory space in old raw integer representation.
+  /// New `Attribute getMemorySpace()` method should be used instead.
   unsigned getMemorySpaceAsInt() const;
 };
 
@@ -314,12 +322,11 @@ public:
     explicit Builder(MemRefType other)
         : shape(other.getShape()), elementType(other.getElementType()),
           affineMaps(other.getAffineMaps()),
-          memorySpace(other.getMemorySpaceAsInt()) {}
+          memorySpace(other.getMemorySpace()) {}
 
     // Build from scratch.
     Builder(ArrayRef<int64_t> shape, Type elementType)
-        : shape(shape), elementType(elementType), affineMaps(), memorySpace(0) {
-    }
+        : shape(shape), elementType(elementType), affineMaps() {}
 
     Builder &setShape(ArrayRef<int64_t> newShape) {
       shape = newShape;
@@ -336,10 +343,13 @@ public:
       return *this;
     }
 
-    Builder &setMemorySpace(unsigned newMemorySpace) {
+    Builder &setMemorySpace(Attribute newMemorySpace) {
       memorySpace = newMemorySpace;
       return *this;
     }
+
+    // [deprecated] `setMemorySpace(Attribute)` should be used instead.
+    Builder &setMemorySpace(unsigned newMemorySpace);
 
     operator MemRefType() {
       return MemRefType::get(shape, elementType, affineMaps, memorySpace);
@@ -349,7 +359,7 @@ public:
     ArrayRef<int64_t> shape;
     Type elementType;
     ArrayRef<AffineMap> affineMaps;
-    unsigned memorySpace;
+    Attribute memorySpace;
   };
 
   using Base::Base;
@@ -361,12 +371,21 @@ public:
   /// construction failures.
   static MemRefType get(ArrayRef<int64_t> shape, Type elementType,
                         ArrayRef<AffineMap> affineMapComposition = {},
-                        unsigned memorySpace = 0);
+                        Attribute memorySpace = {});
+  // [deprecated] `Attribute`-based form should be used instead.
+  static MemRefType get(ArrayRef<int64_t> shape, Type elementType,
+                        ArrayRef<AffineMap> affineMapComposition,
+                        unsigned memorySpace);
 
   /// Get or create a new MemRefType based on shape, element type, affine
   /// map composition, and memory space. If the MemRefType defined by the
   /// arguments would be ill-formed, an error is emitted to `emitError` and a
   /// null type is returned.
+  static MemRefType getChecked(function_ref<InFlightDiagnostic()> emitError,
+                               ArrayRef<int64_t> shape, Type elementType,
+                               ArrayRef<AffineMap> affineMapComposition,
+                               Attribute memorySpace);
+  // [deprecated] `Attribute`-based form should be used instead.
   static MemRefType getChecked(function_ref<InFlightDiagnostic()> emitError,
                                ArrayRef<int64_t> shape, Type elementType,
                                ArrayRef<AffineMap> affineMapComposition,
@@ -390,7 +409,7 @@ private:
   /// type would be ill-formed, return nullptr.
   static MemRefType getImpl(ArrayRef<int64_t> shape, Type elementType,
                             ArrayRef<AffineMap> affineMapComposition,
-                            unsigned memorySpace,
+                            Attribute memorySpace,
                             function_ref<InFlightDiagnostic()> emitError);
   using Base::getImpl;
 };
@@ -409,6 +428,8 @@ public:
 
   /// Get or create a new UnrankedMemRefType of the provided element
   /// type and memory space
+  static UnrankedMemRefType get(Type elementType, Attribute memorySpace);
+  // [deprecated] `Attribute`-based form should be used instead.
   static UnrankedMemRefType get(Type elementType, unsigned memorySpace);
 
   /// Get or create a new UnrankedMemRefType of the provided element
@@ -417,11 +438,15 @@ public:
   /// returned.
   static UnrankedMemRefType
   getChecked(function_ref<InFlightDiagnostic()> emitError, Type elementType,
+             Attribute memorySpace);
+  // [deprecated] `Attribute`-based form should be used instead.
+  static UnrankedMemRefType
+  getChecked(function_ref<InFlightDiagnostic()> emitError, Type elementType,
              unsigned memorySpace);
 
   /// Verify the construction of a unranked memref type.
   static LogicalResult verify(function_ref<InFlightDiagnostic()> emitError,
-                              Type elementType, unsigned memorySpace);
+                              Type elementType, Attribute memorySpace);
 
   ArrayRef<int64_t> getShape() const { return llvm::None; }
 };
