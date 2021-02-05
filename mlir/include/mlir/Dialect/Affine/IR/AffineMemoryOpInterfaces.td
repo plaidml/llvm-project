@@ -69,19 +69,6 @@ def AffineReadOpInterface : OpInterface<"AffineReadOpInterface"> {
       }]
     >,
     InterfaceMethod<
-      /*desc=*/"Returns the AffineMapAttr associated with 'memref'.",
-      /*retTy=*/"NamedAttribute",
-      /*methodName=*/"getAffineMapAttrForMemRef",
-      /*args=*/(ins "Value":$memref),
-      /*methodBody=*/[{}],
-      /*defaultImplementation=*/[{
-        ConcreteOp op = cast<ConcreteOp>(this->getOperation());
-        assert(memref == getMemRef());
-        return {Identifier::get(op.getMapAttrName(), op.getContext()),
-                op.getAffineMapAttr()};
-      }]
-    >,
-    InterfaceMethod<
       /*desc=*/"Returns the value read by this operation.",
       /*retTy=*/"Value",
       /*methodName=*/"getValue",
@@ -148,19 +135,6 @@ def AffineWriteOpInterface : OpInterface<"AffineWriteOpInterface"> {
       }]
     >,
     InterfaceMethod<
-      /*desc=*/"Returns the AffineMapAttr associated with 'memref'.",
-      /*retTy=*/"NamedAttribute",
-      /*methodName=*/"getAffineMapAttrForMemRef",
-      /*args=*/(ins "Value":$memref),
-      /*methodBody=*/[{}],
-      /*defaultImplementation=*/[{
-        ConcreteOp op = cast<ConcreteOp>(this->getOperation());
-        assert(memref == getMemRef());
-        return {Identifier::get(op.getMapAttrName(), op.getContext()),
-                op.getAffineMapAttr()};
-      }]
-    >,
-    InterfaceMethod<
       /*desc=*/"Returns the value to store.",
       /*retTy=*/"Value",
       /*methodName=*/"getValueToStore",
@@ -169,6 +143,28 @@ def AffineWriteOpInterface : OpInterface<"AffineWriteOpInterface"> {
       /*defaultImplementation=*/[{
         ConcreteOp op = cast<ConcreteOp>(this->getOperation());
         return op.getOperand(op.getStoredValOperandIndex());
+      }]
+    >,
+  ];
+}
+
+def MemRefDereferencingInterface : OpInterface<"MemRefDereferencingInterface"> {
+  let description = [{
+      Interface to query characteristics of MemRef Dereferencing ops.
+  }];
+
+  let methods = [
+    InterfaceMethod<
+      /*desc=*/"Returns the AffineMapAttr associated with 'memref'.",
+      /*retTy=*/"NamedAttribute",
+      /*methodName=*/"getAffineMapAttrForMemRef",
+      /*args=*/(ins "Value":$memref),
+      /*methodBody=*/[{}],
+      /*defaultImplementation=*/[{
+        ConcreteOp op = cast<ConcreteOp>(this->getOperation());
+        assert(memref == op.getMemRef());
+        return {Identifier::get(op.getMapAttrName(), op.getContext()),
+                op.getAffineMapAttr()};
       }]
     >,
   ];

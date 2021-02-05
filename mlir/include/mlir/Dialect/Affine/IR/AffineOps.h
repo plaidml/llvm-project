@@ -82,7 +82,8 @@ bool isTopLevelValue(Value value);
 // TODO: Consider replacing src/dst memref indices with view memrefs.
 class AffineDmaStartOp
     : public Op<AffineDmaStartOp, OpTrait::MemRefsNormalizable,
-                OpTrait::VariadicOperands, OpTrait::ZeroResult> {
+                OpTrait::VariadicOperands, OpTrait::ZeroResult,
+                MemRefDereferencingInterface::Trait> {
 public:
   using Op::Op;
 
@@ -271,7 +272,8 @@ public:
 //
 class AffineDmaWaitOp
     : public Op<AffineDmaWaitOp, OpTrait::MemRefsNormalizable,
-                OpTrait::VariadicOperands, OpTrait::ZeroResult> {
+                OpTrait::VariadicOperands, OpTrait::ZeroResult,
+                MemRefDereferencingInterface::Trait> {
 public:
   using Op::Op;
 
