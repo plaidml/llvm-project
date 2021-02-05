@@ -699,7 +699,8 @@ def AffineParallelOp : Affine_Op<"parallel",
   let hasFolder = 1;
 }
 
-def AffinePrefetchOp : Affine_Op<"prefetch", [DeclareOpInterfaceMethods<MemRefDereferencingInterface>]> {
+def AffinePrefetchOp : Affine_Op<"prefetch", 
+  [DeclareOpInterfaceMethods<MemRefDereferencingInterface>]> {
   let summary = "affine prefetch operation";
   let description = [{
     The "affine.prefetch" op prefetches data from a memref location described
