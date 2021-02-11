@@ -514,7 +514,7 @@ Operation *NormalizeMemRefs::createOpResultsNormalized(FuncOp funcOp,
   if (resultTypeNormalized) {
     OpBuilder bb(oldOp);
     for (auto &oldRegion : oldOp->getRegions()) {
-      auto newRegion = result.addRegion();
+      Region *newRegion = result.addRegion();
       newRegion->takeBody(oldRegion);
     }
     return bb.createOperation(result);
