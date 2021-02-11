@@ -483,10 +483,6 @@ Operation *NormalizeMemRefs::createOpResultsNormalized(FuncOp funcOp,
   OperationState result(oldOp->getLoc(), oldOp->getName());
   result.addOperands(oldOp->getOperands());
   result.addAttributes(oldOp->getAttrs());
-  for (auto &oldRegion : oldOp->getRegions()) {
-    auto newRegion = result.addRegion();
-    newRegion->getBlocks().splice(newRegion->begin(), oldRegion.getBlocks());
-  }
 
   // Add normalized MemRefType to the OperationState.
   SmallVector<Type, 4> resultTypes;
@@ -517,6 +513,10 @@ Operation *NormalizeMemRefs::createOpResultsNormalized(FuncOp funcOp,
   // affine map, `oldOp` is returned without modification.
   if (resultTypeNormalized) {
     OpBuilder bb(oldOp);
+    for (auto &oldRegion : oldOp->getRegions()) {
+      auto newRegion = result.addRegion();
+      newRegion->getBlocks().splice(newRegion->begin(), oldRegion.getBlocks());
+    }
     return bb.createOperation(result);
   } else
     return oldOp;
