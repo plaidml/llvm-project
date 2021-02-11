@@ -515,7 +515,7 @@ Operation *NormalizeMemRefs::createOpResultsNormalized(FuncOp funcOp,
     OpBuilder bb(oldOp);
     for (auto &oldRegion : oldOp->getRegions()) {
       auto newRegion = result.addRegion();
-      newRegion->getBlocks().splice(newRegion->begin(), oldRegion.getBlocks());
+      newRegion->takeBody(oldRegion);
     }
     return bb.createOperation(result);
   } else
