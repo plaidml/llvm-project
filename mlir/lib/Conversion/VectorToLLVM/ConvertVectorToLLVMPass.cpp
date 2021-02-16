@@ -29,7 +29,9 @@ using namespace mlir::vector;
 namespace {
 struct LowerVectorToLLVMPass
     : public ConvertVectorToLLVMBase<LowerVectorToLLVMPass> {
-  LowerVectorToLLVMPass(const LowerVectorToLLVMOptions &options) {
+  LowerVectorToLLVMPass(const LowerVectorToLLVMOptions &options,
+                        const LowerToLLVMOptions &llvmOptions)
+      : llvmOptions(llvmOptions) {
     this->reassociateFPReductions = options.reassociateFPReductions;
     this->enableIndexOptimizations = options.enableIndexOptimizations;
     this->enableArmNeon = options.enableArmNeon;
@@ -47,6 +49,9 @@ struct LowerVectorToLLVMPass
       registry.insert<avx512::AVX512Dialect>();
   }
   void runOnOperation() override;
+
+private:
+  LowerToLLVMOptions llvmOptions;
 };
 } // namespace
 
@@ -62,7 +67,7 @@ void LowerVectorToLLVMPass::runOnOperation() {
   }
 
   // Convert to the LLVM IR dialect.
-  LLVMTypeConverter converter(&getContext());
+  LLVMTypeConverter converter(&getContext(), llvmOptions);
   OwningRewritePatternList patterns;
   populateVectorToLLVMMatrixConversionPatterns(converter, patterns);
   populateVectorToLLVMConversionPatterns(
@@ -113,6 +118,7 @@ void LowerVectorToLLVMPass::runOnOperation() {
 }
 
 std::unique_ptr<OperationPass<ModuleOp>>
-mlir::createConvertVectorToLLVMPass(const LowerVectorToLLVMOptions &options) {
-  return std::make_unique<LowerVectorToLLVMPass>(options);
+mlir::createConvertVectorToLLVMPass(const LowerVectorToLLVMOptions &options,
+                                    const LowerToLLVMOptions &llvmOptions) {
+  return std::make_unique<LowerVectorToLLVMPass>(options, llvmOptions);
 }
