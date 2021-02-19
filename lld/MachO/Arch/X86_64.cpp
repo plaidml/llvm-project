@@ -37,6 +37,7 @@ struct X86_64 : TargetInfo {
 
   void relaxGotLoad(uint8_t *loc, uint8_t type) const override;
   const TargetInfo::RelocAttrs &getRelocAttrs(uint8_t type) const override;
+  uint64_t getPageSize() const override { return 4 * 1024; }
 };
 
 } // namespace
@@ -57,9 +58,8 @@ const TargetInfo::RelocAttrs &X86_64::getRelocAttrs(uint8_t type) const {
       {"TLV", B(PCREL) | B(EXTERN) | B(TLV) | B(LOAD) | B(BYTE4)},
 #undef B
   }};
-  assert(type >= 0 && type < relocAttrsArray.size() &&
-         "invalid relocation type");
-  if (type < 0 || type >= relocAttrsArray.size())
+  assert(type < relocAttrsArray.size() && "invalid relocation type");
+  if (type >= relocAttrsArray.size())
     return TargetInfo::invalidRelocAttrs;
   return relocAttrsArray[type];
 }

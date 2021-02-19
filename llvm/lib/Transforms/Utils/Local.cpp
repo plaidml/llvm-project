@@ -420,13 +420,8 @@ bool llvm::wouldInstructionBeTriviallyDead(Instruction *I,
     return true;
   }
 
-  if (auto *CB = dyn_cast<CallBase>(I)) {
-    // Treat calls that may not return as alive.
-    // TODO: Remove the intrinsic escape hatch once all intrinsics set
-    // willreturn properly.
-    if (!CB->willReturn() && !isa<IntrinsicInst>(I))
-      return false;
-  }
+  if (!I->willReturn())
+    return false;
 
   if (!I->mayHaveSideEffects())
     return true;
@@ -743,11 +738,11 @@ void llvm::MergeBasicBlockIntoOnlyPred(BasicBlock *DestBB,
   SmallVector<DominatorTree::UpdateType, 32> Updates;
 
   if (DTU) {
-    for (auto I = pred_begin(PredBB), E = pred_end(PredBB); I != E; ++I) {
+    for (BasicBlock *PredPredBB : predecessors(PredBB)) {
       // This predecessor of PredBB may already have DestBB as a successor.
-      if (!llvm::is_contained(successors(*I), DestBB))
-        Updates.push_back({DominatorTree::Insert, *I, DestBB});
-      Updates.push_back({DominatorTree::Delete, *I, PredBB});
+      if (!llvm::is_contained(successors(PredPredBB), DestBB))
+        Updates.push_back({DominatorTree::Insert, PredPredBB, DestBB});
+      Updates.push_back({DominatorTree::Delete, PredPredBB, PredBB});
     }
     Updates.push_back({DominatorTree::Delete, PredBB, DestBB});
   }
@@ -1040,8 +1035,8 @@ bool llvm::TryToSimplifyUncondBranchFromEmptyBlock(BasicBlock *BB,
 
   // We cannot fold the block if it's a branch to an already present callbr
   // successor because that creates duplicate successors.
-  for (auto I = pred_begin(BB), E = pred_end(BB); I != E; ++I) {
-    if (auto *CBI = dyn_cast<CallBrInst>((*I)->getTerminator())) {
+  for (BasicBlock *PredBB : predecessors(BB)) {
+    if (auto *CBI = dyn_cast<CallBrInst>(PredBB->getTerminator())) {
       if (Succ == CBI->getDefaultDest())
         return false;
       for (unsigned i = 0, e = CBI->getNumIndirectDests(); i != e; ++i)
@@ -1102,10 +1097,8 @@ bool llvm::TryToSimplifyUncondBranchFromEmptyBlock(BasicBlock *BB,
   Instruction *TI = BB->getTerminator();
   if (TI)
     if (MDNode *LoopMD = TI->getMetadata(LoopMDKind))
-      for (pred_iterator PI = pred_begin(BB), E = pred_end(BB); PI != E; ++PI) {
-        BasicBlock *Pred = *PI;
+      for (BasicBlock *Pred : predecessors(BB))
         Pred->getTerminator()->setMetadata(LoopMDKind, LoopMD);
-      }
 
   // Everything that jumped to BB now goes to Succ.
   BB->replaceAllUsesWith(Succ);

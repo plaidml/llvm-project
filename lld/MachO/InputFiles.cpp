@@ -221,12 +221,11 @@ static bool validateRelocationInfo(MemoryBufferRef mb, const section_64 &sec,
     error(message(Twine("must ") + (rel.r_pcrel ? "not " : "") +
                   "be PC-relative"));
   if (isThreadLocalVariables(sec.flags) &&
-      (!relocAttrs.hasAttr(RelocAttrBits::TLV) ||
-       relocAttrs.hasAttr(RelocAttrBits::LOAD)))
+      !relocAttrs.hasAttr(RelocAttrBits::TLV | RelocAttrBits::BYTE8))
     error(message("not allowed in thread-local section, must be UNSIGNED"));
   if (rel.r_length < 2 || rel.r_length > 3 ||
       !relocAttrs.hasAttr(static_cast<RelocAttrBits>(1 << rel.r_length))) {
-    static SmallVector<StringRef, 4> widths{"INVALID", "4", "8", "4 or 8"};
+    static SmallVector<StringRef, 4> widths{"0", "4", "8", "4 or 8"};
     error(message("has width " + std::to_string(1 << rel.r_length) +
                   " bytes, but must be " +
                   widths[(static_cast<int>(relocAttrs.bits) >> 2) & 3] +
@@ -606,8 +605,11 @@ void loadReexport(StringRef path, DylibFile *umbrella) {
     inputFiles.insert(*reexport);
 }
 
-DylibFile::DylibFile(MemoryBufferRef mb, DylibFile *umbrella)
-    : InputFile(DylibKind, mb), refState(RefState::Unreferenced) {
+DylibFile::DylibFile(MemoryBufferRef mb, DylibFile *umbrella,
+                     bool isBundleLoader)
+    : InputFile(DylibKind, mb), refState(RefState::Unreferenced),
+      isBundleLoader(isBundleLoader) {
+  assert(!isBundleLoader || !umbrella);
   if (umbrella == nullptr)
     umbrella = this;
 
@@ -620,7 +622,9 @@ DylibFile::DylibFile(MemoryBufferRef mb, DylibFile *umbrella)
     currentVersion = read32le(&c->dylib.current_version);
     compatibilityVersion = read32le(&c->dylib.compatibility_version);
     dylibName = reinterpret_cast<const char *>(cmd) + read32le(&c->dylib.name);
-  } else {
+  } else if (!isBundleLoader) {
+    // macho_executable and macho_bundle don't have LC_ID_DYLIB,
+    // so it's OK.
     error("dylib " + toString(this) + " missing LC_ID_DYLIB load command");
     return;
   }
@@ -659,8 +663,12 @@ DylibFile::DylibFile(MemoryBufferRef mb, DylibFile *umbrella)
   }
 }
 
-DylibFile::DylibFile(const InterfaceFile &interface, DylibFile *umbrella)
-    : InputFile(DylibKind, interface), refState(RefState::Unreferenced) {
+DylibFile::DylibFile(const InterfaceFile &interface, DylibFile *umbrella,
+                     bool isBundleLoader)
+    : InputFile(DylibKind, interface), refState(RefState::Unreferenced),
+      isBundleLoader(isBundleLoader) {
+  // FIXME: Add test for the missing TBD code path.
+
   if (umbrella == nullptr)
     umbrella = this;
 

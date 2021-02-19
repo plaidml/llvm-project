@@ -15,8 +15,28 @@
 
 include "mlir/IR/OpBase.td"
 
-// The linalg 'LinalgStructuredInterface' provides access to the 'LinalgOp'
-// interface.
+// The 'LinalgContractionOpInterface' provides access to the
+// 'ContractionOpInterface'.
+def LinalgContractionOpInterface : OpInterface<"ContractionOpInterface"> {
+  let description = [{
+   A Linalg contraction is defined in general terms:
+     1. Has 2 input and 1 output shapes.
+     2. Has at least one reduction dimension.
+     3. Has only projected permutation indexing maps.
+     4. its body computes `u5(u1(c) + u2(u3(a) * u4(b)))` on some field
+     (AddOpType, MulOpType), where u1, u2, u3, u4 and u5 represent scalar unary
+     operations that may change the type (e.g. for mixed-precision).
+   As a consequence, when vectorization of such an op occurs, the only special
+   behavior is that the (unique) MulOpType is vectorized into a
+   `vector.contract`. All other ops are handled in a generic fashion.
+   In the future, we may wish to allow more input arguments and elementwise and
+   constant operations that do not involve the reduction dimension(s).
+  }];
+  let cppNamespace = "::mlir::linalg";
+  let verify = [{ return detail::verifyContractionInterface($_op); }];
+}
+
+// The 'LinalgStructuredInterface' provides access to the 'LinalgOp' interface.
 def LinalgStructuredInterface : OpInterface<"LinalgOp"> {
   let cppNamespace = "::mlir::linalg";
   let methods = [
@@ -795,6 +815,29 @@ def LinalgStructuredInterface : OpInterface<"LinalgOp"> {
     >,
     InterfaceMethod<
       /*desc=*/[{
+        Return true if the indexing map is depending on the current op instance.
+        This means that the indexing map is dynamically synthesized by using the
+        op instance's concrete attributes, instead of being static for all
+        instances of the same op kind.
+      }],
+      /*retTy=*/"bool",
+      /*methodName=*/"hasDynamicIndexingMaps",
+      /*args=*/(ins),
+      /*methodBody=*/"",
+      /*defaultImplementation=*/[{ return false; }]
+    >,
+    InterfaceMethod<
+      /*desc=*/[{
+        Verify all attributes used by indexing maps are valid.
+      }],
+      /*retTy=*/"LogicalResult",
+      /*methodName=*/"verifyIndexingMapRequiredAttributes",
+      /*args=*/(ins),
+      /*methodBody=*/"",
+      /*defaultImplementation=*/[{ return success(); }]
+    >,
+    InterfaceMethod<
+      /*desc=*/[{
         Return the indexing maps attribute within the current operation.
       }],
       /*retTy=*/"ArrayAttr",
@@ -1013,20 +1056,6 @@ def LinalgStructuredInterface : OpInterface<"LinalgOp"> {
     //===------------------------------------------------------------------===//
     // Other static interface methods.
     //===------------------------------------------------------------------===//
-    StaticInterfaceMethod<
-      /*desc=*/[{
-        Create an operation of the current type with the given location,
-        operands, and attributes.
-      }],
-      /*retTy=*/"Operation *",
-      /*methodName=*/"create",
-      (ins "OpBuilder &":$builder, "Location":$loc, "TypeRange":$resultTypes,
-           "ValueRange":$operands,
-           "ArrayRef<NamedAttribute>":$attributes), [{
-        return builder.create<ConcreteOp>(
-          loc, resultTypes, operands, attributes);
-      }]
-    >,
     InterfaceMethod<
       /*desc=*/[{
         Clone the current operation with the given location and operands. This
@@ -1039,14 +1068,13 @@ def LinalgStructuredInterface : OpInterface<"LinalgOp"> {
       (ins "OpBuilder &":$b, "Location":$loc, "TypeRange":$resultTypes,
            "ValueRange":$operands),
       [{
-        BlockAndValueMapping map;
-        unsigned numRegions = $_op->getNumRegions();
-        Operation *res = create(b, loc, resultTypes, operands, $_op->getAttrs());
-        assert(res->getNumRegions() == numRegions && "inconsistent # regions");
-        for (unsigned ridx = 0; ridx < numRegions; ++ridx)
-          $_op->getRegion(ridx).cloneInto(
-            &res->getRegion(ridx), map);
-        return res;
+        BlockAndValueMapping bvm;
+        OperationState state(
+          loc, ConcreteOp::getOperationName(), operands, resultTypes,
+          $_op->getAttrs());
+        for (Region &r : $_op->getRegions())
+          r.cloneInto(state.addRegion(), bvm);
+        return b.createOperation(state);
       }]
     >,
     StaticInterfaceMethod<
@@ -1055,7 +1083,7 @@ def LinalgStructuredInterface : OpInterface<"LinalgOp"> {
         Returns a null function if this named op does not define a region
         builder.
       }],
-      /*retTy=*/"std::function<void(Block &)>",
+      /*retTy=*/"std::function<void(Block &, ValueRange)>",
       /*methodName=*/"getRegionBuilder",
       (ins),
       [{ return ConcreteOp::getRegionBuilder(); }]

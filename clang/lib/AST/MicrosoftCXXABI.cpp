@@ -69,8 +69,8 @@ class MSHIPNumberingContext : public MicrosoftNumberingContext {
   std::unique_ptr<MangleNumberingContext> DeviceCtx;
 
 public:
-  MSHIPNumberingContext(MangleContext *Mangler) {
-    DeviceCtx = createItaniumNumberingContext(Mangler);
+  MSHIPNumberingContext(MangleContext *DeviceMangler) {
+    DeviceCtx = createItaniumNumberingContext(DeviceMangler);
   }
 
   unsigned getDeviceManglingNumber(const CXXMethodDecl *CallOperator) override {
@@ -89,15 +89,16 @@ class MicrosoftCXXABI : public CXXABI {
 
   // MangleContext for device numbering context, which is based on Itanium C++
   // ABI.
-  std::unique_ptr<MangleContext> Mangler;
+  std::unique_ptr<MangleContext> DeviceMangler;
 
 public:
   MicrosoftCXXABI(ASTContext &Ctx) : Context(Ctx) {
-    if (Context.getLangOpts().CUDA) {
+    if (Context.getLangOpts().CUDA && Context.getAuxTargetInfo()) {
       assert(Context.getTargetInfo().getCXXABI().isMicrosoft() &&
              Context.getAuxTargetInfo()->getCXXABI().isItaniumFamily() &&
              "Unexpected combination of C++ ABIs.");
-      Mangler.reset(Context.createMangleContext(Context.getAuxTargetInfo()));
+      DeviceMangler.reset(
+          Context.createMangleContext(Context.getAuxTargetInfo()));
     }
   }
 
@@ -158,8 +159,10 @@ public:
 
   std::unique_ptr<MangleNumberingContext>
   createMangleNumberingContext() const override {
-    if (Context.getLangOpts().CUDA)
-      return std::make_unique<MSHIPNumberingContext>(Mangler.get());
+    if (Context.getLangOpts().CUDA && Context.getAuxTargetInfo()) {
+      assert(DeviceMangler && "Missing device mangler");
+      return std::make_unique<MSHIPNumberingContext>(DeviceMangler.get());
+    }
     return std::make_unique<MicrosoftNumberingContext>();
   }
 };

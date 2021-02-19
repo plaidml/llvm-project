@@ -11,6 +11,8 @@
 static cl::opt<std::string> OutputFilename("output", cl::value_desc("output"),
                                            cl::Required,
                                            cl::desc("Output profile file"));
+static cl::alias OutputA("o", cl::desc("Alias for --output"),
+                         cl::aliasopt(OutputFilename));
 
 static cl::opt<SampleProfileFormat> OutputFormat(
     "format", cl::desc("Format of output profile"), cl::init(SPF_Text),
@@ -28,6 +30,19 @@ static cl::opt<int32_t, true> RecursionCompression(
              "sequences up to the specified size. -1 means no size limit."),
     cl::Hidden,
     cl::location(llvm::sampleprof::CSProfileGenerator::MaxCompressionSize));
+
+static cl::opt<uint64_t> CSProfColdThres(
+    "csprof-cold-thres", cl::init(100), cl::ZeroOrMore,
+    cl::desc("Specify the total samples threshold for a context profile to "
+             "be considered cold, any cold profiles will be merged into "
+             "context-less base profiles"));
+
+static cl::opt<bool> CSProfKeepCold(
+    "csprof-keep-cold", cl::init(false), cl::ZeroOrMore,
+    cl::desc("This works together with --csprof-cold-thres. If the total count "
+             "of the profile after all merge is done is still smaller than the "
+             "csprof-cold-thres, it will be trimmed unless csprof-keep-cold "
+             "flag is specified."));
 
 using namespace llvm;
 using namespace sampleprof;
@@ -63,12 +78,16 @@ ProfileGenerator::create(const BinarySampleCounterMap &BinarySampleCounters,
   return ProfileGenerator;
 }
 
+void ProfileGenerator::write(std::unique_ptr<SampleProfileWriter> Writer,
+                             StringMap<FunctionSamples> &ProfileMap) {
+  Writer->write(ProfileMap);
+}
+
 void ProfileGenerator::write() {
   auto WriterOrErr = SampleProfileWriter::create(OutputFilename, OutputFormat);
   if (std::error_code EC = WriterOrErr.getError())
     exitWithError(EC, OutputFilename);
-  auto Writer = std::move(WriterOrErr.get());
-  Writer->write(ProfileMap);
+  write(std::move(WriterOrErr.get()), ProfileMap);
 }
 
 void ProfileGenerator::findDisjointRanges(RangeSample &DisjointRanges,
@@ -174,7 +193,6 @@ CSProfileGenerator::getFunctionProfileForContext(StringRef ContextStr) {
   if (Ret.second) {
     SampleContext FContext(Ret.first->first(), RawContext);
     FunctionSamples &FProfile = Ret.first->second;
-    FProfile.setName(FContext.getNameWithoutContext());
     FProfile.setContext(FContext);
   }
   return Ret.first->second;
@@ -194,7 +212,6 @@ void CSProfileGenerator::updateBodySamplesforFunctionProfile(
     FunctionProfile.addBodySamples(LeafLoc.second.LineOffset,
                                    LeafLoc.second.Discriminator,
                                    Count - PreviousCount);
-    FunctionProfile.addTotalSamples(Count - PreviousCount);
   }
 }
 
@@ -224,9 +241,13 @@ void CSProfileGenerator::populateFunctionBodySamples(
 
     while (IP.Address <= RangeEnd) {
       uint64_t Offset = Binary->virtualAddrToOffset(IP.Address);
-      const FrameLocation &LeafLoc = Binary->getInlineLeafFrameLoc(Offset);
-      // Recording body sample for this specific context
-      updateBodySamplesforFunctionProfile(FunctionProfile, LeafLoc, Count);
+      auto LeafLoc = Binary->getInlineLeafFrameLoc(Offset);
+      if (LeafLoc.hasValue()) {
+        // Recording body sample for this specific context
+        updateBodySamplesforFunctionProfile(FunctionProfile, *LeafLoc, Count);
+      }
+      // Accumulate total sample count even it's a line with invalid debug info
+      FunctionProfile.addTotalSamples(Count);
       // Move to next IP within the range
       IP.advance();
     }
@@ -248,22 +269,23 @@ void CSProfileGenerator::populateFunctionBoundarySamples(
       continue;
 
     // Record called target sample and its count
-    const FrameLocation &LeafLoc = Binary->getInlineLeafFrameLoc(SourceOffset);
-    FunctionProfile.addCalledTargetSamples(LeafLoc.second.LineOffset,
-                                           LeafLoc.second.Discriminator,
+    auto LeafLoc = Binary->getInlineLeafFrameLoc(SourceOffset);
+    if (!LeafLoc.hasValue())
+      continue;
+    FunctionProfile.addCalledTargetSamples(LeafLoc->second.LineOffset,
+                                           LeafLoc->second.Discriminator,
                                            CalleeName, Count);
 
     // Record head sample for called target(callee)
-    // TODO: Cleanup ' @ '
-    std::string CalleeContextId =
-        getCallSite(LeafLoc) + " @ " + CalleeName.str();
+    std::ostringstream OCalleeCtxStr;
     if (ContextId.find(" @ ") != StringRef::npos) {
-      CalleeContextId =
-          ContextId.rsplit(" @ ").first.str() + " @ " + CalleeContextId;
+      OCalleeCtxStr << ContextId.rsplit(" @ ").first.str();
+      OCalleeCtxStr << " @ ";
     }
+    OCalleeCtxStr << getCallSite(*LeafLoc) << " @ " << CalleeName.str();
 
     FunctionSamples &CalleeProfile =
-        getFunctionProfileForContext(CalleeContextId);
+        getFunctionProfileForContext(OCalleeCtxStr.str());
     assert(Count != 0 && "Unexpected zero weight branch");
     CalleeProfile.addHeadSamples(Count);
   }
@@ -320,13 +342,69 @@ void CSProfileGenerator::populateInferredFunctionSamples() {
       EstimatedCallCount = 1;
     CallerProfile.addCalledTargetSamples(
         CallerLeafFrameLoc.second.LineOffset,
-        CallerLeafFrameLoc.second.Discriminator, CalleeProfile.getName(),
-        EstimatedCallCount);
+        CallerLeafFrameLoc.second.Discriminator,
+        CalleeProfile.getContext().getNameWithoutContext(), EstimatedCallCount);
     CallerProfile.addBodySamples(CallerLeafFrameLoc.second.LineOffset,
                                  CallerLeafFrameLoc.second.Discriminator,
                                  EstimatedCallCount);
     CallerProfile.addTotalSamples(EstimatedCallCount);
   }
+}
+
+void CSProfileGenerator::mergeAndTrimColdProfile(
+    StringMap<FunctionSamples> &ProfileMap) {
+  // Nothing to merge if sample threshold is zero
+  if (!CSProfColdThres)
+    return;
+
+  // Filter the cold profiles from ProfileMap and move them into a tmp
+  // container
+  std::vector<std::pair<StringRef, const FunctionSamples *>> ToRemoveVec;
+  for (const auto &I : ProfileMap) {
+    const FunctionSamples &FunctionProfile = I.second;
+    if (FunctionProfile.getTotalSamples() >= CSProfColdThres)
+      continue;
+    ToRemoveVec.emplace_back(I.getKey(), &I.second);
+  }
+
+  // Remove the code profile from ProfileMap and merge them into BaseProileMap
+  StringMap<FunctionSamples> BaseProfileMap;
+  for (const auto &I : ToRemoveVec) {
+    auto Ret = BaseProfileMap.try_emplace(
+        I.second->getContext().getNameWithoutContext(), FunctionSamples());
+    FunctionSamples &BaseProfile = Ret.first->second;
+    BaseProfile.merge(*I.second);
+    ProfileMap.erase(I.first);
+  }
+
+  // Merge the base profiles into ProfileMap;
+  for (const auto &I : BaseProfileMap) {
+    // Filter the cold base profile
+    if (!CSProfKeepCold && I.second.getTotalSamples() < CSProfColdThres &&
+        ProfileMap.find(I.getKey()) == ProfileMap.end())
+      continue;
+    // Merge the profile if the original profile exists, otherwise just insert
+    // as a new profile
+    FunctionSamples &OrigProfile = getFunctionProfileForContext(I.getKey());
+    OrigProfile.merge(I.second);
+  }
+}
+
+void CSProfileGenerator::write(std::unique_ptr<SampleProfileWriter> Writer,
+                               StringMap<FunctionSamples> &ProfileMap) {
+  mergeAndTrimColdProfile(ProfileMap);
+  // Add bracket for context key to support different profile binary format
+  StringMap<FunctionSamples> CxtWithBracketPMap;
+  for (const auto &Item : ProfileMap) {
+    std::string ContextWithBracket = "[" + Item.first().str() + "]";
+    auto Ret = CxtWithBracketPMap.try_emplace(ContextWithBracket, Item.second);
+    assert(Ret.second && "Must be a unique context");
+    SampleContext FContext(Ret.first->first(), RawContext);
+    FunctionSamples &FProfile = Ret.first->second;
+    FProfile.setName(FContext.getNameWithContext(true));
+    FProfile.setContext(FContext);
+  }
+  Writer->write(CxtWithBracketPMap);
 }
 
 // Helper function to extract context prefix string stack
@@ -342,8 +420,7 @@ extractPrefixContextStack(SmallVectorImpl<std::string> &ContextStrStack,
 }
 
 void PseudoProbeCSProfileGenerator::generateProfile() {
-  // Enable CS and pseudo probe functionalities in SampleProf
-  FunctionSamples::ProfileIsCS = true;
+  // Enable pseudo probe functionalities in SampleProf
   FunctionSamples::ProfileIsProbeBased = true;
   for (const auto &BI : BinarySampleCounters) {
     ProfiledBinary *Binary = BI.first;
@@ -438,8 +515,9 @@ void PseudoProbeCSProfileGenerator::populateBodySamplesWithProbes(
         CallerProfile.setFunctionHash(InlinerDesc->FuncHash);
         CallerProfile.addBodySamples(CallerIndex, 0, Count);
         CallerProfile.addTotalSamples(Count);
-        CallerProfile.addCalledTargetSamples(CallerIndex, 0,
-                                             FunctionProfile.getName(), Count);
+        CallerProfile.addCalledTargetSamples(
+            CallerIndex, 0,
+            FunctionProfile.getContext().getNameWithoutContext(), Count);
       }
     }
   }

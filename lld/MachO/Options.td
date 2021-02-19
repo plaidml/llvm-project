@@ -396,7 +396,6 @@ def grp_bundle : OptionGroup<"bundle">, HelpText<"CREATING A BUNDLE">;
 def bundle_loader : Separate<["-"], "bundle_loader">,
      MetaVarName<"<executable>">,
      HelpText<"Resolve undefined symbols from <executable>">,
-     Flags<[HelpHidden]>,
      Group<grp_bundle>;
 
 def grp_object : OptionGroup<"object">, HelpText<"CREATING AN OBJECT FILE">;
@@ -454,7 +453,6 @@ def flat_namespace : Flag<["-"], "flat_namespace">,
 def u : Separate<["-"], "u">,
      MetaVarName<"<symbol>">,
      HelpText<"Require that <symbol> be defined for the link to succeed">,
-     Flags<[HelpHidden]>,
      Group<grp_resolve>;
 def U : Separate<["-"], "U">,
      MetaVarName<"<symbol>">,

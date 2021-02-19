@@ -321,12 +321,9 @@ void SCEV::print(raw_ostream &OS) const {
       llvm_unreachable("There are no other nary expression types.");
     }
     OS << "(";
-    for (SCEVNAryExpr::op_iterator I = NAry->op_begin(), E = NAry->op_end();
-         I != E; ++I) {
-      OS << **I;
-      if (std::next(I) != E)
-        OS << OpStr;
-    }
+    ListSeparator LS(OpStr);
+    for (const SCEV *Op : NAry->operands())
+      OS << LS << *Op;
     OS << ")";
     switch (NAry->getSCEVType()) {
     case scAddExpr:
@@ -7996,7 +7993,7 @@ ScalarEvolution::ExitLimit ScalarEvolution::computeShiftCompareExitLimit(
     // {K,ashr,<positive-constant>} stabilizes to signum(K) in at most
     // bitwidth(K) iterations.
     Value *FirstValue = PN->getIncomingValueForBlock(Predecessor);
-    KnownBits Known = computeKnownBits(FirstValue, DL, 0, nullptr,
+    KnownBits Known = computeKnownBits(FirstValue, DL, 0, &AC,
                                        Predecessor->getTerminator(), &DT);
     auto *Ty = cast<IntegerType>(RHS->getType());
     if (Known.isNonNegative())

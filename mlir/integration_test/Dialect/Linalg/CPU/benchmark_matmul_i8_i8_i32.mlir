@@ -1,14 +1,15 @@
 // RUN: export M=24 && export K=64 && export N=192 && export ITERS=10 && \
 // RUN: cat %s | sed 's@${M}@'"$M"'@g'| sed 's@${K}@'"$K"'@g' | sed 's@${N}@'"$N"'@g'| sed 's@${ITERS}@'"$ITERS"'@g'| \
-// RUN: mlir-opt -test-linalg-codegen-strategy="anchor-op=linalg.matmul_i8_i8_i32 register-tile-sizes=12,32,16 vectorize" | \
-// RUN: mlir-opt -test-linalg-codegen-strategy="anchor-op=linalg.fill register-tile-sizes=4,32 vectorize" | \
-// RUN: mlir-opt -test-linalg-codegen-strategy="anchor-op=linalg.copy register-tile-sizes=4,32 vectorize" | \
+// RUN: mlir-opt -test-linalg-codegen-strategy="anchor-func=matmul anchor-op=linalg.matmul_i8_i8_i32 register-tile-sizes=12,32,16 vectorize" | \
+// RUN: mlir-opt -test-linalg-codegen-strategy="anchor-func=matmul anchor-op=linalg.fill register-tile-sizes=4,32 vectorize" | \
+// RUN: mlir-opt -test-linalg-codegen-strategy="anchor-func=matmul anchor-op=linalg.copy register-tile-sizes=4,32 vectorize" | \
 // RUN: mlir-opt -canonicalize -convert-vector-to-scf -lower-affine -convert-linalg-to-loops | \
 
-// RUN: mlir-opt -canonicalize -convert-scf-to-std -convert-vector-to-llvm -mlir-disable-threading | \
+// RUN: mlir-opt -canonicalize -convert-scf-to-std -convert-vector-to-llvm -convert-std-to-llvm -mlir-disable-threading | \
 // RUN: mlir-cpu-runner -O3 -e main -entry-point-result=void \
 // Activate to dump assembly
 // R_UN:   -dump-object-file -object-filename=/tmp/a.o \
+// RUN:   -shared-libs=%mlir_integration_test_dir/libmlir_runner_utils%shlibext \
 // RUN:   -shared-libs=%mlir_integration_test_dir/libmlir_c_runner_utils%shlibext | \
 // Use tee to both print to stderr and FileCheck
 // RUN: tee -a /dev/stderr | FileCheck %s
@@ -17,9 +18,9 @@
 !elem_type_a = type i8
 !elem_type_b = type i8
 !elem_type_c = type i32
-!row_major_A = type memref<24x64x!elem_type_a>
-!row_major_B = type memref<64x192x!elem_type_b>
-!row_major_C = type memref<24x192x!elem_type_c>
+!row_major_A = type memref<${M}x${K}x!elem_type_a>
+!row_major_B = type memref<${K}x${N}x!elem_type_b>
+!row_major_C = type memref<${M}x${N}x!elem_type_c>
 
 func @matmul(%a: !row_major_A, %b: !row_major_B, %c: !row_major_C)
 // TODO: activate manually for now.
@@ -32,9 +33,9 @@ func @matmul(%a: !row_major_A, %b: !row_major_B, %c: !row_major_C)
 
 func @print_perf(%iters: index, %total_time: f64) {
   %c2 = constant 2 : index
-  %cM = constant 24 : index
-  %cN = constant 192 : index
-  %cK = constant 64 : index
+  %cM = constant ${M} : index
+  %cN = constant ${N} : index
+  %cK = constant ${K} : index
 
   %mn = muli %cM, %cN : index
   %mnk = muli %mn, %cK : index
@@ -85,9 +86,16 @@ func @main() {
   %tmatmul = subf %t_end_matmul, %t_start_matmul: f64
   call @print_perf(%iters, %tmatmul) : (index, f64) -> ()
 
-  %res = load %C[%c0, %c0]: !row_major_C
-  // CHECK: 64
-  vector.print %res: !elem_type_c
+  // CHECK: {{^0$}}
+  %C_ref = alloc() : !row_major_C
+  linalg.fill(%C_ref, %v0) : !row_major_C, !elem_type_c
+  linalg.matmul_i8_i8_i32 ins(%A, %B : !row_major_A, !row_major_B)
+    outs(%C_ref: !row_major_C)
+  %res = memref_cast %C : !row_major_C to memref<*xi32>
+  %exp = memref_cast %C_ref : !row_major_C to memref<*xi32>
+  %errors = call @verifyMemRefI32(%res, %exp) : (memref<*xi32>, memref<*xi32>) -> i64
+  vector.print %errors : i64
+  dealloc %C_ref : !row_major_C
 
   dealloc %A : !row_major_A
   dealloc %B : !row_major_B
@@ -97,6 +105,7 @@ func @main() {
 }
 
 func private @rtclock() -> f64
+func private @verifyMemRefI32(memref<*xi32>, memref<*xi32>) -> i64 attributes { llvm.emit_c_interface }
 
 // TODO: init with random, run and check output.
 // func private @fill_random_f32(memref<*xf32>)

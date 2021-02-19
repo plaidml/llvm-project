@@ -35,29 +35,38 @@ template <template <typename> class PatternType, typename ConcreteOpType,
           typename OptionsType,
           typename = std::enable_if_t<std::is_member_function_pointer<
               decltype(&ConcreteOpType::getOperationName)>::value>>
-void sfinae_enqueue(OwningRewritePatternList &patterList, OptionsType options,
+void sfinae_enqueue(OwningRewritePatternList &patternList, OptionsType options,
                     MLIRContext *context, StringRef opName,
                     linalg::LinalgTransformationFilter m) {
   assert(opName == ConcreteOpType::getOperationName() &&
          "explicit name must match ConcreteOpType::getOperationName");
-  patterList.insert<PatternType<ConcreteOpType>>(context, options, m);
+  patternList.insert<PatternType<ConcreteOpType>>(context, options, m);
 }
 
 /// SFINAE: Enqueue helper for OpType that do not have a `getOperationName`
 /// (e.g. LinalgOp, other interfaces, Operation*).
 template <template <typename> class PatternType, typename OpType,
           typename OptionsType>
-void sfinae_enqueue(OwningRewritePatternList &patterList, OptionsType options,
+void sfinae_enqueue(OwningRewritePatternList &patternList, OptionsType options,
                     MLIRContext *context, StringRef opName,
                     linalg::LinalgTransformationFilter m) {
   assert(!opName.empty() && "opName must not be empty");
-  patterList.insert<PatternType<OpType>>(opName, context, options, m);
+  patternList.insert<PatternType<OpType>>(opName, context, options, m);
+}
+
+template <typename PatternType, typename OpType, typename OptionsType>
+void enqueue(OwningRewritePatternList &patternList, OptionsType options,
+             MLIRContext *context, StringRef opName,
+             linalg::LinalgTransformationFilter m) {
+  if (!opName.empty())
+    patternList.insert<PatternType>(opName, context, options, m);
+  else
+    patternList.insert<PatternType>(m.addOpFilter<OpType>(), options);
 }
 
 /// Promotion transformation enqueues a particular stage-1 pattern for
 /// `Tile<LinalgOpType>`with the appropriate `options`.
-template <typename LinalgOpType>
-struct Tile : public Transformation {
+template <typename LinalgOpType> struct Tile : public Transformation {
   explicit Tile(linalg::LinalgTilingOptions options,
                 linalg::LinalgTransformationFilter::FilterFunction f = nullptr)
       : Transformation(f), opName(LinalgOpType::getOperationName()),
@@ -83,8 +92,7 @@ private:
 
 /// Promotion transformation enqueues a particular stage-1 pattern for
 /// `Promote<LinalgOpType>`with the appropriate `options`.
-template <typename LinalgOpType>
-struct Promote : public Transformation {
+template <typename LinalgOpType> struct Promote : public Transformation {
   explicit Promote(
       linalg::LinalgPromotionOptions options,
       linalg::LinalgTransformationFilter::FilterFunction f = nullptr)
@@ -112,13 +120,12 @@ private:
 /// Vectorization transformation enqueues a particular stage-1 pattern for
 /// `LinalgVectorizationPattern<LinalgOpType>` as well as copy to vector
 /// transfer rewrite forwarding patterns.
-template <typename LinalgOpType>
+template <typename LinalgOpType = LinalgOp>
 struct Vectorize : public Transformation {
   explicit Vectorize(
       linalg::LinalgVectorizationOptions options,
       linalg::LinalgTransformationFilter::FilterFunction f = nullptr)
-      : Transformation(f), opName(LinalgOpType::getOperationName()),
-        options(options) {}
+      : Transformation(f), opName(), options(options) {}
 
   Vectorize(StringRef name, linalg::LinalgVectorizationOptions options,
             linalg::LinalgTransformationFilter::FilterFunction f = nullptr)
@@ -128,7 +135,7 @@ struct Vectorize : public Transformation {
   buildRewritePatterns(MLIRContext *context,
                        linalg::LinalgTransformationFilter m) override {
     OwningRewritePatternList vectorizationPatterns;
-    sfinae_enqueue<linalg::LinalgVectorizationPattern, LinalgOpType>(
+    enqueue<linalg::LinalgVectorizationPattern, LinalgOpType>(
         vectorizationPatterns, options, context, opName, m);
     vectorizationPatterns.insert<linalg::LinalgCopyVTRForwardingPattern,
                                  linalg::LinalgCopyVTWForwardingPattern>(
@@ -139,6 +146,16 @@ struct Vectorize : public Transformation {
 private:
   std::string opName;
   linalg::LinalgVectorizationOptions options;
+};
+
+/// Options to control the application of late transformations.
+struct LateCodegenStrategyOptions {
+  bool enableLICM = true;
+  bool enableHoistRedundantVectorTransfers = true;
+  bool enableHoistRedundantVectorTransfersOnTensor = true;
+  bool enableVectorTransferPartialRewrite = true;
+  bool enableVectorContractLowering = true;
+  bool enableVectorToSCFConversion = true;
 };
 
 /// Codegen strategy controls how a Linalg op is progressively lowered.
@@ -235,16 +252,6 @@ struct CodegenStrategy {
             linalg::LinalgVectorizationOptions(), f));
     return *this;
   }
-  /// Append a pattern to rewrite `LinalgOpType` as a vector operation.
-  template <typename LinalgOpType>
-  CodegenStrategy &
-  vectorize(StringRef opName,
-            linalg::LinalgTransformationFilter::FilterFunction f = nullptr) {
-    transformationSequence.emplace_back(
-        std::make_unique<Vectorize<LinalgOpType>>(
-            opName, linalg::LinalgVectorizationOptions(), f));
-    return *this;
-  }
   /// Conditionally append a pattern to rewrite `LinalgOpType` as a vector
   /// operation.
   template <typename LinalgOpType>
@@ -254,13 +261,21 @@ struct CodegenStrategy {
     return b ? vectorize<LinalgOpType>(f) : *this;
     return *this;
   }
+  /// Append a pattern to rewrite `LinalgOpType` as a vector operation.
+  CodegenStrategy &
+  vectorize(StringRef opName,
+            linalg::LinalgTransformationFilter::FilterFunction f = nullptr) {
+    assert(!opName.empty() && "expected an op name");
+    transformationSequence.emplace_back(std::make_unique<Vectorize<LinalgOp>>(
+        opName, linalg::LinalgVectorizationOptions(), f));
+    return *this;
+  }
   /// Conditionally append a pattern to rewrite `LinalgOpType` as a vector
   /// operation.
-  template <typename LinalgOpType>
   CodegenStrategy &
   vectorizeIf(bool b, StringRef opName,
               linalg::LinalgTransformationFilter::FilterFunction f = nullptr) {
-    return b ? vectorize<LinalgOpType>(opName, f) : *this;
+    return b ? vectorize(opName, f) : *this;
     return *this;
   }
   /// Configure the post staged-patterns late vector transformations.
@@ -276,10 +291,32 @@ struct CodegenStrategy {
     vectorToSCFOptions = options;
     return *this;
   }
-  /// Configure the post staged-patterns late vector.transfer to scf
-  /// conversion.
-  CodegenStrategy &setHoistInvariantCode(bool enableLICM) {
-    this->enableLICM = enableLICM;
+  ///
+  /// Configure the application of late transformations.
+  ///
+  CodegenStrategy &setEnableLICM(bool val) {
+    this->lateCodegenStrategyOptions.enableLICM = val;
+    return *this;
+  }
+  CodegenStrategy &setEnableHoistRedundantVectorTransfers(bool val) {
+    this->lateCodegenStrategyOptions.enableHoistRedundantVectorTransfers = val;
+    return *this;
+  }
+  CodegenStrategy &setEnableHoistRedundantVectorTransfersOnTensor(bool val) {
+    this->lateCodegenStrategyOptions
+        .enableHoistRedundantVectorTransfersOnTensor = val;
+    return *this;
+  }
+  CodegenStrategy &setEnableVectorTransferPartialRewrite(bool val) {
+    this->lateCodegenStrategyOptions.enableVectorTransferPartialRewrite = val;
+    return *this;
+  }
+  CodegenStrategy &setEnableVectorContractLowering(bool val) {
+    this->lateCodegenStrategyOptions.enableVectorContractLowering = val;
+    return *this;
+  }
+  CodegenStrategy &setEnableVectorToSCFConversion(bool val) {
+    this->lateCodegenStrategyOptions.enableVectorToSCFConversion = val;
     return *this;
   }
 
@@ -293,7 +330,7 @@ private:
   vector::VectorTransformsOptions vectorTransformsOptions;
   VectorTransferToSCFOptions vectorToSCFOptions;
   SmallVector<std::unique_ptr<Transformation>, 4> transformationSequence;
-  bool enableLICM = true;
+  LateCodegenStrategyOptions lateCodegenStrategyOptions;
 };
 
 } // namespace linalg

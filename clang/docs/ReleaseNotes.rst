@@ -76,7 +76,8 @@ Modified Compiler Flags
 Removed Compiler Flags
 -------------------------
 
-- ...
+- The clang-cl ``/fallback`` flag, which made clang-cl invoke Microsoft Visual
+  C++ on files it couldn't compile itself, has been removed.
 
 New Pragmas in Clang
 --------------------
@@ -187,6 +188,9 @@ clang-format
     #include "a/b.h"
     #include "B/A.h"
     #include "B/a.h"
+
+- ``BasedOnStyle: InheritParentConfig`` allows to use the ``.clang-format`` of
+  the parent directories to overwrite only parts of it.
 
 libclang
 --------
