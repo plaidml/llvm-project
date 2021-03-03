@@ -168,22 +168,21 @@ class VectorType
     : public Type::TypeBase<VectorType, ShapedType, detail::VectorTypeStorage> {
 public:
   using Base::Base;
+  using Base::getChecked;
 
   /// Get or create a new VectorType of the provided shape and element type.
   /// Assumes the arguments define a well-formed VectorType.
   static VectorType get(ArrayRef<int64_t> shape, Type elementType);
 
-  /// Get or create a new VectorType of the provided shape and element type
-  /// declared at the given, potentially unknown, location.  If the VectorType
-  /// defined by the arguments would be ill-formed, emit errors and return
-  /// nullptr-wrapping type.
-  static VectorType getChecked(Location location, ArrayRef<int64_t> shape,
-                               Type elementType);
+  /// Get or create a new VectorType of the provided shape and element type. If
+  /// the VectorType defined by the arguments would be ill-formed, an error is
+  /// emitted to `emitError` and a null type is returned.
+  static VectorType getChecked(function_ref<InFlightDiagnostic()> emitError,
+                               ArrayRef<int64_t> shape, Type elementType);
 
   /// Verify the construction of a vector type.
-  static LogicalResult verifyConstructionInvariants(Location loc,
-                                                    ArrayRef<int64_t> shape,
-                                                    Type elementType);
+  static LogicalResult verify(function_ref<InFlightDiagnostic()> emitError,
+                              ArrayRef<int64_t> shape, Type elementType);
 
   /// Returns true of the given type can be used as an element of a vector type.
   /// In particular, vectors can consist of integer or float primitives.
@@ -227,22 +226,23 @@ class RankedTensorType
                             detail::RankedTensorTypeStorage> {
 public:
   using Base::Base;
+  using Base::getChecked;
 
   /// Get or create a new RankedTensorType of the provided shape and element
   /// type. Assumes the arguments define a well-formed type.
   static RankedTensorType get(ArrayRef<int64_t> shape, Type elementType);
 
   /// Get or create a new RankedTensorType of the provided shape and element
-  /// type declared at the given, potentially unknown, location.  If the
-  /// RankedTensorType defined by the arguments would be ill-formed, emit errors
-  /// and return a nullptr-wrapping type.
-  static RankedTensorType getChecked(Location location, ArrayRef<int64_t> shape,
-                                     Type elementType);
+  /// type. If the RankedTensorType defined by the arguments would be
+  /// ill-formed, an error is emitted to `emitError` and a null type is
+  /// returned.
+  static RankedTensorType
+  getChecked(function_ref<InFlightDiagnostic()> emitError,
+             ArrayRef<int64_t> shape, Type elementType);
 
   /// Verify the construction of a ranked tensor type.
-  static LogicalResult verifyConstructionInvariants(Location loc,
-                                                    ArrayRef<int64_t> shape,
-                                                    Type elementType);
+  static LogicalResult verify(function_ref<InFlightDiagnostic()> emitError,
+                              ArrayRef<int64_t> shape, Type elementType);
 
   ArrayRef<int64_t> getShape() const;
 };
@@ -257,20 +257,22 @@ class UnrankedTensorType
                             detail::UnrankedTensorTypeStorage> {
 public:
   using Base::Base;
+  using Base::getChecked;
 
   /// Get or create a new UnrankedTensorType of the provided shape and element
   /// type. Assumes the arguments define a well-formed type.
   static UnrankedTensorType get(Type elementType);
 
   /// Get or create a new UnrankedTensorType of the provided shape and element
-  /// type declared at the given, potentially unknown, location.  If the
-  /// UnrankedTensorType defined by the arguments would be ill-formed, emit
-  /// errors and return a nullptr-wrapping type.
-  static UnrankedTensorType getChecked(Location location, Type elementType);
+  /// type. If the RankedTensorType defined by the arguments would be
+  /// ill-formed, an error is emitted to `emitError` and a null type is
+  /// returned.
+  static UnrankedTensorType
+  getChecked(function_ref<InFlightDiagnostic()> emitError, Type elementType);
 
   /// Verify the construction of a unranked tensor type.
-  static LogicalResult verifyConstructionInvariants(Location loc,
-                                                    Type elementType);
+  static LogicalResult verify(function_ref<InFlightDiagnostic()> emitError,
+                              Type elementType);
 
   ArrayRef<int64_t> getShape() const { return llvm::None; }
 };
@@ -292,7 +294,7 @@ public:
   static bool classof(Type type);
 
   /// Returns the memory space in which data referred to by this memref resides.
-  Attribute getMemorySpace() const;
+  unsigned getMemorySpaceAsInt() const;
 };
 
 //===----------------------------------------------------------------------===//
@@ -313,7 +315,7 @@ public:
     explicit Builder(MemRefType other)
         : shape(other.getShape()), elementType(other.getElementType()),
           affineMaps(other.getAffineMaps()),
-          memorySpace(other.getMemorySpace()) {}
+          memorySpace(other.getMemorySpaceAsInt()) {}
 
     // Build from scratch.
     Builder(ArrayRef<int64_t> shape, Type elementType)
@@ -351,6 +353,7 @@ public:
   };
 
   using Base::Base;
+  using Base::getChecked;
 
   /// Get or create a new MemRefType based on shape, element type, affine
   /// map composition, and memory space.  Assumes the arguments define a
@@ -361,13 +364,11 @@ public:
                         Attribute memorySpace = {});
 
   /// Get or create a new MemRefType based on shape, element type, affine
-  /// map composition, and memory space declared at the given location.
-  /// If the location is unknown, the last argument should be an instance of
-  /// UnknownLoc.  If the MemRefType defined by the arguments would be
-  /// ill-formed, emits errors (to the handler registered with the context or to
-  /// the error stream) and returns nullptr.
-  static MemRefType getChecked(Location location, ArrayRef<int64_t> shape,
-                               Type elementType,
+  /// map composition, and memory space. If the MemRefType defined by the
+  /// arguments would be ill-formed, an error is emitted to `emitError` and a
+  /// null type is returned.
+  static MemRefType getChecked(function_ref<InFlightDiagnostic()> emitError,
+                               ArrayRef<int64_t> shape, Type elementType,
                                ArrayRef<AffineMap> affineMapComposition,
                                Attribute memorySpace);
 
@@ -386,11 +387,11 @@ public:
 
 private:
   /// Get or create a new MemRefType defined by the arguments.  If the resulting
-  /// type would be ill-formed, return nullptr.  If the location is provided,
-  /// emit detailed error messages.
+  /// type would be ill-formed, return nullptr.
   static MemRefType getImpl(ArrayRef<int64_t> shape, Type elementType,
                             ArrayRef<AffineMap> affineMapComposition,
-                            Attribute memorySpace, Optional<Location> location);
+                            unsigned memorySpace,
+                            function_ref<InFlightDiagnostic()> emitError);
   using Base::getImpl;
 };
 
@@ -404,22 +405,23 @@ class UnrankedMemRefType
                             detail::UnrankedMemRefTypeStorage> {
 public:
   using Base::Base;
+  using Base::getChecked;
 
   /// Get or create a new UnrankedMemRefType of the provided element
   /// type and memory space
   static UnrankedMemRefType get(Type elementType, Attribute memorySpace);
 
   /// Get or create a new UnrankedMemRefType of the provided element
-  /// type and memory space declared at the given, potentially unknown,
-  /// location. If the UnrankedMemRefType defined by the arguments would be
-  /// ill-formed, emit errors and return a nullptr-wrapping type.
-  static UnrankedMemRefType getChecked(Location location, Type elementType,
-                                       Attribute memorySpace);
+  /// type and memory space. If the UnrankedMemRefType defined by the arguments
+  /// would be ill-formed, an error is emitted to `emitError` and a null type is
+  /// returned.
+  static UnrankedMemRefType
+  getChecked(function_ref<InFlightDiagnostic()> emitError, Type elementType,
+             unsigned memorySpace);
 
   /// Verify the construction of a unranked memref type.
-  static LogicalResult verifyConstructionInvariants(Location loc,
-                                                    Type elementType,
-                                                    Attribute memorySpace);
+  static LogicalResult verify(function_ref<InFlightDiagnostic()> emitError,
+                              Type elementType, unsigned memorySpace);
 
   ArrayRef<int64_t> getShape() const { return llvm::None; }
 };

@@ -119,8 +119,8 @@ public:
   }
 
   /// Returns the memory space of the src memref.
-  Attribute getSrcMemorySpace() {
-    return getSrcMemRef().getType().cast<MemRefType>().getMemorySpace();
+  unsigned getSrcMemorySpace() {
+    return getSrcMemRef().getType().cast<MemRefType>().getMemorySpaceAsInt();
   }
 
   /// Returns the operand index of the dst memref.
@@ -140,8 +140,8 @@ public:
   }
 
   /// Returns the memory space of the src memref.
-  Attribute getDstMemorySpace() {
-    return getDstMemRef().getType().cast<MemRefType>().getMemorySpace();
+  unsigned getDstMemorySpace() {
+    return getDstMemRef().getType().cast<MemRefType>().getMemorySpaceAsInt();
   }
 
   /// Returns the affine map used to access the dst memref.
