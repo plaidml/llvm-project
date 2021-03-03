@@ -202,11 +202,6 @@ public:
 
   // Returns all allowed cases for this enum attribute.
   std::vector<EnumAttrCase> getAllCases() const;
-
-  llvm::Record *getBaseAttrClassDef() const;
-  Attribute getBaseAttrClass() const;
-
-  StringRef getDecoratedAttrClassName() const;
 };
 
 class StructFieldAttr {

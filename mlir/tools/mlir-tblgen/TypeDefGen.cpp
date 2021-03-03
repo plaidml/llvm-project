@@ -148,7 +148,7 @@ class DialectAsmPrinter;
 /// {0}: The name of the typeDef class.
 /// {1}: The name of the type base class.
 static const char *const typeDefDeclSingletonBeginStr = R"(
-  class {0}: public ::mlir::Type::TypeBase<{0}, {1}, ::mlir::TypeStorage> {{
+  class {0} : public ::mlir::Type::TypeBase<{0}, {1}, ::mlir::TypeStorage> {{
   public:
     /// Inherit some necessary constructors from 'TypeBase'.
     using Base::Base;
@@ -167,8 +167,8 @@ static const char *const typeDefDeclParametricBeginStr = R"(
   namespace {2} {
     struct {3};
   } // end namespace {2}
-  class {0}: public ::mlir::Type::TypeBase<{0}, {1},
-                                        {2}::{3}> {{
+  class {0} : public ::mlir::Type::TypeBase<{0}, {1},
+                                         {2}::{3}> {{
   public:
     /// Inherit some necessary constructors from 'TypeBase'.
     using Base::Base;
@@ -179,7 +179,7 @@ static const char *const typeDefDeclParametricBeginStr = R"(
 static const char *const typeDefParsePrint = R"(
     static ::mlir::Type parse(::mlir::MLIRContext *context,
                               ::mlir::DialectAsmParser &parser);
-    void print(::mlir::DialectAsmPrinter& printer) const;
+    void print(::mlir::DialectAsmPrinter &printer) const;
 )";
 
 /// The code block for the verify method declaration.
@@ -277,8 +277,8 @@ static void emitTypeDefDecl(const TypeDef &typeDef, raw_ostream &os) {
 
   // Emit the mnenomic, if specified.
   if (auto mnenomic = typeDef.getMnemonic()) {
-    os << "    static ::llvm::StringLiteral getMnemonic() { return \""
-       << mnenomic << "\"; }\n";
+    os << "    static ::llvm::StringRef getMnemonic() { return \"" << mnenomic
+       << "\"; }\n";
 
     // If mnemonic specified, emit print/parse declarations.
     if (typeDef.getParserCode() || typeDef.getPrinterCode() || !params.empty())
@@ -490,7 +490,7 @@ void emitParserPrinter(TypeDef typeDef, raw_ostream &os) {
     // Both the mnenomic and printerCode must be defined (for parity with
     // parserCode).
     os << "void " << typeDef.getCppClassName()
-       << "::print(::mlir::DialectAsmPrinter& printer) const {\n";
+       << "::print(::mlir::DialectAsmPrinter &printer) const {\n";
     if (*printerCode == "") {
       // If no code specified, emit error.
       PrintFatalError(typeDef.getLoc(),
@@ -655,7 +655,7 @@ static void emitParsePrintDispatch(ArrayRef<TypeDef> types, raw_ostream &os) {
 
   // The parser dispatch is just a list of if-elses, matching on the
   // mnemonic and calling the class's parse function.
-  os << "static ::mlir::Type generatedTypeParser(::mlir::MLIRContext* "
+  os << "static ::mlir::Type generatedTypeParser(::mlir::MLIRContext *"
         "context, ::mlir::DialectAsmParser &parser, "
         "::llvm::StringRef mnemonic) {\n";
   for (const TypeDef &type : types) {
@@ -680,7 +680,7 @@ static void emitParsePrintDispatch(ArrayRef<TypeDef> types, raw_ostream &os) {
   // printer.
   os << "static ::mlir::LogicalResult generatedTypePrinter(::mlir::Type "
         "type, "
-        "::mlir::DialectAsmPrinter& printer) {\n"
+        "::mlir::DialectAsmPrinter &printer) {\n"
      << "  return ::llvm::TypeSwitch<::mlir::Type, "
         "::mlir::LogicalResult>(type)\n";
   for (const TypeDef &type : types) {

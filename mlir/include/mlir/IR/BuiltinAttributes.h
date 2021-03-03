@@ -11,7 +11,6 @@
 
 #include "mlir/IR/Attributes.h"
 #include "llvm/ADT/APFloat.h"
-#include "llvm/ADT/Optional.h"
 #include "llvm/ADT/Sequence.h"
 #include <complex>
 
@@ -335,10 +334,6 @@ public:
   static StringAttr get(StringRef bytes, Type type);
 
   StringRef getValue() const;
-
-protected:
-  void setCaseIndex(int64_t caseIndex);
-  llvm::Optional<int64_t> getCaseIndex() const;
 };
 
 //===----------------------------------------------------------------------===//

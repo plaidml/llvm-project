@@ -995,11 +995,10 @@ public:
 private:
   std::tuple<RangeTs...> Ranges;
 
-  template <size_t... Ns>
-  iterator begin_impl(std::index_sequence<Ns...>) const {
+  template <size_t... Ns> iterator begin_impl(std::index_sequence<Ns...>) {
     return iterator(std::get<Ns>(Ranges)...);
   }
-  template <size_t... Ns> iterator end_impl(std::index_sequence<Ns...>) const {
+  template <size_t... Ns> iterator end_impl(std::index_sequence<Ns...>) {
     return iterator(make_range(std::end(std::get<Ns>(Ranges)),
                                std::end(std::get<Ns>(Ranges)))...);
   }
@@ -1008,12 +1007,8 @@ public:
   concat_range(RangeTs &&... Ranges)
       : Ranges(std::forward<RangeTs>(Ranges)...) {}
 
-  iterator begin() const {
-    return begin_impl(std::index_sequence_for<RangeTs...>{});
-  }
-  iterator end() const {
-    return end_impl(std::index_sequence_for<RangeTs...>{});
-  }
+  iterator begin() { return begin_impl(std::index_sequence_for<RangeTs...>{}); }
+  iterator end() { return end_impl(std::index_sequence_for<RangeTs...>{}); }
 };
 
 } // end namespace detail
@@ -1119,7 +1114,7 @@ public:
 
   iterator begin() const { return iterator(base, 0); }
   iterator end() const { return iterator(base, count); }
-  ReferenceT operator[](size_t index) const {
+  ReferenceT operator[](unsigned index) const {
     assert(index < size() && "invalid index for value range");
     return DerivedT::dereference_iterator(base, index);
   }

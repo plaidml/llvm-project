@@ -9,7 +9,6 @@
 #ifndef MLIR_IR_BUILTINTYPES_H
 #define MLIR_IR_BUILTINTYPES_H
 
-#include "mlir/IR/Attributes.h"
 #include "mlir/IR/Types.h"
 
 namespace llvm {
@@ -319,7 +318,8 @@ public:
 
     // Build from scratch.
     Builder(ArrayRef<int64_t> shape, Type elementType)
-        : shape(shape), elementType(elementType), affineMaps() {}
+        : shape(shape), elementType(elementType), affineMaps(), memorySpace(0) {
+    }
 
     Builder &setShape(ArrayRef<int64_t> newShape) {
       shape = newShape;
@@ -336,7 +336,7 @@ public:
       return *this;
     }
 
-    Builder &setMemorySpace(Attribute newMemorySpace) {
+    Builder &setMemorySpace(unsigned newMemorySpace) {
       memorySpace = newMemorySpace;
       return *this;
     }
@@ -349,7 +349,7 @@ public:
     ArrayRef<int64_t> shape;
     Type elementType;
     ArrayRef<AffineMap> affineMaps;
-    Attribute memorySpace;
+    unsigned memorySpace;
   };
 
   using Base::Base;
@@ -361,7 +361,7 @@ public:
   /// construction failures.
   static MemRefType get(ArrayRef<int64_t> shape, Type elementType,
                         ArrayRef<AffineMap> affineMapComposition = {},
-                        Attribute memorySpace = {});
+                        unsigned memorySpace = 0);
 
   /// Get or create a new MemRefType based on shape, element type, affine
   /// map composition, and memory space. If the MemRefType defined by the
@@ -370,7 +370,7 @@ public:
   static MemRefType getChecked(function_ref<InFlightDiagnostic()> emitError,
                                ArrayRef<int64_t> shape, Type elementType,
                                ArrayRef<AffineMap> affineMapComposition,
-                               Attribute memorySpace);
+                               unsigned memorySpace);
 
   ArrayRef<int64_t> getShape() const;
 
@@ -409,7 +409,7 @@ public:
 
   /// Get or create a new UnrankedMemRefType of the provided element
   /// type and memory space
-  static UnrankedMemRefType get(Type elementType, Attribute memorySpace);
+  static UnrankedMemRefType get(Type elementType, unsigned memorySpace);
 
   /// Get or create a new UnrankedMemRefType of the provided element
   /// type and memory space. If the UnrankedMemRefType defined by the arguments
@@ -441,6 +441,10 @@ public:
 namespace mlir {
 inline bool BaseMemRefType::classof(Type type) {
   return type.isa<MemRefType, UnrankedMemRefType>();
+}
+
+inline bool BaseMemRefType::isValidElementType(Type type) {
+  return type.isIntOrIndexOrFloat() || type.isa<ComplexType, VectorType>();
 }
 
 inline bool FloatType::classof(Type type) {

@@ -1142,7 +1142,7 @@ class BitEnumAttrCase<string sym, int val, string str = sym> :
 }
 
 // Additional information for an enum attribute.
-class EnumAttrInfo<string name, list<EnumAttrCaseInfo> cases, Attr baseClass, string descr> : Attr<CPred<"true">, descr> {
+class EnumAttrInfo<string name, list<EnumAttrCaseInfo> cases> {
   // The C++ enum class name
   string className = name;
 
@@ -1179,7 +1179,7 @@ class EnumAttrInfo<string name, list<EnumAttrCaseInfo> cases, Attr baseClass, st
   // <return-type> <fn-name>(<qualified-enum-class-name>);
   // ```
   string symbolToStringFnName = "stringify" # name;
-  string symbolToStringFnRetType = "::llvm::StringLiteral";
+  string symbolToStringFnRetType = "::llvm::StringRef";
 
   // The name of the utility function that returns the max enum value used
   // within the enum class. It will have the following signature:
@@ -1188,18 +1188,6 @@ class EnumAttrInfo<string name, list<EnumAttrCaseInfo> cases, Attr baseClass, st
   // static constexpr unsigned <fn-name>();
   // ```
   string maxEnumValFnName = "getMaxEnumValFor" # name;
-
-  // The underlying Attribute class, which holds the enum value
-  Attr baseAttrClass = baseClass;
-  // The name of decorated Attribute class
-  string decoratedAttrClassName = name # Attr;
-
-  // Override Attr class fields
-  let predicate = CPred<"$_self.isa<" # cppNamespace # "::" # decoratedAttrClassName # ">()">;
-  let storageType = cppNamespace # "::" # decoratedAttrClassName;
-  let returnType = cppNamespace # "::" # name;
-  let constBuilderCall = cppNamespace # "::" # decoratedAttrClassName # "::get($_builder.getContext(), $0)";
-  let valueType = baseClass.valueType;
 }
 
 // An enum attribute backed by StringAttr.
@@ -1207,42 +1195,47 @@ class EnumAttrInfo<string name, list<EnumAttrCaseInfo> cases, Attr baseClass, st
 // Op attributes of this kind are stored as StringAttr. Extra verification will
 // be generated on the string though: only the symbols of the allowed cases are
 // permitted as the string value.
-class StrEnumAttr<string name, string description, list<StrEnumAttrCase> cases> :
-  EnumAttrInfo<
-    name, cases,
+class StrEnumAttr<string name, string summary, list<StrEnumAttrCase> cases>
+  : EnumAttrInfo<name, cases>,
     StringBasedAttr<
-      And<[StrAttr.predicate, Or<!foreach(case, cases, case.predicate)>]>, "">,
-      !if(!empty(description), "allowed string cases: " #
+      And<[StrAttr.predicate, Or<!foreach(case, cases, case.predicate)>]>,
+      !if(!empty(summary), "allowed string cases: " #
           !interleave(!foreach(case, cases, "'" # case.symbol # "'"), ", "),
-          description)>;
+          summary)>;
 
 // An enum attribute backed by IntegerAttr.
 //
 // Op attributes of this kind are stored as IntegerAttr. Extra verification will
 // be generated on the integer though: only the values of the allowed cases are
 // permitted as the integer value.
-class IntEnumAttrBase<I intType, list<IntEnumAttrCaseBase> cases> :
-    SignlessIntegerAttrBase<intType, ""> {
+class IntEnumAttr<I intType, string name, string summary,
+                  list<IntEnumAttrCaseBase> cases> :
+    EnumAttrInfo<name, cases>,
+    SignlessIntegerAttrBase<intType,
+      !if(!empty(summary), "allowed " # intType.summary # " cases: " #
+          !interleave(!foreach(case, cases, case.value), ", "), summary)> {
   let predicate = And<[
     SignlessIntegerAttrBase<intType, "">.predicate,
     Or<!foreach(case, cases, case.predicate)>]>;
 }
 
-class IntEnumAttr<I intType, string name, string description, list<IntEnumAttrCaseBase> cases> :
-    EnumAttrInfo<
-      name, cases,
-      IntEnumAttrBase<intType, cases>,
-      !if(!empty(description), "allowed " # intType.description # " cases: " #
-          !interleave(!foreach(case, cases, "'" # case.symbol # "'"), ", "),
-          description)>;
-
-class I32EnumAttr<string name, string description, list<I32EnumAttrCase> cases> :
-    IntEnumAttr<I32, name, description, cases> {
+class I32EnumAttr<string name, string summary,
+                  list<I32EnumAttrCase> cases> :
+    IntEnumAttr<I32, name, summary, cases> {
+  let returnType = cppNamespace # "::" # name;
   let underlyingType = "uint32_t";
+  let convertFromStorage = "static_cast<" # returnType # ">($_self.getInt())";
+  let constBuilderCall =
+          "$_builder.getI32IntegerAttr(static_cast<int32_t>($0))";
 }
-class I64EnumAttr<string name, string description, list<I64EnumAttrCase> cases> :
-    IntEnumAttr<I64, name, description, cases> {
+class I64EnumAttr<string name, string summary,
+                  list<I64EnumAttrCase> cases> :
+    IntEnumAttr<I64, name, summary, cases> {
+  let returnType = cppNamespace # "::" # name;
   let underlyingType = "uint64_t";
+  let convertFromStorage = "static_cast<" # returnType # ">($_self.getInt())";
+  let constBuilderCall =
+          "$_builder.getI64IntegerAttr(static_cast<int64_t>($0))";
 }
 
 // A bit enum stored with 32-bit IntegerAttr.
@@ -1251,7 +1244,9 @@ class I64EnumAttr<string name, string description, list<I64EnumAttrCase> cases> 
 // be generated on the integer to make sure only allowed bit are set. Besides,
 // helper methods are generated to parse a string separated with a specified
 // delimiter to a symbol and vice versa.
-class BitEnumAttrBase<list<BitEnumAttrCase> cases> : SignlessIntegerAttrBase<I32, ""> {
+class BitEnumAttr<string name, string summary,
+                  list<BitEnumAttrCase> cases> :
+    EnumAttrInfo<name, cases>, SignlessIntegerAttrBase<I32, summary> {
   let predicate = And<[
     I32Attr.predicate,
     // Make sure we don't have unknown bit set.
@@ -1259,11 +1254,12 @@ class BitEnumAttrBase<list<BitEnumAttrCase> cases> : SignlessIntegerAttrBase<I32
           # !interleave(!foreach(case, cases, case.value # "u"), "|") #
           ")))">
   ]>;
-}
 
-class BitEnumAttr<string name, string description, list<BitEnumAttrCase> cases> :
-    EnumAttrInfo<name, cases, BitEnumAttrBase<cases>, description> {
+  let returnType = cppNamespace # "::" # name;
   let underlyingType = "uint32_t";
+  let convertFromStorage = "static_cast<" # returnType # ">($_self.getInt())";
+  let constBuilderCall =
+          "$_builder.getI32IntegerAttr(static_cast<int32_t>($0))";
 
   // We need to return a string because we may concatenate symbols for multiple
   // bits together.

@@ -943,9 +943,9 @@ static Value createPrivateMemRef(AffineForOp forOp, Operation *srcStoreOpInst,
   // by 'srcStoreOpInst'.
   uint64_t bufSize =
       getMemRefEltSizeInBytes(oldMemRefType) * numElements.getValue();
-  Attribute newMemSpace;
+  unsigned newMemSpace;
   if (bufSize <= localBufSizeThreshold && fastMemorySpace.hasValue()) {
-    newMemSpace = IntegerAttr::get(b.getI32Type(), fastMemorySpace.getValue());
+    newMemSpace = fastMemorySpace.getValue();
   } else {
     newMemSpace = oldMemRefType.getMemorySpaceAsInt();
   }

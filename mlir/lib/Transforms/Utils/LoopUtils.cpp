@@ -2470,9 +2470,9 @@ static LogicalResult generateCopy(
   bool existingBuf = fastBufferMap.count(memref) > 0;
   if (!existingBuf) {
     AffineMap fastBufferLayout = b.getMultiDimIdentityMap(rank);
-    auto fastMemRefType = MemRefType::get(
-        fastBufferShape, memRefType.getElementType(), fastBufferLayout,
-        IntegerAttr::get(topBuilder.getI32Type(), copyOptions.fastMemorySpace));
+    auto fastMemRefType =
+        MemRefType::get(fastBufferShape, memRefType.getElementType(),
+                        fastBufferLayout, copyOptions.fastMemorySpace);
 
     // Create the fast memory space buffer just before the 'affine.for'
     // operation.
@@ -2544,9 +2544,8 @@ static LogicalResult generateCopy(
   } else {
     // DMA generation.
     // Create a tag (single element 1-d memref) for the DMA.
-    auto tagMemRefType = MemRefType::get(
-        {1}, top.getIntegerType(32), {},
-        IntegerAttr::get(top.getI32Type(), copyOptions.tagMemorySpace));
+    auto tagMemRefType = MemRefType::get({1}, top.getIntegerType(32), {},
+                                         copyOptions.tagMemorySpace);
     auto tagMemRef = prologue.create<AllocOp>(loc, tagMemRefType);
 
     SmallVector<Value, 4> tagIndices({zeroIndex});

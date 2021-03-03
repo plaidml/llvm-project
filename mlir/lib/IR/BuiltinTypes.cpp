@@ -504,7 +504,7 @@ MemRefType MemRefType::get(ArrayRef<int64_t> shape, Type elementType,
 MemRefType MemRefType::getChecked(function_ref<InFlightDiagnostic()> emitError,
                                   ArrayRef<int64_t> shape, Type elementType,
                                   ArrayRef<AffineMap> affineMapComposition,
-                                  Attribute memorySpace) {
+                                  unsigned memorySpace) {
   return getImpl(shape, elementType, affineMapComposition, memorySpace,
                  emitError);
 }
@@ -571,7 +571,7 @@ ArrayRef<AffineMap> MemRefType::getAffineMaps() const {
 //===----------------------------------------------------------------------===//
 
 UnrankedMemRefType UnrankedMemRefType::get(Type elementType,
-                                           Attribute memorySpace) {
+                                           unsigned memorySpace) {
   return Base::get(elementType.getContext(), elementType, memorySpace);
 }
 

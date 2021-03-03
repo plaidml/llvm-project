@@ -214,15 +214,13 @@ public:
 
   /// Returns true if this is a DMA from a faster memory space to a slower one.
   bool isDestMemorySpaceFaster() {
-    return (getSrcMemorySpace().cast<IntegerAttr>().getInt() <
-            getDstMemorySpace().cast<IntegerAttr>().getInt());
+    return (getSrcMemorySpace() < getDstMemorySpace());
   }
 
   /// Returns true if this is a DMA from a slower memory space to a faster one.
   bool isSrcMemorySpaceFaster() {
     // Assumes that a lower number is for a slower memory space.
-    return (getDstMemorySpace().cast<IntegerAttr>().getInt() <
-            getSrcMemorySpace().cast<IntegerAttr>().getInt());
+    return (getDstMemorySpace() < getSrcMemorySpace());
   }
 
   /// Given a DMA start operation, returns the operand position of either the
