@@ -200,9 +200,9 @@ def Vector_ContractionOp :
     ```
   }];
   let builders = [
-    OpBuilderDAG<(ins "Value":$lhs, "Value":$rhs, "Value":$acc,
+    OpBuilder<(ins "Value":$lhs, "Value":$rhs, "Value":$acc,
       "ArrayAttr":$indexingMaps, "ArrayAttr":$iteratorTypes)>,
-    OpBuilderDAG<(ins "Value":$lhs, "Value":$rhs, "Value":$acc,
+    OpBuilder<(ins "Value":$lhs, "Value":$rhs, "Value":$acc,
       "ArrayRef<ArrayRef<AffineExpr>>":$indexingExprs,
       "ArrayRef<StringRef>":$iteratorTypes)>
   ];
@@ -372,7 +372,7 @@ def Vector_ShuffleOp :
     ```
   }];
   let builders = [
-    OpBuilderDAG<(ins "Value":$v1, "Value":$v2, "ArrayRef<int64_t>")>
+    OpBuilder<(ins "Value":$v1, "Value":$v2, "ArrayRef<int64_t>")>
   ];
   let extraClassDeclaration = [{
     static StringRef getMaskAttrName() { return "mask"; }
@@ -415,8 +415,8 @@ def Vector_ExtractElementOp :
   }];
 
   let builders = [
-    OpBuilderDAG<(ins "Value":$source, "int64_t":$position)>,
-    OpBuilderDAG<(ins "Value":$source, "Value":$position)>
+    OpBuilder<(ins "Value":$source, "int64_t":$position)>,
+    OpBuilder<(ins "Value":$source, "Value":$position)>
   ];
   let extraClassDeclaration = [{
     VectorType getVectorType() {
@@ -444,10 +444,10 @@ def Vector_ExtractOp :
     ```
   }];
   let builders = [
-    OpBuilderDAG<(ins "Value":$source, "ArrayRef<int64_t>":$position)>,
+    OpBuilder<(ins "Value":$source, "ArrayRef<int64_t>":$position)>,
     // Convenience builder which assumes the values in `position` are defined by
     // ConstantIndexOp.
-    OpBuilderDAG<(ins "Value":$source, "ValueRange":$position)>
+    OpBuilder<(ins "Value":$source, "ValueRange":$position)>
   ];
   let extraClassDeclaration = [{
     static StringRef getPositionAttrName() { return "position"; }
@@ -494,7 +494,7 @@ def Vector_ExtractSlicesOp :
     ```
   }];
   let builders = [
-    OpBuilderDAG<(ins "TupleType":$tupleType, "Value":$vector,
+    OpBuilder<(ins "TupleType":$tupleType, "Value":$vector,
       "ArrayRef<int64_t>":$sizes, "ArrayRef<int64_t>":$strides)>
   ];
   let extraClassDeclaration = [{
@@ -563,7 +563,7 @@ def Vector_ExtractMapOp :
     ```
   }];
   let builders = [
-    OpBuilderDAG<(ins "Value":$vector, "ValueRange":$ids,
+    OpBuilder<(ins "Value":$vector, "ValueRange":$ids,
                   "ArrayRef<int64_t>":$multiplicity,
                   "AffineMap":$map)>];
   let extraClassDeclaration = [{
@@ -610,7 +610,7 @@ def Vector_FMAOp :
   let verifier = ?;
   let assemblyFormat = "$lhs `,` $rhs `,` $acc attr-dict `:` type($lhs)";
   let builders = [
-    OpBuilderDAG<(ins "Value":$lhs, "Value":$rhs, "Value":$acc),
+    OpBuilder<(ins "Value":$lhs, "Value":$rhs, "Value":$acc),
     [{build($_builder, $_state, lhs.getType(), lhs, rhs, acc);}]>
   ];
   let extraClassDeclaration = [{
@@ -650,8 +650,8 @@ def Vector_InsertElementOp :
   }];
 
   let builders = [
-    OpBuilderDAG<(ins "Value":$source, "Value":$dest, "int64_t":$position)>,
-    OpBuilderDAG<(ins "Value":$source, "Value":$dest, "Value":$position)>
+    OpBuilder<(ins "Value":$source, "Value":$dest, "int64_t":$position)>,
+    OpBuilder<(ins "Value":$source, "Value":$dest, "Value":$position)>
   ];
   let extraClassDeclaration = [{
     Type getSourceType() { return source().getType(); }
@@ -687,10 +687,10 @@ def Vector_InsertOp :
   }];
 
   let builders = [
-    OpBuilderDAG<(ins "Value":$source, "Value":$dest,
+    OpBuilder<(ins "Value":$source, "Value":$dest,
       "ArrayRef<int64_t>":$position)>,
     // Convenience builder which assumes all values are constant indices.
-    OpBuilderDAG<(ins "Value":$source, "Value":$dest, "ValueRange":$position)>
+    OpBuilder<(ins "Value":$source, "Value":$dest, "ValueRange":$position)>
   ];
   let extraClassDeclaration = [{
     static StringRef getPositionAttrName() { return "position"; }
@@ -807,7 +807,7 @@ def Vector_InsertMapOp :
       into vector<64x4x32xf32>
     ```
   }];
-  let builders = [OpBuilderDAG<(ins "Value":$vector, "Value":$dest,
+  let builders = [OpBuilder<(ins "Value":$vector, "Value":$dest,
                                 "ValueRange":$ids)>];
   let extraClassDeclaration = [{
     VectorType getSourceVectorType() {
@@ -860,7 +860,7 @@ def Vector_InsertStridedSliceOp :
   }];
 
   let builders = [
-    OpBuilderDAG<(ins "Value":$source, "Value":$dest,
+    OpBuilder<(ins "Value":$source, "Value":$dest,
       "ArrayRef<int64_t>":$offsets, "ArrayRef<int64_t>":$strides)>
   ];
   let extraClassDeclaration = [{
@@ -936,7 +936,7 @@ def Vector_OuterProductOp :
   }];
   let builders = [
     // Build an op without mask, use the type of `acc` as the return type.
-    OpBuilderDAG<(ins "Value":$lhs, "Value":$rhs, "Value":$acc)>
+    OpBuilder<(ins "Value":$lhs, "Value":$rhs, "Value":$acc)>
   ];
   let extraClassDeclaration = [{
     VectorType getOperandVectorTypeLHS() {
@@ -1116,7 +1116,7 @@ def Vector_ExtractStridedSliceOp :
     ```
   }];
   let builders = [
-    OpBuilderDAG<(ins "Value":$source, "ArrayRef<int64_t>":$offsets,
+    OpBuilder<(ins "Value":$source, "ArrayRef<int64_t>":$offsets,
       "ArrayRef<int64_t>":$sizes, "ArrayRef<int64_t>":$strides)>
   ];
   let extraClassDeclaration = [{
@@ -1289,16 +1289,16 @@ def Vector_TransferReadOp :
 
   let builders = [
     // Builder that sets padding to zero.
-    OpBuilderDAG<(ins "VectorType":$vector, "Value":$source,
+    OpBuilder<(ins "VectorType":$vector, "Value":$source,
       "ValueRange":$indices, "AffineMap":$permutationMap,
       CArg<"ArrayRef<bool>", "{}">:$maybeMasked)>,
     // Builder that sets padding to 'getMinorIdentityMap'.
-    OpBuilderDAG<(ins "VectorType":$vector, "Value":$source,
+    OpBuilder<(ins "VectorType":$vector, "Value":$source,
       "ValueRange":$indices, "Value":$padding,
       CArg<"ArrayRef<bool>", "{}">:$maybeMasked)>,
     // Builder that sets permutation map (resp. padding) to
     // 'getMinorIdentityMap' (resp. zero).
-    OpBuilderDAG<(ins "VectorType":$vector, "Value":$source,
+    OpBuilder<(ins "VectorType":$vector, "Value":$source,
       "ValueRange":$indices, CArg<"ArrayRef<bool>", "{}">:$maybeMasked)>
   ];
 
@@ -1386,13 +1386,13 @@ def Vector_TransferWriteOp :
 
   let builders = [
     // Builder that sets permutation map to 'getMinorIdentityMap'.
-    OpBuilderDAG<(ins "Value":$vector, "Value":$source, "ValueRange":$indices,
+    OpBuilder<(ins "Value":$vector, "Value":$source, "ValueRange":$indices,
       CArg<"ArrayRef<bool>", "{}">:$maybeMasked)>,
-    OpBuilderDAG<(ins "Value":$vector, "Value":$source, "ValueRange":$indices,
+    OpBuilder<(ins "Value":$vector, "Value":$source, "ValueRange":$indices,
       "AffineMap":$permutationMap)>,
-    OpBuilderDAG<(ins "Value":$vector, "Value":$source, "ValueRange":$indices,
+    OpBuilder<(ins "Value":$vector, "Value":$source, "ValueRange":$indices,
       "AffineMapAttr":$permutationMap, "ArrayAttr":$masked)>,
-    OpBuilderDAG<(ins "Value":$vector, "Value":$source, "ValueRange":$indices,
+    OpBuilder<(ins "Value":$vector, "Value":$source, "ValueRange":$indices,
       "AffineMap":$permutationMap, "ArrayAttr":$masked)>,
   ];
 
@@ -2017,7 +2017,7 @@ def Vector_TypeCastOp :
 
   /// Build the canonical memRefType with a single vector.
   /// E.g. memref<4 x 5 x vector<6 x f32>> -> memref<vector<4 x 5 x 6 x f32>>.
-  let builders = [OpBuilderDAG<(ins "Value":$source)>];
+  let builders = [OpBuilder<(ins "Value":$source)>];
 
   let extraClassDeclaration = [{
     MemRefType getMemRefType() {
@@ -2173,7 +2173,7 @@ def Vector_TransposeOp :
     ```
   }];
   let builders = [
-    OpBuilderDAG<(ins "Value":$vector, "ArrayRef<int64_t>":$transp)>
+    OpBuilder<(ins "Value":$vector, "ArrayRef<int64_t>":$transp)>
   ];
   let extraClassDeclaration = [{
     VectorType getVectorType() {
@@ -2319,7 +2319,7 @@ def Vector_MatmulOp : Vector_Op<"matrix_multiply", [NoSideEffect,
     ```
   }];
   let builders = [
-   OpBuilderDAG<(ins "Value":$lhs, "Value":$rhs, "unsigned":$lhsRows,
+   OpBuilder<(ins "Value":$lhs, "Value":$rhs, "unsigned":$lhsRows,
      "unsigned":$lhsColumns, "unsigned":$rhsColumns),
    [{
      $_state.addOperands({lhs, rhs});
