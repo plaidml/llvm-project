@@ -29,6 +29,7 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/Triple.h"
 #include "llvm/ADT/Twine.h"
+#include "llvm/Analysis/ObjCARCUtil.h"
 #include "llvm/Analysis/VectorUtils.h"
 #include "llvm/CodeGen/CallingConvLower.h"
 #include "llvm/CodeGen/MachineBasicBlock.h"
@@ -1015,11 +1016,12 @@ AArch64TargetLowering::AArch64TargetLowering(const TargetMachine &TM,
     // Vector reductions
     for (MVT VT : { MVT::v4f16, MVT::v2f32,
                     MVT::v8f16, MVT::v4f32, MVT::v2f64 }) {
-      setOperationAction(ISD::VECREDUCE_FMAX, VT, Custom);
-      setOperationAction(ISD::VECREDUCE_FMIN, VT, Custom);
+      if (VT.getVectorElementType() != MVT::f16 || Subtarget->hasFullFP16()) {
+        setOperationAction(ISD::VECREDUCE_FMAX, VT, Custom);
+        setOperationAction(ISD::VECREDUCE_FMIN, VT, Custom);
 
-      if (VT.getVectorElementType() != MVT::f16 || Subtarget->hasFullFP16())
         setOperationAction(ISD::VECREDUCE_FADD, VT, Legal);
+      }
     }
     for (MVT VT : { MVT::v8i8, MVT::v4i16, MVT::v2i32,
                     MVT::v16i8, MVT::v8i16, MVT::v4i32 }) {
@@ -1106,6 +1108,7 @@ AArch64TargetLowering::AArch64TargetLowering(const TargetMachine &TM,
       setOperationAction(ISD::MUL, VT, Custom);
       setOperationAction(ISD::SPLAT_VECTOR, VT, Custom);
       setOperationAction(ISD::SELECT, VT, Custom);
+      setOperationAction(ISD::SETCC, VT, Custom);
       setOperationAction(ISD::SDIV, VT, Custom);
       setOperationAction(ISD::UDIV, VT, Custom);
       setOperationAction(ISD::SMIN, VT, Custom);
@@ -1274,6 +1277,11 @@ AArch64TargetLowering::AArch64TargetLowering(const TargetMachine &TM,
       for (auto VT : {MVT::v4f16, MVT::v8f16, MVT::v4f32})
         setOperationAction(ISD::VECREDUCE_FADD, VT, Custom);
     }
+
+    setOperationPromotedToType(ISD::VECTOR_SPLICE, MVT::nxv2i1, MVT::nxv2i64);
+    setOperationPromotedToType(ISD::VECTOR_SPLICE, MVT::nxv4i1, MVT::nxv4i32);
+    setOperationPromotedToType(ISD::VECTOR_SPLICE, MVT::nxv8i1, MVT::nxv8i16);
+    setOperationPromotedToType(ISD::VECTOR_SPLICE, MVT::nxv16i1, MVT::nxv16i8);
   }
 
   PredictableSelectIsExpensive = Subtarget->predictableSelectIsExpensive();
@@ -5711,11 +5719,12 @@ AArch64TargetLowering::LowerCall(CallLoweringInfo &CLI,
   }
 
   unsigned CallOpc = AArch64ISD::CALL;
-  // Calls marked with "rv_marker" are special. They should be expanded to the
-  // call, directly followed by a special marker sequence. Use the CALL_RVMARKER
-  // to do that.
-  if (CLI.CB && CLI.CB->hasRetAttr("rv_marker")) {
-    assert(!IsTailCall && "tail calls cannot be marked with rv_marker");
+  // Calls with operand bundle "clang.arc.attachedcall" are special. They should
+  // be expanded to the call, directly followed by a special marker sequence.
+  // Use the CALL_RVMARKER to do that.
+  if (CLI.CB && objcarc::hasAttachedCallOpBundle(CLI.CB)) {
+    assert(!IsTailCall &&
+           "tail calls cannot be marked with clang.arc.attachedcall");
     CallOpc = AArch64ISD::CALL_RVMARKER;
   }
 

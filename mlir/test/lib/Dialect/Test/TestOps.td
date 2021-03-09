@@ -420,6 +420,14 @@ def OperandsHaveSameType :
   let arguments = (ins AnyType:$x, AnyType:$y);
 }
 
+def ResultHasSameTypeAsAttr :
+    TEST_Op<"result_has_same_type_as_attr",
+            [AllTypesMatch<["attr", "result"]>]> {
+  let arguments = (ins AnyAttr:$attr);
+  let results = (outs AnyType:$result);
+  let assemblyFormat = "$attr `->` type($result) attr-dict";
+}
+
 def OperandZeroAndResultHaveSameType :
     TEST_Op<"operand0_and_result_have_same_type",
             [AllTypesMatch<["x", "res"]>]> {
@@ -1038,39 +1046,39 @@ def OneResultOp3 : TEST_Op<"one_result3"> {
 }
 
 // Test using multi-result op as a whole
-def : Pat<(ThreeResultOp MultiResultOpKind1:$kind),
-          (AnotherThreeResultOp $kind)>;
+def : Pat<(ThreeResultOp MultiResultOpKind1),
+          (AnotherThreeResultOp MultiResultOpKind1)>;
 
 // Test using multi-result op as a whole for partial replacement
-def : Pattern<(ThreeResultOp MultiResultOpKind2:$kind),
-              [(TwoResultOp $kind),
-               (OneResultOp1 $kind)]>;
-def : Pattern<(ThreeResultOp MultiResultOpKind3:$kind),
-              [(OneResultOp2 $kind),
-               (AnotherTwoResultOp $kind)]>;
+def : Pattern<(ThreeResultOp MultiResultOpKind2),
+              [(TwoResultOp MultiResultOpKind2),
+               (OneResultOp1 MultiResultOpKind2)]>;
+def : Pattern<(ThreeResultOp MultiResultOpKind3),
+              [(OneResultOp2 MultiResultOpKind3),
+               (AnotherTwoResultOp MultiResultOpKind3)]>;
 
 // Test using results separately in a multi-result op
-def : Pattern<(ThreeResultOp MultiResultOpKind4:$kind),
-              [(TwoResultOp:$res1__0 $kind),
-               (OneResultOp1 $kind),
-               (TwoResultOp:$res2__1 $kind)]>;
+def : Pattern<(ThreeResultOp MultiResultOpKind4),
+              [(TwoResultOp:$res1__0 MultiResultOpKind4),
+               (OneResultOp1 MultiResultOpKind4),
+               (TwoResultOp:$res2__1 MultiResultOpKind4)]>;
 
 // Test referencing a single value in the value pack
 // This rule only matches TwoResultOp if its second result has no use.
-def : Pattern<(TwoResultOp:$res MultiResultOpKind5:$kind),
-              [(OneResultOp2 $kind),
-               (OneResultOp1 $kind)],
+def : Pattern<(TwoResultOp:$res MultiResultOpKind5),
+              [(OneResultOp2 MultiResultOpKind5),
+               (OneResultOp1 MultiResultOpKind5)],
               [(HasNoUseOf:$res__1)]>;
 
 // Test using auxiliary ops for replacing multi-result op
 def : Pattern<
-    (ThreeResultOp MultiResultOpKind6:$kind), [
+    (ThreeResultOp MultiResultOpKind6), [
         // Auxiliary op generated to help building the final result but not
         // directly used to replace the source op's results.
-        (TwoResultOp:$interm $kind),
+        (TwoResultOp:$interm MultiResultOpKind6),
 
         (OneResultOp3 $interm__1),
-        (AnotherTwoResultOp $kind)
+        (AnotherTwoResultOp MultiResultOpKind6)
     ]>;
 
 //===----------------------------------------------------------------------===//

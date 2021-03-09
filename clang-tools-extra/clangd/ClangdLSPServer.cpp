@@ -579,9 +579,9 @@ void ClangdLSPServer::onInitialize(const InitializeParams &Params,
 
   {
     LSPBinder Binder(Handlers, *this);
-    bindMethods(Binder);
-    if (Opts.Modules)
-      for (auto &Mod : *Opts.Modules)
+    bindMethods(Binder, Params.capabilities);
+    if (Opts.FeatureModules)
+      for (auto &Mod : *Opts.FeatureModules)
         Mod.initializeLSP(Binder, Params.rawCapabilities, ServerCaps);
   }
 
@@ -666,8 +666,9 @@ void ClangdLSPServer::onDocumentDidChange(
     log("Trying to incrementally change non-added document: {0}", File);
     return;
   }
+  std::string NewCode(*Code);
   for (const auto &Change : Params.contentChanges) {
-    if (auto Err = applyChange(*Code, Change)) {
+    if (auto Err = applyChange(NewCode, Change)) {
       // If this fails, we are most likely going to be not in sync anymore with
       // the client.  It is better to remove the draft and let further
       // operations fail rather than giving wrong results.
@@ -676,7 +677,7 @@ void ClangdLSPServer::onDocumentDidChange(
       return;
     }
   }
-  Server->addDocument(File, *Code, encodeVersion(Params.textDocument.version),
+  Server->addDocument(File, NewCode, encodeVersion(Params.textDocument.version),
                       WantDiags, Params.forceRebuild);
 }
 
@@ -1406,8 +1407,7 @@ void ClangdLSPServer::onAST(const ASTParams &Params,
   Server->getAST(Params.textDocument.uri.file(), Params.range, std::move(CB));
 }
 
-ClangdLSPServer::ClangdLSPServer(Transport &Transp,
-                                 const ThreadsafeFS &TFS,
+ClangdLSPServer::ClangdLSPServer(Transport &Transp, const ThreadsafeFS &TFS,
                                  const ClangdLSPServer::Options &Opts)
     : ShouldProfile(/*Period=*/std::chrono::minutes(5),
                     /*Delay=*/std::chrono::minutes(1)),
@@ -1427,7 +1427,8 @@ ClangdLSPServer::ClangdLSPServer(Transport &Transp,
   Bind.method("initialize", this, &ClangdLSPServer::onInitialize);
 }
 
-void ClangdLSPServer::bindMethods(LSPBinder &Bind) {
+void ClangdLSPServer::bindMethods(LSPBinder &Bind,
+                                  const ClientCapabilities &Caps) {
   // clang-format off
   Bind.notification("initialized", this, &ClangdLSPServer::onInitialized);
   Bind.method("shutdown", this, &ClangdLSPServer::onShutdown);
@@ -1481,6 +1482,8 @@ void ClangdLSPServer::bindMethods(LSPBinder &Bind) {
   BeginWorkDoneProgress = Bind.outgoingNotification("$/progress");
   ReportWorkDoneProgress = Bind.outgoingNotification("$/progress");
   EndWorkDoneProgress = Bind.outgoingNotification("$/progress");
+  if(Caps.SemanticTokenRefreshSupport)
+    SemanticTokensRefresh = Bind.outgoingMethod("workspace/semanticTokens/refresh");
   // clang-format on
 }
 
@@ -1656,5 +1659,14 @@ void ClangdLSPServer::onFileUpdated(PathRef File, const TUStatus &Status) {
   NotifyFileStatus(Status.render(File));
 }
 
+void ClangdLSPServer::onSemanticsMaybeChanged(PathRef File) {
+  if (SemanticTokensRefresh) {
+    SemanticTokensRefresh(NoParams{}, [](llvm::Expected<std::nullptr_t> E) {
+      if (E)
+        return;
+      elog("Failed to refresh semantic tokens: {0}", E.takeError());
+    });
+  }
+}
 } // namespace clangd
 } // namespace clang

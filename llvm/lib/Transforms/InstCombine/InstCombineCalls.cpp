@@ -872,6 +872,7 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
       Value *NarrowMaxMin = Builder.CreateBinaryIntrinsic(IID, X, Y);
       return CastInst::Create(Instruction::SExt, NarrowMaxMin, II->getType());
     }
+
     Constant *C;
     if (match(I0, m_SExt(m_Value(X))) && match(I1, m_Constant(C)) &&
         I0->hasOneUse()) {
@@ -881,6 +882,14 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
         return CastInst::Create(Instruction::SExt, NarrowMaxMin, II->getType());
       }
     }
+
+    if (match(I0, m_Not(m_Value(X))) && match(I1, m_Not(m_Value(Y))) &&
+        (I0->hasOneUse() || I1->hasOneUse())) {
+      Value *InvMaxMin =
+          Builder.CreateBinaryIntrinsic(getInverseMinMaxIntrinsic(IID), X, Y);
+      return BinaryOperator::CreateNot(InvMaxMin);
+    }
+
     break;
   }
   case Intrinsic::bswap: {
@@ -1797,6 +1806,34 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
       replaceInstUsesWith(CI, Shuffle);
       return eraseInstFromFunction(CI);
     }
+    break;
+  }
+  case Intrinsic::vector_reduce_or:
+  case Intrinsic::vector_reduce_and: {
+    // Canonicalize logical or/and reductions:
+    // Or reduction for i1 is represented as:
+    // %val = bitcast <ReduxWidth x i1> to iReduxWidth
+    // %res = cmp ne iReduxWidth %val, 0
+    // And reduction for i1 is represented as:
+    // %val = bitcast <ReduxWidth x i1> to iReduxWidth
+    // %res = cmp eq iReduxWidth %val, 11111
+    Value *Arg = II->getArgOperand(0);
+    Type *RetTy = II->getType();
+    if (RetTy == Builder.getInt1Ty())
+      if (auto *FVTy = dyn_cast<FixedVectorType>(Arg->getType())) {
+        Value *Res = Builder.CreateBitCast(
+            Arg, Builder.getIntNTy(FVTy->getNumElements()));
+        if (IID == Intrinsic::vector_reduce_and) {
+          Res = Builder.CreateICmpEQ(
+              Res, ConstantInt::getAllOnesValue(Res->getType()));
+        } else {
+          assert(IID == Intrinsic::vector_reduce_or &&
+                 "Expected or reduction.");
+          Res = Builder.CreateIsNotNull(Res);
+        }
+        replaceInstUsesWith(CI, Res);
+        return eraseInstFromFunction(CI);
+      }
     break;
   }
   default: {

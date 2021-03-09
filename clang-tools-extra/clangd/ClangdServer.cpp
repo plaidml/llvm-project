@@ -73,6 +73,8 @@ struct UpdateIndexCallbacks : public ParsingCallbacks {
                      const CanonicalIncludes &CanonIncludes) override {
     if (FIndex)
       FIndex->updatePreamble(Path, Version, Ctx, std::move(PP), CanonIncludes);
+    if (ServerCallbacks)
+      ServerCallbacks->onSemanticsMaybeChanged(Path);
   }
 
   void onMainAST(PathRef Path, ParsedAST &AST, PublishFn Publish) override {
@@ -104,6 +106,23 @@ private:
   ClangdServer::Callbacks *ServerCallbacks;
 };
 
+class DraftStoreFS : public ThreadsafeFS {
+public:
+  DraftStoreFS(const ThreadsafeFS &Base, const DraftStore &Drafts)
+      : Base(Base), DirtyFiles(Drafts) {}
+
+private:
+  llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> viewImpl() const override {
+    auto OFS = llvm::makeIntrusiveRefCnt<llvm::vfs::OverlayFileSystem>(
+        Base.view(llvm::None));
+    OFS->pushOverlay(DirtyFiles.asVFS());
+    return OFS;
+  }
+
+  const ThreadsafeFS &Base;
+  const DraftStore &DirtyFiles;
+};
+
 } // namespace
 
 ClangdServer::Options ClangdServer::optsForTest() {
@@ -127,10 +146,11 @@ ClangdServer::Options::operator TUScheduler::Options() const {
 ClangdServer::ClangdServer(const GlobalCompilationDatabase &CDB,
                            const ThreadsafeFS &TFS, const Options &Opts,
                            Callbacks *Callbacks)
-    : Modules(Opts.Modules), CDB(CDB), TFS(TFS),
+    : FeatureModules(Opts.FeatureModules), CDB(CDB), TFS(TFS),
       DynamicIdx(Opts.BuildDynamicSymbolIndex ? new FileIndex() : nullptr),
       ClangTidyProvider(Opts.ClangTidyProvider),
-      WorkspaceRoot(Opts.WorkspaceRoot) {
+      WorkspaceRoot(Opts.WorkspaceRoot),
+      DirtyFS(std::make_unique<DraftStoreFS>(TFS, DraftMgr)) {
   // Pass a callback into `WorkScheduler` to extract symbols from a newly
   // parsed file and rebuild the file index synchronously each time an AST
   // is parsed.
@@ -166,13 +186,13 @@ ClangdServer::ClangdServer(const GlobalCompilationDatabase &CDB,
   if (DynamicIdx)
     AddIndex(DynamicIdx.get());
 
-  if (Opts.Modules) {
-    Module::Facilities F{
+  if (Opts.FeatureModules) {
+    FeatureModule::Facilities F{
         *this->WorkScheduler,
         this->Index,
         this->TFS,
     };
-    for (auto &Mod : *Opts.Modules)
+    for (auto &Mod : *Opts.FeatureModules)
       Mod.initialize(F);
   }
 }
@@ -182,11 +202,11 @@ ClangdServer::~ClangdServer() {
   // otherwise access members concurrently.
   // (Nobody can be using TUScheduler because we're on the main thread).
   WorkScheduler.reset();
-  // Now requests have stopped, we can shut down modules.
-  if (Modules) {
-    for (auto &Mod : *Modules)
+  // Now requests have stopped, we can shut down feature modules.
+  if (FeatureModules) {
+    for (auto &Mod : *FeatureModules)
       Mod.stop();
-    for (auto &Mod : *Modules)
+    for (auto &Mod : *FeatureModules)
       Mod.blockUntilIdle(Deadline::infinity());
   }
 }
@@ -218,14 +238,14 @@ void ClangdServer::reparseOpenFilesIfNeeded(
   for (const Path &FilePath : DraftMgr.getActiveFiles())
     if (Filter(FilePath))
       if (auto Draft = DraftMgr.getDraft(FilePath)) // else disappeared in race?
-        addDocument(FilePath, std::move(Draft->Contents), Draft->Version,
+        addDocument(FilePath, *Draft->Contents, Draft->Version,
                     WantDiagnostics::Auto);
 }
 
-llvm::Optional<std::string> ClangdServer::getDraft(PathRef File) const {
+std::shared_ptr<const std::string> ClangdServer::getDraft(PathRef File) const {
   auto Draft = DraftMgr.getDraft(File);
   if (!Draft)
-    return llvm::None;
+    return nullptr;
   return std::move(Draft->Contents);
 }
 
@@ -918,7 +938,7 @@ ClangdServer::blockUntilIdleForTest(llvm::Optional<double> TimeoutSeconds) {
       return false;
     if (BackgroundIdx && !BackgroundIdx->blockUntilIdleForTest(Timeout))
       return false;
-    if (Modules && llvm::any_of(*Modules, [&](Module &M) {
+    if (FeatureModules && llvm::any_of(*FeatureModules, [&](FeatureModule &M) {
           return !M.blockUntilIdle(timeoutSeconds(Timeout));
         }))
       return false;

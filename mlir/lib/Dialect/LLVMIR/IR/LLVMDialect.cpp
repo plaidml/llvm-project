@@ -20,6 +20,7 @@
 #include "mlir/IR/MLIRContext.h"
 
 #include "llvm/ADT/StringSwitch.h"
+#include "llvm/ADT/TypeSwitch.h"
 #include "llvm/AsmParser/Parser.h"
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
@@ -37,25 +38,12 @@ static constexpr const char kNonTemporalAttrName[] = "nontemporal";
 
 #include "mlir/Dialect/LLVMIR/LLVMOpsEnums.cpp.inc"
 #include "mlir/Dialect/LLVMIR/LLVMOpsInterfaces.cpp.inc"
+#define GET_ATTRDEF_CLASSES
+#include "mlir/Dialect/LLVMIR/LLVMOpsAttrDefs.cpp.inc"
 
 namespace mlir {
 namespace LLVM {
 namespace detail {
-struct BitmaskEnumStorage : public AttributeStorage {
-  using KeyTy = uint64_t;
-
-  BitmaskEnumStorage(KeyTy val) : value(val) {}
-
-  bool operator==(const KeyTy &key) const { return value == key; }
-
-  static BitmaskEnumStorage *construct(AttributeStorageAllocator &allocator,
-                                       const KeyTy &key) {
-    return new (allocator.allocate<BitmaskEnumStorage>())
-        BitmaskEnumStorage(key);
-  }
-
-  KeyTy value = 0;
-};
 
 struct LoopOptionAttrStorage : public AttributeStorage {
   using KeyTy = std::pair<uint64_t, int32_t>;
@@ -84,7 +72,7 @@ static auto processFMFAttr(ArrayRef<NamedAttribute> attrs) {
   SmallVector<NamedAttribute, 8> filteredAttrs(
       llvm::make_filter_range(attrs, [&](NamedAttribute attr) {
         if (attr.first == "fastmathFlags") {
-          auto defAttr = FMFAttr::get({}, attr.second.getContext());
+          auto defAttr = FMFAttr::get(attr.second.getContext(), {});
           return defAttr != attr.second;
         }
         return true;
@@ -404,6 +392,34 @@ SwitchOp::getMutableSuccessorOperands(unsigned index) {
 // Builder, printer and parser for for LLVM::LoadOp.
 //===----------------------------------------------------------------------===//
 
+static LogicalResult verifyAccessGroups(Operation *op) {
+  if (Attribute attribute =
+          op->getAttr(LLVMDialect::getAccessGroupsAttrName())) {
+    // The attribute is already verified to be a symbol ref array attribute via
+    // a constraint in the operation definition.
+    for (SymbolRefAttr accessGroupRef :
+         attribute.cast<ArrayAttr>().getAsRange<SymbolRefAttr>()) {
+      StringRef metadataName = accessGroupRef.getRootReference();
+      auto metadataOp = SymbolTable::lookupNearestSymbolFrom<LLVM::MetadataOp>(
+          op->getParentOp(), metadataName);
+      if (!metadataOp)
+        return op->emitOpError() << "expected '" << accessGroupRef
+                                 << "' to reference a metadata op";
+      StringRef accessGroupName = accessGroupRef.getLeafReference();
+      Operation *accessGroupOp =
+          SymbolTable::lookupNearestSymbolFrom(metadataOp, accessGroupName);
+      if (!accessGroupOp)
+        return op->emitOpError() << "expected '" << accessGroupRef
+                                 << "' to reference an access_group op";
+    }
+  }
+  return success();
+}
+
+static LogicalResult verify(LoadOp op) {
+  return verifyAccessGroups(op.getOperation());
+}
+
 void LoadOp::build(OpBuilder &builder, OperationState &result, Type t,
                    Value addr, unsigned alignment, bool isVolatile,
                    bool isNonTemporal) {
@@ -461,6 +477,10 @@ static ParseResult parseLoadOp(OpAsmParser &parser, OperationState &result) {
 //===----------------------------------------------------------------------===//
 // Builder, printer and parser for LLVM::StoreOp.
 //===----------------------------------------------------------------------===//
+
+static LogicalResult verify(StoreOp op) {
+  return verifyAccessGroups(op.getOperation());
+}
 
 void StoreOp::build(OpBuilder &builder, OperationState &result, Value value,
                     Value addr, unsigned alignment, bool isVolatile,
@@ -2355,14 +2375,6 @@ bool mlir::LLVM::satisfiesLLVMModule(Operation *op) {
          op->hasTrait<OpTrait::IsIsolatedFromAbove>();
 }
 
-FMFAttr FMFAttr::get(FastmathFlags flags, MLIRContext *context) {
-  return Base::get(context, static_cast<uint64_t>(flags));
-}
-
-FastmathFlags FMFAttr::getFlags() const {
-  return static_cast<FastmathFlags>(getImpl()->value);
-}
-
 static constexpr const FastmathFlags FastmathFlagsList[] = {
     // clang-format off
     FastmathFlags::nnan,
@@ -2386,7 +2398,8 @@ void FMFAttr::print(DialectAsmPrinter &printer) const {
   printer << ">";
 }
 
-Attribute FMFAttr::parse(DialectAsmParser &parser) {
+Attribute FMFAttr::parse(MLIRContext *context, DialectAsmParser &parser,
+                         Type type) {
   if (failed(parser.parseLess()))
     return {};
 
@@ -2411,7 +2424,7 @@ Attribute FMFAttr::parse(DialectAsmParser &parser) {
       return {};
   }
 
-  return FMFAttr::get(flags, parser.getBuilder().getContext());
+  return FMFAttr::get(parser.getBuilder().getContext(), flags);
 }
 
 LoopOptionAttr LoopOptionAttr::getDisableUnroll(MLIRContext *context,
@@ -2526,9 +2539,9 @@ Attribute LLVMDialect::parseAttribute(DialectAsmParser &parser,
   StringRef attrKind;
   if (parser.parseKeyword(&attrKind))
     return {};
-
-  if (attrKind == "fastmath")
-    return FMFAttr::parse(parser);
+  if (auto attr =
+          generatedAttributeParser(getContext(), parser, attrKind, type))
+    return attr;
 
   if (attrKind == "loopopt")
     return LoopOptionAttr::parse(parser);
@@ -2538,9 +2551,9 @@ Attribute LLVMDialect::parseAttribute(DialectAsmParser &parser,
 }
 
 void LLVMDialect::printAttribute(Attribute attr, DialectAsmPrinter &os) const {
-  if (auto fmf = attr.dyn_cast<FMFAttr>())
-    fmf.print(os);
-  else if (auto lopt = attr.dyn_cast<LoopOptionAttr>())
+  if (succeeded(generatedAttributePrinter(attr, os)))
+    return;
+  if (auto lopt = attr.dyn_cast<LoopOptionAttr>())
     lopt.print(os);
   else
     llvm_unreachable("Unknown attribute type");

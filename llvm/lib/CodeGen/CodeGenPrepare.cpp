@@ -377,6 +377,7 @@ class TypePromotionTransaction;
     }
 
     void removeAllAssertingVHReferences(Value *V);
+    bool eliminateAssumptions(Function &F);
     bool eliminateFallThrough(Function &F);
     bool eliminateMostlyEmptyBlocks(Function &F);
     BasicBlock *findDestBlockOfMergeableEmptyBlock(BasicBlock *BB);
@@ -506,6 +507,11 @@ bool CodeGenPrepare::runOnFunction(Function &F) {
     }
   }
 
+  // Get rid of @llvm.assume builtins before attempting to eliminate empty
+  // blocks, since there might be blocks that only contain @llvm.assume calls
+  // (plus arguments that we can get rid of).
+  EverMadeChange |= eliminateAssumptions(F);
+
   // Eliminate blocks that contain only PHI nodes and an
   // unconditional branch.
   EverMadeChange |= eliminateMostlyEmptyBlocks(F);
@@ -612,6 +618,28 @@ bool CodeGenPrepare::runOnFunction(Function &F) {
 #endif
 
   return EverMadeChange;
+}
+
+bool CodeGenPrepare::eliminateAssumptions(Function &F) {
+  bool MadeChange = false;
+  for (BasicBlock &BB : F) {
+    CurInstIterator = BB.begin();
+    while (CurInstIterator != BB.end()) {
+      Instruction *I = &*(CurInstIterator++);
+      if (IntrinsicInst *II = dyn_cast<IntrinsicInst>(I)) {
+        if (II->getIntrinsicID() != Intrinsic::assume)
+          continue;
+        MadeChange = true;
+        Value *Operand = II->getOperand(0);
+        II->eraseFromParent();
+
+        resetIteratorIfInvalidatedWhileCalling(&BB, [&]() {
+          RecursivelyDeleteTriviallyDeadInstructions(Operand, TLInfo, nullptr);
+        });
+      }
+    }
+  }
+  return MadeChange;
 }
 
 /// An instruction is about to be deleted, so remove all references to it in our
@@ -1304,7 +1332,7 @@ getIVIncrement(const PHINode *PN, const LoopInfo *LI) {
 
 static bool isIVIncrement(const BinaryOperator *BO, const LoopInfo *LI) {
   auto *PN = dyn_cast<PHINode>(BO->getOperand(0));
-  if (!PN)
+  if (!PN || LI->getLoopFor(BO->getParent()) != LI->getLoopFor(PN->getParent()))
     return false;
   if (auto IVInc = getIVIncrement(PN, LI))
     return IVInc->first == BO;
@@ -1319,6 +1347,7 @@ bool CodeGenPrepare::replaceMathCmpWithIntrinsic(BinaryOperator *BO,
     if (!isIVIncrement(BO, LI))
       return false;
     const Loop *L = LI->getLoopFor(BO->getParent());
+    assert(L && "L should not be null after isIVIncrement()");
     // IV increment may have other users than the IV. We do not want to make
     // dominance queries to analyze the legality of moving it towards the cmp,
     // so just check that there is no other users.
@@ -2118,18 +2147,8 @@ bool CodeGenPrepare::optimizeCallInst(CallInst *CI, bool &ModifiedDT) {
   if (II) {
     switch (II->getIntrinsicID()) {
     default: break;
-    case Intrinsic::assume: {
-      Value *Operand = II->getOperand(0);
-      II->eraseFromParent();
-      // Prune the operand, it's most likely dead.
-      resetIteratorIfInvalidatedWhileCalling(BB, [&]() {
-        RecursivelyDeleteTriviallyDeadInstructions(
-            Operand, TLInfo, nullptr,
-            [&](Value *V) { removeAllAssertingVHReferences(V); });
-      });
-      return true;
-    }
-
+    case Intrinsic::assume:
+      llvm_unreachable("llvm.assume should have been removed already");
     case Intrinsic::experimental_widenable_condition: {
       // Give up on future widening oppurtunties so that we can fold away dead
       // paths and merge blocks before going into block-local instruction
@@ -2865,11 +2884,8 @@ class TypePromotionTransaction {
       // including the debug uses. Since we are undoing the replacements,
       // the original debug uses must also be reinstated to maintain the
       // correctness and utility of debug value instructions.
-      for (auto *DVI: DbgValues) {
-        LLVMContext &Ctx = Inst->getType()->getContext();
-        auto *MV = MetadataAsValue::get(Ctx, ValueAsMetadata::get(Inst));
-        DVI->setOperand(0, MV);
-      }
+      for (auto *DVI : DbgValues)
+        DVI->replaceVariableLocationOp(DVI->getVariableLocationOp(0), Inst);
     }
   };
 
@@ -3065,7 +3081,7 @@ class AddressingModeMatcher {
   const TargetRegisterInfo &TRI;
   const DataLayout &DL;
   const LoopInfo &LI;
-  const DominatorTree &DT;
+  const std::function<const DominatorTree &()> getDTFn;
 
   /// AccessTy/MemoryInst - This is the type for the access (e.g. double) and
   /// the memory instruction that we're computing this address for.
@@ -3102,14 +3118,15 @@ class AddressingModeMatcher {
   AddressingModeMatcher(
       SmallVectorImpl<Instruction *> &AMI, const TargetLowering &TLI,
       const TargetRegisterInfo &TRI, const LoopInfo &LI,
-      const DominatorTree &DT, Type *AT, unsigned AS, Instruction *MI,
-      ExtAddrMode &AM, const SetOfInstrs &InsertedInsts,
-      InstrToOrigTy &PromotedInsts, TypePromotionTransaction &TPT,
+      const std::function<const DominatorTree &()> getDTFn,
+      Type *AT, unsigned AS, Instruction *MI, ExtAddrMode &AM,
+      const SetOfInstrs &InsertedInsts, InstrToOrigTy &PromotedInsts,
+      TypePromotionTransaction &TPT,
       std::pair<AssertingVH<GetElementPtrInst>, int64_t> &LargeOffsetGEP,
       bool OptSize, ProfileSummaryInfo *PSI, BlockFrequencyInfo *BFI)
       : AddrModeInsts(AMI), TLI(TLI), TRI(TRI),
-        DL(MI->getModule()->getDataLayout()), LI(LI), DT(DT), AccessTy(AT),
-        AddrSpace(AS), MemoryInst(MI), AddrMode(AM),
+        DL(MI->getModule()->getDataLayout()), LI(LI), getDTFn(getDTFn),
+        AccessTy(AT), AddrSpace(AS), MemoryInst(MI), AddrMode(AM),
         InsertedInsts(InsertedInsts), PromotedInsts(PromotedInsts), TPT(TPT),
         LargeOffsetGEP(LargeOffsetGEP), OptSize(OptSize), PSI(PSI), BFI(BFI) {
     IgnoreProfitability = false;
@@ -3126,7 +3143,8 @@ public:
   static ExtAddrMode
   Match(Value *V, Type *AccessTy, unsigned AS, Instruction *MemoryInst,
         SmallVectorImpl<Instruction *> &AddrModeInsts,
-        const TargetLowering &TLI, const LoopInfo &LI, const DominatorTree &DT,
+        const TargetLowering &TLI, const LoopInfo &LI,
+        const std::function<const DominatorTree &()> getDTFn,
         const TargetRegisterInfo &TRI, const SetOfInstrs &InsertedInsts,
         InstrToOrigTy &PromotedInsts, TypePromotionTransaction &TPT,
         std::pair<AssertingVH<GetElementPtrInst>, int64_t> &LargeOffsetGEP,
@@ -3134,7 +3152,7 @@ public:
     ExtAddrMode Result;
 
     bool Success = AddressingModeMatcher(
-        AddrModeInsts, TLI, TRI, LI, DT, AccessTy, AS, MemoryInst, Result,
+        AddrModeInsts, TLI, TRI, LI, getDTFn, AccessTy, AS, MemoryInst, Result,
         InsertedInsts, PromotedInsts, TPT, LargeOffsetGEP, OptSize, PSI,
         BFI).matchAddr(V, 0);
     (void)Success; assert(Success && "Couldn't select *anything*?");
@@ -3892,12 +3910,15 @@ bool AddressingModeMatcher::matchScaledValue(Value *ScaleReg, int64_t Scale,
       Instruction *IVInc = IVStep->first;
       APInt Step = IVStep->second;
       APInt Offset = Step * AddrMode.Scale;
-      if (Offset.isSignedIntN(64) && DT.dominates(IVInc, MemoryInst)) {
+      if (Offset.isSignedIntN(64)) {
         TestAddrMode.InBounds = false;
         TestAddrMode.ScaledReg = IVInc;
         TestAddrMode.BaseOffs -= Offset.getLimitedValue();
         // If this addressing mode is legal, commit it..
-        if (TLI.isLegalAddressingMode(DL, TestAddrMode, AccessTy, AddrSpace)) {
+        // (Note that we defer the (expensive) domtree base legality check
+        // to the very last possible point.)
+        if (TLI.isLegalAddressingMode(DL, TestAddrMode, AccessTy, AddrSpace) &&
+            getDTFn().dominates(IVInc, MemoryInst)) {
           AddrModeInsts.push_back(cast<Instruction>(IVInc));
           AddrMode = TestAddrMode;
           return true;
@@ -4998,7 +5019,7 @@ isProfitableToFoldIntoAddressingMode(Instruction *I, ExtAddrMode &AMBefore,
                                                                       0);
     TypePromotionTransaction::ConstRestorationPt LastKnownGood =
         TPT.getRestorationPoint();
-    AddressingModeMatcher Matcher(MatchedAddrModeInsts, TLI, TRI, LI, DT,
+    AddressingModeMatcher Matcher(MatchedAddrModeInsts, TLI, TRI, LI, getDTFn,
                                   AddressAccessTy, AS, MemoryInst, Result,
                                   InsertedInsts, PromotedInsts, TPT,
                                   LargeOffsetGEP, OptSize, PSI, BFI);
@@ -5104,9 +5125,15 @@ bool CodeGenPrepare::optimizeMemoryInst(Instruction *MemoryInst, Value *Addr,
     AddrModeInsts.clear();
     std::pair<AssertingVH<GetElementPtrInst>, int64_t> LargeOffsetGEP(nullptr,
                                                                       0);
-    Function *F = MemoryInst->getParent()->getParent();
+    // Defer the query (and possible computation of) the dom tree to point of
+    // actual use.  It's expected that most address matches don't actually need
+    // the domtree.
+    auto getDTFn = [MemoryInst, this]() -> const DominatorTree & {
+      Function *F = MemoryInst->getParent()->getParent();
+      return this->getDT(*F);
+    };
     ExtAddrMode NewAddrMode = AddressingModeMatcher::Match(
-        V, AccessTy, AddrSpace, MemoryInst, AddrModeInsts, *TLI, *LI, getDT(*F),
+        V, AccessTy, AddrSpace, MemoryInst, AddrModeInsts, *TLI, *LI, getDTFn,
         *TRI, InsertedInsts, PromotedInsts, TPT, LargeOffsetGEP, OptSize, PSI,
         BFI.get());
 
@@ -7849,7 +7876,7 @@ bool CodeGenPrepare::fixupDbgValue(Instruction *I) {
   DbgValueInst &DVI = *cast<DbgValueInst>(I);
 
   // Does this dbg.value refer to a sunk address calculation?
-  Value *Location = DVI.getVariableLocation();
+  Value *Location = DVI.getVariableLocationOp(0);
   WeakTrackingVH SunkAddrVH = SunkAddrs[Location];
   Value *SunkAddr = SunkAddrVH.pointsToAliveValue() ? SunkAddrVH : nullptr;
   if (SunkAddr) {
@@ -7857,8 +7884,7 @@ bool CodeGenPrepare::fixupDbgValue(Instruction *I) {
     // opportunity to be accurately lowered. This update may change the type of
     // pointer being referred to; however this makes no difference to debugging
     // information, and we can't generate bitcasts that may affect codegen.
-    DVI.setOperand(0, MetadataAsValue::get(DVI.getContext(),
-                                           ValueAsMetadata::get(SunkAddr)));
+    DVI.replaceVariableLocationOp(Location, SunkAddr);
     return true;
   }
   return false;
