@@ -438,14 +438,6 @@ UnrankedTensorType::verify(function_ref<InFlightDiagnostic()> emitError,
 // BaseMemRefType
 //===----------------------------------------------------------------------===//
 
-bool BaseMemRefType::isValidElementType(Type type) {
-  // Note: Non standard/builtin types are allowed to exist within memref
-  // types. Dialects are expected to verify that memref types have a valid
-  // element type within that dialect.
-  return type.isIntOrIndexOrFloat() || type.isa<ComplexType, VectorType>() ||
-         !type.getDialect().getNamespace().empty();
-}
-
 Attribute BaseMemRefType::getMemorySpace() const {
   if (auto rankedMemRefTy = dyn_cast<MemRefType>())
     return rankedMemRefTy.getMemorySpace();

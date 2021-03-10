@@ -155,7 +155,9 @@ ForOpConversion::matchAndRewrite(scf::ForOp forOp, ArrayRef<Value> operands,
   // header to merge.
   scf::ForOpAdaptor forOperands(operands);
   auto loc = forOp.getLoc();
-  auto loopOp = rewriter.create<spirv::LoopOp>(loc, spirv::LoopControl::None);
+  auto loopControl = rewriter.getI32IntegerAttr(
+      static_cast<uint32_t>(spirv::LoopControl::None));
+  auto loopOp = rewriter.create<spirv::LoopOp>(loc, loopControl);
   loopOp.addEntryAndMergeBlock();
 
   OpBuilder::InsertionGuard guard(rewriter);
@@ -236,9 +238,11 @@ IfOpConversion::matchAndRewrite(scf::IfOp ifOp, ArrayRef<Value> operands,
   scf::IfOpAdaptor ifOperands(operands);
   auto loc = ifOp.getLoc();
 
-  // Create `spv.selection` operation, selection header block and merge block.
-  auto selectionOp =
-      rewriter.create<spirv::SelectionOp>(loc, spirv::SelectionControl::None);
+  // Create `spv.mlir.selection` operation, selection header block and merge
+  // block.
+  auto selectionControl = rewriter.getI32IntegerAttr(
+      static_cast<uint32_t>(spirv::SelectionControl::None));
+  auto selectionOp = rewriter.create<spirv::SelectionOp>(loc, selectionControl);
   auto *mergeBlock =
       rewriter.createBlock(&selectionOp.body(), selectionOp.body().end());
   rewriter.create<spirv::MergeOp>(loc);

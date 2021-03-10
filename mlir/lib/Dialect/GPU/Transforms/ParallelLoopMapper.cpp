@@ -36,7 +36,7 @@ ParallelLoopDimMapping getParallelLoopDimMappingAttr(Processor processor,
   MLIRContext *context = map.getContext();
   OpBuilder builder(context);
   return ParallelLoopDimMapping::get(
-      ProcessorAttr::get(builder.getContext(), processor),
+      builder.getI64IntegerAttr(static_cast<int32_t>(processor)),
       AffineMapAttr::get(map), AffineMapAttr::get(bound), context);
 }
 
