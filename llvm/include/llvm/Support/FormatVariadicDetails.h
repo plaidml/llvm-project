@@ -48,7 +48,7 @@ public:
   explicit stream_operator_format_adapter(T &&Item)
       : Item(std::forward<T>(Item)) {}
 
-  void format(llvm::raw_ostream &S, StringRef Options) override { S << Item; }
+  void format(llvm::raw_ostream &S, StringRef) override { S << Item; }
 };
 
 template <typename T> class missing_format_adapter;
@@ -75,6 +75,8 @@ public:
 // Test if raw_ostream& << T -> raw_ostream& is findable via ADL.
 template <class T> class has_StreamOperator {
 public:
+  using ConstRefT = const std::decay_t<T> &;
+
   template <typename U>
   static char test(
       std::enable_if_t<std::is_same<decltype(std::declval<llvm::raw_ostream &>()
@@ -84,8 +86,7 @@ public:
 
   template <typename U> static double test(...);
 
-  // NOLINTNEXTLINE(readability-identifier-naming)
-  static bool const value = (sizeof(test<T>(nullptr)) == 1);
+  static bool const value = (sizeof(test<ConstRefT>(nullptr)) == 1);
 };
 
 // Simple template that decides whether a type T should use the member-function
@@ -152,7 +153,7 @@ build_format_adapter(T &&Item) {
 
 template <typename T>
 std::enable_if_t<uses_missing_provider<T>::value, missing_format_adapter<T>>
-build_format_adapter(T &&Item) {
+build_format_adapter(T &&) {
   return missing_format_adapter<T>();
 }
 }

@@ -826,8 +826,10 @@ public:
       return failure();
 
     rewriter.template replaceOpWithNewOp<LLVM::FCmpOp>(
-        operation, dstType, predicate, operation.operand1(),
-        operation.operand2());
+        operation, dstType,
+        rewriter.getI64IntegerAttr(static_cast<int64_t>(predicate)),
+        operation.operand1(), operation.operand2(),
+        LLVM::FMFAttr::get(operation.getContext(), {}));
     return success();
   }
 };
@@ -847,8 +849,9 @@ public:
       return failure();
 
     rewriter.template replaceOpWithNewOp<LLVM::ICmpOp>(
-        operation, dstType, predicate, operation.operand1(),
-        operation.operand2());
+        operation, dstType,
+        rewriter.getI64IntegerAttr(static_cast<int64_t>(predicate)),
+        operation.operand1(), operation.operand2());
     return success();
   }
 };

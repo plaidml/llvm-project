@@ -2568,12 +2568,7 @@ void InnerLoopVectorizer::packScalarIntoVectorValue(VPValue *Def,
 
 Value *InnerLoopVectorizer::reverseVector(Value *Vec) {
   assert(Vec->getType()->isVectorTy() && "Invalid type");
-  assert(!VF.isScalable() && "Cannot reverse scalable vectors");
-  SmallVector<int, 8> ShuffleMask;
-  for (unsigned i = 0; i < VF.getKnownMinValue(); ++i)
-    ShuffleMask.push_back(VF.getKnownMinValue() - i - 1);
-
-  return Builder.CreateShuffleVector(Vec, ShuffleMask, "reverse");
+  return Builder.CreateVectorReverse(Vec, "reverse");
 }
 
 // Return whether we allow using masked interleave-groups (for dealing with
@@ -2854,18 +2849,21 @@ void InnerLoopVectorizer::vectorizeMemoryInstruction(
     bool InBounds = false;
     if (auto *gep = dyn_cast<GetElementPtrInst>(Ptr->stripPointerCasts()))
       InBounds = gep->isInBounds();
-
     if (Reverse) {
-      assert(!VF.isScalable() &&
-             "Reversing vectors is not yet supported for scalable vectors.");
-
       // If the address is consecutive but reversed, then the
       // wide store needs to start at the last vector element.
-      PartPtr = cast<GetElementPtrInst>(Builder.CreateGEP(
-          ScalarDataTy, Ptr, Builder.getInt32(-Part * VF.getKnownMinValue())));
+      // RunTimeVF =  VScale * VF.getKnownMinValue()
+      // For fixed-width VScale is 1, then RunTimeVF = VF.getKnownMinValue()
+      Value *RunTimeVF = getRuntimeVF(Builder, Builder.getInt32Ty(), VF);
+      // NumElt = -Part * RunTimeVF
+      Value *NumElt = Builder.CreateMul(Builder.getInt32(-Part), RunTimeVF);
+      // LastLane = 1 - RunTimeVF
+      Value *LastLane = Builder.CreateSub(Builder.getInt32(1), RunTimeVF);
+      PartPtr =
+          cast<GetElementPtrInst>(Builder.CreateGEP(ScalarDataTy, Ptr, NumElt));
       PartPtr->setIsInBounds(InBounds);
-      PartPtr = cast<GetElementPtrInst>(Builder.CreateGEP(
-          ScalarDataTy, PartPtr, Builder.getInt32(1 - VF.getKnownMinValue())));
+      PartPtr = cast<GetElementPtrInst>(
+          Builder.CreateGEP(ScalarDataTy, PartPtr, LastLane));
       PartPtr->setIsInBounds(InBounds);
       if (isMaskRequired) // Reverse of a null all-one mask is a null mask.
         BlockInMaskParts[Part] = reverseVector(BlockInMaskParts[Part]);
@@ -8939,8 +8937,9 @@ VPlanPtr LoopVectorizationPlanner::buildVPlan(VFRange &Range) {
   }
 
   SmallPtrSet<Instruction *, 1> DeadInstructions;
-  VPlanTransforms::VPInstructionsToVPRecipes(
-      OrigLoop, Plan, Legal->getInductionVars(), DeadInstructions);
+  VPlanTransforms::VPInstructionsToVPRecipes(OrigLoop, Plan,
+                                             Legal->getInductionVars(),
+                                             DeadInstructions, *PSE.getSE());
   return Plan;
 }
 
@@ -9315,6 +9314,15 @@ Value *VPTransformState::get(VPValue *Def, unsigned Part) {
   bool IsUniform = RepR && RepR->isUniform();
 
   unsigned LastLane = IsUniform ? 0 : VF.getKnownMinValue() - 1;
+  // Check if there is a scalar value for the selected lane.
+  if (!hasScalarValue(Def, {Part, LastLane})) {
+    // At the moment, VPWidenIntOrFpInductionRecipes can also be uniform.
+    assert(isa<VPWidenIntOrFpInductionRecipe>(Def->getDef()) &&
+           "unexpected recipe found to be invariant");
+    IsUniform = true;
+    LastLane = 0;
+  }
+
   auto *LastInst = cast<Instruction>(get(Def, {Part, LastLane}));
 
   // Set the insert point after the last scalarized instruction. This
