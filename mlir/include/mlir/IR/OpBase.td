@@ -1458,7 +1458,7 @@ class TypedArrayAttrBase<Attr element, string summary>: ArrayAttrBase<
       CPred<"$_self.isa<::mlir::ArrayAttr>()">,
       // Guarantee all elements satisfy the constraints from `element`
       Concat<"::llvm::all_of($_self.cast<::mlir::ArrayAttr>(), "
-                            "[](::mlir::Attribute attr) { return ",
+                            "[&](::mlir::Attribute attr) { return ",
                                SubstLeaves<"$_self", "attr", element.predicate>,
                             "; })">]>,
     summary> {
@@ -2158,6 +2158,35 @@ class Op<Dialect dialect, string mnemonic, list<OpTrait> props = []> {
   code extraClassDeclaration = ?;
 }
 
+// Base class for ops with static/dynamic offset, sizes and strides
+// attributes/arguments.
+class BaseOpWithOffsetSizesAndStrides<Dialect dialect, string mnemonic,
+                                      list<OpTrait> traits = []> :
+  Op<dialect, mnemonic, traits> {
+
+  // For every such op, there needs to be a:
+  //   * void print(OpAsmPrinter &p, ${C++ class of Op} op)
+  //   * LogicalResult verify(${C++ class of Op} op)
+  //   * ParseResult parse${C++ class of Op}(OpAsmParser &parser,
+  //                                         OperationState &result)
+  // functions.
+  let printer = [{ return ::print(p, *this); }];
+  let verifier = [{ return ::verify(*this); }];
+  let parser = [{ return ::parse$cppClass(parser, result); }];
+
+  code extraBaseClassDeclaration = [{
+    /// Returns the dynamic sizes for this subview operation if specified.
+    operand_range getDynamicSizes() { return sizes(); }
+
+    /// Return the list of Range (i.e. offset, size, stride). Each
+    /// Range entry contains either the dynamic value or a ConstantIndexOp
+    /// constructed with `b` at location `loc`.
+    SmallVector<Range, 8> getOrCreateRanges(OpBuilder &b, Location loc) {
+      return mlir::getOrCreateRanges(*this, b, loc);
+    }
+  }];
+}
+
 // The arguments of an op.
 class Arguments<dag args> {
   dag arguments = args;
@@ -2692,6 +2721,8 @@ class TypeDef<Dialect dialect, string name,
 class AttrOrTypeParameter<string type, string desc> {
   // Custom memory allocation code for storage constructor.
   code allocator = ?;
+  // Custom comparator used to compare two instances for equality.
+  code comparator = ?;
   // The C++ type of this parameter.
   string cppType = type;
   // One-line human-readable description of the argument.
@@ -2706,6 +2737,12 @@ class TypeParameter<string type, string desc> : AttrOrTypeParameter<type, desc>;
 class StringRefParameter<string desc = ""> :
     AttrOrTypeParameter<"::llvm::StringRef", desc> {
   let allocator = [{$_dst = $_allocator.copyInto($_self);}];
+}
+
+// For APFloats, which require comparison.
+class APFloatParameter<string desc> :
+    AttrOrTypeParameter<"::llvm::APFloat", desc> {
+  let comparator = "$_lhs.bitwiseIsEqual($_rhs)";
 }
 
 // For standard ArrayRefs, which require allocation.
@@ -2734,7 +2771,8 @@ class ArrayRefOfSelfAllocationParameter<string arrayOf, string desc> :
 // This is a special parameter used for AttrDefs that represents a `mlir::Type`
 // that is also used as the value `Type` of the attribute. Only one parameter
 // of the attribute may be of this type.
-class AttributeSelfTypeParameter<string desc> :
-    AttrOrTypeParameter<"::mlir::Type", desc> {}
+class AttributeSelfTypeParameter<string desc,
+                                 string derivedType = "::mlir::Type"> :
+    AttrOrTypeParameter<derivedType, desc> {}
 
 #endif // OP_BASE

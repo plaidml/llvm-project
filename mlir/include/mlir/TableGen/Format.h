@@ -186,20 +186,6 @@ public:
   }
 };
 
-class FmtStrVecObject : public FmtObjectBase {
-public:
-  using StrFormatAdapter =
-      decltype(llvm::detail::build_format_adapter(std::declval<std::string>()));
-
-  FmtStrVecObject(StringRef fmt, const FmtContext *ctx,
-                  ArrayRef<std::string> params);
-  FmtStrVecObject(FmtStrVecObject const &that) = delete;
-  FmtStrVecObject(FmtStrVecObject &&that);
-
-private:
-  SmallVector<StrFormatAdapter, 16> parameters;
-};
-
 /// Formats text by substituting placeholders in format string with replacement
 /// parameters.
 ///
@@ -246,11 +232,6 @@ inline auto tgfmt(StringRef fmt, const FmtContext *ctx, Ts &&... vals)
       fmt, ctx,
       std::make_tuple(
           llvm::detail::build_format_adapter(std::forward<Ts>(vals))...));
-}
-
-inline FmtStrVecObject tgfmt(StringRef fmt, const FmtContext *ctx,
-                             ArrayRef<std::string> params) {
-  return FmtStrVecObject(fmt, ctx, params);
 }
 
 } // end namespace tblgen
