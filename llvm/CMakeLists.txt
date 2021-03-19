@@ -979,7 +979,7 @@ if( LLVM_INCLUDE_TESTS )
   add_subdirectory(utils/lit)
   add_subdirectory(test)
   add_subdirectory(unittests)
-  if( LLVM_INCLUDE_UTILS AND NOT TARGET gtest )
+  if( LLVM_INCLUDE_UTILS )
     add_subdirectory(utils/unittest)
   endif()
 
