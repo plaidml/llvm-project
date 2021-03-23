@@ -507,6 +507,9 @@ if (MSVC_IDE OR XCODE)
 endif()
 set(LLVM_LIT_ARGS "${LIT_ARGS_DEFAULT}" CACHE STRING "Default options for lit")
 
+include(GetErrcMessages)
+get_errc_messages(LLVM_LIT_ERRC_MESSAGES)
+
 # On Win32 hosts, provide an option to specify the path to the GnuWin32 tools.
 if( WIN32 AND NOT CYGWIN )
   set(LLVM_LIT_TOOLS_DIR "" CACHE PATH "Path to GnuWin32 tools")
@@ -973,10 +976,6 @@ if( LLVM_INCLUDE_TESTS )
       NO_INSTALL
       ALWAYS_CLEAN)
   endif()
-
-  include(GetErrcMessages)
-  get_errc_messages(LLVM_LIT_ERRC_MESSAGES)
-
   add_subdirectory(utils/lit)
   add_subdirectory(test)
   add_subdirectory(unittests)
