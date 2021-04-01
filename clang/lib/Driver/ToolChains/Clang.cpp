@@ -1051,6 +1051,9 @@ static void RenderDebugEnablingArgs(const ArgList &Args, ArgStringList &CmdArgs,
   case llvm::DebuggerKind::SCE:
     CmdArgs.push_back("-debugger-tuning=sce");
     break;
+  case llvm::DebuggerKind::DBX:
+    CmdArgs.push_back("-debugger-tuning=dbx");
+    break;
   default:
     break;
   }
@@ -3895,6 +3898,8 @@ static void renderDebugOptions(const ToolChain &TC, const Driver &D,
         DebuggerTuning = llvm::DebuggerKind::LLDB;
       else if (A->getOption().matches(options::OPT_gsce))
         DebuggerTuning = llvm::DebuggerKind::SCE;
+      else if (A->getOption().matches(options::OPT_gdbx))
+        DebuggerTuning = llvm::DebuggerKind::DBX;
       else
         DebuggerTuning = llvm::DebuggerKind::GDB;
     }
@@ -5108,8 +5113,9 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
 
   if (D.CCPrintHeaders && !D.CCGenDiagnostics) {
     CmdArgs.push_back("-header-include-file");
-    CmdArgs.push_back(D.CCPrintHeadersFilename ? D.CCPrintHeadersFilename
-                                               : "-");
+    CmdArgs.push_back(!D.CCPrintHeadersFilename.empty()
+                          ? D.CCPrintHeadersFilename.c_str()
+                          : "-");
     CmdArgs.push_back("-sys-header-deps");
   }
   Args.AddLastArg(CmdArgs, options::OPT_P);
@@ -5117,8 +5123,9 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
 
   if (D.CCLogDiagnostics && !D.CCGenDiagnostics) {
     CmdArgs.push_back("-diagnostic-log-file");
-    CmdArgs.push_back(D.CCLogDiagnosticsFilename ? D.CCLogDiagnosticsFilename
-                                                 : "-");
+    CmdArgs.push_back(!D.CCLogDiagnosticsFilename.empty()
+                          ? D.CCLogDiagnosticsFilename.c_str()
+                          : "-");
   }
 
   // Give the gen diagnostics more chances to succeed, by avoiding intentional

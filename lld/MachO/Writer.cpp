@@ -20,12 +20,14 @@
 #include "Target.h"
 #include "UnwindInfoSection.h"
 
+#include "lld/Common/Arrays.h"
 #include "lld/Common/ErrorHandler.h"
 #include "lld/Common/Memory.h"
 #include "llvm/BinaryFormat/MachO.h"
 #include "llvm/Config/llvm-config.h"
 #include "llvm/Support/LEB128.h"
 #include "llvm/Support/MathExtras.h"
+#include "llvm/Support/Parallel.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/TimeProfiler.h"
 #include "llvm/Support/xxhash.h"
@@ -70,6 +72,8 @@ public:
   IndirectSymtabSection *indirectSymtabSection = nullptr;
   CodeSignatureSection *codeSignatureSection = nullptr;
   UnwindInfoSection *unwindInfoSection = nullptr;
+  FunctionStartsSection *functionStartsSection = nullptr;
+
   LCUuid *uuidCommand = nullptr;
   OutputSegment *linkEditSegment = nullptr;
 };
@@ -122,8 +126,8 @@ public:
 
 class LCFunctionStarts : public LoadCommand {
 public:
-  explicit LCFunctionStarts(FunctionStartsSection *functionStarts)
-      : functionStarts(functionStarts) {}
+  explicit LCFunctionStarts(FunctionStartsSection *functionStartsSection)
+      : functionStartsSection(functionStartsSection) {}
 
   uint32_t getSize() const override { return sizeof(linkedit_data_command); }
 
@@ -131,12 +135,12 @@ public:
     auto *c = reinterpret_cast<linkedit_data_command *>(buf);
     c->cmd = LC_FUNCTION_STARTS;
     c->cmdsize = getSize();
-    c->dataoff = functionStarts->fileOff;
-    c->datasize = functionStarts->getFileSize();
+    c->dataoff = functionStartsSection->fileOff;
+    c->datasize = functionStartsSection->getFileSize();
   }
 
 private:
-  FunctionStartsSection *functionStarts;
+  FunctionStartsSection *functionStartsSection;
 };
 
 class LCDysymtab : public LoadCommand {
@@ -482,8 +486,8 @@ static bool needsBinding(const Symbol *sym) {
   return false;
 }
 
-static void prepareSymbolRelocation(lld::macho::Symbol *sym,
-                                    const InputSection *isec, const Reloc &r) {
+static void prepareSymbolRelocation(Symbol *sym, const InputSection *isec,
+                                    const Reloc &r) {
   const RelocAttrs &relocAttrs = target->getRelocAttrs(r.type);
 
   if (relocAttrs.hasAttr(RelocAttrBits::BRANCH)) {
@@ -518,10 +522,10 @@ void Writer::scanRelocations() {
         // minuend, and doesn't have the usual UNSIGNED semantics. We don't want
         // to emit rebase opcodes for it.
         it = std::next(it);
-        assert(isa<Defined>(it->referent.dyn_cast<lld::macho::Symbol *>()));
+        assert(isa<Defined>(it->referent.dyn_cast<Symbol *>()));
         continue;
       }
-      if (auto *sym = r.referent.dyn_cast<lld::macho::Symbol *>()) {
+      if (auto *sym = r.referent.dyn_cast<Symbol *>()) {
         if (auto *undefined = dyn_cast<Undefined>(sym))
           treatUndefinedSymbol(*undefined);
         // treatUndefinedSymbol() can replace sym with a DylibSymbol; re-check.
@@ -538,7 +542,7 @@ void Writer::scanRelocations() {
 
 void Writer::scanSymbols() {
   TimeTraceScope timeScope("Scan symbols");
-  for (const macho::Symbol *sym : symtab->getSymbols()) {
+  for (const Symbol *sym : symtab->getSymbols()) {
     if (const auto *defined = dyn_cast<Defined>(sym)) {
       if (defined->overridesWeakDef)
         in.weakBinding->addNonWeakDefinition(defined);
@@ -563,7 +567,8 @@ void Writer::createLoadCommands() {
   in.header->addLoadCommand(make<LCSymtab>(symtabSection, stringTableSection));
   in.header->addLoadCommand(
       make<LCDysymtab>(symtabSection, indirectSymtabSection));
-  in.header->addLoadCommand(make<LCFunctionStarts>(in.functionStarts));
+  if (functionStartsSection)
+    in.header->addLoadCommand(make<LCFunctionStarts>(functionStartsSection));
   for (StringRef path : config->runtimePaths)
     in.header->addLoadCommand(make<LCRPath>(path));
 
@@ -657,11 +662,12 @@ static DenseMap<const InputSection *, size_t> buildInputSectionPriorities() {
   };
 
   // TODO: Make sure this handles weak symbols correctly.
-  for (const InputFile *file : inputFiles)
+  for (const InputFile *file : inputFiles) {
     if (isa<ObjFile>(file))
-      for (lld::macho::Symbol *sym : file->symbols)
+      for (Symbol *sym : file->symbols)
         if (auto *d = dyn_cast<Defined>(sym))
           addSym(*d);
+  }
 
   return sectionPriorities;
 }
@@ -791,6 +797,8 @@ void Writer::createOutputSections() {
   indirectSymtabSection = make<IndirectSymtabSection>();
   if (config->adhocCodesign)
     codeSignatureSection = make<CodeSignatureSection>();
+  if (config->emitFunctionStarts)
+    functionStartsSection = make<FunctionStartsSection>();
 
   switch (config->outputType) {
   case MH_EXECUTE:
@@ -863,9 +871,11 @@ void Writer::finalizeLinkEditSegment() {
   in.weakBinding->finalizeContents();
   in.lazyBinding->finalizeContents();
   in.exports->finalizeContents();
-  in.functionStarts->finalizeContents();
   symtabSection->finalizeContents();
   indirectSymtabSection->finalizeContents();
+
+  if (functionStartsSection)
+    functionStartsSection->finalizeContents();
 
   // Now that __LINKEDIT is filled out, do a proper calculation of its
   // addresses and offsets.
@@ -912,10 +922,21 @@ void Writer::writeSections() {
       osec->writeTo(buf + osec->fileOff);
 }
 
+// In order to utilize multiple cores, we first split the buffer into chunks,
+// compute a hash for each chunk, and then compute a hash value of the hash
+// values.
 void Writer::writeUuid() {
   TimeTraceScope timeScope("Computing UUID");
-  uint64_t digest =
-      xxHash64({buffer->getBufferStart(), buffer->getBufferEnd()});
+  ArrayRef<uint8_t> data{buffer->getBufferStart(), buffer->getBufferEnd()};
+  unsigned chunkCount = parallel::strategy.compute_thread_count() * 10;
+  // Round-up integer division
+  size_t chunkSize = (data.size() + chunkCount - 1) / chunkCount;
+  std::vector<ArrayRef<uint8_t>> chunks = split(data, chunkSize);
+  std::vector<uint64_t> hashes(chunks.size());
+  parallelForEachN(0, chunks.size(),
+                   [&](size_t i) { hashes[i] = xxHash64(chunks[i]); });
+  uint64_t digest = xxHash64({reinterpret_cast<uint8_t *>(hashes.data()),
+                              hashes.size() * sizeof(uint64_t)});
   uuidCommand->writeUuid(digest);
 }
 
@@ -962,7 +983,6 @@ void macho::createSyntheticSections() {
   in.weakBinding = make<WeakBindingSection>();
   in.lazyBinding = make<LazyBindingSection>();
   in.exports = make<ExportSection>();
-  in.functionStarts = make<FunctionStartsSection>();
   in.got = make<GotSection>();
   in.tlvPointers = make<TlvPointerSection>();
   in.lazyPointers = make<LazyPointerSection>();

@@ -2573,13 +2573,12 @@ While Clang generally emits standard DWARF debug info (http://dwarfstd.org),
 different debuggers may know how to take advantage of different specific DWARF
 features. You can "tune" the debug info for one of several different debuggers.
 
-.. option:: -ggdb, -glldb, -gsce
+.. option:: -ggdb, -glldb, -gsce, -gdbx
 
-  Tune the debug info for the ``gdb``, ``lldb``, or Sony PlayStation\ |reg|
-  debugger, respectively. Each of these options implies **-g**. (Therefore, if
-  you want both **-gline-tables-only** and debugger tuning, the tuning option
-  must come first.)
-
+  Tune the debug info for the ``gdb``, ``lldb``, Sony PlayStation\ |reg|
+  debugger, or ``dbx``, respectively. Each of these options implies **-g**.
+  (Therefore, if you want both **-gline-tables-only** and debugger tuning, the
+  tuning option must come first.)
 
 Controlling LLVM IR Output
 --------------------------
@@ -3236,6 +3235,18 @@ compiling ``.cl`` file ``-cl-std=clc++``, ``-cl-std=CLC++``, ``-std=clc++`` or
    .. code-block:: console
 
      clang -cl-std=clc++ test.cl
+
+Alternatively, files with ``.clcpp`` extension are compiled with the C++ for OpenCL
+mode.
+
+   .. code-block:: console
+
+     clang test.clcpp
+
+C++ for OpenCL kernel sources can also be compiled online in drivers supporting 
+`cl_ext_cxx_for_opencl
+<https://www.khronos.org/registry/OpenCL/extensions/ext/cl_ext_cxx_for_opencl.html>`_
+extension.
 
 Constructing and destroying global objects
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
