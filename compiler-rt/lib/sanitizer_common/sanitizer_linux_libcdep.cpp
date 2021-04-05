@@ -282,31 +282,41 @@ static uptr TlsPreTcbSize() {
 
 #if !SANITIZER_GO
 namespace {
-struct TlsRange {
+struct TlsBlock {
   uptr begin, end, align;
   size_t tls_modid;
-  bool operator<(const TlsRange &rhs) const { return begin < rhs.begin; }
+  bool operator<(const TlsBlock &rhs) const { return begin < rhs.begin; }
 };
 }  // namespace
 
-static int CollectStaticTlsRanges(struct dl_phdr_info *info, size_t size,
+extern "C" void *__tls_get_addr(size_t *);
+
+static int TouchTlsBlock(struct dl_phdr_info *info, size_t size,
+                         void *data) {
+  size_t mod_and_off[2] = {info->dlpi_tls_modid, 0};
+  if (mod_and_off[0] != 0)
+    __tls_get_addr(mod_and_off);
+  return 0;
+}
+
+static int CollectStaticTlsBlocks(struct dl_phdr_info *info, size_t size,
                                   void *data) {
   if (!info->dlpi_tls_data)
     return 0;
   const uptr begin = (uptr)info->dlpi_tls_data;
   for (unsigned i = 0; i != info->dlpi_phnum; ++i)
     if (info->dlpi_phdr[i].p_type == PT_TLS) {
-      static_cast<InternalMmapVector<TlsRange> *>(data)->push_back(
-          TlsRange{begin, begin + info->dlpi_phdr[i].p_memsz,
+      static_cast<InternalMmapVector<TlsBlock> *>(data)->push_back(
+          TlsBlock{begin, begin + info->dlpi_phdr[i].p_memsz,
                    info->dlpi_phdr[i].p_align, info->dlpi_tls_modid});
       break;
     }
   return 0;
 }
 
-static void GetStaticTlsRange(uptr *addr, uptr *size, uptr *align) {
-  InternalMmapVector<TlsRange> ranges;
-  dl_iterate_phdr(CollectStaticTlsRanges, &ranges);
+static void GetStaticTlsBoundary(uptr *addr, uptr *size, uptr *align) {
+  InternalMmapVector<TlsBlock> ranges;
+  dl_iterate_phdr(CollectStaticTlsBlocks, &ranges);
   uptr len = ranges.size();
   Sort(ranges.begin(), len);
   // Find the range with tls_modid=1. For glibc, because libc.so uses PT_TLS,
@@ -408,8 +418,15 @@ static void GetTls(uptr *addr, uptr *size) {
     *size = 0;
   }
 #elif SANITIZER_LINUX
+  // glibc before 2.25 (BZ #19826) does not set dlpi_tls_data. Call
+  // __tls_get_addr to force allocation. For safety, skip grte/v4-2.19 for now.
+  int major, minor, patch;
+  if (GetLibcVersion(&major, &minor, &patch) && major == 2 && minor < 25 &&
+      minor != 19)
+    dl_iterate_phdr(TouchTlsBlock, nullptr);
+
   uptr align;
-  GetStaticTlsRange(addr, size, &align);
+  GetStaticTlsBoundary(addr, size, &align);
 #if defined(__x86_64__) || defined(__i386__) || defined(__s390__)
   if (SANITIZER_GLIBC) {
 #if defined(__s390__)
@@ -436,15 +453,7 @@ static void GetTls(uptr *addr, uptr *size) {
 #else
   if (SANITIZER_GLIBC)
     *size += 1664;
-#if defined(__powerpc64__)
-  // TODO Figure out why *addr may be zero and use TlsPreTcbSize.
-  void *ptr = dlsym(RTLD_NEXT, "_dl_get_tls_static_info");
-  uptr tls_size, tls_align;
-  ((void (*)(size_t *, size_t *))ptr)(&tls_size, &tls_align);
-  asm("addi %0,13,-0x7000" : "=r"(*addr));
-  *addr -= TlsPreTcbSize();
-  *size = RoundUpTo(tls_size + TlsPreTcbSize(), 16);
-#elif defined(__mips__) || SANITIZER_RISCV64
+#if defined(__mips__) || defined(__powerpc64__) || SANITIZER_RISCV64
   const uptr pre_tcb_size = TlsPreTcbSize();
   *addr -= pre_tcb_size;
   *size += pre_tcb_size;
