@@ -1124,7 +1124,10 @@ static Instruction *canonicalizeAbsNabs(SelectInst &Sel, ICmpInst &Cmp,
 /// TODO: Wrapping flags could be preserved in some cases with better analysis.
 Instruction *InstCombinerImpl::foldSelectValueEquivalence(SelectInst &Sel,
                                                           ICmpInst &Cmp) {
-  if (!Cmp.isEquality())
+  // Value equivalence substitution requires an all-or-nothing replacement.
+  // It does not make sense for a vector compare where each lane is chosen
+  // independently.
+  if (!Cmp.isEquality() || Cmp.getType()->isVectorTy())
     return nullptr;
 
   // Canonicalize the pattern to ICMP_EQ by swapping the select operands.
@@ -2380,7 +2383,7 @@ static Instruction *foldSelectFunnelShift(SelectInst &Sel,
   Intrinsic::ID IID = IsFshl ? Intrinsic::fshl : Intrinsic::fshr;
   Function *F = Intrinsic::getDeclaration(Sel.getModule(), IID, Sel.getType());
   ShAmt = Builder.CreateZExt(ShAmt, Sel.getType());
-  return IntrinsicInst::Create(F, { SV0, SV1, ShAmt });
+  return CallInst::Create(F, { SV0, SV1, ShAmt });
 }
 
 static Instruction *foldSelectToCopysign(SelectInst &Sel,
@@ -2421,7 +2424,7 @@ static Instruction *foldSelectToCopysign(SelectInst &Sel,
   Value *MagArg = TC->isNegative() ? FVal : TVal;
   Function *F = Intrinsic::getDeclaration(Sel.getModule(), Intrinsic::copysign,
                                           Sel.getType());
-  Instruction *CopySign = IntrinsicInst::Create(F, { MagArg, X });
+  Instruction *CopySign = CallInst::Create(F, { MagArg, X });
   CopySign->setFastMathFlags(Sel.getFastMathFlags());
   return CopySign;
 }
@@ -2651,13 +2654,15 @@ Instruction *InstCombinerImpl::visitSelectInst(SelectInst &SI) {
     auto *One = ConstantInt::getTrue(SelType);
     auto *Zero = ConstantInt::getFalse(SelType);
 
+    // We match the "full" 0 or 1 constant here to avoid a potential infinite
+    // loop with vectors that may have undefined/poison elements.
     // select a, false, b -> select !a, b, false
-    if (match(TrueVal, m_Zero())) {
+    if (match(TrueVal, m_Specific(Zero))) {
       Value *NotCond = Builder.CreateNot(CondVal, "not." + CondVal->getName());
       return SelectInst::Create(NotCond, FalseVal, Zero);
     }
     // select a, b, true -> select !a, true, b
-    if (match(FalseVal, m_One())) {
+    if (match(FalseVal, m_Specific(One))) {
       Value *NotCond = Builder.CreateNot(CondVal, "not." + CondVal->getName());
       return SelectInst::Create(NotCond, One, TrueVal);
     }
