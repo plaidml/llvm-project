@@ -689,3 +689,131 @@ define i8 @umin_negation(i8 %x) {
   %r = call i8 @llvm.umin.i8(i8 %s, i8 %x)
   ret i8 %r
 }
+
+define i8 @smax_negation_uses(i8 %x, i8 %y) {
+; CHECK-LABEL: @smax_negation_uses(
+; CHECK-NEXT:    [[S2:%.*]] = sub i8 [[Y:%.*]], [[X:%.*]]
+; CHECK-NEXT:    call void @use(i8 [[S2]])
+; CHECK-NEXT:    [[TMP1:%.*]] = call i8 @llvm.abs.i8(i8 [[S2]], i1 false)
+; CHECK-NEXT:    ret i8 [[TMP1]]
+;
+  %s1 = sub i8 %x, %y
+  %s2 = sub i8 %y, %x
+  call void @use(i8 %s2)
+  %r = call i8 @llvm.smax.i8(i8 %s1, i8 %s2)
+  ret i8 %r
+}
+
+define i8 @clamp_two_vals_smax_smin(i8 %x) {
+; CHECK-LABEL: @clamp_two_vals_smax_smin(
+; CHECK-NEXT:    [[TMP1:%.*]] = icmp slt i8 [[X:%.*]], 43
+; CHECK-NEXT:    [[R:%.*]] = select i1 [[TMP1]], i8 42, i8 43
+; CHECK-NEXT:    ret i8 [[R]]
+;
+  %m = call i8 @llvm.smax.i8(i8 %x, i8 42)
+  %r = call i8 @llvm.smin.i8(i8 %m, i8 43)
+  ret i8 %r
+}
+
+define <3 x i8> @clamp_two_vals_smin_smax(<3 x i8> %x) {
+; CHECK-LABEL: @clamp_two_vals_smin_smax(
+; CHECK-NEXT:    [[TMP1:%.*]] = icmp sgt <3 x i8> [[X:%.*]], <i8 41, i8 41, i8 41>
+; CHECK-NEXT:    [[R:%.*]] = select <3 x i1> [[TMP1]], <3 x i8> <i8 42, i8 42, i8 42>, <3 x i8> <i8 41, i8 41, i8 41>
+; CHECK-NEXT:    ret <3 x i8> [[R]]
+;
+  %m = call <3 x i8> @llvm.smin.v3i8(<3 x i8> %x, <3 x i8> <i8 42, i8 42, i8 42>)
+  %r = call <3 x i8> @llvm.smax.v3i8(<3 x i8> %m, <3 x i8> <i8 41, i8 41, i8 41>)
+  ret <3 x i8> %r
+}
+
+define i8 @clamp_two_vals_umax_umin(i8 %x) {
+; CHECK-LABEL: @clamp_two_vals_umax_umin(
+; CHECK-NEXT:    [[TMP1:%.*]] = icmp ult i8 [[X:%.*]], 43
+; CHECK-NEXT:    [[R:%.*]] = select i1 [[TMP1]], i8 42, i8 43
+; CHECK-NEXT:    ret i8 [[R]]
+;
+  %m = call i8 @llvm.umax.i8(i8 %x, i8 42)
+  %r = call i8 @llvm.umin.i8(i8 %m, i8 43)
+  ret i8 %r
+}
+
+define i8 @clamp_two_vals_umin_umax(i8 %x) {
+; CHECK-LABEL: @clamp_two_vals_umin_umax(
+; CHECK-NEXT:    [[TMP1:%.*]] = icmp ugt i8 [[X:%.*]], 41
+; CHECK-NEXT:    [[R:%.*]] = select i1 [[TMP1]], i8 42, i8 41
+; CHECK-NEXT:    ret i8 [[R]]
+;
+  %m = call i8 @llvm.umin.i8(i8 %x, i8 42)
+  %r = call i8 @llvm.umax.i8(i8 %m, i8 41)
+  ret i8 %r
+}
+
+; Negative test - mismatched signs
+
+define i8 @clamp_two_vals_smax_umin(i8 %x) {
+; CHECK-LABEL: @clamp_two_vals_smax_umin(
+; CHECK-NEXT:    [[M:%.*]] = call i8 @llvm.smax.i8(i8 [[X:%.*]], i8 42)
+; CHECK-NEXT:    [[R:%.*]] = call i8 @llvm.umin.i8(i8 [[M]], i8 43)
+; CHECK-NEXT:    ret i8 [[R]]
+;
+  %m = call i8 @llvm.smax.i8(i8 %x, i8 42)
+  %r = call i8 @llvm.umin.i8(i8 %m, i8 43)
+  ret i8 %r
+}
+
+; Negative test - wrong range
+
+define i8 @clamp_three_vals_smax_smin(i8 %x) {
+; CHECK-LABEL: @clamp_three_vals_smax_smin(
+; CHECK-NEXT:    [[M:%.*]] = call i8 @llvm.smax.i8(i8 [[X:%.*]], i8 42)
+; CHECK-NEXT:    [[R:%.*]] = call i8 @llvm.smin.i8(i8 [[M]], i8 44)
+; CHECK-NEXT:    ret i8 [[R]]
+;
+  %m = call i8 @llvm.smax.i8(i8 %x, i8 42)
+  %r = call i8 @llvm.smin.i8(i8 %m, i8 44)
+  ret i8 %r
+}
+
+; Edge cases are simplified
+
+define i8 @clamp_two_vals_umax_umin_edge(i8 %x) {
+; CHECK-LABEL: @clamp_two_vals_umax_umin_edge(
+; CHECK-NEXT:    ret i8 0
+;
+  %m = call i8 @llvm.umax.i8(i8 %x, i8 255)
+  %r = call i8 @llvm.umin.i8(i8 %m, i8 0)
+  ret i8 %r
+}
+
+; Edge cases are simplified
+
+define i8 @clamp_two_vals_umin_umax_edge(i8 %x) {
+; CHECK-LABEL: @clamp_two_vals_umin_umax_edge(
+; CHECK-NEXT:    ret i8 -1
+;
+  %m = call i8 @llvm.umin.i8(i8 %x, i8 0)
+  %r = call i8 @llvm.umax.i8(i8 %m, i8 255)
+  ret i8 %r
+}
+
+; Edge cases are simplified
+
+define i8 @clamp_two_vals_smax_smin_edge(i8 %x) {
+; CHECK-LABEL: @clamp_two_vals_smax_smin_edge(
+; CHECK-NEXT:    ret i8 -128
+;
+  %m = call i8 @llvm.smax.i8(i8 %x, i8 127)
+  %r = call i8 @llvm.smin.i8(i8 %m, i8 128)
+  ret i8 %r
+}
+
+; Edge cases are simplified
+
+define i8 @clamp_two_vals_smin_smax_edge(i8 %x) {
+; CHECK-LABEL: @clamp_two_vals_smin_smax_edge(
+; CHECK-NEXT:    ret i8 127
+;
+  %m = call i8 @llvm.smin.i8(i8 %x, i8 128)
+  %r = call i8 @llvm.smax.i8(i8 %m, i8 127)
+  ret i8 %r
+}

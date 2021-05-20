@@ -36,6 +36,22 @@ def LinalgContractionOpInterface : OpInterface<"ContractionOpInterface"> {
   let verify = [{ return detail::verifyContractionInterface($_op); }];
   let methods = [
     InterfaceMethod<
+    /*desc=*/"Returns the left-hand side operand.",
+    /*retTy=*/"Value",
+    /*methodName=*/"lhs",
+    /*args=*/(ins),
+    /*methodBody=*/[{
+      return $_op.getOperation()->getOperand(0);
+    }]>,
+    InterfaceMethod<
+    /*desc=*/"Returns the right-hand side operand.",
+    /*retTy=*/"Value",
+    /*methodName=*/"rhs",
+    /*args=*/(ins),
+    /*methodBody=*/[{
+      return $_op.getOperation()->getOperand(1);
+    }]>,
+    InterfaceMethod<
     /*desc=*/[{
       Returns whether the given op has indexing maps that correspond to a
       row-major matmul operation.
@@ -1002,19 +1018,6 @@ def LinalgStructuredInterface : OpInterface<"LinalgOp"> {
     >,
     InterfaceMethod<
       /*desc=*/[{
-        Return whether the op has sparse tensor semantics.
-      }],
-      /*retTy=*/"bool",
-      /*methodName=*/"hasSparseSemantics",
-      /*args=*/(ins),
-      /*methodBody=*/"",
-      /*defaultImplementation=*/[{
-        return $_op->getAttr(getSparseAttrName()).
-          template dyn_cast_or_null<ArrayAttr>() != nullptr;
-      }]
-    >,
-    InterfaceMethod<
-      /*desc=*/[{
         Return the name registered for this op when lowering to an external
         library call.
       }],
@@ -1026,7 +1029,16 @@ def LinalgStructuredInterface : OpInterface<"LinalgOp"> {
         return $_op.getLibraryCallName();
       }]
     >,
-
+    InterfaceMethod<
+      /*desc=*/[{
+         Return whether the op accesses the iteration indices.
+      }],
+      /*retTy=*/"bool",
+      /*methodName=*/"hasIndexSemantics",
+      /*args=*/(ins),
+      /*methodBody=*/"",
+      /*defaultImplementation=*/""
+    >,
     //===------------------------------------------------------------------===//
     // Linalg generalization hooks.
     //===------------------------------------------------------------------===//
@@ -1233,10 +1245,20 @@ def LinalgStructuredInterface : OpInterface<"LinalgOp"> {
     /// appear in the operands.
     SmallVector<Value, 4> createFlatListOfOperandDims(OpBuilder &, Location);
 
+    /// Return the flat list of all operands' static dimension sizes in the
+    /// order they appear in the operands. All operand dimension sizes have to
+    /// be statically known.
+    SmallVector<int64_t, 4> createFlatListOfOperandStaticDims();
+
     /// Create the loop ranges to materialize the computation over the current
     /// operands. This is done by applying `getShapesToLoopsMap` to
     /// `createFlatListOfOperandDims`.
     SmallVector<Range, 4> createLoopRanges(OpBuilder &b, Location loc);
+
+    /// Compute the static loop sizes necessary to vectorize the computation.
+    /// This is done by applying `getShapesToLoopsMap` to
+    /// `createFlatListOfOperandStaticDims`.
+    SmallVector<int64_t, 4> computeStaticLoopSizes();
 
     /// Returns all the operands past the inputs, output_buffers and
     /// init_tensors operands. Asserts that these operands are value types to

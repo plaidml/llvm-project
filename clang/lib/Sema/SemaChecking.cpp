@@ -838,8 +838,7 @@ static bool checkOpenCLBlockArgs(Sema &S, Expr *BlockArg) {
 }
 
 static bool checkOpenCLSubgroupExt(Sema &S, CallExpr *Call) {
-  if (!S.getOpenCLOptions().isAvailableOption("cl_khr_subgroups",
-                                              S.getLangOpts())) {
+  if (!S.getOpenCLOptions().isSupported("cl_khr_subgroups", S.getLangOpts())) {
     S.Diag(Call->getBeginLoc(), diag::err_opencl_requires_extension)
         << 1 << Call->getDirectCallee() << "cl_khr_subgroups";
     return true;
@@ -3332,7 +3331,7 @@ bool Sema::CheckPPCBuiltinFunctionCall(const TargetInfo &TI, unsigned BuiltinID,
      return SemaBuiltinConstantArgRange(TheCall, 2, 0, 7);
   case PPC::BI__builtin_vsx_xxpermx:
      return SemaBuiltinConstantArgRange(TheCall, 3, 0, 7);
-#define CUSTOM_BUILTIN(Name, Types, Acc) \
+#define CUSTOM_BUILTIN(Name, Intr, Types, Acc) \
   case PPC::BI__builtin_##Name: \
     return SemaBuiltinPPCMMACall(TheCall, Types);
 #include "clang/Basic/BuiltinsPPC.def"
@@ -3384,20 +3383,27 @@ bool Sema::CheckAMDGCNBuiltinFunctionCall(unsigned BuiltinID,
   if (!ArgExpr->EvaluateAsInt(ArgResult, Context))
     return Diag(ArgExpr->getExprLoc(), diag::err_typecheck_expect_int)
            << ArgExpr->getType();
-  int ord = ArgResult.Val.getInt().getZExtValue();
+  auto Ord = ArgResult.Val.getInt().getZExtValue();
 
   // Check valididty of memory ordering as per C11 / C++11's memody model.
-  switch (static_cast<llvm::AtomicOrderingCABI>(ord)) {
+  // Only fence needs check. Atomic dec/inc allow all memory orders.
+  if (!llvm::isValidAtomicOrderingCABI(Ord))
+    return Diag(ArgExpr->getBeginLoc(),
+                diag::warn_atomic_op_has_invalid_memory_order)
+           << ArgExpr->getSourceRange();
+  switch (static_cast<llvm::AtomicOrderingCABI>(Ord)) {
+  case llvm::AtomicOrderingCABI::relaxed:
+  case llvm::AtomicOrderingCABI::consume:
+    if (BuiltinID == AMDGPU::BI__builtin_amdgcn_fence)
+      return Diag(ArgExpr->getBeginLoc(),
+                  diag::warn_atomic_op_has_invalid_memory_order)
+             << ArgExpr->getSourceRange();
+    break;
   case llvm::AtomicOrderingCABI::acquire:
   case llvm::AtomicOrderingCABI::release:
   case llvm::AtomicOrderingCABI::acq_rel:
   case llvm::AtomicOrderingCABI::seq_cst:
     break;
-  default: {
-    return Diag(ArgExpr->getBeginLoc(),
-                diag::warn_atomic_op_has_invalid_memory_order)
-           << ArgExpr->getSourceRange();
-  }
   }
 
   Arg = TheCall->getArg(ScopeIndex);
@@ -3409,6 +3415,26 @@ bool Sema::CheckAMDGCNBuiltinFunctionCall(unsigned BuiltinID,
            << ArgExpr->getType();
 
   return false;
+}
+
+bool Sema::CheckRISCVLMUL(CallExpr *TheCall, unsigned ArgNum) {
+  llvm::APSInt Result;
+
+  // We can't check the value of a dependent argument.
+  Expr *Arg = TheCall->getArg(ArgNum);
+  if (Arg->isTypeDependent() || Arg->isValueDependent())
+    return false;
+
+  // Check constant-ness first.
+  if (SemaBuiltinConstantArg(TheCall, ArgNum, Result))
+    return true;
+
+  int64_t Val = Result.getSExtValue();
+  if ((Val >= 0 && Val <= 3) || (Val >= 5 && Val <= 7))
+    return false;
+
+  return Diag(TheCall->getBeginLoc(), diag::err_riscv_builtin_invalid_lmul)
+         << Arg->getSourceRange();
 }
 
 bool Sema::CheckRISCVBuiltinFunctionCall(const TargetInfo &TI,
@@ -3442,7 +3468,19 @@ bool Sema::CheckRISCVBuiltinFunctionCall(const TargetInfo &TI,
         << TheCall->getSourceRange() << StringRef(FeatureStr);
   }
 
-  return FeatureMissing;
+  if (FeatureMissing)
+    return true;
+
+  switch (BuiltinID) {
+  case RISCV::BI__builtin_rvv_vsetvli:
+    return SemaBuiltinConstantArgRange(TheCall, 1, 0, 3) ||
+           CheckRISCVLMUL(TheCall, 2);
+  case RISCV::BI__builtin_rvv_vsetvlimax:
+    return SemaBuiltinConstantArgRange(TheCall, 0, 0, 3) ||
+           CheckRISCVLMUL(TheCall, 1);
+  }
+
+  return false;
 }
 
 bool Sema::CheckSystemZBuiltinFunctionCall(unsigned BuiltinID,
@@ -11439,11 +11477,14 @@ static bool CheckTautologicalComparison(Sema &S, BinaryOperator *E,
             << OtherIsBooleanDespiteType << *Result
             << E->getLHS()->getSourceRange() << E->getRHS()->getSourceRange());
   } else {
-    unsigned Diag = (isKnownToHaveUnsignedValue(OriginalOther) && Value == 0)
-                        ? (HasEnumType(OriginalOther)
-                               ? diag::warn_unsigned_enum_always_true_comparison
-                               : diag::warn_unsigned_always_true_comparison)
-                        : diag::warn_tautological_constant_compare;
+    bool IsCharTy = OtherT.withoutLocalFastQualifiers() == S.Context.CharTy;
+    unsigned Diag =
+        (isKnownToHaveUnsignedValue(OriginalOther) && Value == 0)
+            ? (HasEnumType(OriginalOther)
+                   ? diag::warn_unsigned_enum_always_true_comparison
+                   : IsCharTy ? diag::warn_unsigned_char_always_true_comparison
+                              : diag::warn_unsigned_always_true_comparison)
+            : diag::warn_tautological_constant_compare;
 
     S.Diag(E->getOperatorLoc(), Diag)
         << RhsConstant << OtherT << E->getOpcodeStr() << OS.str() << *Result

@@ -89,14 +89,24 @@ enum NodeType : unsigned {
   // Generalized Reverse and Generalized Or-Combine - directly matching the
   // semantics of the named RISC-V instructions. Lowered as custom nodes as
   // TableGen chokes when faced with commutative permutations in deeply-nested
-  // DAGs. Each node takes an input operand and a TargetConstant immediate
-  // shift amount, and outputs a bit-manipulated version of input. All operands
-  // are of type XLenVT.
-  GREVI,
-  GREVIW,
-  GORCI,
-  GORCIW,
-  SHFLI,
+  // DAGs. Each node takes an input operand and a control operand and outputs a
+  // bit-manipulated version of input. All operands are i32 or XLenVT.
+  GREV,
+  GREVW,
+  GORC,
+  GORCW,
+  SHFL,
+  SHFLW,
+  UNSHFL,
+  UNSHFLW,
+  // Bit Compress/Decompress implement the generic bit extract and bit deposit
+  // functions. This operation is also referred to as bit gather/scatter, bit
+  // pack/unpack, parallel extract/deposit, compress/expand, or right
+  // compress/right expand.
+  BCOMPRESS,
+  BCOMPRESSW,
+  BDECOMPRESS,
+  BDECOMPRESSW,
   // Vector Extension
   // VMV_V_X_VL matches the semantics of vmv.v.x but includes an extra operand
   // for the VL value to be used for the operation.
@@ -119,9 +129,6 @@ enum NodeType : unsigned {
   // Truncates a RVV integer vector by one power-of-two. Carries both an extra
   // mask and VL operand.
   TRUNCATE_VECTOR_VL,
-  // Unit-stride fault-only-first load
-  VLEFF,
-  VLEFF_MASK,
   // Matches the semantics of vslideup/vslidedown. The first operand is the
   // pass-thru operand, the second is the source vector, the third is the
   // XLenVT index (either constant or non-constant), the fourth is the mask
@@ -162,6 +169,8 @@ enum NodeType : unsigned {
   VECREDUCE_XOR_VL,
   VECREDUCE_FADD_VL,
   VECREDUCE_SEQ_FADD_VL,
+  VECREDUCE_FMIN_VL,
+  VECREDUCE_FMAX_VL,
 
   // Vector binary and unary ops with a mask as a third operand, and VL as a
   // fourth operand.
@@ -192,6 +201,8 @@ enum NodeType : unsigned {
   SMAX_VL,
   UMIN_VL,
   UMAX_VL,
+  FMINNUM_VL,
+  FMAXNUM_VL,
   MULHS_VL,
   MULHU_VL,
   FP_TO_SINT_VL,
@@ -457,8 +468,8 @@ public:
                              MVT PartVT, EVT ValueVT,
                              Optional<CallingConv::ID> CC) const override;
 
-  static RISCVVLMUL getLMUL(MVT VT);
-  static unsigned getRegClassIDForLMUL(RISCVVLMUL LMul);
+  static RISCVII::VLMUL getLMUL(MVT VT);
+  static unsigned getRegClassIDForLMUL(RISCVII::VLMUL LMul);
   static unsigned getSubregIndexByMVT(MVT VT, unsigned Index);
   static unsigned getRegClassIDForVecVT(MVT VT);
   static std::pair<unsigned, unsigned>
@@ -466,10 +477,6 @@ public:
                                            unsigned InsertExtractIdx,
                                            const RISCVRegisterInfo *TRI);
   MVT getContainerForFixedLengthVector(MVT VT) const;
-  static MVT getContainerForFixedLengthVector(const TargetLowering &TLI, MVT VT,
-                                              const RISCVSubtarget &Subtarget);
-  static MVT getContainerForFixedLengthVector(SelectionDAG &DAG, MVT VT,
-                                              const RISCVSubtarget &Subtarget);
 
   bool shouldRemoveExtendFromGSIndex(EVT VT) const override;
 
@@ -501,6 +508,7 @@ private:
   SDValue lowerShiftLeftParts(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerShiftRightParts(SDValue Op, SelectionDAG &DAG, bool IsSRA) const;
   SDValue lowerSPLAT_VECTOR_PARTS(SDValue Op, SelectionDAG &DAG) const;
+  SDValue lowerVectorMaskSplat(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerVectorMaskExt(SDValue Op, SelectionDAG &DAG,
                              int64_t ExtTrueVal) const;
   SDValue lowerVectorMaskTrunc(SDValue Op, SelectionDAG &DAG) const;
@@ -532,8 +540,11 @@ private:
                                             SelectionDAG &DAG) const;
   SDValue lowerToScalableOp(SDValue Op, SelectionDAG &DAG, unsigned NewOpc,
                             bool HasMask = true) const;
+  SDValue lowerVPOp(SDValue Op, SelectionDAG &DAG, unsigned RISCVISDOpc) const;
   SDValue lowerFixedLengthVectorExtendToRVV(SDValue Op, SelectionDAG &DAG,
                                             unsigned ExtendOpc) const;
+  SDValue lowerGET_ROUNDING(SDValue Op, SelectionDAG &DAG) const;
+  SDValue lowerSET_ROUNDING(SDValue Op, SelectionDAG &DAG) const;
 
   bool isEligibleForTailCallOptimization(
       CCState &CCInfo, CallLoweringInfo &CLI, MachineFunction &MF,

@@ -353,9 +353,6 @@ class Sema final {
   Sema(const Sema &) = delete;
   void operator=(const Sema &) = delete;
 
-  /// A key method to reduce duplicate debug info from Sema.
-  virtual void anchor();
-
   ///Source of additional semantic information.
   ExternalSemaSource *ExternalSource;
 
@@ -1527,6 +1524,13 @@ public:
   /// initialized but before it parses anything.
   void Initialize();
 
+  /// This virtual key function only exists to limit the emission of debug info
+  /// describing the Sema class. GCC and Clang only emit debug info for a class
+  /// with a vtable when the vtable is emitted. Sema is final and not
+  /// polymorphic, but the debug info size savings are so significant that it is
+  /// worth adding a vtable just to take advantage of this optimization.
+  virtual void anchor();
+
   const LangOptions &getLangOpts() const { return LangOpts; }
   OpenCLOptions &getOpenCLOptions() { return OpenCLFeatures; }
   FPOptions     &getCurFPFeatures() { return CurFPFeatures; }
@@ -1848,6 +1852,7 @@ public:
   void setFunctionHasBranchIntoScope();
   void setFunctionHasBranchProtectedScope();
   void setFunctionHasIndirectGoto();
+  void setFunctionHasMustTail();
 
   void PushCompoundScope(bool IsStmtExpr);
   void PopCompoundScope();
@@ -2585,10 +2590,15 @@ public:
                                           SourceLocation Less,
                                           SourceLocation Greater);
 
+  void warnOnReservedIdentifier(const NamedDecl *D);
+
   Decl *ActOnDeclarator(Scope *S, Declarator &D);
 
   NamedDecl *HandleDeclarator(Scope *S, Declarator &D,
                               MultiTemplateParamsArg TemplateParameterLists);
+  bool tryToFixVariablyModifiedVarType(TypeSourceInfo *&TInfo,
+                                       QualType &T, SourceLocation Loc,
+                                       unsigned FailedFoldDiagID);
   void RegisterLocallyScopedExternCDecl(NamedDecl *ND, Scope *S);
   bool DiagnoseClassNameShadow(DeclContext *DC, DeclarationNameInfo Info);
   bool diagnoseQualifiedDeclaration(CXXScopeSpec &SS, DeclContext *DC,
@@ -4273,6 +4283,7 @@ public:
   bool checkStringLiteralArgumentAttr(const ParsedAttr &Attr, unsigned ArgNum,
                                       StringRef &Str,
                                       SourceLocation *ArgLocation = nullptr);
+  llvm::Error isValidSectionSpecifier(StringRef Str);
   bool checkSectionName(SourceLocation LiteralLoc, StringRef Str);
   bool checkTargetAttr(SourceLocation LiteralLoc, StringRef Str);
   bool checkMSInheritanceAttrOnDefinition(
@@ -7444,6 +7455,11 @@ public:
                            TemplateIdAnnotation *TypeConstraint,
                            TemplateTypeParmDecl *ConstrainedParameter,
                            SourceLocation EllipsisLoc);
+  bool BuildTypeConstraint(const CXXScopeSpec &SS,
+                           TemplateIdAnnotation *TypeConstraint,
+                           TemplateTypeParmDecl *ConstrainedParameter,
+                           SourceLocation EllipsisLoc,
+                           bool AllowUnexpandedPack);
 
   bool AttachTypeConstraint(NestedNameSpecifierLoc NS,
                             DeclarationNameInfo NameInfo,
@@ -10127,79 +10143,35 @@ public:
   bool checkFinalSuspendNoThrow(const Stmt *FinalSuspend);
 
   //===--------------------------------------------------------------------===//
-  // OpenCL extensions.
-  //
-private:
-  std::string CurrOpenCLExtension;
-  /// Extensions required by an OpenCL type.
-  llvm::DenseMap<const Type*, std::set<std::string>> OpenCLTypeExtMap;
-  /// Extensions required by an OpenCL declaration.
-  llvm::DenseMap<const Decl*, std::set<std::string>> OpenCLDeclExtMap;
-public:
-  llvm::StringRef getCurrentOpenCLExtension() const {
-    return CurrOpenCLExtension;
-  }
-
-  /// Check if a function declaration \p FD associates with any
-  /// extensions present in OpenCLDeclExtMap and if so return the
-  /// extension(s) name(s).
-  std::string getOpenCLExtensionsFromDeclExtMap(FunctionDecl *FD);
-
-  /// Check if a function type \p FT associates with any
-  /// extensions present in OpenCLTypeExtMap and if so return the
-  /// extension(s) name(s).
-  std::string getOpenCLExtensionsFromTypeExtMap(FunctionType *FT);
-
-  /// Find an extension in an appropriate extension map and return its name
-  template<typename T, typename MapT>
-  std::string getOpenCLExtensionsFromExtMap(T* FT, MapT &Map);
-
-  void setCurrentOpenCLExtension(llvm::StringRef Ext) {
-    CurrOpenCLExtension = std::string(Ext);
-  }
-
-  /// Set OpenCL extensions for a type which can only be used when these
-  /// OpenCL extensions are enabled. If \p Exts is empty, do nothing.
-  /// \param Exts A space separated list of OpenCL extensions.
-  void setOpenCLExtensionForType(QualType T, llvm::StringRef Exts);
-
-  /// Set OpenCL extensions for a declaration which can only be
-  /// used when these OpenCL extensions are enabled. If \p Exts is empty, do
-  /// nothing.
-  /// \param Exts A space separated list of OpenCL extensions.
-  void setOpenCLExtensionForDecl(Decl *FD, llvm::StringRef Exts);
-
-  /// Set current OpenCL extensions for a type which can only be used
-  /// when these OpenCL extensions are enabled. If current OpenCL extension is
-  /// empty, do nothing.
-  void setCurrentOpenCLExtensionForType(QualType T);
-
-  /// Set current OpenCL extensions for a declaration which
-  /// can only be used when these OpenCL extensions are enabled. If current
-  /// OpenCL extension is empty, do nothing.
-  void setCurrentOpenCLExtensionForDecl(Decl *FD);
-
-  bool isOpenCLDisabledDecl(Decl *FD);
-
-  /// Check if type \p T corresponding to declaration specifier \p DS
-  /// is disabled due to required OpenCL extensions being disabled. If so,
-  /// emit diagnostics.
-  /// \return true if type is disabled.
-  bool checkOpenCLDisabledTypeDeclSpec(const DeclSpec &DS, QualType T);
-
-  /// Check if declaration \p D used by expression \p E
-  /// is disabled due to required OpenCL extensions being disabled. If so,
-  /// emit diagnostics.
-  /// \return true if type is disabled.
-  bool checkOpenCLDisabledDecl(const NamedDecl &D, const Expr &E);
-
-  //===--------------------------------------------------------------------===//
   // OpenMP directives and clauses.
   //
 private:
   void *VarDataSharingAttributesStack;
+
+  struct DeclareTargetContextInfo {
+    struct MapInfo {
+      OMPDeclareTargetDeclAttr::MapTypeTy MT;
+      SourceLocation Loc;
+    };
+    /// Explicitly listed variables and functions in a 'to' or 'link' clause.
+    llvm::DenseMap<NamedDecl *, MapInfo> ExplicitlyMapped;
+
+    /// The 'device_type' as parsed from the clause.
+    OMPDeclareTargetDeclAttr::DevTypeTy DT = OMPDeclareTargetDeclAttr::DT_Any;
+
+    /// The directive kind, `begin declare target` or `declare target`.
+    OpenMPDirectiveKind Kind;
+
+    /// The directive location.
+    SourceLocation Loc;
+
+    DeclareTargetContextInfo(OpenMPDirectiveKind Kind, SourceLocation Loc)
+        : Kind(Kind), Loc(Loc) {}
+  };
+
   /// Number of nested '#pragma omp declare target' directives.
-  SmallVector<SourceLocation, 4> DeclareTargetNesting;
+  SmallVector<DeclareTargetContextInfo, 4> DeclareTargetNesting;
+
   /// Initialization of data-sharing attributes stack.
   void InitDataSharingAttributesStack();
   void DestroyDataSharingAttributesStack();
@@ -10222,21 +10194,6 @@ private:
 
   /// Pop OpenMP function region for non-capturing function.
   void popOpenMPFunctionRegion(const sema::FunctionScopeInfo *OldFSI);
-
-  /// Checks if a type or a declaration is disabled due to the owning extension
-  /// being disabled, and emits diagnostic messages if it is disabled.
-  /// \param D type or declaration to be checked.
-  /// \param DiagLoc source location for the diagnostic message.
-  /// \param DiagInfo information to be emitted for the diagnostic message.
-  /// \param SrcRange source range of the declaration.
-  /// \param Map maps type or declaration to the extensions.
-  /// \param Selector selects diagnostic message: 0 for type and 1 for
-  ///        declaration.
-  /// \return true if the type or declaration is disabled.
-  template <typename T, typename DiagLocT, typename DiagInfoT, typename MapT>
-  bool checkOpenCLDisabledTypeOrDecl(T D, DiagLocT DiagLoc, DiagInfoT DiagInfo,
-                                     MapT &Map, unsigned Selector = 0,
-                                     SourceRange SrcRange = SourceRange());
 
   /// Helper to keep information about the current `omp begin/end declare
   /// variant` nesting.
@@ -10465,19 +10422,28 @@ public:
   const ValueDecl *getOpenMPDeclareMapperVarName() const;
 
   /// Called on the start of target region i.e. '#pragma omp declare target'.
-  bool ActOnStartOpenMPDeclareTargetDirective(SourceLocation Loc);
-  /// Called at the end of target region i.e. '#pragme omp end declare target'.
-  void ActOnFinishOpenMPDeclareTargetDirective();
+  bool ActOnStartOpenMPDeclareTargetContext(DeclareTargetContextInfo &DTCI);
+
+  /// Called at the end of target region i.e. '#pragma omp end declare target'.
+  const DeclareTargetContextInfo ActOnOpenMPEndDeclareTargetDirective();
+
+  /// Called once a target context is completed, that can be when a
+  /// '#pragma omp end declare target' was encountered or when a
+  /// '#pragma omp declare target' without declaration-definition-seq was
+  /// encountered.
+  void ActOnFinishedOpenMPDeclareTargetContext(DeclareTargetContextInfo &DTCI);
+
   /// Searches for the provided declaration name for OpenMP declare target
   /// directive.
-  NamedDecl *
-  lookupOpenMPDeclareTargetName(Scope *CurScope, CXXScopeSpec &ScopeSpec,
-                                const DeclarationNameInfo &Id,
-                                NamedDeclSetType &SameDirectiveDecls);
+  NamedDecl *lookupOpenMPDeclareTargetName(Scope *CurScope,
+                                           CXXScopeSpec &ScopeSpec,
+                                           const DeclarationNameInfo &Id);
+
   /// Called on correct id-expression from the '#pragma omp declare target'.
   void ActOnOpenMPDeclareTargetName(NamedDecl *ND, SourceLocation Loc,
                                     OMPDeclareTargetDeclAttr::MapTypeTy MT,
                                     OMPDeclareTargetDeclAttr::DevTypeTy DT);
+
   /// Check declaration inside target region.
   void
   checkDeclIsAllowedInOpenMPTarget(Expr *E, Decl *D,
@@ -10803,6 +10769,11 @@ public:
   StmtResult ActOnOpenMPDispatchDirective(ArrayRef<OMPClause *> Clauses,
                                           Stmt *AStmt, SourceLocation StartLoc,
                                           SourceLocation EndLoc);
+  /// Called on well-formed '\#pragma omp masked' after parsing of the
+  // /associated statement.
+  StmtResult ActOnOpenMPMaskedDirective(ArrayRef<OMPClause *> Clauses,
+                                        Stmt *AStmt, SourceLocation StartLoc,
+                                        SourceLocation EndLoc);
 
   /// Checks correctness of linear modifiers.
   bool CheckOpenMPLinearModifier(OpenMPLinearClauseKind LinKind,
@@ -11021,6 +10992,10 @@ public:
                                         SourceLocation StartLoc,
                                         SourceLocation LParenLoc,
                                         SourceLocation EndLoc);
+  /// Called on well-formed 'filter' clause.
+  OMPClause *ActOnOpenMPFilterClause(Expr *ThreadID, SourceLocation StartLoc,
+                                     SourceLocation LParenLoc,
+                                     SourceLocation EndLoc);
   /// Called on well-formed 'threads' clause.
   OMPClause *ActOnOpenMPThreadsClause(SourceLocation StartLoc,
                                       SourceLocation EndLoc);
@@ -11347,6 +11322,18 @@ public:
   /// function, issuing a diagnostic if not.
   void checkVariadicArgument(const Expr *E, VariadicCallType CT);
 
+  /// Check whether the given statement can have musttail applied to it,
+  /// issuing a diagnostic and returning false if not. In the success case,
+  /// the statement is rewritten to remove implicit nodes from the return
+  /// value.
+  bool checkAndRewriteMustTailAttr(Stmt *St, const Attr &MTA);
+
+private:
+  /// Check whether the given statement can have musttail applied to it,
+  /// issuing a diagnostic and returning false if not.
+  bool checkMustTailAttr(const Stmt *St, const Attr &MTA);
+
+public:
   /// Check to see if a given expression could have '.c_str()' called on it.
   bool hasCStrMethod(const Expr *E);
 
@@ -11651,6 +11638,9 @@ public:
 
   bool isValidSveBitcast(QualType srcType, QualType destType);
 
+  bool areMatrixTypesOfTheSameDimension(QualType srcTy, QualType destTy);
+
+  bool areVectorTypesSameSize(QualType srcType, QualType destType);
   bool areLaxCompatibleVectorTypes(QualType srcType, QualType destType);
   bool isLaxVectorConversion(QualType srcType, QualType destType);
 
@@ -11708,6 +11698,13 @@ public:
   /// __unknown_anytype parameter.
   ExprResult checkUnknownAnyArg(SourceLocation callLoc,
                                 Expr *result, QualType &paramType);
+
+  // CheckMatrixCast - Check type constraints for matrix casts.
+  // We allow casting between matrixes of the same dimensions i.e. when they
+  // have the same number of rows and column. Returns true if the cast is
+  // invalid.
+  bool CheckMatrixCast(SourceRange R, QualType DestTy, QualType SrcTy,
+                       CastKind &Kind);
 
   // CheckVectorCast - check type constraints for vectors.
   // Since vectors are an extension, there are no C standard reference for this.
@@ -12466,6 +12463,7 @@ private:
   bool CheckPPCBuiltinFunctionCall(const TargetInfo &TI, unsigned BuiltinID,
                                    CallExpr *TheCall);
   bool CheckAMDGCNBuiltinFunctionCall(unsigned BuiltinID, CallExpr *TheCall);
+  bool CheckRISCVLMUL(CallExpr *TheCall, unsigned ArgNum);
   bool CheckRISCVBuiltinFunctionCall(const TargetInfo &TI, unsigned BuiltinID,
                                      CallExpr *TheCall);
 

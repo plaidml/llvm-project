@@ -40,6 +40,7 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/IR/Assumptions.h"
+#include "llvm/MC/MCSectionMachO.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/MathExtras.h"
 #include "llvm/Support/raw_ostream.h"
@@ -788,20 +789,20 @@ static void handleAssertExclusiveLockAttr(Sema &S, Decl *D,
 ///
 /// AttrArgNo is used to actually retrieve the argument, so it's base-0.
 template <typename AttrInfo>
-static bool checkParamIsIntegerType(Sema &S, const FunctionDecl *FD,
-                                    const AttrInfo &AI, unsigned AttrArgNo) {
+static bool checkParamIsIntegerType(Sema &S, const Decl *D, const AttrInfo &AI,
+                                    unsigned AttrArgNo) {
   assert(AI.isArgExpr(AttrArgNo) && "Expected expression argument");
   Expr *AttrArg = AI.getArgAsExpr(AttrArgNo);
   ParamIdx Idx;
-  if (!checkFunctionOrMethodParameterIndex(S, FD, AI, AttrArgNo + 1, AttrArg,
+  if (!checkFunctionOrMethodParameterIndex(S, D, AI, AttrArgNo + 1, AttrArg,
                                            Idx))
     return false;
 
-  const ParmVarDecl *Param = FD->getParamDecl(Idx.getASTIndex());
-  if (!Param->getType()->isIntegerType() && !Param->getType()->isCharType()) {
+  QualType ParamTy = getFunctionOrMethodParamType(D, Idx.getASTIndex());
+  if (!ParamTy->isIntegerType() && !ParamTy->isCharType()) {
     SourceLocation SrcLoc = AttrArg->getBeginLoc();
     S.Diag(SrcLoc, diag::err_attribute_integers_only)
-        << AI << Param->getSourceRange();
+        << AI << getFunctionOrMethodParamRange(D, Idx.getASTIndex());
     return false;
   }
   return true;
@@ -811,8 +812,10 @@ static void handleAllocSizeAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
   if (!AL.checkAtLeastNumArgs(S, 1) || !AL.checkAtMostNumArgs(S, 2))
     return;
 
-  const auto *FD = cast<FunctionDecl>(D);
-  if (!FD->getReturnType()->isPointerType()) {
+  assert(isFunctionOrMethod(D) && hasFunctionProto(D));
+
+  QualType RetTy = getFunctionOrMethodResultType(D);
+  if (!RetTy->isPointerType()) {
     S.Diag(AL.getLoc(), diag::warn_attribute_return_pointers_only) << AL;
     return;
   }
@@ -822,7 +825,7 @@ static void handleAllocSizeAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
   // Parameter indices are 1-indexed, hence Index=1
   if (!checkPositiveIntArgument(S, AL, SizeExpr, SizeArgNoVal, /*Idx=*/1))
     return;
-  if (!checkParamIsIntegerType(S, FD, AL, /*AttrArgNo=*/0))
+  if (!checkParamIsIntegerType(S, D, AL, /*AttrArgNo=*/0))
     return;
   ParamIdx SizeArgNo(SizeArgNoVal, D);
 
@@ -833,7 +836,7 @@ static void handleAllocSizeAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
     // Parameter indices are 1-based, hence Index=2
     if (!checkPositiveIntArgument(S, AL, NumberExpr, Val, /*Idx=*/2))
       return;
-    if (!checkParamIsIntegerType(S, FD, AL, /*AttrArgNo=*/1))
+    if (!checkParamIsIntegerType(S, D, AL, /*AttrArgNo=*/1))
       return;
     NumberArgNo = ParamIdx(Val, D);
   }
@@ -1932,6 +1935,12 @@ static void handleTLSModelAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
     return;
   }
 
+  if (S.Context.getTargetInfo().getTriple().isOSAIX() &&
+      Model != "global-dynamic") {
+    S.Diag(LiteralLoc, diag::err_aix_attr_unsupported_tls_model) << Model;
+    return;
+  }
+
   D->addAttr(::new (S.Context) TLSModelAttr(S.Context, AL, Model));
 }
 
@@ -2983,9 +2992,29 @@ SectionAttr *Sema::mergeSectionAttr(Decl *D, const AttributeCommonInfo &CI,
   return ::new (Context) SectionAttr(Context, CI, Name);
 }
 
+/// Used to implement to perform semantic checking on
+/// attribute((section("foo"))) specifiers.
+///
+/// In this case, "foo" is passed in to be checked.  If the section
+/// specifier is invalid, return an Error that indicates the problem.
+///
+/// This is a simple quality of implementation feature to catch errors
+/// and give good diagnostics in cases when the assembler or code generator
+/// would otherwise reject the section specifier.
+llvm::Error Sema::isValidSectionSpecifier(StringRef SecName) {
+  if (!Context.getTargetInfo().getTriple().isOSDarwin())
+    return llvm::Error::success();
+
+  // Let MCSectionMachO validate this.
+  StringRef Segment, Section;
+  unsigned TAA, StubSize;
+  bool HasTAA;
+  return llvm::MCSectionMachO::ParseSectionSpecifier(SecName, Segment, Section,
+                                                     TAA, HasTAA, StubSize);
+}
+
 bool Sema::checkSectionName(SourceLocation LiteralLoc, StringRef SecName) {
-  if (llvm::Error E =
-          Context.getTargetInfo().isValidSectionSpecifier(SecName)) {
+  if (llvm::Error E = isValidSectionSpecifier(SecName)) {
     Diag(LiteralLoc, diag::err_attribute_section_invalid_for_target)
         << toString(std::move(E)) << 1 /*'section'*/;
     return false;
@@ -3004,13 +3033,6 @@ static void handleSectionAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
   if (!S.checkSectionName(LiteralLoc, Str))
     return;
 
-  // If the target wants to validate the section specifier, make it happen.
-  if (llvm::Error E = S.Context.getTargetInfo().isValidSectionSpecifier(Str)) {
-    S.Diag(LiteralLoc, diag::err_attribute_section_invalid_for_target)
-        << toString(std::move(E));
-    return;
-  }
-
   SectionAttr *NewAttr = S.mergeSectionAttr(D, AL, Str);
   if (NewAttr) {
     D->addAttr(NewAttr);
@@ -3026,8 +3048,7 @@ static void handleSectionAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
 // `#pragma code_seg("segname")` uses checkSectionName() instead.
 static bool checkCodeSegName(Sema &S, SourceLocation LiteralLoc,
                              StringRef CodeSegName) {
-  if (llvm::Error E =
-          S.Context.getTargetInfo().isValidSectionSpecifier(CodeSegName)) {
+  if (llvm::Error E = S.isValidSectionSpecifier(CodeSegName)) {
     S.Diag(LiteralLoc, diag::err_attribute_section_invalid_for_target)
         << toString(std::move(E)) << 0 /*'code-seg'*/;
     return false;
@@ -5112,14 +5133,8 @@ static bool ArmCdeAliasValid(unsigned BuiltinID, StringRef AliasName) {
 }
 
 static bool ArmSveAliasValid(unsigned BuiltinID, StringRef AliasName) {
-  switch (BuiltinID) {
-  default:
-    return false;
-#define GET_SVE_BUILTINS
-#define BUILTIN(name, types, attr) case SVE::BI##name:
-#include "clang/Basic/arm_sve_builtins.inc"
-    return true;
-  }
+  return BuiltinID >= AArch64::FirstSVEBuiltin &&
+         BuiltinID <= AArch64::LastSVEBuiltin;
 }
 
 static void handleArmBuiltinAliasAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
@@ -5142,6 +5157,38 @@ static void handleArmBuiltinAliasAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
   }
 
   D->addAttr(::new (S.Context) ArmBuiltinAliasAttr(S.Context, AL, Ident));
+}
+
+static bool RISCVAliasValid(unsigned BuiltinID, StringRef AliasName) {
+  return BuiltinID >= Builtin::FirstTSBuiltin &&
+         BuiltinID < RISCV::LastTSBuiltin;
+}
+
+static void handleBuiltinAliasAttr(Sema &S, Decl *D,
+                                        const ParsedAttr &AL) {
+  if (!AL.isArgIdent(0)) {
+    S.Diag(AL.getLoc(), diag::err_attribute_argument_n_type)
+        << AL << 1 << AANT_ArgumentIdentifier;
+    return;
+  }
+
+  IdentifierInfo *Ident = AL.getArgAsIdent(0)->Ident;
+  unsigned BuiltinID = Ident->getBuiltinID();
+  StringRef AliasName = cast<FunctionDecl>(D)->getIdentifier()->getName();
+
+  bool IsAArch64 = S.Context.getTargetInfo().getTriple().isAArch64();
+  bool IsARM = S.Context.getTargetInfo().getTriple().isARM();
+  bool IsRISCV = S.Context.getTargetInfo().getTriple().isRISCV();
+  if ((IsAArch64 && !ArmSveAliasValid(BuiltinID, AliasName)) ||
+      (IsARM && !ArmMveAliasValid(BuiltinID, AliasName) &&
+       !ArmCdeAliasValid(BuiltinID, AliasName)) ||
+      (IsRISCV && !RISCVAliasValid(BuiltinID, AliasName)) ||
+      (!IsAArch64 && !IsARM && !IsRISCV)) {
+    S.Diag(AL.getLoc(), diag::err_attribute_builtin_alias) << AL;
+    return;
+  }
+
+  D->addAttr(::new (S.Context) BuiltinAliasAttr(S.Context, AL, Ident));
 }
 
 //===----------------------------------------------------------------------===//
@@ -8240,6 +8287,10 @@ static void ProcessDeclAttribute(Sema &S, Scope *scope, Decl *D,
 
   case ParsedAttr::AT_EnforceTCBLeaf:
     handleEnforceTCBAttr<EnforceTCBLeafAttr, EnforceTCBAttr>(S, D, AL);
+    break;
+
+  case ParsedAttr::AT_BuiltinAlias:
+    handleBuiltinAliasAttr(S, D, AL);
     break;
   }
 }

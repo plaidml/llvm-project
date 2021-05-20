@@ -35,6 +35,14 @@ class LinalgStructuredBase_Op<string mnemonic, list<OpTrait> props>
       return isa<IndexedGenericOp>(this->getOperation()) ? getNumLoops() : 0;
     }
 
+    // Return whether the op accesses the iteration indices.
+    bool hasIndexSemantics() {
+      Operation *op = this->getOperation();
+      if(op->getNumRegions() == 0 || op->getRegion(0).empty())
+        return false;
+      return !op->getRegion(0).front().getOps<IndexOp>().empty();
+    }
+
     LogicalResult reifyReturnTypeShapesPerResultDim(OpBuilder &b,
         SmallVectorImpl<SmallVector<Value>> &reifiedReturnShapes) {
       return cast<LinalgOp>(getOperation()).reifyReturnTypeShapesPerResultDim(b,
@@ -174,7 +182,8 @@ def CopyOp : LinalgStructured_Op<"copy", [CopyOpInterface]> {
 
 def FillOp : LinalgStructured_Op<"fill", []> {
   let arguments = (ins AnyShaped:$output,
-                   AnyTypeOf<[AnyFloat, AnySignlessInteger, AnyVector]>:$value);
+                   AnyTypeOf<[AnyComplex, AnyFloat, AnySignlessInteger,
+                              AnyVector]>:$value);
   let results = (outs Optional<AnyRankedTensor>:$result);
   let regions = (region AnyRegion:$region);
   let extraClassDeclaration = structuredOpsDecls # [{
@@ -518,9 +527,7 @@ class GenericOpBase<string mnemonic> : LinalgStructuredBase_Op<mnemonic, [
                        AffineMapArrayAttr:$indexing_maps,
                        ArrayAttr:$iterator_types,
                        OptionalAttr<StrAttr>:$doc,
-                       OptionalAttr<StrAttr>:$library_call,
-                       // ArrayAttr of StrArrayAttr:
-                       OptionalAttr<ArrayAttr>:$sparse);
+                       OptionalAttr<StrAttr>:$library_call);
   let results = (outs Variadic<AnyRankedTensor>:$result_tensors);
   let regions = (region AnyRegion:$region);
   let extraClassDeclaration = structuredOpsBaseDecls # [{
@@ -574,8 +581,6 @@ def GenericOp : GenericOpBase<"generic"> {
         Each element of the list represents and iterator of one of the following
         types:
           parallel, reduction, window
-      - sparse: an optional list with per-dimension sparsity annotations (either
-        "D" for dense or "S" for sparse) for each input and output view.
 
     Example:
     Defining a #matmul_trait attribute in MLIR can be done as follows:
@@ -802,7 +807,6 @@ def IndexedGenericOp : GenericOpBase<"indexed_generic"> {
   ];
   let verifier = [{ return ::verify(*this); }];
 
-  let hasFolder = 1;
   let hasCanonicalizer = 1;
 }
 

@@ -64,15 +64,12 @@ public:
   bool selectVSplat(SDValue N, SDValue &SplatVal);
   bool selectVSplatSimm5(SDValue N, SDValue &SplatVal);
   bool selectVSplatUimm5(SDValue N, SDValue &SplatVal);
+  bool selectVSplatSimm5Plus1(SDValue N, SDValue &SplatVal);
+  bool selectVSplatSimm5Plus1NonZero(SDValue N, SDValue &SplatVal);
 
   bool selectRVVSimm5(SDValue N, unsigned Width, SDValue &Imm);
   template <unsigned Width> bool selectRVVSimm5(SDValue N, SDValue &Imm) {
     return selectRVVSimm5(N, Width, Imm);
-  }
-
-  bool selectRVVUimm5(SDValue N, unsigned Width, SDValue &Imm);
-  template <unsigned Width> bool selectRVVUimm5(SDValue N, SDValue &Imm) {
-    return selectRVVUimm5(N, Width, Imm);
   }
 
   void addVectorLoadStoreOperands(SDNode *Node, unsigned SEWImm,

@@ -2581,6 +2581,7 @@ class PHINode : public Instruction {
                    Instruction *InsertBefore = nullptr)
     : Instruction(Ty, Instruction::PHI, nullptr, 0, InsertBefore),
       ReservedSpace(NumReservedValues) {
+    assert(!Ty->isTokenTy() && "PHI nodes cannot have token type!");
     setName(NameStr);
     allocHungoffUses(ReservedSpace);
   }
@@ -2589,6 +2590,7 @@ class PHINode : public Instruction {
           BasicBlock *InsertAtEnd)
     : Instruction(Ty, Instruction::PHI, nullptr, 0, InsertAtEnd),
       ReservedSpace(NumReservedValues) {
+    assert(!Ty->isTokenTy() && "PHI nodes cannot have token type!");
     setName(NameStr);
     allocHungoffUses(ReservedSpace);
   }
@@ -5276,6 +5278,15 @@ inline unsigned getLoadStoreAddressSpace(Value *I) {
   if (auto *LI = dyn_cast<LoadInst>(I))
     return LI->getPointerAddressSpace();
   return cast<StoreInst>(I)->getPointerAddressSpace();
+}
+
+/// A helper function that returns the type of a load or store instruction.
+inline Type *getLoadStoreType(Value *I) {
+  assert((isa<LoadInst>(I) || isa<StoreInst>(I)) &&
+         "Expected Load or Store instruction");
+  if (auto *LI = dyn_cast<LoadInst>(I))
+    return LI->getType();
+  return cast<StoreInst>(I)->getValueOperand()->getType();
 }
 
 //===----------------------------------------------------------------------===//

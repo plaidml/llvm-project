@@ -408,6 +408,10 @@ void LinkerDriver::parseDirectives(InputFile *file) {
     case OPT_section:
       parseSection(arg->getValue());
       break;
+    case OPT_stack:
+      parseNumbers(arg->getValue(), &config->stackReserve,
+                   &config->stackCommit);
+      break;
     case OPT_subsystem: {
       bool gotVersion = false;
       parseSubsystem(arg->getValue(), &config->subsystem,
@@ -1204,6 +1208,11 @@ void LinkerDriver::maybeExportMinGWSymbols(const opt::InputArgList &args) {
     auto *def = dyn_cast<Defined>(s);
     if (!exporter.shouldExport(def))
       return;
+
+    if (!def->isGCRoot) {
+      def->isGCRoot = true;
+      config->gcroot.push_back(def);
+    }
 
     Export e;
     e.name = def->getName();
@@ -2008,6 +2017,9 @@ void LinkerDriver::linkerMain(ArrayRef<const char *> argsArr) {
   symtab->addAbsolute(mangle("__guard_longjmp_table"), 0);
   // Needed for MSVC 2017 15.5 CRT.
   symtab->addAbsolute(mangle("__enclave_config"), 0);
+  // Needed for MSVC 2019 16.8 CRT.
+  symtab->addAbsolute(mangle("__guard_eh_cont_count"), 0);
+  symtab->addAbsolute(mangle("__guard_eh_cont_table"), 0);
 
   if (config->pseudoRelocs) {
     symtab->addAbsolute(mangle("__RUNTIME_PSEUDO_RELOC_LIST__"), 0);
@@ -2214,8 +2226,25 @@ void LinkerDriver::linkerMain(ArrayRef<const char *> argsArr) {
     config->printSymbolOrder = arg->getValue();
 
   // Identify unreferenced COMDAT sections.
-  if (config->doGC)
+  if (config->doGC) {
+    if (config->mingw) {
+      // markLive doesn't traverse .eh_frame, but the personality function is
+      // only reached that way. The proper solution would be to parse and
+      // traverse the .eh_frame section, like the ELF linker does.
+      // For now, just manually try to retain the known possible personality
+      // functions. This doesn't bring in more object files, but only marks
+      // functions that already have been included to be retained.
+      for (const char *n : {"__gxx_personality_v0", "__gcc_personality_v0"}) {
+        Defined *d = dyn_cast_or_null<Defined>(symtab->findUnderscore(n));
+        if (d && !d->isGCRoot) {
+          d->isGCRoot = true;
+          config->gcroot.push_back(d);
+        }
+      }
+    }
+
     markLive(symtab->getChunks());
+  }
 
   // Needs to happen after the last call to addFile().
   convertResources();
