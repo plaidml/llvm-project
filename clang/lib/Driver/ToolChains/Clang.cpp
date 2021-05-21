@@ -419,12 +419,21 @@ static bool addExceptionArgs(const ArgList &Args, types::ID InputType,
     Args.ClaimAllArgs(options::OPT_fno_objc_exceptions);
     Args.ClaimAllArgs(options::OPT_fcxx_exceptions);
     Args.ClaimAllArgs(options::OPT_fno_cxx_exceptions);
+    Args.ClaimAllArgs(options::OPT_fasync_exceptions);
+    Args.ClaimAllArgs(options::OPT_fno_async_exceptions);
     return false;
   }
 
   // See if the user explicitly enabled exceptions.
   bool EH = Args.hasFlag(options::OPT_fexceptions, options::OPT_fno_exceptions,
                          false);
+
+  bool EHa = Args.hasFlag(options::OPT_fasync_exceptions,
+                          options::OPT_fno_async_exceptions, false);
+  if (EHa) {
+    CmdArgs.push_back("-fasync-exceptions");
+    EH = true;
+  }
 
   // Obj-C exceptions are enabled by default, regardless of -fexceptions. This
   // is not necessarily sensible, but follows GCC.
@@ -1114,11 +1123,18 @@ static const char *RelocationModelName(llvm::Reloc::Model Model) {
 static void handleAMDGPUCodeObjectVersionOptions(const Driver &D,
                                                  const ArgList &Args,
                                                  ArgStringList &CmdArgs) {
-  unsigned CodeObjVer = getOrCheckAMDGPUCodeObjectVersion(D, Args);
-  CmdArgs.insert(CmdArgs.begin() + 1,
-                 Args.MakeArgString(Twine("--amdhsa-code-object-version=") +
-                                    Twine(CodeObjVer)));
-  CmdArgs.insert(CmdArgs.begin() + 1, "-mllvm");
+  // If no version was requested by the user, use the default value from the
+  // back end. This is consistent with the value returned from
+  // getAMDGPUCodeObjectVersion. This lets clang emit IR for amdgpu without
+  // requiring the corresponding llvm to have the AMDGPU target enabled,
+  // provided the user (e.g. front end tests) can use the default.
+  if (haveAMDGPUCodeObjectVersionArgument(D, Args)) {
+    unsigned CodeObjVer = getAMDGPUCodeObjectVersion(D, Args);
+    CmdArgs.insert(CmdArgs.begin() + 1,
+                   Args.MakeArgString(Twine("--amdhsa-code-object-version=") +
+                                      Twine(CodeObjVer)));
+    CmdArgs.insert(CmdArgs.begin() + 1, "-mllvm");
+  }
 }
 
 void Clang::AddPreprocessingOptions(Compilation &C, const JobAction &JA,
@@ -2377,22 +2393,6 @@ static void CollectArgsForIntegratedAssembler(Compilation &C,
                    DefaultIncrementalLinkerCompatible))
     CmdArgs.push_back("-mincremental-linker-compatible");
 
-  switch (C.getDefaultToolChain().getArch()) {
-  case llvm::Triple::arm:
-  case llvm::Triple::armeb:
-  case llvm::Triple::thumb:
-  case llvm::Triple::thumbeb:
-    if (Arg *A = Args.getLastArg(options::OPT_mimplicit_it_EQ)) {
-      StringRef Value = A->getValue();
-      if (!AddARMImplicitITArgs(Args, CmdArgs, Value))
-        D.Diag(diag::err_drv_unsupported_option_argument)
-            << A->getOption().getName() << Value;
-    }
-    break;
-  default:
-    break;
-  }
-
   // If you add more args here, also add them to the block below that
   // starts with "// If CollectArgsForIntegratedAssembler() isn't called below".
 
@@ -3095,18 +3095,20 @@ static void RenderSSPOptions(const Driver &D, const ToolChain &TC,
     }
   }
 
-  // First support "tls" and "global" for X86 target.
-  // TODO: Support "sysreg" for AArch64.
   const std::string &TripleStr = EffectiveTriple.getTriple();
   if (Arg *A = Args.getLastArg(options::OPT_mstack_protector_guard_EQ)) {
     StringRef Value = A->getValue();
     if (!EffectiveTriple.isX86() && !EffectiveTriple.isAArch64())
       D.Diag(diag::err_drv_unsupported_opt_for_target)
           << A->getAsString(Args) << TripleStr;
-    if (Value != "tls" && Value != "global") {
+    if (EffectiveTriple.isX86() && Value != "tls" && Value != "global") {
       D.Diag(diag::err_drv_invalid_value_with_suggestion)
-      << A->getOption().getName() << Value
-      << "valid arguments to '-mstack-protector-guard=' are:tls global";
+          << A->getOption().getName() << Value << "tls global";
+      return;
+    }
+    if (EffectiveTriple.isAArch64() && Value != "sysreg" && Value != "global") {
+      D.Diag(diag::err_drv_invalid_value_with_suggestion)
+          << A->getOption().getName() << Value << "sysreg global";
       return;
     }
     A->render(Args, CmdArgs);
@@ -3114,10 +3116,10 @@ static void RenderSSPOptions(const Driver &D, const ToolChain &TC,
 
   if (Arg *A = Args.getLastArg(options::OPT_mstack_protector_guard_offset_EQ)) {
     StringRef Value = A->getValue();
-    if (!EffectiveTriple.isX86())
+    if (!EffectiveTriple.isX86() && !EffectiveTriple.isAArch64())
       D.Diag(diag::err_drv_unsupported_opt_for_target)
           << A->getAsString(Args) << TripleStr;
-    unsigned Offset;
+    int Offset;
     if (Value.getAsInteger(10, Offset)) {
       D.Diag(diag::err_drv_invalid_value) << A->getOption().getName() << Value;
       return;
@@ -3127,13 +3129,16 @@ static void RenderSSPOptions(const Driver &D, const ToolChain &TC,
 
   if (Arg *A = Args.getLastArg(options::OPT_mstack_protector_guard_reg_EQ)) {
     StringRef Value = A->getValue();
-    if (!EffectiveTriple.isX86())
+    if (!EffectiveTriple.isX86() && !EffectiveTriple.isAArch64())
       D.Diag(diag::err_drv_unsupported_opt_for_target)
           << A->getAsString(Args) << TripleStr;
     if (EffectiveTriple.isX86() && (Value != "fs" && Value != "gs")) {
       D.Diag(diag::err_drv_invalid_value_with_suggestion)
-      << A->getOption().getName() << Value
-      << "for X86, valid arguments to '-mstack-protector-guard-reg=' are:fs gs";
+          << A->getOption().getName() << Value << "fs gs";
+      return;
+    }
+    if (EffectiveTriple.isAArch64() && Value != "sp_el0") {
+      D.Diag(diag::err_drv_invalid_value) << A->getOption().getName() << Value;
       return;
     }
     A->render(Args, CmdArgs);
@@ -3968,7 +3973,14 @@ static void renderDebugOptions(const ToolChain &TC, const Driver &D,
       DebugInfoKind == codegenoptions::DebugDirectivesOnly)
     DebugInfoKind = codegenoptions::NoDebugInfo;
 
-  // We ignore flag -gstrict-dwarf for now.
+  // strict DWARF is set to false by default. But for DBX, we need it to be set
+  // as true by default.
+  if (const Arg *A = Args.getLastArg(options::OPT_gstrict_dwarf))
+    (void)checkDebugInfoOption(A, Args, D, TC);
+  if (Args.hasFlag(options::OPT_gstrict_dwarf, options::OPT_gno_strict_dwarf,
+                   DebuggerTuning == llvm::DebuggerKind::DBX))
+    CmdArgs.push_back("-gstrict-dwarf");
+
   // And we handle flag -grecord-gcc-switches later with DWARFDebugFlags.
   Args.ClaimAllArgs(options::OPT_g_flags_Group);
 
@@ -4159,7 +4171,9 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
   // include as part of the module. All other jobs are expected to have exactly
   // one input.
   bool IsCuda = JA.isOffloading(Action::OFK_Cuda);
+  bool IsCudaDevice = JA.isDeviceOffloading(Action::OFK_Cuda);
   bool IsHIP = JA.isOffloading(Action::OFK_HIP);
+  bool IsHIPDevice = JA.isDeviceOffloading(Action::OFK_HIP);
   bool IsOpenMPDevice = JA.isDeviceOffloading(Action::OFK_OpenMP);
   bool IsHeaderModulePrecompile = isa<HeaderModulePrecompileJobAction>(JA);
 
@@ -4270,8 +4284,8 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
     if (Arg *A = Args.getLastArg(options::OPT_sycl_std_EQ)) {
       A->render(Args, CmdArgs);
     } else {
-      // Ensure the default version in SYCL mode is 1.2.1 (aka 2017)
-      CmdArgs.push_back("-sycl-std=2017");
+      // Ensure the default version in SYCL mode is 2020.
+      CmdArgs.push_back("-sycl-std=2020");
     }
   }
 
@@ -4323,16 +4337,6 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
       Args.ClaimAllArgs(options::OPT_mno_relax_all);
       Args.ClaimAllArgs(options::OPT_mincremental_linker_compatible);
       Args.ClaimAllArgs(options::OPT_mno_incremental_linker_compatible);
-      switch (C.getDefaultToolChain().getArch()) {
-      case llvm::Triple::arm:
-      case llvm::Triple::armeb:
-      case llvm::Triple::thumb:
-      case llvm::Triple::thumbeb:
-        Args.ClaimAllArgs(options::OPT_mimplicit_it_EQ);
-        break;
-      default:
-        break;
-      }
     }
     Args.ClaimAllArgs(options::OPT_Wa_COMMA);
     Args.ClaimAllArgs(options::OPT_Xassembler);
@@ -4380,7 +4384,13 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
       CmdArgs.push_back("-emit-llvm");
     } else if (JA.getType() == types::TY_LLVM_BC ||
                JA.getType() == types::TY_LTO_BC) {
-      CmdArgs.push_back("-emit-llvm-bc");
+      // Emit textual llvm IR for AMDGPU offloading for -emit-llvm -S
+      if (Triple.isAMDGCN() && IsOpenMPDevice && Args.hasArg(options::OPT_S) &&
+          Args.hasArg(options::OPT_emit_llvm)) {
+        CmdArgs.push_back("-emit-llvm");
+      } else {
+        CmdArgs.push_back("-emit-llvm-bc");
+      }
     } else if (JA.getType() == types::TY_IFS ||
                JA.getType() == types::TY_IFS_CPP) {
       StringRef ArgStr =
@@ -4702,7 +4712,8 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
                              options::OPT_fno_semantic_interposition);
     if (RelocationModel != llvm::Reloc::Static && !IsPIE) {
       // The supported targets need to call AsmPrinter::getSymbolPreferLocal.
-      bool SupportsLocalAlias = Triple.isX86();
+      bool SupportsLocalAlias =
+          Triple.isAArch64() || Triple.isRISCV() || Triple.isX86();
       if (!A)
         CmdArgs.push_back("-fhalf-no-semantic-interposition");
       else if (A->getOption().matches(options::OPT_fsemantic_interposition))
@@ -5003,8 +5014,7 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
   // Prepare `-aux-target-cpu` and `-aux-target-feature` unless
   // `--gpu-use-aux-triple-only` is specified.
   if (!Args.getLastArg(options::OPT_gpu_use_aux_triple_only) &&
-      ((IsCuda && JA.isDeviceOffloading(Action::OFK_Cuda)) ||
-       (IsHIP && JA.isDeviceOffloading(Action::OFK_HIP)))) {
+      (IsCudaDevice || IsHIPDevice)) {
     const ArgList &HostArgs =
         C.getArgsForToolChain(nullptr, StringRef(), Action::OFK_None);
     std::string HostCPU =
@@ -5133,6 +5143,7 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
     CmdArgs.push_back("-H");
     CmdArgs.push_back("-sys-header-deps");
   }
+  Args.AddAllArgs(CmdArgs, options::OPT_fshow_skipped_includes);
 
   if (D.CCPrintHeaders && !D.CCGenDiagnostics) {
     CmdArgs.push_back("-header-include-file");
@@ -5305,6 +5316,9 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
                    /*Default=*/false))
     Args.AddLastArg(CmdArgs, options::OPT_ffixed_point);
 
+  if (Arg *A = Args.getLastArg(options::OPT_fcxx_abi_EQ))
+    A->render(Args, CmdArgs);
+
   // Handle -{std, ansi, trigraphs} -- take the last of -{std, ansi}
   // (-ansi is equivalent to -std=c89 or -std=c++98).
   //
@@ -5467,6 +5481,18 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
   if (Args.hasFlag(options::OPT_fstack_size_section,
                    options::OPT_fno_stack_size_section, RawTriple.isPS4()))
     CmdArgs.push_back("-fstack-size-section");
+
+  if (Args.hasArg(options::OPT_fstack_usage)) {
+    CmdArgs.push_back("-stack-usage-file");
+
+    if (Arg *OutputOpt = Args.getLastArg(options::OPT_o)) {
+      SmallString<128> OutputFilename(OutputOpt->getValue());
+      llvm::sys::path::replace_extension(OutputFilename, "su");
+      CmdArgs.push_back(Args.MakeArgString(OutputFilename));
+    } else
+      CmdArgs.push_back(
+          Args.MakeArgString(Twine(getBaseInputStem(Args, Inputs)) + ".su"));
+  }
 
   CmdArgs.push_back("-ferror-limit");
   if (Arg *A = Args.getLastArg(options::OPT_ferror_limit_EQ))
@@ -5824,29 +5850,32 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
         Args.MakeArgString(Twine("-fcf-protection=") + A->getValue()));
   }
 
-  // Forward -f options with positive and negative forms; we translate
-  // these by hand.
-  if (Arg *A = getLastProfileSampleUseArg(Args)) {
-    auto *PGOArg = Args.getLastArg(
-        options::OPT_fprofile_generate, options::OPT_fprofile_generate_EQ,
-        options::OPT_fcs_profile_generate, options::OPT_fcs_profile_generate_EQ,
-        options::OPT_fprofile_use, options::OPT_fprofile_use_EQ);
-    if (PGOArg)
-      D.Diag(diag::err_drv_argument_not_allowed_with)
-          << "SampleUse with PGO options";
+  // Forward -f options with positive and negative forms; we translate these by
+  // hand.  Do not propagate PGO options to the GPU-side compilations as the
+  // profile info is for the host-side compilation only.
+  if (!(IsCudaDevice || IsHIPDevice)) {
+    if (Arg *A = getLastProfileSampleUseArg(Args)) {
+      auto *PGOArg = Args.getLastArg(
+          options::OPT_fprofile_generate, options::OPT_fprofile_generate_EQ,
+          options::OPT_fcs_profile_generate,
+          options::OPT_fcs_profile_generate_EQ, options::OPT_fprofile_use,
+          options::OPT_fprofile_use_EQ);
+      if (PGOArg)
+        D.Diag(diag::err_drv_argument_not_allowed_with)
+            << "SampleUse with PGO options";
 
-    StringRef fname = A->getValue();
-    if (!llvm::sys::fs::exists(fname))
-      D.Diag(diag::err_drv_no_such_file) << fname;
-    else
-      A->render(Args, CmdArgs);
+      StringRef fname = A->getValue();
+      if (!llvm::sys::fs::exists(fname))
+        D.Diag(diag::err_drv_no_such_file) << fname;
+      else
+        A->render(Args, CmdArgs);
+    }
+    Args.AddLastArg(CmdArgs, options::OPT_fprofile_remapping_file_EQ);
+
+    if (Args.hasFlag(options::OPT_fpseudo_probe_for_profiling,
+                     options::OPT_fno_pseudo_probe_for_profiling, false))
+      CmdArgs.push_back("-fpseudo-probe-for-profiling");
   }
-  Args.AddLastArg(CmdArgs, options::OPT_fprofile_remapping_file_EQ);
-
-  if (Args.hasFlag(options::OPT_fpseudo_probe_for_profiling,
-                   options::OPT_fno_pseudo_probe_for_profiling, false))
-    CmdArgs.push_back("-fpseudo-probe-for-profiling");
-
   RenderBuiltinOptions(TC, RawTriple, Args, CmdArgs);
 
   if (!Args.hasFlag(options::OPT_fassume_sane_operator_new,
@@ -6468,6 +6497,16 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
   if (IsHIP)
     CmdArgs.push_back("-fcuda-allow-variadic-functions");
 
+  if (IsCudaDevice || IsHIPDevice) {
+    StringRef InlineThresh =
+        Args.getLastArgValue(options::OPT_fgpu_inline_threshold_EQ);
+    if (!InlineThresh.empty()) {
+      std::string ArgStr =
+          std::string("-inline-threshold=") + InlineThresh.str();
+      CmdArgs.append({"-mllvm", Args.MakeArgStringRef(ArgStr)});
+    }
+  }
+
   // OpenMP offloading device jobs take the argument -fopenmp-host-ir-file-path
   // to specify the result of the compile phase on the host, so the meaningful
   // device declarations can be identified. Also, -fopenmp-is-device is passed
@@ -7031,6 +7070,8 @@ void Clang::AddClangCLArgs(const ArgList &Args, types::ID InputType,
     if (types::isCXX(InputType))
       CmdArgs.push_back("-fcxx-exceptions");
     CmdArgs.push_back("-fexceptions");
+    if (EH.Asynch)
+      CmdArgs.push_back("-fasync-exceptions");
   }
   if (types::isCXX(InputType) && EH.Synch && EH.NoUnwindC)
     CmdArgs.push_back("-fexternc-nounwind");

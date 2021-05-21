@@ -14,6 +14,7 @@
 
 #include <condition_variable>
 #include <mutex>
+#include <stdlib.h>
 #include <thread>
 #include <vector>
 
@@ -31,7 +32,12 @@ struct TestConfig1 {
 };
 
 struct TestConfig2 {
+#if defined(__mips__)
+  // Unable to allocate greater size on QEMU-user.
+  static const scudo::uptr PrimaryRegionSizeLog = 23U;
+#else
   static const scudo::uptr PrimaryRegionSizeLog = 24U;
+#endif
   static const scudo::s32 PrimaryMinReleaseToOsIntervalMs = INT32_MIN;
   static const scudo::s32 PrimaryMaxReleaseToOsIntervalMs = INT32_MAX;
   static const bool MaySupportMemoryTagging = false;
@@ -40,7 +46,12 @@ struct TestConfig2 {
 };
 
 struct TestConfig3 {
+#if defined(__mips__)
+  // Unable to allocate greater size on QEMU-user.
+  static const scudo::uptr PrimaryRegionSizeLog = 23U;
+#else
   static const scudo::uptr PrimaryRegionSizeLog = 24U;
+#endif
   static const scudo::s32 PrimaryMinReleaseToOsIntervalMs = INT32_MIN;
   static const scudo::s32 PrimaryMaxReleaseToOsIntervalMs = INT32_MAX;
   static const bool MaySupportMemoryTagging = true;
@@ -63,22 +74,42 @@ struct SizeClassAllocator<TestConfig1, SizeClassMapT>
 template <typename BaseConfig, typename SizeClassMapT>
 struct TestAllocator : public SizeClassAllocator<BaseConfig, SizeClassMapT> {
   ~TestAllocator() { this->unmapTestOnly(); }
+
+  void *operator new(size_t size) {
+    void *p = nullptr;
+    EXPECT_EQ(0, posix_memalign(&p, alignof(TestAllocator), size));
+    return p;
+  }
+
+  void operator delete(void *ptr) { free(ptr); }
 };
 
-SCUDO_DEFINE_GTEST_TYPE_NAME(TestConfig1)
-SCUDO_DEFINE_GTEST_TYPE_NAME(TestConfig2)
-SCUDO_DEFINE_GTEST_TYPE_NAME(TestConfig3)
+template <class BaseConfig> struct ScudoPrimaryTest : public Test {};
 
-template <class BaseConfig> struct ScudoPrimaryTest : public ::testing::Test {};
-
-using ScudoPrimaryTestTypes = testing::Types<
-#if !SCUDO_FUCHSIA
-    TestConfig1,
+#if SCUDO_FUCHSIA
+#define SCUDO_TYPED_TEST_ALL_TYPES(FIXTURE, NAME)                              \
+  SCUDO_TYPED_TEST_TYPE(FIXTURE, NAME, TestConfig2)                            \
+  SCUDO_TYPED_TEST_TYPE(FIXTURE, NAME, TestConfig3)
+#else
+#define SCUDO_TYPED_TEST_ALL_TYPES(FIXTURE, NAME)                              \
+  SCUDO_TYPED_TEST_TYPE(FIXTURE, NAME, TestConfig1)                            \
+  SCUDO_TYPED_TEST_TYPE(FIXTURE, NAME, TestConfig2)                            \
+  SCUDO_TYPED_TEST_TYPE(FIXTURE, NAME, TestConfig3)
 #endif
-    TestConfig2, TestConfig3>;
-TYPED_TEST_CASE(ScudoPrimaryTest, ScudoPrimaryTestTypes);
 
-TYPED_TEST(ScudoPrimaryTest, BasicPrimary) {
+#define SCUDO_TYPED_TEST_TYPE(FIXTURE, NAME, TYPE)                             \
+  using FIXTURE##NAME##_##TYPE = FIXTURE##NAME<TYPE>;                          \
+  TEST_F(FIXTURE##NAME##_##TYPE, NAME) { Run(); }
+
+#define SCUDO_TYPED_TEST(FIXTURE, NAME)                                        \
+  template <class TypeParam>                                                   \
+  struct FIXTURE##NAME : public FIXTURE<TypeParam> {                           \
+    void Run();                                                                \
+  };                                                                           \
+  SCUDO_TYPED_TEST_ALL_TYPES(FIXTURE, NAME)                                    \
+  template <class TypeParam> void FIXTURE##NAME<TypeParam>::Run()
+
+SCUDO_TYPED_TEST(ScudoPrimaryTest, BasicPrimary) {
   using Primary = TestAllocator<TypeParam, scudo::DefaultSizeClassMap>;
   std::unique_ptr<Primary> Allocator(new Primary);
   Allocator->init(/*ReleaseToOsInterval=*/-1);
@@ -154,7 +185,7 @@ TEST(ScudoPrimaryTest, Primary64OOM) {
   Allocator.unmapTestOnly();
 }
 
-TYPED_TEST(ScudoPrimaryTest, PrimaryIterate) {
+SCUDO_TYPED_TEST(ScudoPrimaryTest, PrimaryIterate) {
   using Primary = TestAllocator<TypeParam, scudo::DefaultSizeClassMap>;
   std::unique_ptr<Primary> Allocator(new Primary);
   Allocator->init(/*ReleaseToOsInterval=*/-1);
@@ -190,7 +221,7 @@ TYPED_TEST(ScudoPrimaryTest, PrimaryIterate) {
   Str.output();
 }
 
-TYPED_TEST(ScudoPrimaryTest, PrimaryThreaded) {
+SCUDO_TYPED_TEST(ScudoPrimaryTest, PrimaryThreaded) {
   using Primary = TestAllocator<TypeParam, scudo::SvelteSizeClassMap>;
   std::unique_ptr<Primary> Allocator(new Primary);
   Allocator->init(/*ReleaseToOsInterval=*/-1);
@@ -240,7 +271,7 @@ TYPED_TEST(ScudoPrimaryTest, PrimaryThreaded) {
 // Through a simple allocation that spans two pages, verify that releaseToOS
 // actually releases some bytes (at least one page worth). This is a regression
 // test for an error in how the release criteria were computed.
-TYPED_TEST(ScudoPrimaryTest, ReleaseToOS) {
+SCUDO_TYPED_TEST(ScudoPrimaryTest, ReleaseToOS) {
   using Primary = TestAllocator<TypeParam, scudo::DefaultSizeClassMap>;
   std::unique_ptr<Primary> Allocator(new Primary);
   Allocator->init(/*ReleaseToOsInterval=*/-1);

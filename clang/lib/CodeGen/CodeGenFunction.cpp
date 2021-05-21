@@ -75,6 +75,7 @@ CodeGenFunction::CodeGenFunction(CodeGenModule &cgm, bool suppressNewContext)
           shouldEmitLifetimeMarkers(CGM.getCodeGenOpts(), CGM.getLangOpts())) {
   if (!suppressNewContext)
     CGM.getCXXABI().getMangleContext().startNewFunction();
+  EHStack.setCGF(this);
 
   SetFastMathFlags(CurFPFeatures);
   SetFPModel();
@@ -174,7 +175,7 @@ void CodeGenFunction::CGFPOptionsRAII::ConstructorHelper(FPOptions FPFeatures) {
 
   auto mergeFnAttrValue = [&](StringRef Name, bool Value) {
     auto OldValue =
-        CGF.CurFn->getFnAttribute(Name).getValueAsString() == "true";
+        CGF.CurFn->getFnAttribute(Name).getValueAsBool();
     auto NewValue = OldValue & Value;
     if (OldValue != NewValue)
       CGF.CurFn->addFnAttr(Name, llvm::toStringRef(NewValue));
@@ -1186,9 +1187,6 @@ void CodeGenFunction::StartFunction(GlobalDecl GD, QualType RetTy,
 
 void CodeGenFunction::EmitFunctionBody(const Stmt *Body) {
   incrementProfileCounter(Body);
-  if (CPlusPlusWithProgress())
-    FnIsMustProgress = true;
-
   if (const CompoundStmt *S = dyn_cast<CompoundStmt>(Body))
     EmitCompoundStmtWithoutScope(*S);
   else
@@ -1196,7 +1194,7 @@ void CodeGenFunction::EmitFunctionBody(const Stmt *Body) {
 
   // This is checked after emitting the function body so we know if there
   // are any permitted infinite loops.
-  if (FnIsMustProgress)
+  if (checkIfFunctionMustProgress())
     CurFn->addFnAttr(llvm::Attribute::MustProgress);
 }
 
@@ -1330,6 +1328,11 @@ void CodeGenFunction::GenerateCode(GlobalDecl GD, llvm::Function *Fn,
 
   // Emit the standard function prologue.
   StartFunction(GD, ResTy, Fn, FnInfo, Args, Loc, BodyRange.getBegin());
+
+  // Save parameters for coroutine function.
+  if (Body && isa_and_nonnull<CoroutineBodyStmt>(Body))
+    for (const auto *ParamDecl : FD->parameters())
+      FnArgs.push_back(ParamDecl);
 
   // Generate the body of the function.
   PGO.assignRegionCounters(GD, CurFn);

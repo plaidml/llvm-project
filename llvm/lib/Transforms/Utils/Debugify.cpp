@@ -25,6 +25,7 @@
 #include "llvm/IR/PassInstrumentation.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/CommandLine.h"
+#include "llvm/Support/FileSystem.h"
 #include "llvm/Support/JSON.h"
 
 #define DEBUG_TYPE "debugify"
@@ -622,7 +623,7 @@ bool checkDebugifyMetadata(Module &M,
 
     // Find missing lines.
     for (Instruction &I : instructions(F)) {
-      if (isa<DbgValueInst>(&I) || isa<PHINode>(&I))
+      if (isa<DbgValueInst>(&I))
         continue;
 
       auto DL = I.getDebugLoc();
@@ -631,7 +632,7 @@ bool checkDebugifyMetadata(Module &M,
         continue;
       }
 
-      if (!DL) {
+      if (!isa<PHINode>(&I) && !DL) {
         dbg() << "WARNING: Instruction with empty DebugLoc in function ";
         dbg() << F.getName() << " --";
         I.print(dbg());

@@ -1033,7 +1033,7 @@ bool FastISel::lowerCallTo(CallLoweringInfo &CLI) {
   for (auto &Arg : CLI.getArgs()) {
     Type *FinalType = Arg.Ty;
     if (Arg.IsByVal)
-      FinalType = cast<PointerType>(Arg.Ty)->getElementType();
+      FinalType = Arg.IndirectType;
     bool NeedsRegBlock = TLI.functionArgumentNeedsConsecutiveRegisters(
         FinalType, CLI.CallConv, CLI.IsVarArg);
 
@@ -1048,6 +1048,8 @@ bool FastISel::lowerCallTo(CallLoweringInfo &CLI) {
       Flags.setSRet();
     if (Arg.IsSwiftSelf)
       Flags.setSwiftSelf();
+    if (Arg.IsSwiftAsync)
+      Flags.setSwiftAsync();
     if (Arg.IsSwiftError)
       Flags.setSwiftError();
     if (Arg.IsCFGuardTarget)
@@ -1072,26 +1074,27 @@ bool FastISel::lowerCallTo(CallLoweringInfo &CLI) {
       // preallocated handling in the various CC lowering callbacks.
       Flags.setByVal();
     }
+    MaybeAlign MemAlign = Arg.Alignment;
     if (Arg.IsByVal || Arg.IsInAlloca || Arg.IsPreallocated) {
-      PointerType *Ty = cast<PointerType>(Arg.Ty);
-      Type *ElementTy = Ty->getElementType();
-      unsigned FrameSize =
-          DL.getTypeAllocSize(Arg.ByValType ? Arg.ByValType : ElementTy);
+      Type *ElementTy = Arg.IndirectType;
+      assert(ElementTy && "Indirect type not set in ArgListEntry");
+
+      unsigned FrameSize = DL.getTypeAllocSize(ElementTy);
 
       // For ByVal, alignment should come from FE. BE will guess if this info
       // is not there, but there are cases it cannot get right.
-      MaybeAlign FrameAlign = Arg.Alignment;
-      if (!FrameAlign)
-        FrameAlign = Align(TLI.getByValTypeAlignment(ElementTy, DL));
+      if (!MemAlign)
+        MemAlign = Align(TLI.getByValTypeAlignment(ElementTy, DL));
       Flags.setByValSize(FrameSize);
-      Flags.setByValAlign(*FrameAlign);
+    } else if (!MemAlign) {
+      MemAlign = DL.getABITypeAlign(Arg.Ty);
     }
+    Flags.setMemAlign(*MemAlign);
     if (Arg.IsNest)
       Flags.setNest();
     if (NeedsRegBlock)
       Flags.setInConsecutiveRegs();
     Flags.setOrigAlign(DL.getABITypeAlign(Arg.Ty));
-
     CLI.OutVals.push_back(Arg.Val);
     CLI.OutFlags.push_back(Flags);
   }
@@ -1144,7 +1147,7 @@ bool FastISel::lowerCall(const CallInst *CI) {
     IsTailCall = false;
   if (IsTailCall && MF->getFunction()
                             .getFnAttribute("disable-tail-calls")
-                            .getValueAsString() == "true")
+                            .getValueAsBool())
     IsTailCall = false;
 
   CallLoweringInfo CLI;

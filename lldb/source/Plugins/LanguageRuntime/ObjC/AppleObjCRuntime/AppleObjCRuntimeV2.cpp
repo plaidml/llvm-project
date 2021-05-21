@@ -663,8 +663,8 @@ protected:
     case 0:
       break;
     case 1: {
-      regex_up = std::make_unique<RegularExpression>(
-          llvm::StringRef::withNullAsEmpty(command.GetArgumentAtIndex(0)));
+      regex_up =
+          std::make_unique<RegularExpression>(command.GetArgumentAtIndex(0));
       if (!regex_up->IsValid()) {
         result.AppendError(
             "invalid argument - please provide a valid regular expression");
@@ -1439,7 +1439,8 @@ AppleObjCRuntimeV2::DynamicClassInfoExtractor::GetClassInfoUtilityFunction(
                                           g_get_dynamic_class_info2_name);
     return m_objc_copyRealizedClassList_helper.utility_function.get();
   }
-  };
+  }
+  llvm_unreachable("Unexpected helper");
 }
 
 lldb::addr_t &
@@ -1450,6 +1451,7 @@ AppleObjCRuntimeV2::DynamicClassInfoExtractor::GetClassInfoArgs(Helper helper) {
   case objc_copyRealizedClassList:
     return m_objc_copyRealizedClassList_helper.args;
   }
+  llvm_unreachable("Unexpected helper");
 }
 
 AppleObjCRuntimeV2::DynamicClassInfoExtractor::Helper

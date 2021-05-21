@@ -470,6 +470,16 @@ public:
                   ConversionPatternRewriter &rewriter) const override;
 };
 
+/// Converts std.splat to spv.CompositeConstruct.
+class SplatPattern final : public OpConversionPattern<SplatOp> {
+public:
+  using OpConversionPattern<SplatOp>::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(SplatOp op, ArrayRef<Value> operands,
+                  ConversionPatternRewriter &rewriter) const override;
+};
+
 /// Converts memref.store to spv.Store on integers.
 class IntStoreOpPattern final : public OpConversionPattern<memref::StoreOp> {
 public:
@@ -655,6 +665,17 @@ public:
 
 /// Converts std.xor to SPIR-V operations.
 class XOrOpPattern final : public OpConversionPattern<XOrOp> {
+public:
+  using OpConversionPattern<XOrOp>::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(XOrOp xorOp, ArrayRef<Value> operands,
+                  ConversionPatternRewriter &rewriter) const override;
+};
+
+/// Converts std.xor to SPIR-V operations if the type of source is i1 or vector
+/// of i1.
+class BoolXOrOpPattern final : public OpConversionPattern<XOrOp> {
 public:
   using OpConversionPattern<XOrOp>::OpConversionPattern;
 
@@ -994,13 +1015,16 @@ IntLoadOpPattern::matchAndRewrite(memref::LoadOp loadOp,
   bool isBool = srcBits == 1;
   if (isBool)
     srcBits = typeConverter.getOptions().boolNumBits;
-  auto dstType = typeConverter.convertType(memrefType)
-                     .cast<spirv::PointerType>()
-                     .getPointeeType()
-                     .cast<spirv::StructType>()
-                     .getElementType(0)
-                     .cast<spirv::ArrayType>()
-                     .getElementType();
+  Type pointeeType = typeConverter.convertType(memrefType)
+                         .cast<spirv::PointerType>()
+                         .getPointeeType();
+  Type structElemType = pointeeType.cast<spirv::StructType>().getElementType(0);
+  Type dstType;
+  if (auto arrayType = structElemType.dyn_cast<spirv::ArrayType>())
+    dstType = arrayType.getElementType();
+  else
+    dstType = structElemType.cast<spirv::RuntimeArrayType>().getElementType();
+
   int dstBits = dstType.getIntOrFloatBitWidth();
   assert(dstBits % srcBits == 0);
 
@@ -1114,6 +1138,23 @@ SelectOpPattern::matchAndRewrite(SelectOp op, ArrayRef<Value> operands,
 }
 
 //===----------------------------------------------------------------------===//
+// SplatOp
+//===----------------------------------------------------------------------===//
+
+LogicalResult
+SplatPattern::matchAndRewrite(SplatOp op, ArrayRef<Value> operands,
+                              ConversionPatternRewriter &rewriter) const {
+  auto dstVecType = op.getType().dyn_cast<VectorType>();
+  if (!dstVecType || !spirv::CompositeType::isValid(dstVecType))
+    return failure();
+  SplatOp::Adaptor adaptor(operands);
+  SmallVector<Value, 4> source(dstVecType.getNumElements(), adaptor.input());
+  rewriter.replaceOpWithNewOp<spirv::CompositeConstructOp>(op, dstVecType,
+                                                           source);
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // StoreOp
 //===----------------------------------------------------------------------===//
 
@@ -1136,13 +1177,16 @@ IntStoreOpPattern::matchAndRewrite(memref::StoreOp storeOp,
   bool isBool = srcBits == 1;
   if (isBool)
     srcBits = typeConverter.getOptions().boolNumBits;
-  auto dstType = typeConverter.convertType(memrefType)
-                     .cast<spirv::PointerType>()
-                     .getPointeeType()
-                     .cast<spirv::StructType>()
-                     .getElementType(0)
-                     .cast<spirv::ArrayType>()
-                     .getElementType();
+  Type pointeeType = typeConverter.convertType(memrefType)
+                         .cast<spirv::PointerType>()
+                         .getPointeeType();
+  Type structElemType = pointeeType.cast<spirv::StructType>().getElementType(0);
+  Type dstType;
+  if (auto arrayType = structElemType.dyn_cast<spirv::ArrayType>())
+    dstType = arrayType.getElementType();
+  else
+    dstType = structElemType.cast<spirv::RuntimeArrayType>().getElementType();
+
   int dstBits = dstType.getIntOrFloatBitWidth();
   assert(dstBits % srcBits == 0);
 
@@ -1244,6 +1288,22 @@ XOrOpPattern::matchAndRewrite(XOrOp xorOp, ArrayRef<Value> operands,
   return success();
 }
 
+LogicalResult
+BoolXOrOpPattern::matchAndRewrite(XOrOp xorOp, ArrayRef<Value> operands,
+                                  ConversionPatternRewriter &rewriter) const {
+  assert(operands.size() == 2);
+
+  if (!isBoolScalarOrVector(operands.front().getType()))
+    return failure();
+
+  auto dstType = getTypeConverter()->convertType(xorOp.getType());
+  if (!dstType)
+    return failure();
+  rewriter.replaceOpWithNewOp<spirv::LogicalNotEqualOp>(xorOp, dstType,
+                                                        operands);
+  return success();
+}
+
 //===----------------------------------------------------------------------===//
 // Pattern population
 //===----------------------------------------------------------------------===//
@@ -1260,6 +1320,7 @@ void populateStandardToSPIRVPatterns(SPIRVTypeConverter &typeConverter,
       UnaryAndBinaryOpPattern<math::ExpOp, spirv::GLSLExpOp>,
       UnaryAndBinaryOpPattern<math::LogOp, spirv::GLSLLogOp>,
       UnaryAndBinaryOpPattern<math::RsqrtOp, spirv::GLSLInverseSqrtOp>,
+      UnaryAndBinaryOpPattern<math::PowFOp, spirv::GLSLPowOp>,
       UnaryAndBinaryOpPattern<math::SinOp, spirv::GLSLSinOp>,
       UnaryAndBinaryOpPattern<math::SqrtOp, spirv::GLSLSqrtOp>,
       UnaryAndBinaryOpPattern<math::TanhOp, spirv::GLSLTanhOp>,
@@ -1286,7 +1347,7 @@ void populateStandardToSPIRVPatterns(SPIRVTypeConverter &typeConverter,
       UnaryAndBinaryOpPattern<UnsignedDivIOp, spirv::UDivOp>,
       UnaryAndBinaryOpPattern<UnsignedRemIOp, spirv::UModOp>,
       UnaryAndBinaryOpPattern<UnsignedShiftRightOp, spirv::ShiftRightLogicalOp>,
-      SignedRemIOpPattern, XOrOpPattern,
+      SignedRemIOpPattern, XOrOpPattern, BoolXOrOpPattern,
 
       // Comparison patterns
       BoolCmpIOpPattern, CmpFOpPattern, CmpFOpNanNonePattern, CmpIOpPattern,
@@ -1298,7 +1359,7 @@ void populateStandardToSPIRVPatterns(SPIRVTypeConverter &typeConverter,
       AllocOpPattern, DeallocOpPattern, IntLoadOpPattern, IntStoreOpPattern,
       LoadOpPattern, StoreOpPattern,
 
-      ReturnOpPattern, SelectOpPattern,
+      ReturnOpPattern, SelectOpPattern, SplatPattern,
 
       // Type cast patterns
       UIToFPI1Pattern, ZeroExtendI1Pattern, TruncI1Pattern,

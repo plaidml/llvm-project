@@ -901,6 +901,12 @@ Instruction *InstCombinerImpl::foldAddWithConstant(BinaryOperator &Add) {
   if (!match(Op1, m_APInt(C)))
     return nullptr;
 
+  // (X | Op01C) + Op1C --> X + (Op01C + Op1C) iff the `or` is actually an `add`
+  Constant *Op01C;
+  if (match(Op0, m_Or(m_Value(X), m_ImmConstant(Op01C))) &&
+      haveNoCommonBitsSet(X, Op01C, DL, &AC, &Add, &DT))
+    return BinaryOperator::CreateAdd(X, ConstantExpr::getAdd(Op01C, Op1C));
+
   // (X | C2) + C --> (X | C2) ^ C2 iff (C2 == -C)
   const APInt *C2;
   if (match(Op0, m_Or(m_Value(), m_APInt(C2))) && *C2 == -*C)
@@ -1441,6 +1447,14 @@ Instruction *InstCombinerImpl::visitAdd(BinaryOperator &I) {
     return replaceInstUsesWith(I,
         Builder.CreateIntrinsic(Intrinsic::umax, {I.getType()}, {A, B}));
   }
+
+  // ctpop(A) + ctpop(B) => ctpop(A | B) if A and B have no bits set in common.
+  if (match(LHS, m_OneUse(m_Intrinsic<Intrinsic::ctpop>(m_Value(A)))) &&
+      match(RHS, m_OneUse(m_Intrinsic<Intrinsic::ctpop>(m_Value(B)))) &&
+      haveNoCommonBitsSet(A, B, DL, &AC, &I, &DT))
+    return replaceInstUsesWith(
+        I, Builder.CreateIntrinsic(Intrinsic::ctpop, {I.getType()},
+                                   {Builder.CreateOr(A, B)}));
 
   return Changed ? &I : nullptr;
 }
@@ -2092,6 +2106,19 @@ Instruction *InstCombinerImpl::visitSub(BinaryOperator &I) {
           canonicalizeCondSignextOfHighBitExtractToSignextHighBitExtract(I))
     return V;
 
+  // X - usub.sat(X, Y) => umin(X, Y)
+  if (match(Op1, m_OneUse(m_Intrinsic<Intrinsic::usub_sat>(m_Specific(Op0),
+                                                           m_Value(Y)))))
+    return replaceInstUsesWith(
+        I, Builder.CreateIntrinsic(Intrinsic::umin, {I.getType()}, {Op0, Y}));
+
+  // C - ctpop(X) => ctpop(~X) if C is bitwidth
+  if (match(Op0, m_SpecificInt(Ty->getScalarSizeInBits())) &&
+      match(Op1, m_OneUse(m_Intrinsic<Intrinsic::ctpop>(m_Value(X)))))
+    return replaceInstUsesWith(
+        I, Builder.CreateIntrinsic(Intrinsic::ctpop, {I.getType()},
+                                   {Builder.CreateNot(X)}));
+
   return TryToNarrowDeduceFlags();
 }
 
@@ -2159,6 +2186,25 @@ Instruction *InstCombinerImpl::visitFNeg(UnaryOperator &I) {
 
   if (Instruction *R = hoistFNegAboveFMulFDiv(I, Builder))
     return R;
+
+  Value *Cond;
+  if (match(Op, m_OneUse(m_Select(m_Value(Cond), m_Value(X), m_Value(Y))))) {
+    Value *P;
+    if (match(X, m_FNeg(m_Value(P)))) {
+      IRBuilder<>::FastMathFlagGuard FMFG(Builder);
+      Builder.setFastMathFlags(I.getFastMathFlags());
+      Value *NegY = Builder.CreateFNegFMF(Y, &I, Y->getName() + ".neg");
+      Value *NewSel = Builder.CreateSelect(Cond, P, NegY);
+      return replaceInstUsesWith(I, NewSel);
+    }
+    if (match(Y, m_FNeg(m_Value(P)))) {
+      IRBuilder<>::FastMathFlagGuard FMFG(Builder);
+      Builder.setFastMathFlags(I.getFastMathFlags());
+      Value *NegX = Builder.CreateFNegFMF(X, &I, X->getName() + ".neg");
+      Value *NewSel = Builder.CreateSelect(Cond, NegX, P);
+      return replaceInstUsesWith(I, NewSel);
+    }
+  }
 
   return nullptr;
 }

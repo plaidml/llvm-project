@@ -1333,6 +1333,27 @@ normalizeForInvokeSafepoint(BasicBlock *BB, BasicBlock *InvokeParent,
   return Ret;
 }
 
+// List of all function attributes which must be stripped when lowering from
+// abstract machine model to physical machine model.  Essentially, these are
+// all the effects a safepoint might have which we ignored in the abstract
+// machine model for purposes of optimization.  We have to strip these on
+// both function declarations and call sites.
+static constexpr Attribute::AttrKind FnAttrsToStrip[] =
+  {Attribute::ReadNone, Attribute::ReadOnly, Attribute::WriteOnly,
+   Attribute::ArgMemOnly, Attribute::InaccessibleMemOnly,
+   Attribute::InaccessibleMemOrArgMemOnly,
+   Attribute::NoSync, Attribute::NoFree};
+
+// List of all parameter and return attributes which must be stripped when
+// lowering from the abstract machine model.  Note that we list attributes
+// here which aren't valid as return attributes, that is okay.  There are
+// also some additional attributes with arguments which are handled
+// explicitly and are not in this list.
+static constexpr Attribute::AttrKind ParamAttrsToStrip[] =
+  {Attribute::ReadNone, Attribute::ReadOnly, Attribute::WriteOnly,
+   Attribute::NoAlias, Attribute::NoFree};
+
+
 // Create new attribute set containing only attributes which can be transferred
 // from original call to the safepoint.
 static AttributeList legalizeCallAttributes(LLVMContext &Ctx,
@@ -1342,8 +1363,7 @@ static AttributeList legalizeCallAttributes(LLVMContext &Ctx,
 
   // Remove the readonly, readnone, and statepoint function attributes.
   AttrBuilder FnAttrs = AL.getFnAttributes();
-  for (auto Attr : {Attribute::ReadNone, Attribute::ReadOnly,
-                    Attribute::NoSync, Attribute::NoFree})
+  for (auto Attr : FnAttrsToStrip)
     FnAttrs.removeAttribute(Attr);
 
   for (Attribute A : AL.getFnAttributes()) {
@@ -2583,7 +2603,7 @@ static void RemoveNonValidAttrAtIndex(LLVMContext &Ctx, AttrHolder &AH,
   if (AH.getDereferenceableOrNullBytes(Index))
     R.addAttribute(Attribute::get(Ctx, Attribute::DereferenceableOrNull,
                                   AH.getDereferenceableOrNullBytes(Index)));
-  for (auto Attr : {Attribute::NoAlias, Attribute::NoFree})
+  for (auto Attr : ParamAttrsToStrip)
     if (AH.getAttributes().hasAttribute(Index, Attr))
       R.addAttribute(Attr);
 
@@ -2594,6 +2614,16 @@ static void RemoveNonValidAttrAtIndex(LLVMContext &Ctx, AttrHolder &AH,
 static void stripNonValidAttributesFromPrototype(Function &F) {
   LLVMContext &Ctx = F.getContext();
 
+  // Intrinsics are very delicate.  Lowering sometimes depends the presence
+  // of certain attributes for correctness, but we may have also inferred
+  // additional ones in the abstract machine model which need stripped.  This
+  // assumes that the attributes defined in Intrinsic.td are conservatively
+  // correct for both physical and abstract model.
+  if (Intrinsic::ID id = F.getIntrinsicID()) {
+    F.setAttributes(Intrinsic::getAttributes(Ctx, id));
+    return;
+  }
+
   for (Argument &A : F.args())
     if (isa<PointerType>(A.getType()))
       RemoveNonValidAttrAtIndex(Ctx, F,
@@ -2602,7 +2632,7 @@ static void stripNonValidAttributesFromPrototype(Function &F) {
   if (isa<PointerType>(F.getReturnType()))
     RemoveNonValidAttrAtIndex(Ctx, F, AttributeList::ReturnIndex);
 
-  for (auto Attr : {Attribute::NoSync, Attribute::NoFree})
+  for (auto Attr : FnAttrsToStrip)
     F.removeFnAttr(Attr);
 }
 

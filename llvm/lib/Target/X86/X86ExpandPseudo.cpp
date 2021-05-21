@@ -23,6 +23,7 @@
 #include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/CodeGen/Passes.h" // For IDs of passes that are preserved.
 #include "llvm/IR/GlobalValue.h"
+#include "llvm/Target/TargetMachine.h"
 using namespace llvm;
 
 #define DEBUG_TYPE "x86-pseudo"
@@ -94,7 +95,7 @@ void X86ExpandPseudo::ExpandICallBranchFunnel(
   ++InsPt;
 
   std::vector<std::pair<MachineBasicBlock *, unsigned>> TargetMBBs;
-  DebugLoc DL = JTInst->getDebugLoc();
+  const DebugLoc &DL = JTInst->getDebugLoc();
   MachineOperand Selector = JTInst->getOperand(0);
   const GlobalValue *CombinedGlobal = JTInst->getOperand(1).getGlobal();
 
@@ -192,7 +193,7 @@ bool X86ExpandPseudo::ExpandMI(MachineBasicBlock &MBB,
                                MachineBasicBlock::iterator MBBI) {
   MachineInstr &MI = *MBBI;
   unsigned Opcode = MI.getOpcode();
-  DebugLoc DL = MBBI->getDebugLoc();
+  const DebugLoc &DL = MBBI->getDebugLoc();
   switch (Opcode) {
   default:
     return false;
@@ -315,8 +316,12 @@ bool X86ExpandPseudo::ExpandMI(MachineBasicBlock &MBB,
     int64_t StackAdj = MBBI->getOperand(0).getImm();
     X86FL->emitSPUpdate(MBB, MBBI, DL, StackAdj, true);
     // Replace pseudo with machine iret
-    BuildMI(MBB, MBBI, DL,
-            TII->get(STI->is64Bit() ? X86::IRET64 : X86::IRET32));
+    unsigned RetOp = STI->is64Bit() ? X86::IRET64 : X86::IRET32;
+    // Use UIRET if UINTR is present (except for building kernel)
+    if (STI->is64Bit() && STI->hasUINTR() &&
+        MBB.getParent()->getTarget().getCodeModel() != CodeModel::Kernel)
+      RetOp = X86::UIRET;
+    BuildMI(MBB, MBBI, DL, TII->get(RetOp));
     MBB.erase(MBBI);
     return true;
   }
@@ -473,6 +478,10 @@ bool X86ExpandPseudo::ExpandMI(MachineBasicBlock &MBB,
   case TargetOpcode::ICALL_BRANCH_FUNNEL:
     ExpandICallBranchFunnel(&MBB, MBBI);
     return true;
+  case X86::PLDTILECFGV: {
+    MI.setDesc(TII->get(X86::LDTILECFG));
+    return true;
+  }
   case X86::PTILELOADDV: {
     for (unsigned i = 2; i > 0; --i)
       MI.RemoveOperand(i);
@@ -537,7 +546,7 @@ void X86ExpandPseudo::ExpandVastartSaveXmmRegs(
 
   MachineFunction *Func = EntryBlk->getParent();
   const TargetInstrInfo *TII = STI->getInstrInfo();
-  DebugLoc DL = VAStartPseudoInstr->getDebugLoc();
+  const DebugLoc &DL = VAStartPseudoInstr->getDebugLoc();
   Register CountReg = VAStartPseudoInstr->getOperand(0).getReg();
 
   // Calculate liveins for newly created blocks.
