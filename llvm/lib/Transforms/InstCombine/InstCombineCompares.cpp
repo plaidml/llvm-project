@@ -269,14 +269,30 @@ InstCombinerImpl::foldCmpLoadFromIndexedGlobal(GetElementPtrInst *GEP,
   // order the state machines in complexity of the generated code.
   Value *Idx = GEP->getOperand(2);
 
-  // If the index is larger than the pointer size of the target, truncate the
-  // index down like the GEP would do implicitly.  We don't have to do this for
-  // an inbounds GEP because the index can't be out of range.
   if (!GEP->isInBounds()) {
+    // If the index is larger than the pointer size of the target, truncate the
+    // index down like the GEP would do implicitly.  We don't have to do this
+    // for an inbounds GEP because the index can't be out of range.
     Type *IntPtrTy = DL.getIntPtrType(GEP->getType());
     unsigned PtrSize = IntPtrTy->getIntegerBitWidth();
     if (Idx->getType()->getPrimitiveSizeInBits().getFixedSize() > PtrSize)
       Idx = Builder.CreateTrunc(Idx, IntPtrTy);
+
+    unsigned ElementSize =
+        DL.getTypeAllocSize(Init->getType()->getArrayElementType());
+
+    // If inbounds keyword is not present, Idx * ElementSize can overflow.
+    // Let's assume that ElementSize is 2 and the wanted value is at offset 0.
+    // Then, there are two possible values for Idx to match offset 0:
+    // 0x00..00, 0x80..00.
+    // Emitting 'icmp eq Idx, 0' isn't correct in this case because the
+    // comparison is false if Idx was 0x80..00.
+    // We need to erase the highest countTrailingZeros(ElementSize) bits of Idx.
+    if (countTrailingZeros(ElementSize) != 0) {
+      Value *Mask = ConstantInt::getSigned(Idx->getType(), -1);
+      Mask = Builder.CreateLShr(Mask, countTrailingZeros(ElementSize));
+      Idx = Builder.CreateAnd(Idx, Mask);
+    }
   }
 
   // If the comparison is only true for one or two elements, emit direct
@@ -2279,6 +2295,16 @@ Instruction *InstCombinerImpl::foldICmpShrConstant(ICmpInst &Cmp,
   //  (X & 4) >> 1 == 2  --> (X & 4) == 4.
   if (Shr->isExact())
     return new ICmpInst(Pred, X, ConstantInt::get(ShrTy, C << ShAmtVal));
+
+  if (C.isNullValue()) {
+    // == 0 is u< 1.
+    if (Pred == CmpInst::ICMP_EQ)
+      return new ICmpInst(CmpInst::ICMP_ULT, X,
+                          ConstantInt::get(ShrTy, (C + 1).shl(ShAmtVal)));
+    else
+      return new ICmpInst(CmpInst::ICMP_UGT, X,
+                          ConstantInt::get(ShrTy, (C + 1).shl(ShAmtVal) - 1));
+  }
 
   if (Shr->hasOneUse()) {
     // Canonicalize the shift into an 'and':

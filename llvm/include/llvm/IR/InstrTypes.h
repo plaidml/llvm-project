@@ -1555,6 +1555,13 @@ public:
     setAttributes(PAL);
   }
 
+  /// Removes the attributes from the given argument
+  void removeParamAttrs(unsigned ArgNo, const AttrBuilder &Attrs) {
+    AttributeList PAL = getAttributes();
+    PAL = PAL.removeParamAttributes(getContext(), ArgNo, Attrs);
+    setAttributes(PAL);
+  }
+
   /// Removes noundef and other attributes that imply undefined behavior if a
   /// `undef` or `poison` value is passed from the given argument.
   void removeParamUndefImplyingAttrs(unsigned ArgNo) {
@@ -1722,17 +1729,14 @@ public:
 
   /// Extract the byval type for a call or parameter.
   Type *getParamByValType(unsigned ArgNo) const {
-    return Attrs.getParamByValType(ArgNo);
-  }
-
-  /// Extract the inalloca type for a call or parameter.
-  Type *getParamInAllocaType(unsigned ArgNo) const {
-    return Attrs.getParamInAllocaType(ArgNo);
+    Type *Ty = Attrs.getParamByValType(ArgNo);
+    return Ty ? Ty : getArgOperand(ArgNo)->getType()->getPointerElementType();
   }
 
   /// Extract the preallocated type for a call or parameter.
   Type *getParamPreallocatedType(unsigned ArgNo) const {
-    return Attrs.getParamPreallocatedType(ArgNo);
+    Type *Ty = Attrs.getParamPreallocatedType(ArgNo);
+    return Ty ? Ty : getArgOperand(ArgNo)->getType()->getPointerElementType();
   }
 
   /// Extract the number of dereferenceable bytes for a call or
