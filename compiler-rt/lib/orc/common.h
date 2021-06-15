@@ -14,6 +14,7 @@
 #define ORC_RT_COMMON_H
 
 #include "c_api.h"
+#include <type_traits>
 
 /// Opaque struct for external symbols.
 struct __orc_rt_Opaque {};
@@ -34,7 +35,7 @@ extern "C" __orc_rt_Opaque __orc_rt_jit_dispatch_ctx
 /// This is declared for use by the runtime, but should be implemented in the
 /// executor or provided by a definition added to the JIT before the runtime
 /// is loaded.
-extern "C" OrcRTCWrapperFunctionResult
+extern "C" __orc_rt_CWrapperFunctionResult
 __orc_rt_jit_dispatch(__orc_rt_Opaque *DispatchCtx, const void *FnTag,
                       const char *Data, size_t Size)
   __attribute__((weak_import));
