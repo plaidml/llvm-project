@@ -16,11 +16,14 @@
 #include "llvm/Transforms/Scalar/LoopDeletion.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/Statistic.h"
+#include "llvm/Analysis/CFG.h"
 #include "llvm/Analysis/GlobalsModRef.h"
+#include "llvm/Analysis/LoopIterator.h"
 #include "llvm/Analysis/LoopPass.h"
 #include "llvm/Analysis/MemorySSA.h"
 #include "llvm/Analysis/OptimizationRemarkEmitter.h"
 #include "llvm/IR/Dominators.h"
+
 #include "llvm/IR/PatternMatch.h"
 #include "llvm/InitializePasses.h"
 #include "llvm/Transforms/Scalar.h"
@@ -54,7 +57,7 @@ static LoopDeletionResult merge(LoopDeletionResult A, LoopDeletionResult B) {
 static bool isLoopDead(Loop *L, ScalarEvolution &SE,
                        SmallVectorImpl<BasicBlock *> &ExitingBlocks,
                        BasicBlock *ExitBlock, bool &Changed,
-                       BasicBlock *Preheader) {
+                       BasicBlock *Preheader, LoopInfo &LI) {
   // Make sure that all PHI entries coming from the loop are loop invariant.
   // Because the code is in LCSSA form, any values used outside of the loop
   // must pass through a PHI in the exit block, meaning that this check is
@@ -100,6 +103,36 @@ static bool isLoopDead(Loop *L, ScalarEvolution &SE,
           return I.mayHaveSideEffects() && !I.isDroppable();
         }))
       return false;
+
+  // The loop or any of its sub-loops looping infinitely is legal. The loop can
+  // only be considered dead if either
+  // a. the function is mustprogress.
+  // b. all (sub-)loops are mustprogress or have a known trip-count.
+  if (L->getHeader()->getParent()->mustProgress())
+    return true;
+
+  LoopBlocksRPO RPOT(L);
+  RPOT.perform(&LI);
+  // If the loop contains an irreducible cycle, it may loop infinitely.
+  if (containsIrreducibleCFG<const BasicBlock *>(RPOT, LI))
+    return false;
+
+  SmallVector<Loop *, 8> WorkList;
+  WorkList.push_back(L);
+  while (!WorkList.empty()) {
+    Loop *Current = WorkList.pop_back_val();
+    if (hasMustProgress(Current))
+      continue;
+
+    const SCEV *S = SE.getConstantMaxBackedgeTakenCount(Current);
+    if (isa<SCEVCouldNotCompute>(S)) {
+      LLVM_DEBUG(
+          dbgs() << "Could not compute SCEV MaxBackedgeTakenCount and was "
+                    "not required to make progress.\n");
+      return false;
+    }
+    WorkList.append(Current->begin(), Current->end());
+  }
   return true;
 }
 
@@ -224,19 +257,8 @@ static LoopDeletionResult deleteLoopIfDead(Loop *L, DominatorTree &DT,
   }
   // Finally, we have to check that the loop really is dead.
   bool Changed = false;
-  if (!isLoopDead(L, SE, ExitingBlocks, ExitBlock, Changed, Preheader)) {
+  if (!isLoopDead(L, SE, ExitingBlocks, ExitBlock, Changed, Preheader, LI)) {
     LLVM_DEBUG(dbgs() << "Loop is not invariant, cannot delete.\n");
-    return Changed ? LoopDeletionResult::Modified
-                   : LoopDeletionResult::Unmodified;
-  }
-
-  // Don't remove loops for which we can't solve the trip count unless the loop
-  // was required to make progress but has been determined to be dead.
-  const SCEV *S = SE.getConstantMaxBackedgeTakenCount(L);
-  if (isa<SCEVCouldNotCompute>(S) &&
-      !L->getHeader()->getParent()->mustProgress() && !hasMustProgress(L)) {
-    LLVM_DEBUG(dbgs() << "Could not compute SCEV MaxBackedgeTakenCount and was "
-                         "not required to make progress.\n");
     return Changed ? LoopDeletionResult::Modified
                    : LoopDeletionResult::Unmodified;
   }
