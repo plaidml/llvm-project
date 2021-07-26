@@ -1140,7 +1140,9 @@ public:
   /// deletion.
   void finalizeLowering(Instruction *Inst, MatrixTy Matrix,
                         IRBuilder<> &Builder) {
-    Inst2ColumnMatrix.insert(std::make_pair(Inst, Matrix));
+    auto inserted = Inst2ColumnMatrix.insert(std::make_pair(Inst, Matrix));
+    (void)inserted;
+    assert(inserted.second && "multiple matrix lowering mapping");
 
     ToRemove.push_back(Inst);
     Value *Flattened = nullptr;
@@ -1483,7 +1485,7 @@ public:
       FusedInsts.insert(LoadOp0);
       LoadOp0->eraseFromParent();
     }
-    if (LoadOp1->hasNUses(0)) {
+    if (LoadOp1 != LoadOp0 && LoadOp1->hasNUses(0)) {
       FusedInsts.insert(LoadOp1);
       LoadOp1->eraseFromParent();
     }
@@ -1540,11 +1542,11 @@ public:
       if (Transpose->hasOneUse()) {
         FusedInsts.insert(cast<Instruction>(Transpose));
         ToRemove.push_back(cast<Instruction>(Transpose));
+        // TODO: add a fake entry for the folded instruction so that this is
+        // included in the expression in the remark.
+        Inst2ColumnMatrix[Transpose] = MatrixTy(M, C, EltType);
       }
       finalizeLowering(MatMul, Result, Builder);
-      // TODO: add a fake entry for the folded instruction so that this is
-      // included in the expression in the remark.
-      Inst2ColumnMatrix[Transpose] = MatrixTy(M, C, EltType);
       return;
     }
 
@@ -1559,10 +1561,29 @@ public:
     if (LoadOp0 && LoadOp1 && Store) {
       // The store address must dominate the MatMul instruction, otherwise
       // we create invalid IR.
-      // FIXME: See if we can hoist the store address computation.
-      auto *AddrI = dyn_cast<Instruction>(Store->getOperand(1));
-      if (AddrI && (!DT->dominates(AddrI, MatMul)))
-        return;
+      SetVector<Value *> WorkList;
+      WorkList.insert(Store->getOperand(1));
+      SmallVector<Instruction *> ToHoist;
+      for (unsigned I = 0; I != WorkList.size(); ++I) {
+        Value *Current = WorkList[I];
+        auto *CurrI = dyn_cast<Instruction>(Current);
+        if (!CurrI)
+          continue;
+        if (isa<PHINode>(CurrI))
+          return;
+        if (DT->dominates(CurrI, MatMul))
+          continue;
+        if (CurrI->mayHaveSideEffects() || CurrI->mayReadFromMemory())
+          return;
+        ToHoist.push_back(CurrI);
+        WorkList.insert(CurrI->op_begin(), CurrI->op_end());
+      }
+
+      sort(ToHoist, [this](Instruction *A, Instruction *B) {
+        return DT->dominates(A, B);
+      });
+      for (Instruction *I : ToHoist)
+        I->moveBefore(MatMul);
 
       emitSIMDTiling(MatMul, LoadOp0, LoadOp1, Store, FusedInsts);
       return;

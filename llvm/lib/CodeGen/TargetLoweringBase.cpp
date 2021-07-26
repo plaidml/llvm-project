@@ -813,6 +813,10 @@ void TargetLoweringBase::initActions() {
     setOperationAction(ISD::SUBC, VT, Expand);
     setOperationAction(ISD::SUBE, VT, Expand);
 
+    // Absolute difference
+    setOperationAction(ISD::ABDS, VT, Expand);
+    setOperationAction(ISD::ABDU, VT, Expand);
+
     // These default to Expand so they will be expanded to CTLZ/CTTZ by default.
     setOperationAction(ISD::CTLZ_ZERO_UNDEF, VT, Expand);
     setOperationAction(ISD::CTTZ_ZERO_UNDEF, VT, Expand);
@@ -1706,7 +1710,7 @@ bool TargetLoweringBase::allowsMemoryAccessForAlignment(
   // For example, the ABI alignment may change based on software platform while
   // this function should only be affected by hardware implementation.
   Type *Ty = VT.getTypeForEVT(Context);
-  if (Alignment >= DL.getABITypeAlign(Ty)) {
+  if (VT.isZeroSized() || Alignment >= DL.getABITypeAlign(Ty)) {
     // Assume that an access that meets the ABI-specified alignment is fast.
     if (Fast != nullptr)
       *Fast = true;
