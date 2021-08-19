@@ -19,6 +19,7 @@
 #include "llvm/CodeGen/GlobalISel/LostDebugLocObserver.h"
 #include "llvm/CodeGen/GlobalISel/MIPatternMatch.h"
 #include "llvm/CodeGen/GlobalISel/Utils.h"
+#include "llvm/CodeGen/LowLevelType.h"
 #include "llvm/CodeGen/MachineRegisterInfo.h"
 #include "llvm/CodeGen/TargetFrameLowering.h"
 #include "llvm/CodeGen/TargetInstrInfo.h"
@@ -497,8 +498,8 @@ static bool isLibCallInTailPosition(MachineInstr &MI,
     return false;
 
   // It's not safe to eliminate the sign / zero extension of the return value.
-  if (CallerAttrs.hasAttribute(AttributeList::ReturnIndex, Attribute::ZExt) ||
-      CallerAttrs.hasAttribute(AttributeList::ReturnIndex, Attribute::SExt))
+  if (CallerAttrs.hasRetAttr(Attribute::ZExt) ||
+      CallerAttrs.hasRetAttr(Attribute::SExt))
     return false;
 
   // Only tail call if the following instruction is a standard return or if we
@@ -2051,8 +2052,12 @@ LegalizerHelper::widenScalar(MachineInstr &MI, unsigned TypeIdx, LLT WideTy) {
 
     Register SrcReg = MI.getOperand(1).getReg();
 
-    // First ZEXT the input.
-    auto MIBSrc = MIRBuilder.buildZExt(WideTy, SrcReg);
+    // First extend the input.
+    unsigned ExtOpc = MI.getOpcode() == TargetOpcode::G_CTTZ ||
+                              MI.getOpcode() == TargetOpcode::G_CTTZ_ZERO_UNDEF
+                          ? TargetOpcode::G_ANYEXT
+                          : TargetOpcode::G_ZEXT;
+    auto MIBSrc = MIRBuilder.buildInstr(ExtOpc, {WideTy}, {SrcReg});
     LLT CurTy = MRI.getType(SrcReg);
     unsigned NewOpc = MI.getOpcode();
     if (NewOpc == TargetOpcode::G_CTTZ) {
@@ -3482,6 +3487,8 @@ LegalizerHelper::lower(MachineInstr &MI, unsigned TypeIdx, LLT LowerHintTy) {
   case G_ROTL:
   case G_ROTR:
     return lowerRotate(MI);
+  case G_ISNAN:
+    return lowerIsNaN(MI);
   }
 }
 
@@ -4873,10 +4880,10 @@ LegalizerHelper::narrowScalarShift(MachineInstr &MI, unsigned TypeIdx,
   const LLT HalfTy = LLT::scalar(NewBitSize);
   const LLT CondTy = LLT::scalar(1);
 
-  if (const MachineInstr *KShiftAmt =
-          getOpcodeDef(TargetOpcode::G_CONSTANT, Amt, MRI)) {
-    return narrowScalarShiftByConstant(
-        MI, KShiftAmt->getOperand(1).getCImm()->getValue(), HalfTy, ShiftAmtTy);
+  if (auto VRegAndVal =
+          getConstantVRegValWithLookThrough(Amt, MRI, true, false)) {
+    return narrowScalarShiftByConstant(MI, VRegAndVal->Value, HalfTy,
+                                       ShiftAmtTy);
   }
 
   // TODO: Expand with known bits.
@@ -7348,6 +7355,37 @@ LegalizerHelper::lowerAbsToMaxNeg(MachineInstr &MI) {
   auto Zero = MIRBuilder.buildConstant(Ty, 0).getReg(0);
   auto Sub = MIRBuilder.buildSub(Ty, Zero, SrcReg).getReg(0);
   MIRBuilder.buildSMax(MI.getOperand(0), SrcReg, Sub);
+  MI.eraseFromParent();
+  return Legalized;
+}
+
+LegalizerHelper::LegalizeResult LegalizerHelper::lowerIsNaN(MachineInstr &MI) {
+  Register Dst = MI.getOperand(0).getReg();
+  Register Src = MI.getOperand(1).getReg();
+  LLT SrcTy = MRI.getType(Src);
+  if (MI.getFlags() & MachineInstr::NoFPExcept) {
+    // Lower to an unordered comparison.
+    auto Zero = MIRBuilder.buildFConstant(SrcTy, 0.0);
+    MIRBuilder.buildFCmp(CmpInst::Predicate::FCMP_UNO, Dst, Src, Zero);
+    MI.eraseFromParent();
+    return Legalized;
+  }
+
+  // Use integer operations to avoid traps if the argument is SNaN.
+
+  // NaN has all exp bits set and a non zero significand. Therefore:
+  // isnan(V) == exp mask < abs(V)
+  auto FPToSI = MIRBuilder.buildFPTOSI(SrcTy, Src);
+  auto Mask = APInt::getSignedMaxValue(SrcTy.getScalarSizeInBits());
+  auto MaskCst = MIRBuilder.buildConstant(SrcTy, Mask);
+  auto AbsV = MIRBuilder.buildAnd(SrcTy, FPToSI, MaskCst);
+  auto *FloatTy = getFloatTypeForLLT(MI.getMF()->getFunction().getContext(),
+                                     SrcTy.getScalarType());
+  if (!FloatTy)
+    return UnableToLegalize;
+  auto ExpMask = APFloat::getInf(FloatTy->getFltSemantics()).bitcastToAPInt();
+  auto ExpMaskCst = MIRBuilder.buildConstant(SrcTy, ExpMask);
+  MIRBuilder.buildICmp(CmpInst::Predicate::ICMP_SLT, Dst, ExpMaskCst, AbsV);
   MI.eraseFromParent();
   return Legalized;
 }

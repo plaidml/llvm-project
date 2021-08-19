@@ -4336,7 +4336,7 @@ SDValue TargetLowering::SimplifySetCC(EVT VT, SDValue N0, SDValue N1,
 
     // When division is cheap or optimizing for minimum size,
     // fall through to DIVREM creation by skipping this fold.
-    if (!isIntDivCheap(VT, Attr) && !Attr.hasFnAttribute(Attribute::MinSize)) {
+    if (!isIntDivCheap(VT, Attr) && !Attr.hasFnAttr(Attribute::MinSize)) {
       if (N0.getOpcode() == ISD::UREM) {
         if (SDValue Folded = buildUREMEqFold(VT, N0, N1, Cond, DCI, dl))
           return Folded;
@@ -6976,8 +6976,9 @@ SDValue TargetLowering::expandISNAN(EVT ResultVT, SDValue Op, SDNodeFlags Flags,
   assert(OperandVT.isFloatingPoint());
 
   // If floating point exceptions are ignored, expand to unordered comparison.
-  if (Flags.hasNoFPExcept() &&
-      isOperationLegalOrCustom(ISD::SETCC, OperandVT.getScalarType()))
+  if ((Flags.hasNoFPExcept() &&
+       isOperationLegalOrCustom(ISD::SETCC, OperandVT.getScalarType())) ||
+      OperandVT == MVT::ppcf128)
     return DAG.getSetCC(DL, ResultVT, Op, DAG.getConstantFP(0.0, DL, OperandVT),
                         ISD::SETUO);
 

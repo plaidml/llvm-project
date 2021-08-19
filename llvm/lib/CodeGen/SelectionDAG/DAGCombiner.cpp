@@ -17394,7 +17394,8 @@ bool DAGCombiner::tryStoreMergeOfConstants(
         break;
 
       if (TLI.isTypeLegal(StoreTy) &&
-          TLI.canMergeStoresTo(FirstStoreAS, StoreTy, DAG) &&
+          TLI.canMergeStoresTo(FirstStoreAS, StoreTy,
+                               DAG.getMachineFunction()) &&
           TLI.allowsMemoryAccess(Context, DL, StoreTy,
                                  *FirstInChain->getMemOperand(), &IsFast) &&
           IsFast) {
@@ -17406,7 +17407,8 @@ bool DAGCombiner::tryStoreMergeOfConstants(
         EVT LegalizedStoredValTy =
             TLI.getTypeToTransformTo(Context, StoredVal.getValueType());
         if (TLI.isTruncStoreLegal(LegalizedStoredValTy, StoreTy) &&
-            TLI.canMergeStoresTo(FirstStoreAS, LegalizedStoredValTy, DAG) &&
+            TLI.canMergeStoresTo(FirstStoreAS, LegalizedStoredValTy,
+                                 DAG.getMachineFunction()) &&
             TLI.allowsMemoryAccess(Context, DL, StoreTy,
                                    *FirstInChain->getMemOperand(), &IsFast) &&
             IsFast) {
@@ -17425,7 +17427,7 @@ bool DAGCombiner::tryStoreMergeOfConstants(
         unsigned Elts = (i + 1) * NumMemElts;
         EVT Ty = EVT::getVectorVT(Context, MemVT.getScalarType(), Elts);
         if (TLI.isTypeLegal(Ty) && TLI.isTypeLegal(MemVT) &&
-            TLI.canMergeStoresTo(FirstStoreAS, Ty, DAG) &&
+            TLI.canMergeStoresTo(FirstStoreAS, Ty, DAG.getMachineFunction()) &&
             TLI.allowsMemoryAccess(Context, DL, Ty,
                                    *FirstInChain->getMemOperand(), &IsFast) &&
             IsFast)
@@ -17501,7 +17503,8 @@ bool DAGCombiner::tryStoreMergeOfExtracts(
       if (Ty.getSizeInBits() > MaximumLegalStoreInBits)
         break;
 
-      if (TLI.isTypeLegal(Ty) && TLI.canMergeStoresTo(FirstStoreAS, Ty, DAG) &&
+      if (TLI.isTypeLegal(Ty) &&
+          TLI.canMergeStoresTo(FirstStoreAS, Ty, DAG.getMachineFunction()) &&
           TLI.allowsMemoryAccess(Context, DL, Ty,
                                  *FirstInChain->getMemOperand(), &IsFast) &&
           IsFast)
@@ -17650,7 +17653,8 @@ bool DAGCombiner::tryStoreMergeOfLoads(SmallVectorImpl<MemOpLink> &StoreNodes,
       bool IsFastSt = false;
       bool IsFastLd = false;
       if (TLI.isTypeLegal(StoreTy) &&
-          TLI.canMergeStoresTo(FirstStoreAS, StoreTy, DAG) &&
+          TLI.canMergeStoresTo(FirstStoreAS, StoreTy,
+                               DAG.getMachineFunction()) &&
           TLI.allowsMemoryAccess(Context, DL, StoreTy,
                                  *FirstInChain->getMemOperand(), &IsFastSt) &&
           IsFastSt &&
@@ -17664,7 +17668,8 @@ bool DAGCombiner::tryStoreMergeOfLoads(SmallVectorImpl<MemOpLink> &StoreNodes,
       unsigned SizeInBits = (i + 1) * ElementSizeBytes * 8;
       StoreTy = EVT::getIntegerVT(Context, SizeInBits);
       if (TLI.isTypeLegal(StoreTy) &&
-          TLI.canMergeStoresTo(FirstStoreAS, StoreTy, DAG) &&
+          TLI.canMergeStoresTo(FirstStoreAS, StoreTy,
+                               DAG.getMachineFunction()) &&
           TLI.allowsMemoryAccess(Context, DL, StoreTy,
                                  *FirstInChain->getMemOperand(), &IsFastSt) &&
           IsFastSt &&
@@ -17678,7 +17683,8 @@ bool DAGCombiner::tryStoreMergeOfLoads(SmallVectorImpl<MemOpLink> &StoreNodes,
                  TargetLowering::TypePromoteInteger) {
         EVT LegalizedStoredValTy = TLI.getTypeToTransformTo(Context, StoreTy);
         if (TLI.isTruncStoreLegal(LegalizedStoredValTy, StoreTy) &&
-            TLI.canMergeStoresTo(FirstStoreAS, LegalizedStoredValTy, DAG) &&
+            TLI.canMergeStoresTo(FirstStoreAS, LegalizedStoredValTy,
+                                 DAG.getMachineFunction()) &&
             TLI.isLoadExtLegal(ISD::ZEXTLOAD, LegalizedStoredValTy, StoreTy) &&
             TLI.isLoadExtLegal(ISD::SEXTLOAD, LegalizedStoredValTy, StoreTy) &&
             TLI.isLoadExtLegal(ISD::EXTLOAD, LegalizedStoredValTy, StoreTy) &&
@@ -19859,6 +19865,44 @@ static SDValue combineConcatVectorOfScalars(SDNode *N, SelectionDAG &DAG) {
   return DAG.getBitcast(VT, DAG.getBuildVector(VecVT, DL, Ops));
 }
 
+// Attempt to merge nested concat_vectors/undefs.
+// Fold concat_vectors(concat_vectors(x,y,z,w),u,u,concat_vectors(a,b,c,d))
+//  --> concat_vectors(x,y,z,w,u,u,u,u,u,u,u,u,a,b,c,d)
+static SDValue combineConcatVectorOfConcatVectors(SDNode *N,
+                                                  SelectionDAG &DAG) {
+  EVT VT = N->getValueType(0);
+
+  // Ensure we're concatenating UNDEF and CONCAT_VECTORS nodes of similar types.
+  EVT SubVT;
+  SDValue FirstConcat;
+  for (const SDValue &Op : N->ops()) {
+    if (Op.isUndef())
+      continue;
+    if (Op.getOpcode() != ISD::CONCAT_VECTORS)
+      return SDValue();
+    if (!FirstConcat) {
+      SubVT = Op.getOperand(0).getValueType();
+      if (!DAG.getTargetLoweringInfo().isTypeLegal(SubVT))
+        return SDValue();
+      FirstConcat = Op;
+      continue;
+    }
+    if (SubVT != Op.getOperand(0).getValueType())
+      return SDValue();
+  }
+  assert(FirstConcat && "Concat of all-undefs found");
+
+  SmallVector<SDValue> ConcatOps;
+  for (const SDValue &Op : N->ops()) {
+    if (Op.isUndef()) {
+      ConcatOps.append(FirstConcat->getNumOperands(), DAG.getUNDEF(SubVT));
+      continue;
+    }
+    ConcatOps.append(Op->op_begin(), Op->op_end());
+  }
+  return DAG.getNode(ISD::CONCAT_VECTORS, SDLoc(N), VT, ConcatOps);
+}
+
 // Check to see if this is a CONCAT_VECTORS of a bunch of EXTRACT_SUBVECTOR
 // operations. If so, and if the EXTRACT_SUBVECTOR vector inputs come from at
 // most two distinct vectors the same size as the result, attempt to turn this
@@ -20118,13 +20162,19 @@ SDValue DAGCombiner::visitCONCAT_VECTORS(SDNode *N) {
   }
 
   // Fold CONCAT_VECTORS of only bitcast scalars (or undef) to BUILD_VECTOR.
+  // FIXME: Add support for concat_vectors(bitcast(vec0),bitcast(vec1),...).
   if (SDValue V = combineConcatVectorOfScalars(N, DAG))
     return V;
 
-  // Fold CONCAT_VECTORS of EXTRACT_SUBVECTOR (or undef) to VECTOR_SHUFFLE.
-  if (Level < AfterLegalizeVectorOps && TLI.isTypeLegal(VT))
+  if (Level < AfterLegalizeVectorOps && TLI.isTypeLegal(VT)) {
+    // Fold CONCAT_VECTORS of CONCAT_VECTORS (or undef) to VECTOR_SHUFFLE.
+    if (SDValue V = combineConcatVectorOfConcatVectors(N, DAG))
+      return V;
+
+    // Fold CONCAT_VECTORS of EXTRACT_SUBVECTOR (or undef) to VECTOR_SHUFFLE.
     if (SDValue V = combineConcatVectorOfExtracts(N, DAG))
       return V;
+  }
 
   if (SDValue V = combineConcatVectorOfCasts(N, DAG))
     return V;
@@ -20577,8 +20627,12 @@ SDValue DAGCombiner::visitEXTRACT_SUBVECTOR(SDNode *N) {
     //    otherwise => (extract_subvec V1, ExtIdx)
     uint64_t InsIdx = V.getConstantOperandVal(2);
     if (InsIdx * SmallVT.getScalarSizeInBits() ==
-        ExtIdx * NVT.getScalarSizeInBits())
+        ExtIdx * NVT.getScalarSizeInBits()) {
+      if (LegalOperations && !TLI.isOperationLegal(ISD::BITCAST, NVT))
+        return SDValue();
+
       return DAG.getBitcast(NVT, V.getOperand(1));
+    }
     return DAG.getNode(
         ISD::EXTRACT_SUBVECTOR, SDLoc(N), NVT,
         DAG.getBitcast(N->getOperand(0).getValueType(), V.getOperand(0)),
@@ -22871,7 +22925,7 @@ SDValue DAGCombiner::BuildLogBase2(SDValue V, const SDLoc &DL) {
 
 /// Newton iteration for a function: F(X) is X_{i+1} = X_i - F(X_i)/F'(X_i)
 /// For the reciprocal, we need to find the zero of the function:
-///   F(X) = A X - 1 [which has a zero at X = 1/A]
+///   F(X) = 1/X - A [which has a zero at X = 1/A]
 ///     =>
 ///   X_{i+1} = X_i (2 - A X_i) = X_i + X_i (1 - A X_i) [this second form
 ///     does not require additional intermediate precision]
