@@ -1917,10 +1917,25 @@ X86TargetLowering::X86TargetLowering(const X86TargetMachine &TM,
       setOperationAction(ISD::STRICT_FMUL,        VT, Legal);
       setOperationAction(ISD::FDIV,               VT, Legal);
       setOperationAction(ISD::STRICT_FDIV,        VT, Legal);
+      setOperationAction(ISD::FSQRT,              VT, Legal);
+      setOperationAction(ISD::STRICT_FSQRT,       VT, Legal);
+
+      setOperationAction(ISD::FFLOOR,             VT, Legal);
+      setOperationAction(ISD::STRICT_FFLOOR,      VT, Legal);
+      setOperationAction(ISD::FCEIL,              VT, Legal);
+      setOperationAction(ISD::STRICT_FCEIL,       VT, Legal);
+      setOperationAction(ISD::FTRUNC,             VT, Legal);
+      setOperationAction(ISD::STRICT_FTRUNC,      VT, Legal);
+      setOperationAction(ISD::FRINT,              VT, Legal);
+      setOperationAction(ISD::STRICT_FRINT,       VT, Legal);
+      setOperationAction(ISD::FNEARBYINT,         VT, Legal);
+      setOperationAction(ISD::STRICT_FNEARBYINT,  VT, Legal);
 
       setOperationAction(ISD::LOAD,               VT, Legal);
       setOperationAction(ISD::STORE,              VT, Legal);
 
+      setOperationAction(ISD::FMA,                VT, Legal);
+      setOperationAction(ISD::STRICT_FMA,         VT, Legal);
       setOperationAction(ISD::VSELECT,            VT, Legal);
       setOperationAction(ISD::BUILD_VECTOR,       VT, Custom);
       setOperationAction(ISD::SELECT,             VT, Custom);
@@ -8991,7 +9006,9 @@ static Constant *getConstantVector(MVT VT, const APInt &SplatValue,
     APInt Val = SplatValue.extractBits(ScalarSize, ScalarSize * i);
     Constant *Const;
     if (VT.isFloatingPoint()) {
-      if (ScalarSize == 32) {
+      if (ScalarSize == 16) {
+        Const = ConstantFP::get(C, APFloat(APFloat::IEEEhalf(), Val));
+      } else if (ScalarSize == 32) {
         Const = ConstantFP::get(C, APFloat(APFloat::IEEEsingle(), Val));
       } else {
         assert(ScalarSize == 64 && "Unsupported floating point scalar size");
@@ -12235,10 +12252,15 @@ static bool matchShuffleAsBlend(SDValue V1, SDValue V2,
     int M = Mask[i];
     if (M == SM_SentinelUndef)
       continue;
-    if (M == i)
+    if (M == i ||
+        (0 <= M && M < Size && IsElementEquivalent(Size, V1, V1, M, i))) {
+      Mask[i] = i;
       continue;
-    if (M == i + Size) {
+    }
+    if (M == (i + Size) ||
+        (Size <= M && IsElementEquivalent(Size, V2, V2, M - Size, i))) {
       BlendMask |= 1ull << i;
+      Mask[i] = i + Size;
       continue;
     }
     if (Zeroable[i]) {
@@ -18677,7 +18699,13 @@ static bool canonicalizeShuffleMaskWithCommute(ArrayRef<int> Mask) {
   return false;
 }
 
-/// Top-level lowering for x86 vector shuffles.
+// Forward declaration.
+static SDValue canonicalizeShuffleMaskWithHorizOp(
+    MutableArrayRef<SDValue> Ops, MutableArrayRef<int> Mask,
+    unsigned RootSizeInBits, const SDLoc &DL, SelectionDAG &DAG,
+    const X86Subtarget &Subtarget);
+
+    /// Top-level lowering for x86 vector shuffles.
 ///
 /// This handles decomposition, canonicalization, and lowering of all x86
 /// vector shuffles. Most of the specific lowering strategies are encapsulated
@@ -18786,8 +18814,22 @@ static SDValue lowerVECTOR_SHUFFLE(SDValue Op, const X86Subtarget &Subtarget,
     }
   }
 
+  SmallVector<SDValue> Ops = {V1, V2};
+  SmallVector<int> Mask(OrigMask.begin(), OrigMask.end());
+
+  // Canonicalize the shuffle with any horizontal ops inputs.
+  // NOTE: This may update Ops and Mask.
+  if (SDValue HOp = canonicalizeShuffleMaskWithHorizOp(
+          Ops, Mask, VT.getSizeInBits(), DL, DAG, Subtarget))
+    return DAG.getBitcast(VT, HOp);
+
+  V1 = DAG.getBitcast(VT, Ops[0]);
+  V2 = DAG.getBitcast(VT, Ops[1]);
+  assert(NumElements == (int)Mask.size() &&
+         "canonicalizeShuffleMaskWithHorizOp "
+         "shouldn't alter the shuffle mask size");
+
   // Commute the shuffle if it will improve canonicalization.
-  SmallVector<int, 64> Mask(OrigMask.begin(), OrigMask.end());
   if (canonicalizeShuffleMaskWithCommute(Mask)) {
     ShuffleVectorSDNode::commuteMask(Mask);
     std::swap(V1, V2);
@@ -32682,6 +32724,8 @@ bool X86TargetLowering::isFMAFasterThanFMulAndFAdd(const MachineFunction &MF,
     return false;
 
   switch (VT.getSimpleVT().SimpleTy) {
+  case MVT::f16:
+    return Subtarget.hasFP16();
   case MVT::f32:
   case MVT::f64:
     return true;
@@ -44023,8 +44067,6 @@ static SDValue combineMulToPMULDQ(SDNode *N, SelectionDAG &DAG,
   return SDValue();
 }
 
-/// Optimize a single multiply with constant into two operations in order to
-/// implement it with two cheaper instructions, e.g. LEA + SHL, LEA + LEA.
 static SDValue combineMul(SDNode *N, SelectionDAG &DAG,
                           TargetLowering::DAGCombinerInfo &DCI,
                           const X86Subtarget &Subtarget) {
@@ -44039,8 +44081,11 @@ static SDValue combineMul(SDNode *N, SelectionDAG &DAG,
   if (DCI.isBeforeLegalize() && VT.isVector())
     return reduceVMULWidth(N, DAG, Subtarget);
 
+  // Optimize a single multiply with constant into two operations in order to
+  // implement it with two cheaper instructions, e.g. LEA + SHL, LEA + LEA.
   if (!MulConstantOptimization)
     return SDValue();
+
   // An imul is usually smaller than the alternative sequence.
   if (DAG.getMachineFunction().getFunction().hasMinSize())
     return SDValue();
@@ -48982,7 +49027,9 @@ static SDValue combineFMA(SDNode *N, SelectionDAG &DAG,
   }
 
   EVT ScalarVT = VT.getScalarType();
-  if ((ScalarVT != MVT::f32 && ScalarVT != MVT::f64) || !Subtarget.hasAnyFMA())
+  if (((ScalarVT != MVT::f32 && ScalarVT != MVT::f64) ||
+       !Subtarget.hasAnyFMA()) &&
+      !(ScalarVT == MVT::f16 && Subtarget.hasFP16()))
     return SDValue();
 
   auto invertIfNegative = [&DAG, &TLI, &DCI](SDValue &V) {
