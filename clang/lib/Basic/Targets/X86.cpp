@@ -18,7 +18,6 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/Support/X86TargetParser.h"
-#include <numeric>
 
 namespace clang {
 namespace targets {
@@ -1058,34 +1057,6 @@ static llvm::X86::ProcessorFeatures getFeature(StringRef Name) {
   // correct, so it asserts if the value is out of range.
 }
 
-static unsigned getFeaturePriority(llvm::X86::ProcessorFeatures Feat) {
-#ifndef NDEBUG
-  // Check that priorities are set properly in the .def file. We expect that
-  // "compat" features are assigned non-duplicate consecutive priorities
-  // starting from zero (0, 1, ..., num_features - 1).
-#define X86_FEATURE_COMPAT(ENUM, STR, PRIORITY) PRIORITY,
-  unsigned Priorities[] = {
-#include "llvm/Support/X86TargetParser.def"
-      std::numeric_limits<unsigned>::max() // Need to consume last comma.
-  };
-  std::array<unsigned, llvm::array_lengthof(Priorities) - 1> HelperList;
-  std::iota(HelperList.begin(), HelperList.end(), 0);
-  assert(std::is_permutation(HelperList.begin(), HelperList.end(),
-                             std::begin(Priorities),
-                             std::prev(std::end(Priorities))) &&
-         "Priorities don't form consecutive range!");
-#endif
-
-  switch (Feat) {
-#define X86_FEATURE_COMPAT(ENUM, STR, PRIORITY)                                \
-  case llvm::X86::FEATURE_##ENUM:                                              \
-    return PRIORITY;
-#include "llvm/Support/X86TargetParser.def"
-  default:
-    llvm_unreachable("No Feature Priority for non-CPUSupports Features");
-  }
-}
-
 unsigned X86TargetInfo::multiVersionSortPriority(StringRef Name) const {
   // Valid CPUs have a 'key feature' that compares just better than its key
   // feature.
@@ -1105,21 +1076,21 @@ bool X86TargetInfo::validateCPUSpecificCPUDispatch(StringRef Name) const {
   return llvm::StringSwitch<bool>(Name)
 #define CPU_SPECIFIC(NAME, MANGLING, FEATURES) .Case(NAME, true)
 #define CPU_SPECIFIC_ALIAS(NEW_NAME, NAME) .Case(NEW_NAME, true)
-#include "clang/Basic/X86Target.def"
+#include "llvm/Support/X86TargetParser.def"
       .Default(false);
 }
 
 static StringRef CPUSpecificCPUDispatchNameDealias(StringRef Name) {
   return llvm::StringSwitch<StringRef>(Name)
 #define CPU_SPECIFIC_ALIAS(NEW_NAME, NAME) .Case(NEW_NAME, NAME)
-#include "clang/Basic/X86Target.def"
+#include "llvm/Support/X86TargetParser.def"
       .Default(Name);
 }
 
 char X86TargetInfo::CPUSpecificManglingCharacter(StringRef Name) const {
   return llvm::StringSwitch<char>(CPUSpecificCPUDispatchNameDealias(Name))
 #define CPU_SPECIFIC(NAME, MANGLING, FEATURES) .Case(NAME, MANGLING)
-#include "clang/Basic/X86Target.def"
+#include "llvm/Support/X86TargetParser.def"
       .Default(0);
 }
 
@@ -1128,7 +1099,7 @@ void X86TargetInfo::getCPUSpecificCPUDispatchFeatures(
   StringRef WholeList =
       llvm::StringSwitch<StringRef>(CPUSpecificCPUDispatchNameDealias(Name))
 #define CPU_SPECIFIC(NAME, MANGLING, FEATURES) .Case(NAME, FEATURES)
-#include "clang/Basic/X86Target.def"
+#include "llvm/Support/X86TargetParser.def"
           .Default("");
   WholeList.split(Features, ',', /*MaxSplit=*/-1, /*KeepEmpty=*/false);
 }
