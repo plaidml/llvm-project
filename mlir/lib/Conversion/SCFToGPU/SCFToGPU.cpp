@@ -38,8 +38,9 @@ using namespace mlir;
 using namespace mlir::scf;
 
 // Name of internal attribute to mark visited operations during conversion.
-// The conversion uses the following legality criteria:
-// * `!parallelOp->getAttr(gpu::getMappingAttrName())`
+//
+// NOTE: The conversion originally used the following legality criteria:
+//   `!parallelOp->hasAttr(gpu::getMappingAttrName())`
 // But the provided pattern might reject some cases based on more detailed
 // analysis of the `mapping` attribute.
 // To avoid dialect conversion failure due to non-converted illegal operation
@@ -48,6 +49,10 @@ using namespace mlir::scf;
 // checks. The `finalizeParallelLoopToGPUConversion` function performs clean up
 // of this extra attributes ans is supposed to be called after the dialect
 // conversion.
+//
+// TODO: Implement a cleaner solution, factoring out the "matching" logic
+// from the pattern and its callees into a separate function that can be called
+// from both the pattern and the op legality check.
 static constexpr StringLiteral kVisitedAttrName = "SCFToGPU_visited";
 
 // Extract an indexed value from KernelDim3.
@@ -665,8 +670,8 @@ void mlir::populateParallelLoopToGPUPatterns(RewritePatternSet &patterns) {
 void mlir::configureParallelLoopToGPULegality(ConversionTarget &target) {
   target.addLegalDialect<memref::MemRefDialect>();
   target.addDynamicallyLegalOp<scf::ParallelOp>([](scf::ParallelOp parallelOp) {
-    return !parallelOp->getAttr(gpu::getMappingAttrName()) ||
-           parallelOp->getAttr(kVisitedAttrName);
+    return !parallelOp->hasAttr(gpu::getMappingAttrName()) ||
+           parallelOp->hasAttr(kVisitedAttrName);
   });
 }
 
