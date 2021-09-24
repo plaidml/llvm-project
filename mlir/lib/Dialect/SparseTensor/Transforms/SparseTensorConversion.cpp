@@ -83,7 +83,7 @@ getDimLevelTypeEncoding(SparseTensorEncodingAttr::DimLevelType dlt) {
 
 /// Returns integers of given width and values as a constant tensor.
 /// We cast the static shape into a dynamic shape to ensure that the
-/// method signature remains uniform accross different tensor dimensions.
+/// method signature remains uniform across different tensor dimensions.
 static Value getTensor(ConversionPatternRewriter &rewriter, unsigned width,
                        Location loc, ArrayRef<APInt> values) {
   Type etp = rewriter.getIntegerType(width);
@@ -95,20 +95,25 @@ static Value getTensor(ConversionPatternRewriter &rewriter, unsigned width,
   return rewriter.create<tensor::CastOp>(loc, tt2, elts);
 }
 
-/// Returns function reference (first hit also inserts into module).
+/// Returns a function reference (first hit also inserts into module). Sets
+/// the "_emit_c_interface" on the function declaration when requested,
+/// so that LLVM lowering generates a wrapper function that takes care
+/// of ABI complications with passing in and returning MemRefs to C functions.
 static FlatSymbolRefAttr getFunc(Operation *op, StringRef name, Type resultType,
-                                 ValueRange operands) {
+                                 ValueRange operands,
+                                 bool emitCInterface = false) {
   MLIRContext *context = op->getContext();
   auto module = op->getParentOfType<ModuleOp>();
   auto result = SymbolRefAttr::get(context, name);
   auto func = module.lookupSymbol<FuncOp>(result.getAttr());
   if (!func) {
     OpBuilder moduleBuilder(module.getBodyRegion());
-    moduleBuilder
-        .create<FuncOp>(
-            op->getLoc(), name,
-            FunctionType::get(context, operands.getTypes(), resultType))
-        .setPrivate();
+    func = moduleBuilder.create<FuncOp>(
+        op->getLoc(), name,
+        FunctionType::get(context, operands.getTypes(), resultType));
+    func.setPrivate();
+    if (emitCInterface)
+      func->setAttr("llvm.emit_c_interface", UnitAttr::get(context));
   }
   return result;
 }
@@ -171,16 +176,33 @@ static Value genNewCall(ConversionPatternRewriter &rewriter, Operation *op,
   params.push_back(ptr);
   // Generate the call to create new tensor.
   StringRef name = "newSparseTensor";
-  auto call =
-      rewriter.create<CallOp>(loc, pTp, getFunc(op, name, pTp, params), params);
+  auto call = rewriter.create<CallOp>(
+      loc, pTp, getFunc(op, name, pTp, params, /*emitCInterface=*/true),
+      params);
   return call.getResult(0);
 }
 
+/// Generates the comparison `v != 0` where `v` is of numeric type `t`.
+/// For floating types, we use the "unordered" comparator (i.e., returns
+/// true if `v` is NaN).
+static Value genIsNonzero(ConversionPatternRewriter &rewriter, Location loc,
+                          Type t, Value v) {
+  Value zero = rewriter.create<ConstantOp>(loc, rewriter.getZeroAttr(t));
+  if (t.isa<FloatType>())
+    return rewriter.create<CmpFOp>(loc, CmpFPredicate::UNE, v, zero);
+  if (t.isIntOrIndex())
+    return rewriter.create<CmpIOp>(loc, CmpIPredicate::ne, v, zero);
+  llvm_unreachable("Unknown element type");
+}
+
 /// Generates a call that adds one element to a coordinate scheme.
+/// In particular, this generates code like the following:
+///   val = a[i1,..,ik];
+///   if val != 0
+///     t->add(val, [i1,..,ik], [p1,..,pk]);
 static void genAddEltCall(ConversionPatternRewriter &rewriter, Operation *op,
                           Value ptr, Value tensor, Value ind, Value perm,
                           ValueRange ivs) {
-  Location loc = op->getLoc();
   StringRef name;
   Type eltType = tensor.getType().cast<ShapedType>().getElementType();
   if (eltType.isF64())
@@ -197,8 +219,11 @@ static void genAddEltCall(ConversionPatternRewriter &rewriter, Operation *op,
     name = "addEltI8";
   else
     llvm_unreachable("Unknown element type");
+  Location loc = op->getLoc();
   Value val = rewriter.create<tensor::ExtractOp>(loc, tensor, ivs);
-  // TODO: add if here?
+  Value cond = genIsNonzero(rewriter, loc, eltType, val);
+  scf::IfOp ifOp = rewriter.create<scf::IfOp>(loc, cond, /*else*/ false);
+  rewriter.setInsertionPointToStart(&ifOp.thenRegion().front());
   unsigned i = 0;
   for (auto iv : ivs) {
     Value idx = rewriter.create<ConstantOp>(loc, rewriter.getIndexAttr(i++));
@@ -210,7 +235,9 @@ static void genAddEltCall(ConversionPatternRewriter &rewriter, Operation *op,
   params.push_back(ind);
   params.push_back(perm);
   Type pTp = LLVM::LLVMPointerType::get(IntegerType::get(op->getContext(), 8));
-  rewriter.create<CallOp>(loc, pTp, getFunc(op, name, pTp, params), params);
+  rewriter.create<CallOp>(
+      loc, pTp, getFunc(op, name, pTp, params, /*emitCInterface=*/true),
+      params);
 }
 
 //===----------------------------------------------------------------------===//
@@ -313,6 +340,9 @@ class SparseTensorConvertConverter : public OpConversionPattern<ConvertOp> {
     // Note that the dense tensor traversal code is actually implemented
     // using MLIR IR to avoid having to expose too much low-level
     // memref traversal details to the runtime support library.
+    // Also note that the code below only generates the "new" ops and
+    // the loop-nest per se; whereas the entire body of the innermost
+    // loop is generated by genAddElt().
     Location loc = op->getLoc();
     ShapedType shape = resType.cast<ShapedType>();
     auto memTp =
@@ -369,7 +399,9 @@ public:
     else
       return failure();
     rewriter.replaceOpWithNewOp<CallOp>(
-        op, resType, getFunc(op, name, resType, operands), operands);
+        op, resType,
+        getFunc(op, name, resType, operands, /*emitCInterface=*/true),
+        operands);
     return success();
   }
 };
@@ -397,7 +429,9 @@ public:
     else
       return failure();
     rewriter.replaceOpWithNewOp<CallOp>(
-        op, resType, getFunc(op, name, resType, operands), operands);
+        op, resType,
+        getFunc(op, name, resType, operands, /*emitCInterface=*/true),
+        operands);
     return success();
   }
 };
@@ -427,7 +461,9 @@ public:
     else
       return failure();
     rewriter.replaceOpWithNewOp<CallOp>(
-        op, resType, getFunc(op, name, resType, operands), operands);
+        op, resType,
+        getFunc(op, name, resType, operands, /*emitCInterface=*/true),
+        operands);
     return success();
   }
 };
