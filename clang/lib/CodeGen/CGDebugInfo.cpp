@@ -873,23 +873,7 @@ llvm::DIType *CGDebugInfo::CreateType(const BuiltinType *BT) {
     break;
   }
 
-  switch (BT->getKind()) {
-  case BuiltinType::Long:
-    BTName = "long int";
-    break;
-  case BuiltinType::LongLong:
-    BTName = "long long int";
-    break;
-  case BuiltinType::ULong:
-    BTName = "long unsigned int";
-    break;
-  case BuiltinType::ULongLong:
-    BTName = "long long unsigned int";
-    break;
-  default:
-    BTName = BT->getName(CGM.getLangOpts());
-    break;
-  }
+  BTName = BT->getName(CGM.getLangOpts());
   // Bit size and offset of the type.
   uint64_t Size = CGM.getContext().getTypeSize(BT);
   return DBuilder.createBasicType(BTName, Size, Encoding);
@@ -3968,6 +3952,20 @@ llvm::DISubroutineType *CGDebugInfo::getOrCreateFunctionType(const Decl *D,
     }
 
   return cast<llvm::DISubroutineType>(getOrCreateType(FnType, F));
+}
+
+QualType
+CGDebugInfo::getFunctionType(const FunctionDecl *FD, QualType RetTy,
+                             const SmallVectorImpl<const VarDecl *> &Args) {
+  CallingConv CC = CallingConv::CC_C;
+  if (FD)
+    if (const auto *SrcFnTy = FD->getType()->getAs<FunctionType>())
+      CC = SrcFnTy->getCallConv();
+  SmallVector<QualType, 16> ArgTypes;
+  for (const VarDecl *VD : Args)
+    ArgTypes.push_back(VD->getType());
+  return CGM.getContext().getFunctionType(RetTy, ArgTypes,
+                                          FunctionProtoType::ExtProtoInfo(CC));
 }
 
 void CGDebugInfo::emitFunctionStart(GlobalDecl GD, SourceLocation Loc,

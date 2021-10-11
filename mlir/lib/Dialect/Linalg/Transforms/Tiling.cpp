@@ -162,13 +162,6 @@ tileLinalgOpImpl(OpBuilder &b, LinalgOp op, ValueRange tileSizes,
   if (llvm::all_of(tileSizes, isZero))
     return llvm::None;
 
-  if (auto convOp = dyn_cast<linalg::ConvOp>(op.getOperation())) {
-    // For conv op only support tiling along batch dimension (which is the first
-    // loop).
-    if (convOp.padding() && !llvm::all_of(tileSizes.drop_front(), isZero))
-      return llvm::None;
-  }
-
   // 1. Build the tiled loop ranges.
   auto allShapeSizes = op.createFlatListOfOperandDims(b, op.getLoc());
   AffineMap shapeSizesToLoopsMap = op.getShapesToLoopsMap();
@@ -475,16 +468,22 @@ void mlir::linalg::populateLinalgTilingCanonicalizationPatterns(
   AffineForOp::getCanonicalizationPatterns(patterns, ctx);
   AffineMinOp::getCanonicalizationPatterns(patterns, ctx);
   AffineMaxOp::getCanonicalizationPatterns(patterns, ctx);
+  ConstantIndexOp::getCanonicalizationPatterns(patterns, ctx);
+
+  memref::SubViewOp::getCanonicalizationPatterns(patterns, ctx);
+  memref::ViewOp::getCanonicalizationPatterns(patterns, ctx);
+
   scf::ForOp::getCanonicalizationPatterns(patterns, ctx);
   scf::ParallelOp::getCanonicalizationPatterns(patterns, ctx);
-  ConstantIndexOp::getCanonicalizationPatterns(patterns, ctx);
+
+  tensor::CastOp::getCanonicalizationPatterns(patterns, ctx);
   tensor::ExtractSliceOp::getCanonicalizationPatterns(patterns, ctx);
   tensor::InsertSliceOp::getCanonicalizationPatterns(patterns, ctx);
-  memref::SubViewOp::getCanonicalizationPatterns(patterns, ctx);
-  tensor::CastOp::getCanonicalizationPatterns(patterns, ctx);
-  memref::ViewOp::getCanonicalizationPatterns(patterns, ctx);
+
+  InitTensorOp::getCanonicalizationPatterns(patterns, ctx);
   PadTensorOp::getCanonicalizationPatterns(patterns, ctx);
   ctx->getLoadedDialect<LinalgDialect>()->getCanonicalizationPatterns(patterns);
+
   CanonicalizationPatternList<
 #define GET_OP_LIST
 #include "mlir/Dialect/Linalg/IR/LinalgStructuredOps.cpp.inc"

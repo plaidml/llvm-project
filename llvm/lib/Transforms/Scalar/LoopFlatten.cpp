@@ -97,9 +97,17 @@ struct FlattenInfo {
   // Holds the old/narrow induction phis, i.e. the Phis before IV widening has
   // been applied. This bookkeeping is used so we can skip some checks on these
   // phi nodes.
-  SmallPtrSet<PHINode *, 2> OldInductionPHIs;
+  PHINode *NarrowInnerInductionPHI = nullptr;
+  PHINode *NarrowOuterInductionPHI = nullptr;
 
   FlattenInfo(Loop *OL, Loop *IL) : OuterLoop(OL), InnerLoop(IL) {};
+
+  bool isNarrowInductionPhi(PHINode *Phi) {
+    // This can't be the narrow phi if we haven't widened the IV first.
+    if (!Widened)
+      return false;
+    return NarrowInnerInductionPHI == Phi || NarrowOuterInductionPHI == Phi;
+  }
 };
 
 static bool
@@ -268,7 +276,7 @@ static bool checkPHIs(FlattenInfo &FI, const TargetTransformInfo *TTI) {
     // them specially when doing the transformation.
     if (&InnerPHI == FI.InnerInductionPHI)
       continue;
-    if (FI.Widened && FI.OldInductionPHIs.count(&InnerPHI))
+    if (FI.isNarrowInductionPhi(&InnerPHI))
       continue;
 
     // Each inner loop PHI node must have two incoming values/blocks - one
@@ -315,7 +323,7 @@ static bool checkPHIs(FlattenInfo &FI, const TargetTransformInfo *TTI) {
   }
 
   for (PHINode &OuterPHI : FI.OuterLoop->getHeader()->phis()) {
-    if (FI.Widened && FI.OldInductionPHIs.count(&OuterPHI))
+    if (FI.isNarrowInductionPhi(&OuterPHI))
       continue;
     if (!SafeOuterPHIs.count(&OuterPHI)) {
       LLVM_DEBUG(dbgs() << "found unsafe PHI in outer loop: "; OuterPHI.dump());
@@ -598,7 +606,7 @@ static bool CanFlattenLoopPair(FlattenInfo &FI, DominatorTree *DT, LoopInfo *LI,
 
 static bool DoFlattenLoopPair(FlattenInfo &FI, DominatorTree *DT, LoopInfo *LI,
                               ScalarEvolution *SE, AssumptionCache *AC,
-                              const TargetTransformInfo *TTI) {
+                              const TargetTransformInfo *TTI, LPMUpdater *U) {
   Function *F = FI.OuterLoop->getHeader()->getParent();
   LLVM_DEBUG(dbgs() << "Checks all passed, doing the transformation\n");
   {
@@ -654,6 +662,8 @@ static bool DoFlattenLoopPair(FlattenInfo &FI, DominatorTree *DT, LoopInfo *LI,
   // deleted, and any information that have about the outer loop invalidated.
   SE->forgetLoop(FI.OuterLoop);
   SE->forgetLoop(FI.InnerLoop);
+  if (U)
+    U->markLoopAsDeleted(*FI.InnerLoop, FI.InnerLoop->getName());
   LI->erase(FI.InnerLoop);
 
   // Increment statistic value.
@@ -708,10 +718,11 @@ static bool CanWidenIV(FlattenInfo &FI, DominatorTree *DT, LoopInfo *LI,
   bool Deleted;
   if (!CreateWideIV({FI.InnerInductionPHI, MaxLegalType, false }, Deleted))
     return false;
-  // If the inner Phi node cannot be trivially deleted, we need to at least
-  // bring it in a consistent state.
+  // Add the narrow phi to list, so that it will be adjusted later when the
+  // the transformation is performed.
   if (!Deleted)
-    FI.InnerInductionPHI->removeIncomingValue(FI.InnerLoop->getLoopLatch());
+    FI.InnerPHIsToTransform.insert(FI.InnerInductionPHI);
+
   if (!CreateWideIV({FI.OuterInductionPHI, MaxLegalType, false }, Deleted))
     return false;
 
@@ -719,8 +730,8 @@ static bool CanWidenIV(FlattenInfo &FI, DominatorTree *DT, LoopInfo *LI,
   FI.Widened = true;
 
   // Save the old/narrow induction phis, which we need to ignore in CheckPHIs.
-  FI.OldInductionPHIs.insert(FI.InnerInductionPHI);
-  FI.OldInductionPHIs.insert(FI.OuterInductionPHI);
+  FI.NarrowInnerInductionPHI = FI.InnerInductionPHI;
+  FI.NarrowOuterInductionPHI = FI.OuterInductionPHI;
 
   // After widening, rediscover all the loop components.
   return CanFlattenLoopPair(FI, DT, LI, SE, AC, TTI);
@@ -728,7 +739,7 @@ static bool CanWidenIV(FlattenInfo &FI, DominatorTree *DT, LoopInfo *LI,
 
 static bool FlattenLoopPair(FlattenInfo &FI, DominatorTree *DT, LoopInfo *LI,
                             ScalarEvolution *SE, AssumptionCache *AC,
-                            const TargetTransformInfo *TTI) {
+                            const TargetTransformInfo *TTI, LPMUpdater *U) {
   LLVM_DEBUG(
       dbgs() << "Loop flattening running on outer loop "
              << FI.OuterLoop->getHeader()->getName() << " and inner loop "
@@ -739,12 +750,30 @@ static bool FlattenLoopPair(FlattenInfo &FI, DominatorTree *DT, LoopInfo *LI,
     return false;
 
   // Check if we can widen the induction variables to avoid overflow checks.
-  if (CanWidenIV(FI, DT, LI, SE, AC, TTI))
-    return DoFlattenLoopPair(FI, DT, LI, SE, AC, TTI);
+  bool CanFlatten = CanWidenIV(FI, DT, LI, SE, AC, TTI);
 
-  // Check if the new iteration variable might overflow. In this case, we
-  // need to version the loop, and select the original version at runtime if
-  // the iteration space is too large.
+  // It can happen that after widening of the IV, flattening may not be
+  // possible/happening, e.g. when it is deemed unprofitable. So bail here if
+  // that is the case.
+  // TODO: IV widening without performing the actual flattening transformation
+  // is not ideal. While this codegen change should not matter much, it is an
+  // unnecessary change which is better to avoid. It's unlikely this happens
+  // often, because if it's unprofitibale after widening, it should be
+  // unprofitabe before widening as checked in the first round of checks. But
+  // 'RepeatedInstructionThreshold' is set to only 2, which can probably be
+  // relaxed. Because this is making a code change (the IV widening, but not
+  // the flattening), we return true here.
+  if (FI.Widened && !CanFlatten)
+    return true;
+
+  // If we have widened and can perform the transformation, do that here.
+  if (CanFlatten)
+    return DoFlattenLoopPair(FI, DT, LI, SE, AC, TTI, U);
+
+  // Otherwise, if we haven't widened the IV, check if the new iteration
+  // variable might overflow. In this case, we need to version the loop, and
+  // select the original version at runtime if the iteration space is too
+  // large.
   // TODO: We currently don't version the loop.
   OverflowResult OR = checkOverflow(FI, DT, AC);
   if (OR == OverflowResult::AlwaysOverflowsHigh ||
@@ -757,18 +786,18 @@ static bool FlattenLoopPair(FlattenInfo &FI, DominatorTree *DT, LoopInfo *LI,
   }
 
   LLVM_DEBUG(dbgs() << "Multiply cannot overflow, modifying loop in-place\n");
-  return DoFlattenLoopPair(FI, DT, LI, SE, AC, TTI);
+  return DoFlattenLoopPair(FI, DT, LI, SE, AC, TTI, U);
 }
 
 bool Flatten(LoopNest &LN, DominatorTree *DT, LoopInfo *LI, ScalarEvolution *SE,
-             AssumptionCache *AC, TargetTransformInfo *TTI) {
+             AssumptionCache *AC, TargetTransformInfo *TTI, LPMUpdater *U) {
   bool Changed = false;
   for (Loop *InnerLoop : LN.getLoops()) {
     auto *OuterLoop = InnerLoop->getParentLoop();
     if (!OuterLoop)
       continue;
     FlattenInfo FI(OuterLoop, InnerLoop);
-    Changed |= FlattenLoopPair(FI, DT, LI, SE, AC, TTI);
+    Changed |= FlattenLoopPair(FI, DT, LI, SE, AC, TTI, U);
   }
   return Changed;
 }
@@ -783,12 +812,12 @@ PreservedAnalyses LoopFlattenPass::run(LoopNest &LN, LoopAnalysisManager &LAM,
   // in simplified form, and also needs LCSSA. Running
   // this pass will simplify all loops that contain inner loops,
   // regardless of whether anything ends up being flattened.
-  Changed |= Flatten(LN, &AR.DT, &AR.LI, &AR.SE, &AR.AC, &AR.TTI);
+  Changed |= Flatten(LN, &AR.DT, &AR.LI, &AR.SE, &AR.AC, &AR.TTI, &U);
 
   if (!Changed)
     return PreservedAnalyses::all();
 
-  return PreservedAnalyses::none();
+  return getLoopPassPreservedAnalyses();
 }
 
 namespace {
@@ -833,7 +862,7 @@ bool LoopFlattenLegacyPass::runOnFunction(Function &F) {
   bool Changed = false;
   for (Loop *L : *LI) {
     auto LN = LoopNest::getLoopNest(*L, *SE);
-    Changed |= Flatten(*LN, DT, LI, SE, AC, TTI);
+    Changed |= Flatten(*LN, DT, LI, SE, AC, TTI, nullptr);
   }
   return Changed;
 }

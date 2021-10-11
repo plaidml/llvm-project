@@ -45,17 +45,17 @@ SimpleRemoteEPC::lookupSymbols(ArrayRef<LookupRequest> Request) {
   return std::move(Result);
 }
 
-Expected<int32_t> SimpleRemoteEPC::runAsMain(JITTargetAddress MainFnAddr,
+Expected<int32_t> SimpleRemoteEPC::runAsMain(ExecutorAddr MainFnAddr,
                                              ArrayRef<std::string> Args) {
   int64_t Result = 0;
   if (auto Err = callSPSWrapper<rt::SPSRunAsMainSignature>(
-          RunAsMainAddr.getValue(), Result, ExecutorAddr(MainFnAddr), Args))
+          RunAsMainAddr, Result, ExecutorAddr(MainFnAddr), Args))
     return std::move(Err);
   return Result;
 }
 
-void SimpleRemoteEPC::callWrapperAsync(SendResultFunction OnComplete,
-                                       JITTargetAddress WrapperFnAddr,
+void SimpleRemoteEPC::callWrapperAsync(ExecutorAddr WrapperFnAddr,
+                                       IncomingWFRHandler OnComplete,
                                        ArrayRef<char> ArgBuffer) {
   uint64_t SeqNo;
   {
@@ -66,7 +66,7 @@ void SimpleRemoteEPC::callWrapperAsync(SendResultFunction OnComplete,
   }
 
   if (auto Err = sendMessage(SimpleRemoteEPCOpcode::CallWrapper, SeqNo,
-                             ExecutorAddr(WrapperFnAddr), ArgBuffer)) {
+                             WrapperFnAddr, ArgBuffer)) {
     getExecutionSession().reportError(std::move(Err));
   }
 }
@@ -246,6 +246,7 @@ Error SimpleRemoteEPC::setup() {
 
   // Prepare a handler for the setup packet.
   PendingCallWrapperResults[0] =
+    RunInPlace()(
       [&](shared::WrapperFunctionResult SetupMsgBytes) {
         if (const char *ErrMsg = SetupMsgBytes.getOutOfBandError()) {
           EIP.set_value(
@@ -261,7 +262,7 @@ Error SimpleRemoteEPC::setup() {
         else
           EIP.set_value(make_error<StringError>(
               "Could not deserialize setup message", inconvertibleErrorCode()));
-      };
+      });
 
   // Start the transport.
   if (auto Err = T->start())
@@ -316,7 +317,7 @@ Error SimpleRemoteEPC::setup() {
 
 Error SimpleRemoteEPC::handleResult(uint64_t SeqNo, ExecutorAddr TagAddr,
                                     SimpleRemoteEPCArgBytesVector ArgBytes) {
-  SendResultFunction SendResult;
+  IncomingWFRHandler SendResult;
 
   if (TagAddr)
     return make_error<StringError>("Unexpected TagAddr in result message",
