@@ -1422,3 +1422,13 @@ test.graph_region {
 // This is an unregister operation, the printing/parsing is handled by the dialect.
 // CHECK: test.dialect_custom_printer custom_format
 test.dialect_custom_printer custom_format
+
+// Can skip type definition for operands, if they are already defined in the same block
+// CHECK-LABEL: func @optional_operand_types
+func @optional_operand_types(%arg0: i64, %arg1: memref<1xf64>) {
+  // CHECK: test.format_operand_optional_type_op %arg0, %arg1
+  test.format_operand_optional_type_op %arg0, %arg1
+  // CHECK: test.format_operand_optional_type_op %arg0, %arg1
+  test.format_operand_optional_type_op %arg0, %arg1 : memref<1xf64>
+  return
+}
