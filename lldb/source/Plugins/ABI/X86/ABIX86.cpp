@@ -45,7 +45,7 @@ enum RegKind {
 
   RegKindCount
 };
-};
+}
 
 struct RegData {
   RegKind subreg_kind;
@@ -130,35 +130,42 @@ typedef llvm::SmallDenseMap<llvm::StringRef, llvm::SmallVector<RegData, 4>, 64>
 
 #define GPRh(l)                                                                \
   {                                                                            \
-    is64bit ? BaseRegToRegsMap::value_type("r" l "x", {{GPR32, "e" l "x"},     \
-                                                       {GPR16, l "x"},         \
-                                                       {GPR8h, l "h"},         \
-                                                       {GPR8, l "l"}})         \
-            : BaseRegToRegsMap::value_type(                                    \
-                  "e" l "x", {{GPR16, l "x"}, {GPR8h, l "h"}, {GPR8, l "l"}})  \
+    is64bit                                                                    \
+        ? BaseRegToRegsMap::value_type("r" l "x",                              \
+                                       {{GPR32, "e" l "x", llvm::None},        \
+                                        {GPR16, l "x", llvm::None},            \
+                                        {GPR8h, l "h", llvm::None},            \
+                                        {GPR8, l "l", llvm::None}})            \
+        : BaseRegToRegsMap::value_type("e" l "x", {{GPR16, l "x", llvm::None}, \
+                                                   {GPR8h, l "h", llvm::None}, \
+                                                   {GPR8, l "l", llvm::None}}) \
   }
 
 #define GPR(r16)                                                               \
   {                                                                            \
-    is64bit ? BaseRegToRegsMap::value_type(                                    \
-                  "r" r16, {{GPR32, "e" r16}, {GPR16, r16}, {GPR8, r16 "l"}})  \
-            : BaseRegToRegsMap::value_type("e" r16,                            \
-                                           {{GPR16, r16}, {GPR8, r16 "l"}})    \
+    is64bit                                                                    \
+        ? BaseRegToRegsMap::value_type("r" r16, {{GPR32, "e" r16, llvm::None}, \
+                                                 {GPR16, r16, llvm::None},     \
+                                                 {GPR8, r16 "l", llvm::None}}) \
+        : BaseRegToRegsMap::value_type("e" r16, {{GPR16, r16, llvm::None},     \
+                                                 {GPR8, r16 "l", llvm::None}}) \
   }
 
 #define GPR64(n)                                                               \
   {                                                                            \
-    BaseRegToRegsMap::value_type(                                              \
-        "r" #n,                                                                \
-        {{GPR32, "r" #n "d"}, {GPR16, "r" #n "w"}, {GPR8, "r" #n "l"}})        \
+    BaseRegToRegsMap::value_type("r" #n, {{GPR32, "r" #n "d", llvm::None},     \
+                                          {GPR16, "r" #n "w", llvm::None},     \
+                                          {GPR8, "r" #n "l", llvm::None}})     \
   }
 
 #define STMM(n)                                                                \
-  { BaseRegToRegsMap::value_type("st" #n, {{MM, "mm" #n}}) }
+  { BaseRegToRegsMap::value_type("st" #n, {{MM, "mm" #n, llvm::None}}) }
 
 #define YMM(n)                                                                 \
-  {BaseRegToRegsMap::value_type("ymm" #n "h", {{YMM_YMMh, "ymm" #n}})}, {      \
-    BaseRegToRegsMap::value_type("xmm" #n, {{YMM_XMM, "ymm" #n}})              \
+  {BaseRegToRegsMap::value_type("ymm" #n "h",                                  \
+                                {{YMM_YMMh, "ymm" #n, llvm::None}})},          \
+  {                                                                            \
+    BaseRegToRegsMap::value_type("xmm" #n, {{YMM_XMM, "ymm" #n, llvm::None}})  \
   }
 
 BaseRegToRegsMap makeBaseRegMap(bool is64bit) {
