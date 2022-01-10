@@ -1509,7 +1509,7 @@ void OperationFormat::genParserTypeResolution(Operator &op,
     // once. Use llvm::concat to perform the merge. llvm::concat does not allow
     // the case of a single range, so guard it here.
     if (op.getNumOperands() > 1) {
-      body << "::llvm::concat<const Type>(";
+      body << "::llvm::concat<const ::mlir::Type>(";
       llvm::interleaveComma(
           llvm::seq<int>(0, op.getNumOperands()), body, [&](int i) {
             body << "::llvm::ArrayRef<::mlir::Type>(";
@@ -1766,7 +1766,7 @@ static void genCustomDirectiveParameterPrinter(Element *element,
     if (var->isVariadic())
       body << name << "().getTypes()";
     else if (var->isOptional())
-      body << llvm::formatv("({0}() ? {0}().getType() : Type())", name);
+      body << llvm::formatv("({0}() ? {0}().getType() : ::mlir::Type())", name);
     else
       body << name << "().getType()";
   } else {
