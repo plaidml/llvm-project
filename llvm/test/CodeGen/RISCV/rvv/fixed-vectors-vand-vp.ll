@@ -52,6 +52,20 @@ define <2 x i8> @vand_vx_v2i8(<2 x i8> %va, i8 %b, <2 x i1> %m, i32 zeroext %evl
   ret <2 x i8> %v
 }
 
+define <2 x i8> @vand_vx_v2i8_commute(<2 x i8> %va, i8 %b, <2 x i1> %m, i32 zeroext %evl) {
+; CHECK-LABEL: vand_vx_v2i8_commute:
+; CHECK:       # %bb.0:
+; CHECK-NEXT:    vsetivli zero, 2, e8, mf8, ta, mu
+; CHECK-NEXT:    vmv.v.x v9, a0
+; CHECK-NEXT:    vsetvli zero, a1, e8, mf8, ta, mu
+; CHECK-NEXT:    vand.vv v8, v9, v8, v0.t
+; CHECK-NEXT:    ret
+  %elt.head = insertelement <2 x i8> undef, i8 %b, i32 0
+  %vb = shufflevector <2 x i8> %elt.head, <2 x i8> undef, <2 x i32> zeroinitializer
+  %v = call <2 x i8> @llvm.vp.and.v2i8(<2 x i8> %vb, <2 x i8> %va, <2 x i1> %m, i32 %evl)
+  ret <2 x i8> %v
+}
+
 define <2 x i8> @vand_vx_v2i8_unmasked(<2 x i8> %va, i8 %b, i32 zeroext %evl) {
 ; CHECK-LABEL: vand_vx_v2i8_unmasked:
 ; CHECK:       # %bb.0:
@@ -63,6 +77,20 @@ define <2 x i8> @vand_vx_v2i8_unmasked(<2 x i8> %va, i8 %b, i32 zeroext %evl) {
   %head = insertelement <2 x i1> undef, i1 true, i32 0
   %m = shufflevector <2 x i1> %head, <2 x i1> undef, <2 x i32> zeroinitializer
   %v = call <2 x i8> @llvm.vp.and.v2i8(<2 x i8> %va, <2 x i8> %vb, <2 x i1> %m, i32 %evl)
+  ret <2 x i8> %v
+}
+
+define <2 x i8> @vand_vx_v2i8_unmasked_commute(<2 x i8> %va, i8 %b, i32 zeroext %evl) {
+; CHECK-LABEL: vand_vx_v2i8_unmasked_commute:
+; CHECK:       # %bb.0:
+; CHECK-NEXT:    vsetvli zero, a1, e8, mf8, ta, mu
+; CHECK-NEXT:    vand.vx v8, v8, a0
+; CHECK-NEXT:    ret
+  %elt.head = insertelement <2 x i8> undef, i8 %b, i32 0
+  %vb = shufflevector <2 x i8> %elt.head, <2 x i8> undef, <2 x i32> zeroinitializer
+  %head = insertelement <2 x i1> undef, i1 true, i32 0
+  %m = shufflevector <2 x i1> %head, <2 x i1> undef, <2 x i32> zeroinitializer
+  %v = call <2 x i8> @llvm.vp.and.v2i8(<2 x i8> %vb, <2 x i8> %va, <2 x i1> %m, i32 %evl)
   ret <2 x i8> %v
 }
 
@@ -1268,7 +1296,7 @@ define <11 x i64> @vand_vx_v11i64(<11 x i64> %va, i64 %b, <11 x i1> %m, i32 zero
 ; RV32-LABEL: vand_vx_v11i64:
 ; RV32:       # %bb.0:
 ; RV32-NEXT:    vmv1r.v v16, v0
-; RV32-NEXT:    addi a3, zero, 32
+; RV32-NEXT:    li a3, 32
 ; RV32-NEXT:    vsetvli zero, a3, e32, m8, ta, mu
 ; RV32-NEXT:    vmv.v.x v24, a1
 ; RV32-NEXT:    lui a1, 341
@@ -1296,7 +1324,7 @@ define <11 x i64> @vand_vx_v11i64(<11 x i64> %va, i64 %b, <11 x i1> %m, i32 zero
 define <11 x i64> @vand_vx_v11i64_unmasked(<11 x i64> %va, i64 %b, i32 zeroext %evl) {
 ; RV32-LABEL: vand_vx_v11i64_unmasked:
 ; RV32:       # %bb.0:
-; RV32-NEXT:    addi a3, zero, 32
+; RV32-NEXT:    li a3, 32
 ; RV32-NEXT:    vsetvli zero, a3, e32, m8, ta, mu
 ; RV32-NEXT:    vmv.v.x v16, a1
 ; RV32-NEXT:    lui a1, 341

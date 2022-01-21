@@ -112,15 +112,12 @@ protected:
 
 class ProcessAttachInfo : public ProcessInstanceInfo {
 public:
-  ProcessAttachInfo()
-      : ProcessInstanceInfo(), m_listener_sp(), m_hijack_listener_sp(),
-        m_plugin_name() {}
+  ProcessAttachInfo() {}
 
   ProcessAttachInfo(const ProcessLaunchInfo &launch_info)
-      : ProcessInstanceInfo(), m_listener_sp(), m_hijack_listener_sp(),
-        m_plugin_name(), m_resume_count(0), m_wait_for_launch(false),
-        m_ignore_existing(true), m_continue_once_attached(false),
-        m_detach_on_error(true), m_async(false) {
+      : m_resume_count(0), m_wait_for_launch(false), m_ignore_existing(true),
+        m_continue_once_attached(false), m_detach_on_error(true),
+        m_async(false) {
     ProcessInfo::operator=(launch_info);
     SetProcessPluginName(launch_info.GetProcessPluginName());
     SetResumeCount(launch_info.GetResumeCount());
@@ -1482,36 +1479,6 @@ public:
   size_t ReadMemoryFromInferior(lldb::addr_t vm_addr, void *buf, size_t size,
                                 Status &error);
 
-  /// Read a NULL terminated string from memory
-  ///
-  /// This function will read a cache page at a time until a NULL string
-  /// terminator is found. It will stop reading if an aligned sequence of NULL
-  /// termination \a type_width bytes is not found before reading \a
-  /// cstr_max_len bytes.  The results are always guaranteed to be NULL
-  /// terminated, and that no more than (max_bytes - type_width) bytes will be
-  /// read.
-  ///
-  /// \param[in] vm_addr
-  ///     The virtual load address to start the memory read.
-  ///
-  /// \param[in] str
-  ///     A character buffer containing at least max_bytes.
-  ///
-  /// \param[in] max_bytes
-  ///     The maximum number of bytes to read.
-  ///
-  /// \param[in] error
-  ///     The error status of the read operation.
-  ///
-  /// \param[in] type_width
-  ///     The size of the null terminator (1 to 4 bytes per
-  ///     character).  Defaults to 1.
-  ///
-  /// \return
-  ///     The error status or the number of bytes prior to the null terminator.
-  size_t ReadStringFromMemory(lldb::addr_t vm_addr, char *str, size_t max_bytes,
-                              Status &error, size_t type_width = 1);
-
   /// Read a NULL terminated C string from memory
   ///
   /// This function will read a cache page at a time until the NULL
@@ -1792,7 +1759,7 @@ public:
   ///
   /// If load_addr is within the address space the process has mapped
   /// range_info will be filled in with the start and end of that range as
-  /// well as the permissions for that range and range_info. GetMapped will
+  /// well as the permissions for that range and range_info.GetMapped will
   /// return true.
   ///
   /// If load_addr is outside any mapped region then range_info will have its
@@ -1801,21 +1768,23 @@ public:
   /// there are no valid mapped ranges between load_addr and the end of the
   /// process address space.
   ///
-  /// GetMemoryRegionInfo calls DoGetMemoryRegionInfo. Override that function in
-  /// process subclasses.
+  /// GetMemoryRegionInfo will only return an error if it is unimplemented for
+  /// the current process.
   ///
   /// \param[in] load_addr
-  ///     The load address to query the range_info for. May include non
-  ///     address bits, these will be removed by the the ABI plugin if there is
-  ///     one.
+  ///     The load address to query the range_info for.
   ///
   /// \param[out] range_info
   ///     An range_info value containing the details of the range.
   ///
   /// \return
   ///     An error value.
-  Status GetMemoryRegionInfo(lldb::addr_t load_addr,
-                             MemoryRegionInfo &range_info);
+  virtual Status GetMemoryRegionInfo(lldb::addr_t load_addr,
+                                     MemoryRegionInfo &range_info) {
+    Status error;
+    error.SetErrorString("Process::GetMemoryRegionInfo() not supported");
+    return error;
+  }
 
   /// Obtain all the mapped memory regions within this process.
   ///
@@ -2634,26 +2603,6 @@ protected:
   ///     Zero is returned in the case of an error.
   virtual size_t DoReadMemory(lldb::addr_t vm_addr, void *buf, size_t size,
                               Status &error) = 0;
-
-  /// DoGetMemoryRegionInfo is called by GetMemoryRegionInfo after it has
-  /// removed non address bits from load_addr. Override this method in
-  /// subclasses of Process.
-  ///
-  /// See GetMemoryRegionInfo for details of the logic.
-  ///
-  /// \param[in] load_addr
-  ///     The load address to query the range_info for. (non address bits
-  ///     removed)
-  ///
-  /// \param[out] range_info
-  ///     An range_info value containing the details of the range.
-  ///
-  /// \return
-  ///     An error value.
-  virtual Status DoGetMemoryRegionInfo(lldb::addr_t load_addr,
-                                       MemoryRegionInfo &range_info) {
-    return Status("Process::DoGetMemoryRegionInfo() not supported");
-  }
 
   lldb::StateType GetPrivateState();
 

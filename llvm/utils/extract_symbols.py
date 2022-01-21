@@ -64,7 +64,7 @@ def nm_get_symbols(lib):
     process.wait()
 
 def readobj_get_symbols(lib):
-    process = subprocess.Popen(['llvm-readobj','-symbols',lib], bufsize=1,
+    process = subprocess.Popen(['llvm-readobj','--symbols',lib], bufsize=1,
                                stdout=subprocess.PIPE, stdin=subprocess.PIPE,
                                universal_newlines=True)
     process.stdin.close()
@@ -111,16 +111,16 @@ def dumpbin_is_32bit_windows(lib):
 def objdump_is_32bit_windows(lib):
     output = subprocess.check_output(['objdump','-f',lib],
                                      universal_newlines=True)
-    for line in output:
+    for line in output.splitlines():
         match = re.match('.+file format (\S+)', line)
         if match:
             return (match.group(1) == 'pe-i386')
     return False
 
 def readobj_is_32bit_windows(lib):
-    output = subprocess.check_output(['llvm-readobj','-file-headers',lib],
+    output = subprocess.check_output(['llvm-readobj','--file-header',lib],
                                      universal_newlines=True)
-    for line in output:
+    for line in output.splitlines():
         match = re.match('Format: (\S+)', line)
         if match:
             return (match.group(1) == 'COFF-i386')

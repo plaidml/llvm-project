@@ -128,6 +128,20 @@ define <4 x i8> @vadd_vx_v4i8(<4 x i8> %va, i8 %b, <4 x i1> %m, i32 zeroext %evl
   ret <4 x i8> %v
 }
 
+define <4 x i8> @vadd_vx_v4i8_commute(<4 x i8> %va, i8 %b, <4 x i1> %m, i32 zeroext %evl) {
+; CHECK-LABEL: vadd_vx_v4i8_commute:
+; CHECK:       # %bb.0:
+; CHECK-NEXT:    vsetivli zero, 4, e8, mf4, ta, mu
+; CHECK-NEXT:    vmv.v.x v9, a0
+; CHECK-NEXT:    vsetvli zero, a1, e8, mf4, ta, mu
+; CHECK-NEXT:    vadd.vv v8, v9, v8, v0.t
+; CHECK-NEXT:    ret
+  %elt.head = insertelement <4 x i8> undef, i8 %b, i32 0
+  %vb = shufflevector <4 x i8> %elt.head, <4 x i8> undef, <4 x i32> zeroinitializer
+  %v = call <4 x i8> @llvm.vp.add.v4i8(<4 x i8> %vb, <4 x i8> %va, <4 x i1> %m, i32 %evl)
+  ret <4 x i8> %v
+}
+
 define <4 x i8> @vadd_vx_v4i8_unmasked(<4 x i8> %va, i8 %b, i32 zeroext %evl) {
 ; CHECK-LABEL: vadd_vx_v4i8_unmasked:
 ; CHECK:       # %bb.0:
@@ -401,23 +415,23 @@ declare <256 x i8> @llvm.vp.add.v258i8(<256 x i8>, <256 x i8>, <256 x i1>, i32)
 define <256 x i8> @vadd_vi_v258i8(<256 x i8> %va, <256 x i1> %m, i32 zeroext %evl) {
 ; CHECK-LABEL: vadd_vi_v258i8:
 ; CHECK:       # %bb.0:
-; CHECK-NEXT:    addi a2, zero, 128
+; CHECK-NEXT:    li a2, 128
 ; CHECK-NEXT:    vsetvli zero, a2, e8, m8, ta, mu
 ; CHECK-NEXT:    vlm.v v25, (a0)
 ; CHECK-NEXT:    addi a3, a1, -128
 ; CHECK-NEXT:    vmv1r.v v24, v0
-; CHECK-NEXT:    mv a0, zero
-; CHECK-NEXT:    bltu a1, a3, .LBB31_2
+; CHECK-NEXT:    li a0, 0
+; CHECK-NEXT:    bltu a1, a3, .LBB32_2
 ; CHECK-NEXT:  # %bb.1:
 ; CHECK-NEXT:    mv a0, a3
-; CHECK-NEXT:  .LBB31_2:
+; CHECK-NEXT:  .LBB32_2:
 ; CHECK-NEXT:    vsetvli zero, a0, e8, m8, ta, mu
 ; CHECK-NEXT:    vmv1r.v v0, v25
 ; CHECK-NEXT:    vadd.vi v16, v16, -1, v0.t
-; CHECK-NEXT:    bltu a1, a2, .LBB31_4
+; CHECK-NEXT:    bltu a1, a2, .LBB32_4
 ; CHECK-NEXT:  # %bb.3:
-; CHECK-NEXT:    addi a1, zero, 128
-; CHECK-NEXT:  .LBB31_4:
+; CHECK-NEXT:    li a1, 128
+; CHECK-NEXT:  .LBB32_4:
 ; CHECK-NEXT:    vsetvli zero, a1, e8, m8, ta, mu
 ; CHECK-NEXT:    vmv1r.v v0, v24
 ; CHECK-NEXT:    vadd.vi v8, v8, -1, v0.t
@@ -432,18 +446,18 @@ define <256 x i8> @vadd_vi_v258i8_unmasked(<256 x i8> %va, i32 zeroext %evl) {
 ; CHECK-LABEL: vadd_vi_v258i8_unmasked:
 ; CHECK:       # %bb.0:
 ; CHECK-NEXT:    addi a1, a0, -128
-; CHECK-NEXT:    mv a2, zero
-; CHECK-NEXT:    bltu a0, a1, .LBB32_2
+; CHECK-NEXT:    li a2, 0
+; CHECK-NEXT:    bltu a0, a1, .LBB33_2
 ; CHECK-NEXT:  # %bb.1:
 ; CHECK-NEXT:    mv a2, a1
-; CHECK-NEXT:  .LBB32_2:
+; CHECK-NEXT:  .LBB33_2:
 ; CHECK-NEXT:    vsetvli zero, a2, e8, m8, ta, mu
-; CHECK-NEXT:    addi a1, zero, 128
+; CHECK-NEXT:    li a1, 128
 ; CHECK-NEXT:    vadd.vi v16, v16, -1
-; CHECK-NEXT:    bltu a0, a1, .LBB32_4
+; CHECK-NEXT:    bltu a0, a1, .LBB33_4
 ; CHECK-NEXT:  # %bb.3:
-; CHECK-NEXT:    addi a0, zero, 128
-; CHECK-NEXT:  .LBB32_4:
+; CHECK-NEXT:    li a0, 128
+; CHECK-NEXT:  .LBB33_4:
 ; CHECK-NEXT:    vsetvli zero, a0, e8, m8, ta, mu
 ; CHECK-NEXT:    vadd.vi v8, v8, -1
 ; CHECK-NEXT:    ret
@@ -460,7 +474,7 @@ define <256 x i8> @vadd_vi_v258i8_unmasked(<256 x i8> %va, i32 zeroext %evl) {
 define <256 x i8> @vadd_vi_v258i8_evl129(<256 x i8> %va, <256 x i1> %m) {
 ; CHECK-LABEL: vadd_vi_v258i8_evl129:
 ; CHECK:       # %bb.0:
-; CHECK-NEXT:    addi a1, zero, 128
+; CHECK-NEXT:    li a1, 128
 ; CHECK-NEXT:    vsetvli zero, a1, e8, m8, ta, mu
 ; CHECK-NEXT:    vlm.v v24, (a0)
 ; CHECK-NEXT:    vadd.vi v8, v8, -1, v0.t
@@ -479,7 +493,7 @@ define <256 x i8> @vadd_vi_v258i8_evl129(<256 x i8> %va, <256 x i1> %m) {
 define <256 x i8> @vadd_vi_v258i8_evl128(<256 x i8> %va, <256 x i1> %m) {
 ; CHECK-LABEL: vadd_vi_v258i8_evl128:
 ; CHECK:       # %bb.0:
-; CHECK-NEXT:    addi a0, zero, 128
+; CHECK-NEXT:    li a0, 128
 ; CHECK-NEXT:    vsetvli zero, a0, e8, m8, ta, mu
 ; CHECK-NEXT:    vadd.vi v8, v8, -1, v0.t
 ; CHECK-NEXT:    ret
@@ -1521,24 +1535,24 @@ define <32 x i64> @vadd_vx_v32i64(<32 x i64> %va, <32 x i1> %m, i32 zeroext %evl
 ; RV32-LABEL: vadd_vx_v32i64:
 ; RV32:       # %bb.0:
 ; RV32-NEXT:    vmv1r.v v1, v0
-; RV32-NEXT:    mv a1, zero
+; RV32-NEXT:    li a1, 0
 ; RV32-NEXT:    vsetivli zero, 2, e8, mf4, ta, mu
 ; RV32-NEXT:    vslidedown.vi v0, v0, 2
-; RV32-NEXT:    addi a2, zero, 32
+; RV32-NEXT:    li a2, 32
 ; RV32-NEXT:    vsetvli zero, a2, e32, m8, ta, mu
 ; RV32-NEXT:    addi a2, a0, -16
 ; RV32-NEXT:    vmv.v.i v24, -1
-; RV32-NEXT:    bltu a0, a2, .LBB107_2
+; RV32-NEXT:    bltu a0, a2, .LBB108_2
 ; RV32-NEXT:  # %bb.1:
 ; RV32-NEXT:    mv a1, a2
-; RV32-NEXT:  .LBB107_2:
+; RV32-NEXT:  .LBB108_2:
 ; RV32-NEXT:    vsetvli zero, a1, e64, m8, ta, mu
-; RV32-NEXT:    addi a1, zero, 16
+; RV32-NEXT:    li a1, 16
 ; RV32-NEXT:    vadd.vv v16, v16, v24, v0.t
-; RV32-NEXT:    bltu a0, a1, .LBB107_4
+; RV32-NEXT:    bltu a0, a1, .LBB108_4
 ; RV32-NEXT:  # %bb.3:
-; RV32-NEXT:    addi a0, zero, 16
-; RV32-NEXT:  .LBB107_4:
+; RV32-NEXT:    li a0, 16
+; RV32-NEXT:  .LBB108_4:
 ; RV32-NEXT:    vsetvli zero, a0, e64, m8, ta, mu
 ; RV32-NEXT:    vmv1r.v v0, v1
 ; RV32-NEXT:    vadd.vv v8, v8, v24, v0.t
@@ -1547,21 +1561,21 @@ define <32 x i64> @vadd_vx_v32i64(<32 x i64> %va, <32 x i1> %m, i32 zeroext %evl
 ; RV64-LABEL: vadd_vx_v32i64:
 ; RV64:       # %bb.0:
 ; RV64-NEXT:    vmv1r.v v24, v0
-; RV64-NEXT:    mv a1, zero
+; RV64-NEXT:    li a1, 0
 ; RV64-NEXT:    vsetivli zero, 2, e8, mf4, ta, mu
 ; RV64-NEXT:    addi a2, a0, -16
 ; RV64-NEXT:    vslidedown.vi v0, v0, 2
-; RV64-NEXT:    bltu a0, a2, .LBB107_2
+; RV64-NEXT:    bltu a0, a2, .LBB108_2
 ; RV64-NEXT:  # %bb.1:
 ; RV64-NEXT:    mv a1, a2
-; RV64-NEXT:  .LBB107_2:
+; RV64-NEXT:  .LBB108_2:
 ; RV64-NEXT:    vsetvli zero, a1, e64, m8, ta, mu
-; RV64-NEXT:    addi a1, zero, 16
+; RV64-NEXT:    li a1, 16
 ; RV64-NEXT:    vadd.vi v16, v16, -1, v0.t
-; RV64-NEXT:    bltu a0, a1, .LBB107_4
+; RV64-NEXT:    bltu a0, a1, .LBB108_4
 ; RV64-NEXT:  # %bb.3:
-; RV64-NEXT:    addi a0, zero, 16
-; RV64-NEXT:  .LBB107_4:
+; RV64-NEXT:    li a0, 16
+; RV64-NEXT:  .LBB108_4:
 ; RV64-NEXT:    vsetvli zero, a0, e64, m8, ta, mu
 ; RV64-NEXT:    vmv1r.v v0, v24
 ; RV64-NEXT:    vadd.vi v8, v8, -1, v0.t
@@ -1575,22 +1589,22 @@ define <32 x i64> @vadd_vx_v32i64(<32 x i64> %va, <32 x i1> %m, i32 zeroext %evl
 define <32 x i64> @vadd_vi_v32i64_unmasked(<32 x i64> %va, i32 zeroext %evl) {
 ; RV32-LABEL: vadd_vi_v32i64_unmasked:
 ; RV32:       # %bb.0:
-; RV32-NEXT:    mv a1, zero
-; RV32-NEXT:    addi a2, zero, 32
+; RV32-NEXT:    li a1, 0
+; RV32-NEXT:    li a2, 32
 ; RV32-NEXT:    vsetvli zero, a2, e32, m8, ta, mu
 ; RV32-NEXT:    addi a2, a0, -16
 ; RV32-NEXT:    vmv.v.i v24, -1
-; RV32-NEXT:    bltu a0, a2, .LBB108_2
+; RV32-NEXT:    bltu a0, a2, .LBB109_2
 ; RV32-NEXT:  # %bb.1:
 ; RV32-NEXT:    mv a1, a2
-; RV32-NEXT:  .LBB108_2:
+; RV32-NEXT:  .LBB109_2:
 ; RV32-NEXT:    vsetvli zero, a1, e64, m8, ta, mu
-; RV32-NEXT:    addi a1, zero, 16
+; RV32-NEXT:    li a1, 16
 ; RV32-NEXT:    vadd.vv v16, v16, v24
-; RV32-NEXT:    bltu a0, a1, .LBB108_4
+; RV32-NEXT:    bltu a0, a1, .LBB109_4
 ; RV32-NEXT:  # %bb.3:
-; RV32-NEXT:    addi a0, zero, 16
-; RV32-NEXT:  .LBB108_4:
+; RV32-NEXT:    li a0, 16
+; RV32-NEXT:  .LBB109_4:
 ; RV32-NEXT:    vsetvli zero, a0, e64, m8, ta, mu
 ; RV32-NEXT:    vadd.vv v8, v8, v24
 ; RV32-NEXT:    ret
@@ -1598,18 +1612,18 @@ define <32 x i64> @vadd_vi_v32i64_unmasked(<32 x i64> %va, i32 zeroext %evl) {
 ; RV64-LABEL: vadd_vi_v32i64_unmasked:
 ; RV64:       # %bb.0:
 ; RV64-NEXT:    addi a1, a0, -16
-; RV64-NEXT:    mv a2, zero
-; RV64-NEXT:    bltu a0, a1, .LBB108_2
+; RV64-NEXT:    li a2, 0
+; RV64-NEXT:    bltu a0, a1, .LBB109_2
 ; RV64-NEXT:  # %bb.1:
 ; RV64-NEXT:    mv a2, a1
-; RV64-NEXT:  .LBB108_2:
+; RV64-NEXT:  .LBB109_2:
 ; RV64-NEXT:    vsetvli zero, a2, e64, m8, ta, mu
-; RV64-NEXT:    addi a1, zero, 16
+; RV64-NEXT:    li a1, 16
 ; RV64-NEXT:    vadd.vi v16, v16, -1
-; RV64-NEXT:    bltu a0, a1, .LBB108_4
+; RV64-NEXT:    bltu a0, a1, .LBB109_4
 ; RV64-NEXT:  # %bb.3:
-; RV64-NEXT:    addi a0, zero, 16
-; RV64-NEXT:  .LBB108_4:
+; RV64-NEXT:    li a0, 16
+; RV64-NEXT:  .LBB109_4:
 ; RV64-NEXT:    vsetvli zero, a0, e64, m8, ta, mu
 ; RV64-NEXT:    vadd.vi v8, v8, -1
 ; RV64-NEXT:    ret
@@ -1626,7 +1640,7 @@ define <32 x i64> @vadd_vi_v32i64_unmasked(<32 x i64> %va, i32 zeroext %evl) {
 define <32 x i64> @vadd_vx_v32i64_evl12(<32 x i64> %va, <32 x i1> %m) {
 ; RV32-LABEL: vadd_vx_v32i64_evl12:
 ; RV32:       # %bb.0:
-; RV32-NEXT:    addi a0, zero, 32
+; RV32-NEXT:    li a0, 32
 ; RV32-NEXT:    vsetvli zero, a0, e32, m8, ta, mu
 ; RV32-NEXT:    vmv.v.i v16, -1
 ; RV32-NEXT:    vsetivli zero, 12, e64, m8, ta, mu
@@ -1649,7 +1663,7 @@ define <32 x i64> @vadd_vx_v32i64_evl27(<32 x i64> %va, <32 x i1> %m) {
 ; RV32:       # %bb.0:
 ; RV32-NEXT:    vsetivli zero, 2, e8, mf4, ta, mu
 ; RV32-NEXT:    vslidedown.vi v1, v0, 2
-; RV32-NEXT:    addi a0, zero, 32
+; RV32-NEXT:    li a0, 32
 ; RV32-NEXT:    vsetvli zero, a0, e32, m8, ta, mu
 ; RV32-NEXT:    vmv.v.i v24, -1
 ; RV32-NEXT:    vsetivli zero, 16, e64, m8, ta, mu

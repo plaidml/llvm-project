@@ -13,7 +13,7 @@
 /// All control flow is handled using predicated instructions and
 /// a predicate stack.  Each Scalar ALU controls the operations of 64 Vector
 /// ALUs.  The Scalar ALU can update the predicate for any of the Vector ALUs
-/// by writting to the 64-bit EXEC register (each bit corresponds to a
+/// by writing to the 64-bit EXEC register (each bit corresponds to a
 /// single vector ALU).  Typically, for predicates, a vector ALU will write
 /// to its bit of the VCC register (like EXEC VCC is 64-bits, one for each
 /// Vector ALU) and then the ScalarALU will AND the VCC register with the
@@ -38,7 +38,8 @@
 /// %vgpr0 = V_ADD_F32 %vgpr0, %vgpr0 // Do the IF block of the branch
 ///
 /// label0:
-/// %sgpr0 = S_OR_SAVEEXEC_B64 %sgpr0  // Restore the exec mask for the Then block
+/// %sgpr0 = S_OR_SAVEEXEC_B64 %sgpr0  // Restore the exec mask for the Then
+///                                    // block
 /// %exec = S_XOR_B64 %sgpr0, %exec    // Update the exec mask
 /// S_BRANCH_EXECZ label1              // Use our branch optimization
 ///                                    // instruction again.
@@ -55,6 +56,7 @@
 #include "llvm/CodeGen/LiveVariables.h"
 #include "llvm/CodeGen/MachineDominators.h"
 #include "llvm/CodeGen/MachineFunctionPass.h"
+#include "llvm/Target/TargetMachine.h"
 
 using namespace llvm;
 
@@ -88,6 +90,8 @@ private:
   unsigned OrTermrOpc;
   unsigned OrSaveExecOpc;
   unsigned Exec;
+
+  bool EnableOptimizeEndCf = false;
 
   bool hasKill(const MachineBasicBlock *Begin, const MachineBasicBlock *End);
 
@@ -578,10 +582,10 @@ void SILowerControlFlow::combineMasks(MachineInstr &MI) {
 void SILowerControlFlow::optimizeEndCf() {
   // If the only instruction immediately following this END_CF is an another
   // END_CF in the only successor we can avoid emitting exec mask restore here.
-  if (!RemoveRedundantEndcf)
+  if (!EnableOptimizeEndCf)
     return;
 
-  for (MachineInstr *MI : LoweredEndCf) {
+  for (MachineInstr *MI : reverse(LoweredEndCf)) {
     MachineBasicBlock &MBB = *MI->getParent();
     auto Next =
       skipIgnoreExecInstsTrivialSucc(MBB, std::next(MI->getIterator()));
@@ -806,6 +810,8 @@ bool SILowerControlFlow::runOnMachineFunction(MachineFunction &MF) {
   const GCNSubtarget &ST = MF.getSubtarget<GCNSubtarget>();
   TII = ST.getInstrInfo();
   TRI = &TII->getRegisterInfo();
+  EnableOptimizeEndCf =
+      RemoveRedundantEndcf && MF.getTarget().getOptLevel() > CodeGenOpt::None;
 
   // This doesn't actually need LiveIntervals, but we can preserve them.
   LIS = getAnalysisIfAvailable<LiveIntervals>();

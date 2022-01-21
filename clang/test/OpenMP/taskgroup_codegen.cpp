@@ -206,7 +206,7 @@ void parallel_taskgroup() {
 //
 //
 // DEBUG1-LABEL: define {{[^@]+}}@_Z3foov
-// DEBUG1-SAME: () #[[ATTR0:[0-9]+]] !dbg [[DBG7:![0-9]+]] {
+// DEBUG1-SAME: () #[[ATTR0:[0-9]+]] !dbg [[DBG6:![0-9]+]] {
 // DEBUG1-NEXT:  entry:
 // DEBUG1-NEXT:    call void @_Z8mayThrowv(), !dbg [[DBG10:![0-9]+]]
 // DEBUG1-NEXT:    ret void, !dbg [[DBG11:![0-9]+]]

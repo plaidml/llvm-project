@@ -230,12 +230,12 @@ void populateStandardToSPIRVPatterns(SPIRVTypeConverter &typeConverter,
 
   patterns.add<
       // Unary and binary patterns
-      spirv::UnaryAndBinaryOpPattern<MaxFOp, spirv::GLSLFMaxOp>,
-      spirv::UnaryAndBinaryOpPattern<MaxSIOp, spirv::GLSLSMaxOp>,
-      spirv::UnaryAndBinaryOpPattern<MaxUIOp, spirv::GLSLUMaxOp>,
-      spirv::UnaryAndBinaryOpPattern<MinFOp, spirv::GLSLFMinOp>,
-      spirv::UnaryAndBinaryOpPattern<MinSIOp, spirv::GLSLSMinOp>,
-      spirv::UnaryAndBinaryOpPattern<MinUIOp, spirv::GLSLUMinOp>,
+      spirv::ElementwiseOpPattern<arith::MaxFOp, spirv::GLSLFMaxOp>,
+      spirv::ElementwiseOpPattern<arith::MaxSIOp, spirv::GLSLSMaxOp>,
+      spirv::ElementwiseOpPattern<arith::MaxUIOp, spirv::GLSLUMaxOp>,
+      spirv::ElementwiseOpPattern<arith::MinFOp, spirv::GLSLFMinOp>,
+      spirv::ElementwiseOpPattern<arith::MinSIOp, spirv::GLSLSMinOp>,
+      spirv::ElementwiseOpPattern<arith::MinUIOp, spirv::GLSLUMinOp>,
 
       ReturnOpPattern, SelectOpPattern, SplatPattern, BranchOpPattern,
       CondBranchOpPattern>(typeConverter, context);

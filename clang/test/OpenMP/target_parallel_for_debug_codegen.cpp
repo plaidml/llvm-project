@@ -55,7 +55,7 @@ int main() {
   return 0;
 }
 // CHECK1-LABEL: define {{[^@]+}}@{{__omp_offloading_[0-9a-z]+_[0-9a-z]+}}_main_l13_debug__
-// CHECK1-SAME: ([10 x [10 x [10 x i32]]] addrspace(1)* noalias noundef [[C:%.*]], i32 noundef [[A:%.*]], [10 x [10 x i32]]* noalias noundef [[B:%.*]], i8 addrspace(1)* noalias noundef [[BB:%.*]], i1 noundef zeroext [[DOTCAPTURE_EXPR_:%.*]]) #[[ATTR0:[0-9]+]] !dbg [[DBG14:![0-9]+]] {
+// CHECK1-SAME: ([10 x [10 x [10 x i32]]] addrspace(1)* noalias noundef [[C:%.*]], i32 noundef [[A:%.*]], [10 x [10 x i32]]* noalias noundef [[B:%.*]], i8 addrspace(1)* noalias noundef [[BB:%.*]], i1 noundef zeroext [[DOTCAPTURE_EXPR_:%.*]]) #[[ATTR0:[0-9]+]] !dbg [[DBG13:![0-9]+]] {
 // CHECK1-NEXT:  entry:
 // CHECK1-NEXT:    [[C_ADDR:%.*]] = alloca [10 x [10 x [10 x i32]]] addrspace(1)*, align 8
 // CHECK1-NEXT:    [[A_ADDR:%.*]] = alloca i32, align 4
@@ -316,7 +316,7 @@ int main() {
 // CHECK1-NEXT:    [[TMP3:%.*]] = load i32*, i32** [[DOTGLOBAL_TID__ADDR]], align 8, !dbg [[DBG122]]
 // CHECK1-NEXT:    [[TMP4:%.*]] = load i32*, i32** [[DOTBOUND_TID__ADDR]], align 8, !dbg [[DBG122]]
 // CHECK1-NEXT:    [[TMP5:%.*]] = load [10 x [10 x [10 x i32]]]*, [10 x [10 x [10 x i32]]]** [[C_ADDR]], align 8, !dbg [[DBG122]]
-// CHECK1-NEXT:    [[TMP6:%.*]] = load i32, i32* [[CONV]], align 8, !dbg [[DBG122]]
+// CHECK1-NEXT:    [[TMP6:%.*]] = load i32, i32* [[CONV]], align 4, !dbg [[DBG122]]
 // CHECK1-NEXT:    [[TMP7:%.*]] = load [10 x [10 x i32]]*, [10 x [10 x i32]]** [[B_ADDR]], align 8, !dbg [[DBG122]]
 // CHECK1-NEXT:    [[TMP8:%.*]] = load i8*, i8** [[BB_ADDR]], align 8, !dbg [[DBG122]]
 // CHECK1-NEXT:    [[TMP9:%.*]] = addrspacecast [10 x [10 x [10 x i32]]]* [[TMP5]] to [10 x [10 x [10 x i32]]] addrspace(1)*, !dbg [[DBG122]]
@@ -349,10 +349,10 @@ int main() {
 // CHECK1-NEXT:    [[TMP2:%.*]] = load i8*, i8** [[BB_ADDR]], align 8, !dbg [[DBG132]]
 // CHECK1-NEXT:    [[CONV1:%.*]] = bitcast i64* [[DOTCAPTURE_EXPR__ADDR]] to i8*, !dbg [[DBG132]]
 // CHECK1-NEXT:    [[TMP3:%.*]] = load [10 x [10 x [10 x i32]]]*, [10 x [10 x [10 x i32]]]** [[C_ADDR]], align 8, !dbg [[DBG132]]
-// CHECK1-NEXT:    [[TMP4:%.*]] = load i32, i32* [[CONV]], align 8, !dbg [[DBG132]]
+// CHECK1-NEXT:    [[TMP4:%.*]] = load i32, i32* [[CONV]], align 4, !dbg [[DBG132]]
 // CHECK1-NEXT:    [[TMP5:%.*]] = load [10 x [10 x i32]]*, [10 x [10 x i32]]** [[B_ADDR]], align 8, !dbg [[DBG132]]
 // CHECK1-NEXT:    [[TMP6:%.*]] = load i8*, i8** [[BB_ADDR]], align 8, !dbg [[DBG132]]
-// CHECK1-NEXT:    [[TMP7:%.*]] = load i8, i8* [[CONV1]], align 8, !dbg [[DBG132]]
+// CHECK1-NEXT:    [[TMP7:%.*]] = load i8, i8* [[CONV1]], align 1, !dbg [[DBG132]]
 // CHECK1-NEXT:    [[TOBOOL:%.*]] = trunc i8 [[TMP7]] to i1, !dbg [[DBG132]]
 // CHECK1-NEXT:    [[TMP8:%.*]] = addrspacecast [10 x [10 x [10 x i32]]]* [[TMP3]] to [10 x [10 x [10 x i32]]] addrspace(1)*, !dbg [[DBG132]]
 // CHECK1-NEXT:    [[TMP9:%.*]] = addrspacecast i8* [[TMP6]] to i8 addrspace(1)*, !dbg [[DBG132]]
@@ -604,7 +604,7 @@ int main() {
 // CHECK1-NEXT:    [[TMP3:%.*]] = load i32*, i32** [[DOTGLOBAL_TID__ADDR]], align 8, !dbg [[DBG213]]
 // CHECK1-NEXT:    [[TMP4:%.*]] = load i32*, i32** [[DOTBOUND_TID__ADDR]], align 8, !dbg [[DBG213]]
 // CHECK1-NEXT:    [[TMP5:%.*]] = load [10 x [10 x [10 x i32]]]*, [10 x [10 x [10 x i32]]]** [[C_ADDR]], align 8, !dbg [[DBG213]]
-// CHECK1-NEXT:    [[TMP6:%.*]] = load i32, i32* [[CONV]], align 8, !dbg [[DBG213]]
+// CHECK1-NEXT:    [[TMP6:%.*]] = load i32, i32* [[CONV]], align 4, !dbg [[DBG213]]
 // CHECK1-NEXT:    [[TMP7:%.*]] = load [10 x [10 x i32]]*, [10 x [10 x i32]]** [[B_ADDR]], align 8, !dbg [[DBG213]]
 // CHECK1-NEXT:    [[TMP8:%.*]] = load i8*, i8** [[BB_ADDR]], align 8, !dbg [[DBG213]]
 // CHECK1-NEXT:    [[TMP9:%.*]] = addrspacecast [10 x [10 x [10 x i32]]]* [[TMP5]] to [10 x [10 x [10 x i32]]] addrspace(1)*, !dbg [[DBG213]]
@@ -634,7 +634,7 @@ int main() {
 // CHECK1-NEXT:    [[TMP1:%.*]] = load [10 x [10 x i32]]*, [10 x [10 x i32]]** [[B_ADDR]], align 8, !dbg [[DBG222]]
 // CHECK1-NEXT:    [[TMP2:%.*]] = load i8*, i8** [[BB_ADDR]], align 8, !dbg [[DBG222]]
 // CHECK1-NEXT:    [[TMP3:%.*]] = load [10 x [10 x [10 x i32]]]*, [10 x [10 x [10 x i32]]]** [[C_ADDR]], align 8, !dbg [[DBG222]]
-// CHECK1-NEXT:    [[TMP4:%.*]] = load i32, i32* [[CONV]], align 8, !dbg [[DBG222]]
+// CHECK1-NEXT:    [[TMP4:%.*]] = load i32, i32* [[CONV]], align 4, !dbg [[DBG222]]
 // CHECK1-NEXT:    [[TMP5:%.*]] = load [10 x [10 x i32]]*, [10 x [10 x i32]]** [[B_ADDR]], align 8, !dbg [[DBG222]]
 // CHECK1-NEXT:    [[TMP6:%.*]] = load i8*, i8** [[BB_ADDR]], align 8, !dbg [[DBG222]]
 // CHECK1-NEXT:    [[TMP7:%.*]] = addrspacecast [10 x [10 x [10 x i32]]]* [[TMP3]] to [10 x [10 x [10 x i32]]] addrspace(1)*, !dbg [[DBG222]]

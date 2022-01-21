@@ -1368,7 +1368,7 @@ public:
   ///
   /// Emits a diagnostic, doesn't enter the file, and returns true on error.
   bool EnterSourceFile(FileID FID, const DirectoryLookup *Dir,
-                       SourceLocation Loc);
+                       SourceLocation Loc, bool IsFirstIncludeOfFile = true);
 
   /// Add a Macro to the top of the include stack and start lexing
   /// tokens from it instead of the current buffer.
@@ -2051,7 +2051,7 @@ public:
   Optional<FileEntryRef>
   LookupFile(SourceLocation FilenameLoc, StringRef Filename, bool isAngled,
              const DirectoryLookup *FromDir, const FileEntry *FromFile,
-             const DirectoryLookup *&CurDir, SmallVectorImpl<char> *SearchPath,
+             const DirectoryLookup **CurDir, SmallVectorImpl<char> *SearchPath,
              SmallVectorImpl<char> *RelativePath,
              ModuleMap::KnownHeader *SuggestedModule, bool *IsMapped,
              bool *IsFrameworkFound, bool SkipCache = false);
@@ -2300,7 +2300,7 @@ private:
   };
 
   Optional<FileEntryRef> LookupHeaderIncludeOrImport(
-      const DirectoryLookup *&CurDir, StringRef &Filename,
+      const DirectoryLookup **CurDir, StringRef &Filename,
       SourceLocation FilenameLoc, CharSourceRange FilenameRange,
       const Token &FilenameTok, bool &IsFrameworkFound, bool IsImportDecl,
       bool &IsMapped, const DirectoryLookup *LookupFrom,

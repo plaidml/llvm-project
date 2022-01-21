@@ -1,4 +1,8 @@
-// RUN: %clang %target_itanium_abi_host_triple %s -c -o - -g -Xclang -gsimple-template-names=mangled -Xclang -debug-forward-template-params -std=c++20 \
+// RUN: %clang %target_itanium_abi_host_triple %s -c -o - -gdwarf-4 -Xclang -gsimple-template-names=mangled -Xclang -debug-forward-template-params -std=c++20 \
+// RUN:   | llvm-dwarfdump --verify -
+// RUN: %clang %target_itanium_abi_host_triple %s -c -o - -gdwarf-4 -Xclang -gsimple-template-names=mangled -Xclang -debug-forward-template-params -std=c++20 -fdebug-types-section \
+// RUN:   | llvm-dwarfdump --verify -
+// RUN: %clang %target_itanium_abi_host_triple %s -c -o - -gdwarf-5 -Xclang -gsimple-template-names=mangled -Xclang -debug-forward-template-params -std=c++20 -fdebug-types-section \
 // RUN:   | llvm-dwarfdump --verify -
 #include <cstdint>
 template<typename ...Ts>
@@ -213,6 +217,8 @@ int main() {
   f1<decltype(L)>();
   t3<decltype(L)> v1;
   f1<int(float)>();
+  f1<void(...)>();
+  f1<void(int, ...)>();
   f1<const int &>();
   f1<const int *&>();
   f1<t5>();

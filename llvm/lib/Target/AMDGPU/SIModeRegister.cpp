@@ -188,7 +188,7 @@ void SIModeRegister::insertSetreg(MachineBasicBlock &MBB, MachineInstr *MI,
     unsigned Offset = countTrailingZeros<unsigned>(InstrMode.Mask);
     unsigned Width = countTrailingOnes<unsigned>(InstrMode.Mask >> Offset);
     unsigned Value = (InstrMode.Mode >> Offset) & ((1 << Width) - 1);
-    BuildMI(MBB, MI, 0, TII->get(AMDGPU::S_SETREG_IMM32_B32))
+    BuildMI(MBB, MI, nullptr, TII->get(AMDGPU::S_SETREG_IMM32_B32))
         .addImm(Value)
         .addImm(((Width - 1) << AMDGPU::Hwreg::WIDTH_M1_SHIFT_) |
                 (Offset << AMDGPU::Hwreg::OFFSET_SHIFT_) |
@@ -225,7 +225,7 @@ void SIModeRegister::processBlockPhase1(MachineBasicBlock &MBB,
   // RequirePending is used to indicate whether we are collecting the initial
   // requirements for the block, and need to defer the first InsertionPoint to
   // Phase 3. It is set to false once we have set FirstInsertionPoint, or when
-  // we discover an explict setreg that means this block doesn't have any
+  // we discover an explicit setreg that means this block doesn't have any
   // initial requirements.
   bool RequirePending = true;
   Status IPChange;

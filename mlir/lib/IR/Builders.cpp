@@ -19,10 +19,6 @@
 
 using namespace mlir;
 
-Identifier Builder::getIdentifier(const Twine &str) {
-  return Identifier::get(str, context);
-}
-
 //===----------------------------------------------------------------------===//
 // Locations.
 //===----------------------------------------------------------------------===//
@@ -83,7 +79,7 @@ NoneType Builder::getNoneType() { return NoneType::get(context); }
 //===----------------------------------------------------------------------===//
 
 NamedAttribute Builder::getNamedAttr(StringRef name, Attribute val) {
-  return NamedAttribute(getIdentifier(name), val);
+  return NamedAttribute(getStringAttr(name), val);
 }
 
 UnitAttr Builder::getUnitAttr() { return UnitAttr::get(context); }
@@ -342,7 +338,7 @@ AffineMap Builder::getShiftedAffineMap(AffineMap map, int64_t shift) {
 // OpBuilder
 //===----------------------------------------------------------------------===//
 
-OpBuilder::Listener::~Listener() {}
+OpBuilder::Listener::~Listener() = default;
 
 /// Insert the given operation at the current insertion point and return it.
 Operation *OpBuilder::insert(Operation *op) {
@@ -354,12 +350,10 @@ Operation *OpBuilder::insert(Operation *op) {
   return op;
 }
 
-/// Add new block with 'argTypes' arguments and set the insertion point to the
-/// end of it. The block is inserted at the provided insertion point of
-/// 'parent'.
 Block *OpBuilder::createBlock(Region *parent, Region::iterator insertPt,
                               TypeRange argTypes, ArrayRef<Location> locs) {
   assert(parent && "expected valid parent region");
+  assert(argTypes.size() == locs.size() && "argument location mismatch");
   if (insertPt == Region::iterator())
     insertPt = parent->end();
 

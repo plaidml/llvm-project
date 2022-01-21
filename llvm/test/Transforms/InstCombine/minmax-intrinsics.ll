@@ -2130,25 +2130,14 @@ define <3 x i8> @umax_vector_splat_undef(<3 x i8> %x) {
   ret <3 x i8> %r
 }
 
-define <3 x i8> @umax_sub_vec(<3 x i8> %x, <3 x i8> %y) {
-; CHECK-LABEL: @umax_sub_vec(
-; CHECK-NEXT:    [[TMP1:%.*]] = call <3 x i8> @llvm.usub.sat.v3i8(<3 x i8> [[X:%.*]], <3 x i8> [[Y:%.*]])
-; CHECK-NEXT:    ret <3 x i8> [[TMP1]]
-;
-  %u = call <3 x i8> @llvm.umax.v3i8(<3 x i8> %x, <3 x i8> %y)
-  %r = sub <3 x i8> %u, %y
-  ret <3 x i8> %r
-}
+; Issue #52884 - this would assert because of a failure to simplify.
 
-define i8 @umax_sub_use(i8 %x, i8 %y) {
-; CHECK-LABEL: @umax_sub_use(
-; CHECK-NEXT:    [[U:%.*]] = call i8 @llvm.umax.i8(i8 [[X:%.*]], i8 [[Y:%.*]])
-; CHECK-NEXT:    call void @use(i8 [[U]])
-; CHECK-NEXT:    [[R:%.*]] = sub i8 [[U]], [[Y]]
-; CHECK-NEXT:    ret i8 [[R]]
+define i8 @smax_offset_simplify(i8 %x) {
+; CHECK-LABEL: @smax_offset_simplify(
+; CHECK-NEXT:    [[TMP1:%.*]] = add nuw nsw i8 [[X:%.*]], 50
+; CHECK-NEXT:    ret i8 [[TMP1]]
 ;
-  %u = call i8 @llvm.umax.i8(i8 %x, i8 %y)
-  call void @use(i8 %u)
-  %r = sub i8 %u, %y
-  ret i8 %r
+  %1 = add nuw nsw i8 50, %x
+  %m = call i8 @llvm.smax.i8(i8 %1, i8 -124)
+  ret i8 %m
 }

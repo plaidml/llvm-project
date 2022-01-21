@@ -307,7 +307,7 @@ void foo(long double f, long double *l, int *i, const char *c) {
   // F80: call x86_fp80 @nexttowardl(x86_fp80 noundef %{{.+}}, x86_fp80 noundef %{{.+}})
   // PPC: call ppc_fp128 @nexttowardl(ppc_fp128 noundef %{{.+}}, ppc_fp128 noundef %{{.+}})
   // X86F128: call fp128 @nexttowardl(fp128 noundef %{{.+}}, fp128 noundef %{{.+}})
-  // PPCF128: call fp128 @nexttowardf128(fp128 noundef %{{.+}}, fp128 noundef %{{.+}})
+  // PPCF128: call fp128 @__nexttowardieee128(fp128 noundef %{{.+}}, fp128 noundef %{{.+}})
   __builtin_nexttowardl(f,f);
 
   // F80: call x86_fp80 @remainderl(x86_fp80 noundef %{{.+}}, x86_fp80 noundef %{{.+}})

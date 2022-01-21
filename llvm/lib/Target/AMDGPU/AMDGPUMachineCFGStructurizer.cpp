@@ -1577,11 +1577,9 @@ void AMDGPUMachineCFGStructurizer::replaceLiveOutRegs(
 
       // Check if register is live out of the basic block
       MachineBasicBlock *DefMBB = getDefInstr(Reg)->getParent();
-      for (auto UI = MRI->use_begin(Reg), E = MRI->use_end(); UI != E; ++UI) {
-        if ((*UI).getParent()->getParent() != DefMBB) {
+      for (const MachineOperand &MO : MRI->use_operands(Reg))
+        if (MO.getParent()->getParent() != DefMBB)
           IsDead = false;
-        }
-      }
 
       LLVM_DEBUG(dbgs() << "Register " << printReg(Reg, TRI) << " is "
                         << (IsDead ? "dead" : "alive")
@@ -1848,9 +1846,8 @@ void AMDGPUMachineCFGStructurizer::ensureCondIsNotKilled(
     return;
 
   Register CondReg = Cond[0].getReg();
-  for (auto UI = MRI->use_begin(CondReg), E = MRI->use_end(); UI != E; ++UI) {
-    (*UI).setIsKill(false);
-  }
+  for (MachineOperand &MO : MRI->use_operands(CondReg))
+    MO.setIsKill(false);
 }
 
 void AMDGPUMachineCFGStructurizer::rewriteCodeBBTerminator(MachineBasicBlock *CodeBB,
@@ -2789,12 +2786,8 @@ AMDGPUMachineCFGStructurizer::initializeSelectRegisters(MRT *MRT, unsigned Selec
     // Fixme: Move linearization creation to the original spot
     createLinearizedRegion(Region, SelectOut);
 
-    for (auto CI = Region->getChildren()->begin(),
-              CE = Region->getChildren()->end();
-         CI != CE; ++CI) {
-      InnerSelectOut =
-          initializeSelectRegisters((*CI), InnerSelectOut, MRI, TII);
-    }
+    for (auto *CI : *Region->getChildren())
+      InnerSelectOut = initializeSelectRegisters(CI, InnerSelectOut, MRI, TII);
     MRT->setBBSelectRegIn(InnerSelectOut);
     return InnerSelectOut;
   } else {

@@ -17,16 +17,16 @@ void func1(int *x) {
 // CHECK-LABEL: @_Z5func2v(
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[LV1:%.*]] = alloca i32, align 4, addrspace(5)
-// CHECK-NEXT:    [[LV1_ASCAST:%.*]] = addrspacecast i32 addrspace(5)* [[LV1]] to i32*
 // CHECK-NEXT:    [[LV2:%.*]] = alloca i32, align 4, addrspace(5)
-// CHECK-NEXT:    [[LV2_ASCAST:%.*]] = addrspacecast i32 addrspace(5)* [[LV2]] to i32*
 // CHECK-NEXT:    [[LA:%.*]] = alloca [100 x i32], align 4, addrspace(5)
-// CHECK-NEXT:    [[LA_ASCAST:%.*]] = addrspacecast [100 x i32] addrspace(5)* [[LA]] to [100 x i32]*
 // CHECK-NEXT:    [[LP1:%.*]] = alloca i32*, align 8, addrspace(5)
-// CHECK-NEXT:    [[LP1_ASCAST:%.*]] = addrspacecast i32* addrspace(5)* [[LP1]] to i32**
 // CHECK-NEXT:    [[LP2:%.*]] = alloca i32*, align 8, addrspace(5)
-// CHECK-NEXT:    [[LP2_ASCAST:%.*]] = addrspacecast i32* addrspace(5)* [[LP2]] to i32**
 // CHECK-NEXT:    [[LVC:%.*]] = alloca i32, align 4, addrspace(5)
+// CHECK-NEXT:    [[LV1_ASCAST:%.*]] = addrspacecast i32 addrspace(5)* [[LV1]] to i32*
+// CHECK-NEXT:    [[LV2_ASCAST:%.*]] = addrspacecast i32 addrspace(5)* [[LV2]] to i32*
+// CHECK-NEXT:    [[LA_ASCAST:%.*]] = addrspacecast [100 x i32] addrspace(5)* [[LA]] to [100 x i32]*
+// CHECK-NEXT:    [[LP1_ASCAST:%.*]] = addrspacecast i32* addrspace(5)* [[LP1]] to i32**
+// CHECK-NEXT:    [[LP2_ASCAST:%.*]] = addrspacecast i32* addrspace(5)* [[LP2]] to i32**
 // CHECK-NEXT:    [[LVC_ASCAST:%.*]] = addrspacecast i32 addrspace(5)* [[LVC]] to i32*
 // CHECK-NEXT:    store i32 1, i32* [[LV1_ASCAST]], align 4
 // CHECK-NEXT:    store i32 2, i32* [[LV2_ASCAST]], align 4
@@ -74,8 +74,8 @@ public:
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    [[A:%.*]] = alloca [[CLASS_A:%.*]], align 4, addrspace(5)
 // CHECK-NEXT:    [[A_ASCAST:%.*]] = addrspacecast [[CLASS_A]] addrspace(5)* [[A]] to %class.A*
-// CHECK-NEXT:    call void @_ZN1AC1Ev(%class.A* noundef [[A_ASCAST]])
-// CHECK-NEXT:    call void @_ZN1AD1Ev(%class.A* noundef [[A_ASCAST]])
+// CHECK-NEXT:    call void @_ZN1AC1Ev(%class.A* noundef nonnull align 4 dereferenceable(4) [[A_ASCAST]])
+// CHECK-NEXT:    call void @_ZN1AD1Ev(%class.A* noundef nonnull align 4 dereferenceable(4) [[A_ASCAST]])
 // CHECK-NEXT:    ret void
 //
 void func3() {

@@ -11,8 +11,7 @@
 #include "SyntheticSections.h"
 #include "Target.h"
 #include "Thunks.h"
-#include "lld/Common/ErrorHandler.h"
-#include "lld/Common/Memory.h"
+#include "lld/Common/CommonLinkerContext.h"
 #include "llvm/Support/Endian.h"
 
 using namespace llvm;
@@ -187,11 +186,6 @@ unsigned elf::getPPC64GlobalEntryToLocalEntryOffset(uint8_t stOther) {
   return 0;
 }
 
-bool elf::isPPC64SmallCodeModelTocReloc(RelType type) {
-  // The only small code model relocations that access the .toc section.
-  return type == R_PPC64_TOC16 || type == R_PPC64_TOC16_DS;
-}
-
 void elf::writePrefixedInstruction(uint8_t *loc, uint64_t insn) {
   insn = config->isLE ? insn << 32 | insn >> 32 : insn;
   write64(loc, insn);
@@ -202,7 +196,7 @@ static bool addOptional(StringRef name, uint64_t value,
   Symbol *sym = symtab->find(name);
   if (!sym || sym->isDefined())
     return false;
-  sym->resolve(Defined{/*file=*/nullptr, saver.save(name), STB_GLOBAL,
+  sym->resolve(Defined{/*file=*/nullptr, saver().save(name), STB_GLOBAL,
                        STV_HIDDEN, STT_FUNC, value,
                        /*size=*/0, /*section=*/nullptr});
   defined.push_back(cast<Defined>(sym));
@@ -1094,7 +1088,7 @@ void PPC64::writePltHeader(uint8_t *buf) const {
 
 void PPC64::writePlt(uint8_t *buf, const Symbol &sym,
                      uint64_t /*pltEntryAddr*/) const {
-  int32_t offset = pltHeaderSize + sym.pltIndex * pltEntrySize;
+  int32_t offset = pltHeaderSize + sym.getPltIdx() * pltEntrySize;
   // bl __glink_PLTresolve
   write32(buf, 0x48000000 | ((-offset) & 0x03FFFFFc));
 }

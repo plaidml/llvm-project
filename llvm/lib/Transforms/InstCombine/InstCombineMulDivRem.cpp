@@ -348,12 +348,20 @@ Instruction *InstCombinerImpl::visitMul(BinaryOperator &I) {
     return CastInst::Create(Instruction::SExt, And, I.getType());
   }
 
-  // (bool X) * Y --> X ? Y : 0
-  // Y * (bool X) --> X ? Y : 0
+  // (zext bool X) * Y --> X ? Y : 0
+  // Y * (zext bool X) --> X ? Y : 0
   if (match(Op0, m_ZExt(m_Value(X))) && X->getType()->isIntOrIntVectorTy(1))
     return SelectInst::Create(X, Op1, ConstantInt::get(I.getType(), 0));
   if (match(Op1, m_ZExt(m_Value(X))) && X->getType()->isIntOrIntVectorTy(1))
     return SelectInst::Create(X, Op0, ConstantInt::get(I.getType(), 0));
+
+  // (sext bool X) * C --> X ? -C : 0
+  Constant *ImmC;
+  if (match(Op0, m_SExt(m_Value(X))) && X->getType()->isIntOrIntVectorTy(1) &&
+      match(Op1, m_ImmConstant(ImmC))) {
+    Constant *NegC = ConstantExpr::getNeg(ImmC);
+    return SelectInst::Create(X, NegC, ConstantInt::getNullValue(I.getType()));
+  }
 
   // (lshr X, 31) * Y --> (ashr X, 31) & Y
   // Y * (lshr X, 31) --> (ashr X, 31) & Y
@@ -754,6 +762,15 @@ Instruction *InstCombinerImpl::commonIDivTransforms(BinaryOperator &I) {
   // This does not apply for fdiv.
   if (simplifyDivRemOfSelectWithZeroOp(I))
     return &I;
+
+  // If the divisor is a select-of-constants, try to constant fold all div ops:
+  // C / (select Cond, TrueC, FalseC) --> select Cond, (C / TrueC), (C / FalseC)
+  // TODO: Adapt simplifyDivRemOfSelectWithZeroOp to allow this and other folds.
+  if (match(Op0, m_ImmConstant()) &&
+      match(Op1, m_Select(m_Value(), m_ImmConstant(), m_ImmConstant()))) {
+    if (Instruction *R = FoldOpIntoSelect(I, cast<SelectInst>(Op1)))
+      return R;
+  }
 
   const APInt *C2;
   if (match(Op1, m_APInt(C2))) {
@@ -1460,6 +1477,15 @@ Instruction *InstCombinerImpl::commonIRemTransforms(BinaryOperator &I) {
   // Handle cases involving: rem X, (select Cond, Y, Z)
   if (simplifyDivRemOfSelectWithZeroOp(I))
     return &I;
+
+  // If the divisor is a select-of-constants, try to constant fold all rem ops:
+  // C % (select Cond, TrueC, FalseC) --> select Cond, (C % TrueC), (C % FalseC)
+  // TODO: Adapt simplifyDivRemOfSelectWithZeroOp to allow this and other folds.
+  if (match(Op0, m_ImmConstant()) &&
+      match(Op1, m_Select(m_Value(), m_ImmConstant(), m_ImmConstant()))) {
+    if (Instruction *R = FoldOpIntoSelect(I, cast<SelectInst>(Op1)))
+      return R;
+  }
 
   if (isa<Constant>(Op1)) {
     if (Instruction *Op0I = dyn_cast<Instruction>(Op0)) {

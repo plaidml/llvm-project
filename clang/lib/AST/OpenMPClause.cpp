@@ -126,6 +126,7 @@ const OMPClauseWithPreInit *OMPClauseWithPreInit::get(const OMPClause *C) {
   case OMPC_write:
   case OMPC_update:
   case OMPC_capture:
+  case OMPC_compare:
   case OMPC_seq_cst:
   case OMPC_acq_rel:
   case OMPC_acquire:
@@ -217,6 +218,7 @@ const OMPClauseWithPostUpdate *OMPClauseWithPostUpdate::get(const OMPClause *C) 
   case OMPC_write:
   case OMPC_update:
   case OMPC_capture:
+  case OMPC_compare:
   case OMPC_seq_cst:
   case OMPC_acq_rel:
   case OMPC_acquire:
@@ -627,6 +629,13 @@ OMPAlignedClause *OMPAlignedClause::CreateEmpty(const ASTContext &C,
                                                 unsigned NumVars) {
   void *Mem = C.Allocate(totalSizeToAlloc<Expr *>(NumVars + 1));
   return new (Mem) OMPAlignedClause(NumVars);
+}
+
+OMPAlignClause *OMPAlignClause::Create(const ASTContext &C, Expr *A,
+                                       SourceLocation StartLoc,
+                                       SourceLocation LParenLoc,
+                                       SourceLocation EndLoc) {
+  return new (C) OMPAlignClause(A, StartLoc, LParenLoc, EndLoc);
 }
 
 void OMPCopyinClause::setSourceExprs(ArrayRef<Expr *> SrcExprs) {
@@ -1622,6 +1631,12 @@ void OMPClausePrinter::VisitOMPNumThreadsClause(OMPNumThreadsClause *Node) {
   OS << ")";
 }
 
+void OMPClausePrinter::VisitOMPAlignClause(OMPAlignClause *Node) {
+  OS << "align(";
+  Node->getAlignment()->printPretty(OS, nullptr, Policy, 0);
+  OS << ")";
+}
+
 void OMPClausePrinter::VisitOMPSafelenClause(OMPSafelenClause *Node) {
   OS << "safelen(";
   Node->getSafelen()->printPretty(OS, nullptr, Policy, 0);
@@ -1777,6 +1792,10 @@ void OMPClausePrinter::VisitOMPUpdateClause(OMPUpdateClause *Node) {
 
 void OMPClausePrinter::VisitOMPCaptureClause(OMPCaptureClause *) {
   OS << "capture";
+}
+
+void OMPClausePrinter::VisitOMPCompareClause(OMPCompareClause *) {
+  OS << "compare";
 }
 
 void OMPClausePrinter::VisitOMPSeqCstClause(OMPSeqCstClause *) {
@@ -2441,7 +2460,7 @@ std::string OMPTraitInfo::getMangledName() const {
                                                 Property.RawString);
     }
   }
-  return OS.str();
+  return MangledName;
 }
 
 OMPTraitInfo::OMPTraitInfo(StringRef MangledName) {

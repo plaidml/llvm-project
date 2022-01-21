@@ -3371,12 +3371,23 @@ Decl *TemplateDeclInstantiator::VisitOMPAllocateDecl(OMPAllocateDecl *D) {
   SmallVector<OMPClause *, 4> Clauses;
   // Copy map clauses from the original mapper.
   for (OMPClause *C : D->clauselists()) {
-    auto *AC = cast<OMPAllocatorClause>(C);
-    ExprResult NewE = SemaRef.SubstExpr(AC->getAllocator(), TemplateArgs);
-    if (!NewE.isUsable())
-      continue;
-    OMPClause *IC = SemaRef.ActOnOpenMPAllocatorClause(
-        NewE.get(), AC->getBeginLoc(), AC->getLParenLoc(), AC->getEndLoc());
+    OMPClause *IC = nullptr;
+    if (auto *AC = dyn_cast<OMPAllocatorClause>(C)) {
+      ExprResult NewE = SemaRef.SubstExpr(AC->getAllocator(), TemplateArgs);
+      if (!NewE.isUsable())
+        continue;
+      IC = SemaRef.ActOnOpenMPAllocatorClause(
+          NewE.get(), AC->getBeginLoc(), AC->getLParenLoc(), AC->getEndLoc());
+    } else if (auto *AC = dyn_cast<OMPAlignClause>(C)) {
+      ExprResult NewE = SemaRef.SubstExpr(AC->getAlignment(), TemplateArgs);
+      if (!NewE.isUsable())
+        continue;
+      IC = SemaRef.ActOnOpenMPAlignClause(NewE.get(), AC->getBeginLoc(),
+                                          AC->getLParenLoc(), AC->getEndLoc());
+      // If align clause value ends up being invalid, this can end up null.
+      if (!IC)
+        continue;
+    }
     Clauses.push_back(IC);
   }
 
@@ -3626,7 +3637,7 @@ TemplateDeclInstantiator::VisitClassTemplateSpecializationDecl(
                                         InstTemplateArgs,
                                         false,
                                         Converted,
-                                        /*UpdateArgsWithConversion=*/true))
+                                        /*UpdateArgsWithConversions=*/true))
     return nullptr;
 
   // Figure out where to insert this class template explicit specialization
@@ -3748,7 +3759,7 @@ Decl *TemplateDeclInstantiator::VisitVarTemplateSpecializationDecl(
   SmallVector<TemplateArgument, 4> Converted;
   if (SemaRef.CheckTemplateArgumentList(InstVarTemplate, D->getLocation(),
                                         VarTemplateArgsInfo, false, Converted,
-                                        /*UpdateArgsWithConversion=*/true))
+                                        /*UpdateArgsWithConversions=*/true))
     return nullptr;
 
   // Check whether we've already seen a declaration of this specialization.

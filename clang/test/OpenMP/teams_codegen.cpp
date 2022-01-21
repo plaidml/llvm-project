@@ -638,7 +638,7 @@ void foo() {
 // CHECK1-NEXT:    store i64 [[COMP]], i64* [[COMP_ADDR]], align 8
 // CHECK1-NEXT:    [[CONV:%.*]] = bitcast i64* [[LA_ADDR]] to i32*
 // CHECK1-NEXT:    [[CONV1:%.*]] = bitcast i64* [[COMP_ADDR]] to i32*
-// CHECK1-NEXT:    [[TMP1:%.*]] = load i32, i32* [[CONV]], align 8
+// CHECK1-NEXT:    [[TMP1:%.*]] = load i32, i32* [[CONV]], align 4
 // CHECK1-NEXT:    call void @__kmpc_push_num_teams(%struct.ident_t* @[[GLOB1]], i32 [[TMP0]], i32 [[TMP1]], i32 0)
 // CHECK1-NEXT:    call void (%struct.ident_t*, i32, void (i32*, i32*, ...)*, ...) @__kmpc_fork_teams(%struct.ident_t* @[[GLOB1]], i32 1, void (i32*, i32*, ...)* bitcast (void (i32*, i32*, i32*)* @.omp_outlined..4 to void (i32*, i32*, ...)*), i32* [[CONV1]])
 // CHECK1-NEXT:    ret void
@@ -670,7 +670,7 @@ void foo() {
 // CHECK1-NEXT:    store i64 [[COMP]], i64* [[COMP_ADDR]], align 8
 // CHECK1-NEXT:    [[CONV:%.*]] = bitcast i64* [[LA_ADDR]] to i32*
 // CHECK1-NEXT:    [[CONV1:%.*]] = bitcast i64* [[COMP_ADDR]] to i32*
-// CHECK1-NEXT:    [[TMP1:%.*]] = load i32, i32* [[CONV]], align 8
+// CHECK1-NEXT:    [[TMP1:%.*]] = load i32, i32* [[CONV]], align 4
 // CHECK1-NEXT:    call void @__kmpc_push_num_teams(%struct.ident_t* @[[GLOB1]], i32 [[TMP0]], i32 0, i32 [[TMP1]])
 // CHECK1-NEXT:    call void (%struct.ident_t*, i32, void (i32*, i32*, ...)*, ...) @__kmpc_fork_teams(%struct.ident_t* @[[GLOB1]], i32 1, void (i32*, i32*, ...)* bitcast (void (i32*, i32*, i32*)* @.omp_outlined..7 to void (i32*, i32*, ...)*), i32* [[CONV1]])
 // CHECK1-NEXT:    ret void
@@ -710,11 +710,11 @@ void foo() {
 // CHECK1-NEXT:    [[CONV1:%.*]] = bitcast i64* [[A_ADDR]] to i32*
 // CHECK1-NEXT:    [[CONV2:%.*]] = bitcast i64* [[LC_ADDR]] to float*
 // CHECK1-NEXT:    [[CONV3:%.*]] = bitcast i64* [[COMP_ADDR]] to i32*
-// CHECK1-NEXT:    [[TMP1:%.*]] = load i32, i32* [[CONV]], align 8
-// CHECK1-NEXT:    [[TMP2:%.*]] = load i32, i32* [[CONV1]], align 8
+// CHECK1-NEXT:    [[TMP1:%.*]] = load i32, i32* [[CONV]], align 4
+// CHECK1-NEXT:    [[TMP2:%.*]] = load i32, i32* [[CONV1]], align 4
 // CHECK1-NEXT:    [[ADD:%.*]] = add nsw i32 [[TMP1]], [[TMP2]]
 // CHECK1-NEXT:    [[TMP3:%.*]] = load i64, i64* [[GBLB_ADDR]], align 8
-// CHECK1-NEXT:    [[TMP4:%.*]] = load float, float* [[CONV2]], align 8
+// CHECK1-NEXT:    [[TMP4:%.*]] = load float, float* [[CONV2]], align 4
 // CHECK1-NEXT:    [[CONV4:%.*]] = fptosi float [[TMP4]] to i64
 // CHECK1-NEXT:    [[ADD5:%.*]] = add nsw i64 [[TMP3]], [[CONV4]]
 // CHECK1-NEXT:    [[TMP5:%.*]] = trunc i64 [[ADD5]] to i32
@@ -1130,7 +1130,7 @@ void foo() {
 // CHECK2-NEXT:    store i64 [[COMP]], i64* [[COMP_ADDR]], align 8
 // CHECK2-NEXT:    [[CONV:%.*]] = bitcast i64* [[LA_ADDR]] to i32*
 // CHECK2-NEXT:    [[CONV1:%.*]] = bitcast i64* [[COMP_ADDR]] to i32*
-// CHECK2-NEXT:    [[TMP1:%.*]] = load i32, i32* [[CONV]], align 8
+// CHECK2-NEXT:    [[TMP1:%.*]] = load i32, i32* [[CONV]], align 4
 // CHECK2-NEXT:    call void @__kmpc_push_num_teams(%struct.ident_t* @[[GLOB1]], i32 [[TMP0]], i32 [[TMP1]], i32 0)
 // CHECK2-NEXT:    call void (%struct.ident_t*, i32, void (i32*, i32*, ...)*, ...) @__kmpc_fork_teams(%struct.ident_t* @[[GLOB1]], i32 1, void (i32*, i32*, ...)* bitcast (void (i32*, i32*, i32*)* @.omp_outlined..4 to void (i32*, i32*, ...)*), i32* [[CONV1]])
 // CHECK2-NEXT:    ret void
@@ -1162,7 +1162,7 @@ void foo() {
 // CHECK2-NEXT:    store i64 [[COMP]], i64* [[COMP_ADDR]], align 8
 // CHECK2-NEXT:    [[CONV:%.*]] = bitcast i64* [[LA_ADDR]] to i32*
 // CHECK2-NEXT:    [[CONV1:%.*]] = bitcast i64* [[COMP_ADDR]] to i32*
-// CHECK2-NEXT:    [[TMP1:%.*]] = load i32, i32* [[CONV]], align 8
+// CHECK2-NEXT:    [[TMP1:%.*]] = load i32, i32* [[CONV]], align 4
 // CHECK2-NEXT:    call void @__kmpc_push_num_teams(%struct.ident_t* @[[GLOB1]], i32 [[TMP0]], i32 0, i32 [[TMP1]])
 // CHECK2-NEXT:    call void (%struct.ident_t*, i32, void (i32*, i32*, ...)*, ...) @__kmpc_fork_teams(%struct.ident_t* @[[GLOB1]], i32 1, void (i32*, i32*, ...)* bitcast (void (i32*, i32*, i32*)* @.omp_outlined..7 to void (i32*, i32*, ...)*), i32* [[CONV1]])
 // CHECK2-NEXT:    ret void
@@ -1202,11 +1202,11 @@ void foo() {
 // CHECK2-NEXT:    [[CONV1:%.*]] = bitcast i64* [[A_ADDR]] to i32*
 // CHECK2-NEXT:    [[CONV2:%.*]] = bitcast i64* [[LC_ADDR]] to float*
 // CHECK2-NEXT:    [[CONV3:%.*]] = bitcast i64* [[COMP_ADDR]] to i32*
-// CHECK2-NEXT:    [[TMP1:%.*]] = load i32, i32* [[CONV]], align 8
-// CHECK2-NEXT:    [[TMP2:%.*]] = load i32, i32* [[CONV1]], align 8
+// CHECK2-NEXT:    [[TMP1:%.*]] = load i32, i32* [[CONV]], align 4
+// CHECK2-NEXT:    [[TMP2:%.*]] = load i32, i32* [[CONV1]], align 4
 // CHECK2-NEXT:    [[ADD:%.*]] = add nsw i32 [[TMP1]], [[TMP2]]
 // CHECK2-NEXT:    [[TMP3:%.*]] = load i64, i64* [[GBLB_ADDR]], align 8
-// CHECK2-NEXT:    [[TMP4:%.*]] = load float, float* [[CONV2]], align 8
+// CHECK2-NEXT:    [[TMP4:%.*]] = load float, float* [[CONV2]], align 4
 // CHECK2-NEXT:    [[CONV4:%.*]] = fptosi float [[TMP4]] to i64
 // CHECK2-NEXT:    [[ADD5:%.*]] = add nsw i64 [[TMP3]], [[CONV4]]
 // CHECK2-NEXT:    [[TMP5:%.*]] = trunc i64 [[ADD5]] to i32
@@ -2986,12 +2986,12 @@ void foo() {
 // CHECK17-SAME: () #[[ATTR0:[0-9]+]] {
 // CHECK17-NEXT:  entry:
 // CHECK17-NEXT:    [[V:%.*]] = alloca [[STRUCT_SS:%.*]], align 4
-// CHECK17-NEXT:    [[CALL:%.*]] = call noundef signext i32 @_ZN2SSIiLi123ELx456EE3fooEv(%struct.SS* noundef [[V]])
+// CHECK17-NEXT:    [[CALL:%.*]] = call noundef signext i32 @_ZN2SSIiLi123ELx456EE3fooEv(%struct.SS* noundef nonnull align 4 dereferenceable(8) [[V]])
 // CHECK17-NEXT:    ret i32 [[CALL]]
 //
 //
 // CHECK17-LABEL: define {{[^@]+}}@_ZN2SSIiLi123ELx456EE3fooEv
-// CHECK17-SAME: (%struct.SS* noundef [[THIS:%.*]]) #[[ATTR0]] comdat align 2 {
+// CHECK17-SAME: (%struct.SS* noundef nonnull align 4 dereferenceable(8) [[THIS:%.*]]) #[[ATTR0]] comdat align 2 {
 // CHECK17-NEXT:  entry:
 // CHECK17-NEXT:    [[THIS_ADDR:%.*]] = alloca %struct.SS*, align 8
 // CHECK17-NEXT:    [[COMP:%.*]] = alloca i32, align 4
@@ -3155,12 +3155,12 @@ void foo() {
 // CHECK18-SAME: () #[[ATTR0:[0-9]+]] {
 // CHECK18-NEXT:  entry:
 // CHECK18-NEXT:    [[V:%.*]] = alloca [[STRUCT_SS:%.*]], align 4
-// CHECK18-NEXT:    [[CALL:%.*]] = call noundef signext i32 @_ZN2SSIiLi123ELx456EE3fooEv(%struct.SS* noundef [[V]])
+// CHECK18-NEXT:    [[CALL:%.*]] = call noundef signext i32 @_ZN2SSIiLi123ELx456EE3fooEv(%struct.SS* noundef nonnull align 4 dereferenceable(8) [[V]])
 // CHECK18-NEXT:    ret i32 [[CALL]]
 //
 //
 // CHECK18-LABEL: define {{[^@]+}}@_ZN2SSIiLi123ELx456EE3fooEv
-// CHECK18-SAME: (%struct.SS* noundef [[THIS:%.*]]) #[[ATTR0]] comdat align 2 {
+// CHECK18-SAME: (%struct.SS* noundef nonnull align 4 dereferenceable(8) [[THIS:%.*]]) #[[ATTR0]] comdat align 2 {
 // CHECK18-NEXT:  entry:
 // CHECK18-NEXT:    [[THIS_ADDR:%.*]] = alloca %struct.SS*, align 8
 // CHECK18-NEXT:    [[COMP:%.*]] = alloca i32, align 4
@@ -3324,12 +3324,12 @@ void foo() {
 // CHECK19-SAME: () #[[ATTR0:[0-9]+]] {
 // CHECK19-NEXT:  entry:
 // CHECK19-NEXT:    [[V:%.*]] = alloca [[STRUCT_SS:%.*]], align 4
-// CHECK19-NEXT:    [[CALL:%.*]] = call noundef i32 @_ZN2SSIiLi123ELx456EE3fooEv(%struct.SS* noundef [[V]])
+// CHECK19-NEXT:    [[CALL:%.*]] = call noundef i32 @_ZN2SSIiLi123ELx456EE3fooEv(%struct.SS* noundef nonnull align 4 dereferenceable(8) [[V]])
 // CHECK19-NEXT:    ret i32 [[CALL]]
 //
 //
 // CHECK19-LABEL: define {{[^@]+}}@_ZN2SSIiLi123ELx456EE3fooEv
-// CHECK19-SAME: (%struct.SS* noundef [[THIS:%.*]]) #[[ATTR0]] comdat align 2 {
+// CHECK19-SAME: (%struct.SS* noundef nonnull align 4 dereferenceable(8) [[THIS:%.*]]) #[[ATTR0]] comdat align 2 {
 // CHECK19-NEXT:  entry:
 // CHECK19-NEXT:    [[THIS_ADDR:%.*]] = alloca %struct.SS*, align 4
 // CHECK19-NEXT:    [[COMP:%.*]] = alloca i32, align 4
@@ -3489,12 +3489,12 @@ void foo() {
 // CHECK20-SAME: () #[[ATTR0:[0-9]+]] {
 // CHECK20-NEXT:  entry:
 // CHECK20-NEXT:    [[V:%.*]] = alloca [[STRUCT_SS:%.*]], align 4
-// CHECK20-NEXT:    [[CALL:%.*]] = call noundef i32 @_ZN2SSIiLi123ELx456EE3fooEv(%struct.SS* noundef [[V]])
+// CHECK20-NEXT:    [[CALL:%.*]] = call noundef i32 @_ZN2SSIiLi123ELx456EE3fooEv(%struct.SS* noundef nonnull align 4 dereferenceable(8) [[V]])
 // CHECK20-NEXT:    ret i32 [[CALL]]
 //
 //
 // CHECK20-LABEL: define {{[^@]+}}@_ZN2SSIiLi123ELx456EE3fooEv
-// CHECK20-SAME: (%struct.SS* noundef [[THIS:%.*]]) #[[ATTR0]] comdat align 2 {
+// CHECK20-SAME: (%struct.SS* noundef nonnull align 4 dereferenceable(8) [[THIS:%.*]]) #[[ATTR0]] comdat align 2 {
 // CHECK20-NEXT:  entry:
 // CHECK20-NEXT:    [[THIS_ADDR:%.*]] = alloca %struct.SS*, align 4
 // CHECK20-NEXT:    [[COMP:%.*]] = alloca i32, align 4
@@ -3849,8 +3849,8 @@ void foo() {
 // CHECK33-NEXT:    [[CONV:%.*]] = bitcast i64* [[A_ADDR]] to i32*
 // CHECK33-NEXT:    [[CONV1:%.*]] = bitcast i64* [[B_ADDR]] to i32*
 // CHECK33-NEXT:    [[CONV2:%.*]] = bitcast i64* [[ARGC_ADDR]] to i32*
-// CHECK33-NEXT:    [[TMP1:%.*]] = load i32, i32* [[CONV]], align 8
-// CHECK33-NEXT:    [[TMP2:%.*]] = load i32, i32* [[CONV1]], align 8
+// CHECK33-NEXT:    [[TMP1:%.*]] = load i32, i32* [[CONV]], align 4
+// CHECK33-NEXT:    [[TMP2:%.*]] = load i32, i32* [[CONV1]], align 4
 // CHECK33-NEXT:    call void @__kmpc_push_num_teams(%struct.ident_t* @[[GLOB1]], i32 [[TMP0]], i32 [[TMP1]], i32 [[TMP2]])
 // CHECK33-NEXT:    call void (%struct.ident_t*, i32, void (i32*, i32*, ...)*, ...) @__kmpc_fork_teams(%struct.ident_t* @[[GLOB1]], i32 1, void (i32*, i32*, ...)* bitcast (void (i32*, i32*, i32*)* @.omp_outlined. to void (i32*, i32*, ...)*), i32* [[CONV2]])
 // CHECK33-NEXT:    ret void
@@ -3882,8 +3882,8 @@ void foo() {
 // CHECK33-NEXT:    store i8** [[ARGC]], i8*** [[ARGC_ADDR]], align 8
 // CHECK33-NEXT:    [[CONV:%.*]] = bitcast i64* [[A_ADDR]] to i32*
 // CHECK33-NEXT:    [[CONV1:%.*]] = bitcast i64* [[B_ADDR]] to i32*
-// CHECK33-NEXT:    [[TMP1:%.*]] = load i32, i32* [[CONV]], align 8
-// CHECK33-NEXT:    [[TMP2:%.*]] = load i32, i32* [[CONV1]], align 8
+// CHECK33-NEXT:    [[TMP1:%.*]] = load i32, i32* [[CONV]], align 4
+// CHECK33-NEXT:    [[TMP2:%.*]] = load i32, i32* [[CONV1]], align 4
 // CHECK33-NEXT:    call void @__kmpc_push_num_teams(%struct.ident_t* @[[GLOB1]], i32 [[TMP0]], i32 [[TMP1]], i32 [[TMP2]])
 // CHECK33-NEXT:    call void (%struct.ident_t*, i32, void (i32*, i32*, ...)*, ...) @__kmpc_fork_teams(%struct.ident_t* @[[GLOB1]], i32 1, void (i32*, i32*, ...)* bitcast (void (i32*, i32*, i8***)* @.omp_outlined..1 to void (i32*, i32*, ...)*), i8*** [[ARGC_ADDR]])
 // CHECK33-NEXT:    ret void
@@ -3916,8 +3916,8 @@ void foo() {
 // CHECK34-NEXT:    [[CONV:%.*]] = bitcast i64* [[A_ADDR]] to i32*
 // CHECK34-NEXT:    [[CONV1:%.*]] = bitcast i64* [[B_ADDR]] to i32*
 // CHECK34-NEXT:    [[CONV2:%.*]] = bitcast i64* [[ARGC_ADDR]] to i32*
-// CHECK34-NEXT:    [[TMP1:%.*]] = load i32, i32* [[CONV]], align 8
-// CHECK34-NEXT:    [[TMP2:%.*]] = load i32, i32* [[CONV1]], align 8
+// CHECK34-NEXT:    [[TMP1:%.*]] = load i32, i32* [[CONV]], align 4
+// CHECK34-NEXT:    [[TMP2:%.*]] = load i32, i32* [[CONV1]], align 4
 // CHECK34-NEXT:    call void @__kmpc_push_num_teams(%struct.ident_t* @[[GLOB1]], i32 [[TMP0]], i32 [[TMP1]], i32 [[TMP2]])
 // CHECK34-NEXT:    call void (%struct.ident_t*, i32, void (i32*, i32*, ...)*, ...) @__kmpc_fork_teams(%struct.ident_t* @[[GLOB1]], i32 1, void (i32*, i32*, ...)* bitcast (void (i32*, i32*, i32*)* @.omp_outlined. to void (i32*, i32*, ...)*), i32* [[CONV2]])
 // CHECK34-NEXT:    ret void
@@ -3949,8 +3949,8 @@ void foo() {
 // CHECK34-NEXT:    store i8** [[ARGC]], i8*** [[ARGC_ADDR]], align 8
 // CHECK34-NEXT:    [[CONV:%.*]] = bitcast i64* [[A_ADDR]] to i32*
 // CHECK34-NEXT:    [[CONV1:%.*]] = bitcast i64* [[B_ADDR]] to i32*
-// CHECK34-NEXT:    [[TMP1:%.*]] = load i32, i32* [[CONV]], align 8
-// CHECK34-NEXT:    [[TMP2:%.*]] = load i32, i32* [[CONV1]], align 8
+// CHECK34-NEXT:    [[TMP1:%.*]] = load i32, i32* [[CONV]], align 4
+// CHECK34-NEXT:    [[TMP2:%.*]] = load i32, i32* [[CONV1]], align 4
 // CHECK34-NEXT:    call void @__kmpc_push_num_teams(%struct.ident_t* @[[GLOB1]], i32 [[TMP0]], i32 [[TMP1]], i32 [[TMP2]])
 // CHECK34-NEXT:    call void (%struct.ident_t*, i32, void (i32*, i32*, ...)*, ...) @__kmpc_fork_teams(%struct.ident_t* @[[GLOB1]], i32 1, void (i32*, i32*, ...)* bitcast (void (i32*, i32*, i8***)* @.omp_outlined..1 to void (i32*, i32*, ...)*), i8*** [[ARGC_ADDR]])
 // CHECK34-NEXT:    ret void

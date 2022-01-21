@@ -559,9 +559,9 @@ void parallel_master_allocate() {
 // CHECK13-NEXT:    [[TMP3:%.*]] = icmp ne i32 [[TMP2]], 0
 // CHECK13-NEXT:    br i1 [[TMP3]], label [[OMP_IF_THEN:%.*]], label [[OMP_IF_END:%.*]]
 // CHECK13:       omp_if.then:
-// CHECK13-NEXT:    [[TMP4:%.*]] = load i32, i32* [[CONV]], align 8
+// CHECK13-NEXT:    [[TMP4:%.*]] = load i32, i32* [[CONV]], align 4
 // CHECK13-NEXT:    [[INC:%.*]] = add nsw i32 [[TMP4]], 1
-// CHECK13-NEXT:    store i32 [[INC]], i32* [[CONV]], align 8
+// CHECK13-NEXT:    store i32 [[INC]], i32* [[CONV]], align 4
 // CHECK13-NEXT:    call void @__kmpc_end_master(%struct.ident_t* @[[GLOB1]], i32 [[TMP1]])
 // CHECK13-NEXT:    br label [[OMP_IF_END]]
 // CHECK13:       omp_if.end:
@@ -597,9 +597,9 @@ void parallel_master_allocate() {
 // CHECK14-NEXT:    [[TMP3:%.*]] = icmp ne i32 [[TMP2]], 0
 // CHECK14-NEXT:    br i1 [[TMP3]], label [[OMP_IF_THEN:%.*]], label [[OMP_IF_END:%.*]]
 // CHECK14:       omp_if.then:
-// CHECK14-NEXT:    [[TMP4:%.*]] = load i32, i32* [[CONV]], align 8
+// CHECK14-NEXT:    [[TMP4:%.*]] = load i32, i32* [[CONV]], align 4
 // CHECK14-NEXT:    [[INC:%.*]] = add nsw i32 [[TMP4]], 1
-// CHECK14-NEXT:    store i32 [[INC]], i32* [[CONV]], align 8
+// CHECK14-NEXT:    store i32 [[INC]], i32* [[CONV]], align 4
 // CHECK14-NEXT:    call void @__kmpc_end_master(%struct.ident_t* @[[GLOB1]], i32 [[TMP1]])
 // CHECK14-NEXT:    br label [[OMP_IF_END]]
 // CHECK14:       omp_if.end:
@@ -611,23 +611,23 @@ void parallel_master_allocate() {
 // CHECK17-NEXT:  entry:
 // CHECK17-NEXT:    [[A:%.*]] = alloca [[STRUCT_ST:%.*]], align 4
 // CHECK17-NEXT:    [[Y_CASTED:%.*]] = alloca i64, align 8
-// CHECK17-NEXT:    call void @_ZN2StC1Ev(%struct.St* noundef [[A]])
+// CHECK17-NEXT:    call void @_ZN2StC1Ev(%struct.St* noundef nonnull align 4 dereferenceable(8) [[A]])
 // CHECK17-NEXT:    [[TMP0:%.*]] = load i32, i32* @_ZZ36parallel_master_default_firstprivatevE1y, align 4
 // CHECK17-NEXT:    [[CONV:%.*]] = bitcast i64* [[Y_CASTED]] to i32*
 // CHECK17-NEXT:    store i32 [[TMP0]], i32* [[CONV]], align 4
 // CHECK17-NEXT:    [[TMP1:%.*]] = load i64, i64* [[Y_CASTED]], align 8
 // CHECK17-NEXT:    call void (%struct.ident_t*, i32, void (i32*, i32*, ...)*, ...) @__kmpc_fork_call(%struct.ident_t* @[[GLOB1:[0-9]+]], i32 2, void (i32*, i32*, ...)* bitcast (void (i32*, i32*, %struct.St*, i64)* @.omp_outlined. to void (i32*, i32*, ...)*), %struct.St* [[A]], i64 [[TMP1]])
-// CHECK17-NEXT:    call void @_ZN2StD1Ev(%struct.St* noundef [[A]]) #[[ATTR3:[0-9]+]]
+// CHECK17-NEXT:    call void @_ZN2StD1Ev(%struct.St* noundef nonnull align 4 dereferenceable(8) [[A]]) #[[ATTR3:[0-9]+]]
 // CHECK17-NEXT:    ret void
 //
 //
 // CHECK17-LABEL: define {{[^@]+}}@_ZN2StC1Ev
-// CHECK17-SAME: (%struct.St* noundef [[THIS:%.*]]) unnamed_addr #[[ATTR1:[0-9]+]] comdat align 2 {
+// CHECK17-SAME: (%struct.St* noundef nonnull align 4 dereferenceable(8) [[THIS:%.*]]) unnamed_addr #[[ATTR1:[0-9]+]] comdat align 2 {
 // CHECK17-NEXT:  entry:
 // CHECK17-NEXT:    [[THIS_ADDR:%.*]] = alloca %struct.St*, align 8
 // CHECK17-NEXT:    store %struct.St* [[THIS]], %struct.St** [[THIS_ADDR]], align 8
 // CHECK17-NEXT:    [[THIS1:%.*]] = load %struct.St*, %struct.St** [[THIS_ADDR]], align 8
-// CHECK17-NEXT:    call void @_ZN2StC2Ev(%struct.St* noundef [[THIS1]])
+// CHECK17-NEXT:    call void @_ZN2StC2Ev(%struct.St* noundef nonnull align 4 dereferenceable(8) [[THIS1]])
 // CHECK17-NEXT:    ret void
 //
 //
@@ -658,9 +658,9 @@ void parallel_master_allocate() {
 // CHECK17-NEXT:    [[TMP6:%.*]] = load i32, i32* [[B]], align 4
 // CHECK17-NEXT:    [[ADD2:%.*]] = add nsw i32 [[TMP6]], 1
 // CHECK17-NEXT:    store i32 [[ADD2]], i32* [[B]], align 4
-// CHECK17-NEXT:    [[TMP7:%.*]] = load i32, i32* [[CONV]], align 8
+// CHECK17-NEXT:    [[TMP7:%.*]] = load i32, i32* [[CONV]], align 4
 // CHECK17-NEXT:    [[INC:%.*]] = add nsw i32 [[TMP7]], 1
-// CHECK17-NEXT:    store i32 [[INC]], i32* [[CONV]], align 8
+// CHECK17-NEXT:    store i32 [[INC]], i32* [[CONV]], align 4
 // CHECK17-NEXT:    [[TMP8:%.*]] = load i32, i32* @_ZN2St1yE, align 4
 // CHECK17-NEXT:    [[INC3:%.*]] = add nsw i32 [[TMP8]], 1
 // CHECK17-NEXT:    store i32 [[INC3]], i32* @_ZN2St1yE, align 4
@@ -671,17 +671,17 @@ void parallel_master_allocate() {
 //
 //
 // CHECK17-LABEL: define {{[^@]+}}@_ZN2StD1Ev
-// CHECK17-SAME: (%struct.St* noundef [[THIS:%.*]]) unnamed_addr #[[ATTR4:[0-9]+]] comdat align 2 {
+// CHECK17-SAME: (%struct.St* noundef nonnull align 4 dereferenceable(8) [[THIS:%.*]]) unnamed_addr #[[ATTR4:[0-9]+]] comdat align 2 {
 // CHECK17-NEXT:  entry:
 // CHECK17-NEXT:    [[THIS_ADDR:%.*]] = alloca %struct.St*, align 8
 // CHECK17-NEXT:    store %struct.St* [[THIS]], %struct.St** [[THIS_ADDR]], align 8
 // CHECK17-NEXT:    [[THIS1:%.*]] = load %struct.St*, %struct.St** [[THIS_ADDR]], align 8
-// CHECK17-NEXT:    call void @_ZN2StD2Ev(%struct.St* noundef [[THIS1]]) #[[ATTR3]]
+// CHECK17-NEXT:    call void @_ZN2StD2Ev(%struct.St* noundef nonnull align 4 dereferenceable(8) [[THIS1]]) #[[ATTR3]]
 // CHECK17-NEXT:    ret void
 //
 //
 // CHECK17-LABEL: define {{[^@]+}}@_ZN2StC2Ev
-// CHECK17-SAME: (%struct.St* noundef [[THIS:%.*]]) unnamed_addr #[[ATTR4]] comdat align 2 {
+// CHECK17-SAME: (%struct.St* noundef nonnull align 4 dereferenceable(8) [[THIS:%.*]]) unnamed_addr #[[ATTR4]] comdat align 2 {
 // CHECK17-NEXT:  entry:
 // CHECK17-NEXT:    [[THIS_ADDR:%.*]] = alloca %struct.St*, align 8
 // CHECK17-NEXT:    store %struct.St* [[THIS]], %struct.St** [[THIS_ADDR]], align 8
@@ -694,7 +694,7 @@ void parallel_master_allocate() {
 //
 //
 // CHECK17-LABEL: define {{[^@]+}}@_ZN2StD2Ev
-// CHECK17-SAME: (%struct.St* noundef [[THIS:%.*]]) unnamed_addr #[[ATTR4]] comdat align 2 {
+// CHECK17-SAME: (%struct.St* noundef nonnull align 4 dereferenceable(8) [[THIS:%.*]]) unnamed_addr #[[ATTR4]] comdat align 2 {
 // CHECK17-NEXT:  entry:
 // CHECK17-NEXT:    [[THIS_ADDR:%.*]] = alloca %struct.St*, align 8
 // CHECK17-NEXT:    store %struct.St* [[THIS]], %struct.St** [[THIS_ADDR]], align 8
@@ -707,23 +707,23 @@ void parallel_master_allocate() {
 // CHECK18-NEXT:  entry:
 // CHECK18-NEXT:    [[A:%.*]] = alloca [[STRUCT_ST:%.*]], align 4
 // CHECK18-NEXT:    [[Y_CASTED:%.*]] = alloca i64, align 8
-// CHECK18-NEXT:    call void @_ZN2StC1Ev(%struct.St* noundef [[A]])
+// CHECK18-NEXT:    call void @_ZN2StC1Ev(%struct.St* noundef nonnull align 4 dereferenceable(8) [[A]])
 // CHECK18-NEXT:    [[TMP0:%.*]] = load i32, i32* @_ZZ36parallel_master_default_firstprivatevE1y, align 4
 // CHECK18-NEXT:    [[CONV:%.*]] = bitcast i64* [[Y_CASTED]] to i32*
 // CHECK18-NEXT:    store i32 [[TMP0]], i32* [[CONV]], align 4
 // CHECK18-NEXT:    [[TMP1:%.*]] = load i64, i64* [[Y_CASTED]], align 8
 // CHECK18-NEXT:    call void (%struct.ident_t*, i32, void (i32*, i32*, ...)*, ...) @__kmpc_fork_call(%struct.ident_t* @[[GLOB1:[0-9]+]], i32 2, void (i32*, i32*, ...)* bitcast (void (i32*, i32*, %struct.St*, i64)* @.omp_outlined. to void (i32*, i32*, ...)*), %struct.St* [[A]], i64 [[TMP1]])
-// CHECK18-NEXT:    call void @_ZN2StD1Ev(%struct.St* noundef [[A]]) #[[ATTR3:[0-9]+]]
+// CHECK18-NEXT:    call void @_ZN2StD1Ev(%struct.St* noundef nonnull align 4 dereferenceable(8) [[A]]) #[[ATTR3:[0-9]+]]
 // CHECK18-NEXT:    ret void
 //
 //
 // CHECK18-LABEL: define {{[^@]+}}@_ZN2StC1Ev
-// CHECK18-SAME: (%struct.St* noundef [[THIS:%.*]]) unnamed_addr #[[ATTR1:[0-9]+]] comdat align 2 {
+// CHECK18-SAME: (%struct.St* noundef nonnull align 4 dereferenceable(8) [[THIS:%.*]]) unnamed_addr #[[ATTR1:[0-9]+]] comdat align 2 {
 // CHECK18-NEXT:  entry:
 // CHECK18-NEXT:    [[THIS_ADDR:%.*]] = alloca %struct.St*, align 8
 // CHECK18-NEXT:    store %struct.St* [[THIS]], %struct.St** [[THIS_ADDR]], align 8
 // CHECK18-NEXT:    [[THIS1:%.*]] = load %struct.St*, %struct.St** [[THIS_ADDR]], align 8
-// CHECK18-NEXT:    call void @_ZN2StC2Ev(%struct.St* noundef [[THIS1]])
+// CHECK18-NEXT:    call void @_ZN2StC2Ev(%struct.St* noundef nonnull align 4 dereferenceable(8) [[THIS1]])
 // CHECK18-NEXT:    ret void
 //
 //
@@ -754,9 +754,9 @@ void parallel_master_allocate() {
 // CHECK18-NEXT:    [[TMP6:%.*]] = load i32, i32* [[B]], align 4
 // CHECK18-NEXT:    [[ADD2:%.*]] = add nsw i32 [[TMP6]], 1
 // CHECK18-NEXT:    store i32 [[ADD2]], i32* [[B]], align 4
-// CHECK18-NEXT:    [[TMP7:%.*]] = load i32, i32* [[CONV]], align 8
+// CHECK18-NEXT:    [[TMP7:%.*]] = load i32, i32* [[CONV]], align 4
 // CHECK18-NEXT:    [[INC:%.*]] = add nsw i32 [[TMP7]], 1
-// CHECK18-NEXT:    store i32 [[INC]], i32* [[CONV]], align 8
+// CHECK18-NEXT:    store i32 [[INC]], i32* [[CONV]], align 4
 // CHECK18-NEXT:    [[TMP8:%.*]] = load i32, i32* @_ZN2St1yE, align 4
 // CHECK18-NEXT:    [[INC3:%.*]] = add nsw i32 [[TMP8]], 1
 // CHECK18-NEXT:    store i32 [[INC3]], i32* @_ZN2St1yE, align 4
@@ -767,17 +767,17 @@ void parallel_master_allocate() {
 //
 //
 // CHECK18-LABEL: define {{[^@]+}}@_ZN2StD1Ev
-// CHECK18-SAME: (%struct.St* noundef [[THIS:%.*]]) unnamed_addr #[[ATTR4:[0-9]+]] comdat align 2 {
+// CHECK18-SAME: (%struct.St* noundef nonnull align 4 dereferenceable(8) [[THIS:%.*]]) unnamed_addr #[[ATTR4:[0-9]+]] comdat align 2 {
 // CHECK18-NEXT:  entry:
 // CHECK18-NEXT:    [[THIS_ADDR:%.*]] = alloca %struct.St*, align 8
 // CHECK18-NEXT:    store %struct.St* [[THIS]], %struct.St** [[THIS_ADDR]], align 8
 // CHECK18-NEXT:    [[THIS1:%.*]] = load %struct.St*, %struct.St** [[THIS_ADDR]], align 8
-// CHECK18-NEXT:    call void @_ZN2StD2Ev(%struct.St* noundef [[THIS1]]) #[[ATTR3]]
+// CHECK18-NEXT:    call void @_ZN2StD2Ev(%struct.St* noundef nonnull align 4 dereferenceable(8) [[THIS1]]) #[[ATTR3]]
 // CHECK18-NEXT:    ret void
 //
 //
 // CHECK18-LABEL: define {{[^@]+}}@_ZN2StC2Ev
-// CHECK18-SAME: (%struct.St* noundef [[THIS:%.*]]) unnamed_addr #[[ATTR4]] comdat align 2 {
+// CHECK18-SAME: (%struct.St* noundef nonnull align 4 dereferenceable(8) [[THIS:%.*]]) unnamed_addr #[[ATTR4]] comdat align 2 {
 // CHECK18-NEXT:  entry:
 // CHECK18-NEXT:    [[THIS_ADDR:%.*]] = alloca %struct.St*, align 8
 // CHECK18-NEXT:    store %struct.St* [[THIS]], %struct.St** [[THIS_ADDR]], align 8
@@ -790,7 +790,7 @@ void parallel_master_allocate() {
 //
 //
 // CHECK18-LABEL: define {{[^@]+}}@_ZN2StD2Ev
-// CHECK18-SAME: (%struct.St* noundef [[THIS:%.*]]) unnamed_addr #[[ATTR4]] comdat align 2 {
+// CHECK18-SAME: (%struct.St* noundef nonnull align 4 dereferenceable(8) [[THIS:%.*]]) unnamed_addr #[[ATTR4]] comdat align 2 {
 // CHECK18-NEXT:  entry:
 // CHECK18-NEXT:    [[THIS_ADDR:%.*]] = alloca %struct.St*, align 8
 // CHECK18-NEXT:    store %struct.St* [[THIS]], %struct.St** [[THIS_ADDR]], align 8
@@ -827,9 +827,9 @@ void parallel_master_allocate() {
 // CHECK21-NEXT:    [[TMP3:%.*]] = icmp ne i32 [[TMP2]], 0
 // CHECK21-NEXT:    br i1 [[TMP3]], label [[OMP_IF_THEN:%.*]], label [[OMP_IF_END:%.*]]
 // CHECK21:       omp_if.then:
-// CHECK21-NEXT:    [[TMP4:%.*]] = load i32, i32* [[CONV]], align 8
+// CHECK21-NEXT:    [[TMP4:%.*]] = load i32, i32* [[CONV]], align 4
 // CHECK21-NEXT:    [[INC:%.*]] = add nsw i32 [[TMP4]], 1
-// CHECK21-NEXT:    store i32 [[INC]], i32* [[CONV]], align 8
+// CHECK21-NEXT:    store i32 [[INC]], i32* [[CONV]], align 4
 // CHECK21-NEXT:    call void @__kmpc_end_master(%struct.ident_t* @[[GLOB1]], i32 [[TMP1]])
 // CHECK21-NEXT:    br label [[OMP_IF_END]]
 // CHECK21:       omp_if.end:
@@ -865,9 +865,9 @@ void parallel_master_allocate() {
 // CHECK22-NEXT:    [[TMP3:%.*]] = icmp ne i32 [[TMP2]], 0
 // CHECK22-NEXT:    br i1 [[TMP3]], label [[OMP_IF_THEN:%.*]], label [[OMP_IF_END:%.*]]
 // CHECK22:       omp_if.then:
-// CHECK22-NEXT:    [[TMP4:%.*]] = load i32, i32* [[CONV]], align 8
+// CHECK22-NEXT:    [[TMP4:%.*]] = load i32, i32* [[CONV]], align 4
 // CHECK22-NEXT:    [[INC:%.*]] = add nsw i32 [[TMP4]], 1
-// CHECK22-NEXT:    store i32 [[INC]], i32* [[CONV]], align 8
+// CHECK22-NEXT:    store i32 [[INC]], i32* [[CONV]], align 4
 // CHECK22-NEXT:    call void @__kmpc_end_master(%struct.ident_t* @[[GLOB1]], i32 [[TMP1]])
 // CHECK22-NEXT:    br label [[OMP_IF_END]]
 // CHECK22:       omp_if.end:
