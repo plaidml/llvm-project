@@ -785,6 +785,9 @@ struct EraseIdentityGenericOp : public OpRewritePattern<GenericOp> {
                      [](AffineMap map) { return !map.isIdentity(); }))
       return failure();
 
+    if (genericOp->hasAttr(getIteratorRangesAttrName()))
+      return failure();
+
     // Check that the body of the linalg operation is just a linalg.yield
     // operation.
     Block &body = genericOp.region().front();
