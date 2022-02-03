@@ -50,6 +50,10 @@ constexpr StringRef getIndexingMapsAttrName() { return "indexing_maps"; }
 /// op's iterators.
 constexpr StringRef getIteratorTypesAttrName() { return "iterator_types"; }
 
+/// Attribute name for the I64ArrayAttr which encodes the ranges of a structured
+/// op's iterators.
+constexpr StringRef getIteratorRangesAttrName() { return "iterator_ranges"; }
+
 /// Attribute name for the StrArrayAttr which encodes the distribution type for
 /// `linalg.tiled_loop`.
 constexpr StringRef getDistributionTypesAttrName() {

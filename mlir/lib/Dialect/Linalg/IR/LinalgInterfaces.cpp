@@ -472,6 +472,9 @@ LogicalResult mlir::linalg::detail::verifyStructuredOpInterface(Operation *op) {
     return op->emitOpError("unable to find loop range for operation");
   SmallVector<int64_t, 4> startLoopRangeValues((*endLoopRangeValues).size(), 0);
 
+  if (op->hasAttr(getIteratorRangesAttrName()))
+    return success();
+
   // Verify only static cases since we can't get exact dimension sizes and loop
   // ranges for dynamic cases in this stage.
   if (llvm::none_of(*endLoopRangeValues, ShapedType::isDynamic)) {
