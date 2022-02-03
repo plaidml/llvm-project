@@ -955,6 +955,11 @@ def LinalgStructuredInterface : OpInterface<"LinalgOp"> {
       /*args=*/(ins),
       /*methodBody=*/"",
       /*defaultImplementation=*/[{
+        if (Attribute attr = $_op->getAttr(getIteratorRangesAttrName())) {
+          ArrayAttr ranges = attr.cast<ArrayAttr>();
+          return AffineMap::getMultiDimIdentityMap(ranges.size(),
+                                                   $_op.getContext());
+        }
         return inversePermutation(getLoopsToShapesMap());
       }]
     >,
@@ -1007,6 +1012,10 @@ def LinalgStructuredInterface : OpInterface<"LinalgOp"> {
       /*args=*/(ins),
       /*methodBody=*/"",
       /*defaultImplementation=*/[{
+        if (Attribute attr = $_op->getAttr(getIteratorRangesAttrName()))
+          return llvm::to_vector<4>(llvm::map_range(
+            attr.cast<ArrayAttr>().getAsValueRange<IntegerAttr>(),
+              [](APInt value) { return value.getSExtValue(); }));
         SmallVector<int64_t> viewSizes = getStaticShape();
         AffineMap invertedMap = getShapesToLoopsMap();
         assert(invertedMap && "expected a valid Linalg op to call the method");
