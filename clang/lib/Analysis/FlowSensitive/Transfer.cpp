@@ -103,11 +103,9 @@ public:
       auto &Loc = Env.createStorageLocation(*S);
       Env.setStorageLocation(*S, Loc);
       if (S->getOpcode() == BO_LAnd)
-        Env.setValue(Loc, Env.takeOwnership(std::make_unique<ConjunctionValue>(
-                              *LHSVal, *RHSVal)));
+        Env.setValue(Loc, Env.makeAnd(*LHSVal, *RHSVal));
       else
-        Env.setValue(Loc, Env.takeOwnership(std::make_unique<DisjunctionValue>(
-                              *LHSVal, *RHSVal)));
+        Env.setValue(Loc, Env.makeOr(*LHSVal, *RHSVal));
       break;
     }
     default:
@@ -136,6 +134,11 @@ public:
     // Group decls are converted into single decls in the CFG so the cast below
     // is safe.
     const auto &D = *cast<VarDecl>(S->getSingleDecl());
+
+    // Static local vars are already initialized in `Environment`.
+    if (D.hasGlobalStorage())
+      return;
+
     auto &Loc = Env.createStorageLocation(D);
     Env.setStorageLocation(D, Loc);
 
@@ -264,8 +267,7 @@ public:
 
       auto &ExprLoc = Env.createStorageLocation(*S);
       Env.setStorageLocation(*S, ExprLoc);
-      Env.setValue(ExprLoc, Env.takeOwnership(
-                                std::make_unique<NegationValue>(*SubExprVal)));
+      Env.setValue(ExprLoc, Env.makeNot(*SubExprVal));
       break;
     }
     default:
@@ -290,6 +292,24 @@ public:
     // FIXME: Consider assigning pointer values to function member expressions.
     if (Member->isFunctionOrFunctionTemplate())
       return;
+
+    if (auto *D = dyn_cast<VarDecl>(Member)) {
+      if (D->hasGlobalStorage()) {
+        auto *VarDeclLoc = Env.getStorageLocation(*D, SkipPast::None);
+        if (VarDeclLoc == nullptr)
+          return;
+
+        if (VarDeclLoc->getType()->isReferenceType()) {
+          Env.setStorageLocation(*S, *VarDeclLoc);
+        } else {
+          auto &Loc = Env.createStorageLocation(*S);
+          Env.setStorageLocation(*S, Loc);
+          Env.setValue(Loc, Env.takeOwnership(
+                                std::make_unique<ReferenceValue>(*VarDeclLoc)));
+        }
+        return;
+      }
+    }
 
     // The receiver can be either a value or a pointer to a value. Skip past the
     // indirection to handle both cases.
