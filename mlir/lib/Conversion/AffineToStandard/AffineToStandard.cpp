@@ -410,6 +410,13 @@ public:
       parOp = rewriter.create<scf::ParallelOp>(loc, lowerBoundTuple,
                                                upperBoundTuple, steps,
                                                /*bodyBuilderFn=*/nullptr);
+      static constexpr StringLiteral kTagAttribute = "tags";
+      NamedAttrList srcDict = op->getAttrOfType<DictionaryAttr>(kTagAttribute);
+      NamedAttrList dstDict =
+          parOp->getAttrOfType<DictionaryAttr>(kTagAttribute);
+      dstDict.append(srcDict.begin(), srcDict.end());
+      parOp->setAttr(kTagAttribute, dstDict.getDictionary(parOp->getContext()));
+
       rewriter.eraseBlock(parOp.getBody());
       rewriter.inlineRegionBefore(op.region(), parOp.region(),
                                   parOp.region().end());
