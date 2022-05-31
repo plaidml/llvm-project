@@ -8,6 +8,8 @@
 // CHECK-DAG: @atan2f(f32, f32) -> f32
 // CHECK-DAG: @tanh(f64) -> f64
 // CHECK-DAG: @tanhf(f32) -> f32
+// CHECK-DAG: @atan(f64) -> f64
+// CHECK-DAG: @atanf(f32) -> f32
 
 // CHECK-LABEL: func @tanh_caller
 // CHECK-SAME: %[[FLOAT:.*]]: f32
@@ -20,7 +22,6 @@ func.func @tanh_caller(%float: f32, %double: f64) -> (f32, f64)  {
   // CHECK: return %[[FLOAT_RESULT]], %[[DOUBLE_RESULT]]
   return %float_result, %double_result : f32, f64
 }
-
 
 // CHECK-LABEL: func @atan2_caller
 // CHECK-SAME: %[[FLOAT:.*]]: f32
@@ -104,3 +105,15 @@ func.func @expm1_multidim_vec_caller(%float: vector<2x2xf32>) -> (vector<2x2xf32
 // CHECK:           %[[VAL_4:.*]] = vector.insert %[[OUT1_1_F32]], %[[VAL_3]] [1, 1] : f32 into vector<2x2xf32>
 // CHECK:           return %[[VAL_4]] : vector<2x2xf32>
 // CHECK:         }
+
+// CHECK-LABEL: func @atan_caller
+// CHECK-SAME: %[[FLOAT:.*]]: f32
+// CHECK-SAME: %[[DOUBLE:.*]]: f64
+func.func @atan_caller(%float: f32, %double: f64) -> (f32, f64)  {
+  // CHECK-DAG: %[[FLOAT_RESULT:.*]] = call @atanf(%[[FLOAT]]) : (f32) -> f32
+  %float_result = math.atan %float : f32
+  // CHECK-DAG: %[[DOUBLE_RESULT:.*]] = call @atan(%[[DOUBLE]]) : (f64) -> f64
+  %double_result = math.atan %double : f64
+  // CHECK: return %[[FLOAT_RESULT]], %[[DOUBLE_RESULT]]
+  return %float_result, %double_result : f32, f64
+}
