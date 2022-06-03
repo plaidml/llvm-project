@@ -194,3 +194,51 @@ func.func @tanh(%f: f32, %v: vector<4xf32>, %t: tensor<4x4x?xf32>) {
   %2 = math.tanh %t : tensor<4x4x?xf32>
   return
 }
+
+// CHECK-LABEL: func @acos(
+// CHECK-SAME:             %[[F:.*]]: f32, %[[V:.*]]: vector<4xf32>, %[[T:.*]]: tensor<4x4x?xf32>)
+func.func @acos(%f: f32, %v: vector<4xf32>, %t: tensor<4x4x?xf32>) {
+  // CHECK: %{{.*}} = math.acos %[[F]] : f32
+  %0 = math.acos %f : f32
+  // CHECK: %{{.*}} = math.acos %[[V]] : vector<4xf32>
+  %1 = math.acos %v : vector<4xf32>
+  // CHECK: %{{.*}} = math.acos %[[T]] : tensor<4x4x?xf32>
+  %2 = math.acos %t : tensor<4x4x?xf32>
+  return
+}
+
+// CHECK-LABEL: func @asin(
+// CHECK-SAME:             %[[F:.*]]: f32, %[[V:.*]]: vector<4xf32>, %[[T:.*]]: tensor<4x4x?xf32>)
+func.func @asin(%f: f32, %v: vector<4xf32>, %t: tensor<4x4x?xf32>) {
+  // CHECK: %{{.*}} = math.asin %[[F]] : f32
+  %0 = math.asin %f : f32
+  // CHECK: %{{.*}} = math.asin %[[V]] : vector<4xf32>
+  %1 = math.asin %v : vector<4xf32>
+  // CHECK: %{{.*}} = math.asin %[[T]] : tensor<4x4x?xf32>
+  %2 = math.asin %t : tensor<4x4x?xf32>
+  return
+}
+
+// CHECK-LABEL: func @acosh(
+// CHECK-SAME:             %[[F:.*]]: f32, %[[V:.*]]: vector<4xf32>, %[[T:.*]]: tensor<4x4x?xf32>)
+func.func @acosh(%f: f32, %v: vector<4xf32>, %t: tensor<4x4x?xf32>) {
+  // CHECK: %{{.*}} = math.acosh %[[F]] : f32
+  %0 = math.acosh %f : f32
+  // CHECK: %{{.*}} = math.acosh %[[V]] : vector<4xf32>
+  %1 = math.acosh %v : vector<4xf32>
+  // CHECK: %{{.*}} = math.acosh %[[T]] : tensor<4x4x?xf32>
+  %2 = math.acosh %t : tensor<4x4x?xf32>
+  return
+}
+
+// CHECK-LABEL: func @asinh(
+// CHECK-SAME:             %[[F:.*]]: f32, %[[V:.*]]: vector<4xf32>, %[[T:.*]]: tensor<4x4x?xf32>)
+func.func @asinh(%f: f32, %v: vector<4xf32>, %t: tensor<4x4x?xf32>) {
+  // CHECK: %{{.*}} = math.asinh %[[F]] : f32
+  %0 = math.asinh %f : f32
+  // CHECK: %{{.*}} = math.asinh %[[V]] : vector<4xf32>
+  %1 = math.asinh %v : vector<4xf32>
+  // CHECK: %{{.*}} = math.asinh %[[T]] : tensor<4x4x?xf32>
+  %2 = math.asinh %t : tensor<4x4x?xf32>
+  return
+}

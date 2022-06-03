@@ -759,4 +759,84 @@ def Math_TanhOp : Math_FloatUnaryOp<"tanh"> {
   }];
 }
 
+//===----------------------------------------------------------------------===//
+// AcosOp
+//===----------------------------------------------------------------------===//
+
+def Math_AcosOp : Math_FloatUnaryOp<"acos"> {
+  let summary = "inverse cosine (arc cosine)";
+  let description = [{
+    The `acos` compute the inverse cosine (arc cosine) of the input value.  It
+    takes one operand of floating point type (i.e., scalar, tensor or vector) and
+    returns one result of the same type.
+
+    Example:
+
+    ```mlir
+    // Scalar hyperbolic tangent value.
+    %a = math.acos %b : f64
+    ```
+  }];
+}
+
+//===----------------------------------------------------------------------===//
+// AsinOp
+//===----------------------------------------------------------------------===//
+
+def Math_AsinOp : Math_FloatUnaryOp<"asin"> {
+  let summary = "inverse sine (arc sine)";
+  let description = [{
+    The `asin` compute the inverse sine (arc sine) of the input value.  It
+    takes one operand of floating point type (i.e., scalar, tensor or vector) and
+    returns one result of the same type.
+
+    Example:
+
+    ```mlir
+    // Scalar hyperbolic tangent value.
+    %a = math.asin %b : f64
+    ```
+  }];
+}
+
+//===----------------------------------------------------------------------===//
+// AcoshOp
+//===----------------------------------------------------------------------===//
+
+def Math_AcoshOp : Math_FloatUnaryOp<"acosh"> {
+  let summary = "inverse hyperbolic cosine";
+  let description = [{
+    The `acosh` compute the inverse hyperbolic cosine of the input value.  It
+    takes one operand of floating point type (i.e., scalar, tensor or vector) and
+    returns one result of the same type.
+
+    Example:
+
+    ```mlir
+    // Scalar hyperbolic tangent value.
+    %a = math.acosh %b : f64
+    ```
+  }];
+}
+
+//===----------------------------------------------------------------------===//
+// AsinhOp
+//===----------------------------------------------------------------------===//
+
+def Math_AsinhOp : Math_FloatUnaryOp<"asinh"> {
+  let summary = "inverse hyperbolic sine";
+  let description = [{
+    The `asinh` compute the inverse hyperbolic sine of the input value.  It
+    takes one operand of floating point type (i.e., scalar, tensor or vector) and
+    returns one result of the same type.
+
+    Example:
+
+    ```mlir
+    // Scalar hyperbolic tangent value.
+    %a = math.asinh %b : f64
+    ```
+  }];
+}
+
 #endif // MATH_OPS

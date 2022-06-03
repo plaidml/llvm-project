@@ -116,7 +116,9 @@ ScalarOpToLibmCall<Op>::matchAndRewrite(Op op,
 void mlir::populateMathToLibmConversionPatterns(RewritePatternSet &patterns,
                                                 PatternBenefit benefit) {
   patterns.add<VecOpToScalarOp<math::Atan2Op>, VecOpToScalarOp<math::ExpM1Op>,
-               VecOpToScalarOp<math::TanhOp>, VecOpToScalarOp<math::AtanOp>>(
+               VecOpToScalarOp<math::TanhOp>, VecOpToScalarOp<math::AtanOp>,
+               VecOpToScalarOp<math::AcosOp>, VecOpToScalarOp<math::AsinOp>,
+               VecOpToScalarOp<math::AcoshOp>, VecOpToScalarOp<math::AsinhOp>>(
       patterns.getContext(), benefit);
   patterns.add<ScalarOpToLibmCall<math::Atan2Op>>(patterns.getContext(),
                                                   "atan2f", "atan2", benefit);
@@ -128,6 +130,14 @@ void mlir::populateMathToLibmConversionPatterns(RewritePatternSet &patterns,
                                                  "tanh", benefit);
   patterns.add<ScalarOpToLibmCall<math::AtanOp>>(patterns.getContext(), "atanf",
                                                  "atan", benefit);
+  patterns.add<ScalarOpToLibmCall<math::AcosOp>>(patterns.getContext(), "acosf",
+                                                 "acos", benefit);
+  patterns.add<ScalarOpToLibmCall<math::AsinOp>>(patterns.getContext(), "asinf",
+                                                 "asin", benefit);
+  patterns.add<ScalarOpToLibmCall<math::AcoshOp>>(patterns.getContext(),
+                                                  "acoshf", "acosh", benefit);
+  patterns.add<ScalarOpToLibmCall<math::AsinhOp>>(patterns.getContext(),
+                                                  "asinhf", "asinh", benefit);
 }
 
 namespace {

@@ -10,6 +10,14 @@
 // CHECK-DAG: @tanhf(f32) -> f32
 // CHECK-DAG: @atan(f64) -> f64
 // CHECK-DAG: @atanf(f32) -> f32
+// CHECK-DAG: @acos(f64) -> f64
+// CHECK-DAG: @acosf(f32) -> f32
+// CHECK-DAG: @asin(f64) -> f64
+// CHECK-DAG: @asinf(f32) -> f32
+// CHECK-DAG: @acosh(f64) -> f64
+// CHECK-DAG: @acoshf(f32) -> f32
+// CHECK-DAG: @asinh(f64) -> f64
+// CHECK-DAG: @asinhf(f32) -> f32
 
 // CHECK-LABEL: func @tanh_caller
 // CHECK-SAME: %[[FLOAT:.*]]: f32
@@ -114,6 +122,54 @@ func.func @atan_caller(%float: f32, %double: f64) -> (f32, f64)  {
   %float_result = math.atan %float : f32
   // CHECK-DAG: %[[DOUBLE_RESULT:.*]] = call @atan(%[[DOUBLE]]) : (f64) -> f64
   %double_result = math.atan %double : f64
+  // CHECK: return %[[FLOAT_RESULT]], %[[DOUBLE_RESULT]]
+  return %float_result, %double_result : f32, f64
+}
+
+// CHECK-LABEL: func @acos_caller
+// CHECK-SAME: %[[FLOAT:.*]]: f32
+// CHECK-SAME: %[[DOUBLE:.*]]: f64
+func.func @acos_caller(%float: f32, %double: f64) -> (f32, f64)  {
+  // CHECK-DAG: %[[FLOAT_RESULT:.*]] = call @acosf(%[[FLOAT]]) : (f32) -> f32
+  %float_result = math.acos %float : f32
+  // CHECK-DAG: %[[DOUBLE_RESULT:.*]] = call @acos(%[[DOUBLE]]) : (f64) -> f64
+  %double_result = math.acos %double : f64
+  // CHECK: return %[[FLOAT_RESULT]], %[[DOUBLE_RESULT]]
+  return %float_result, %double_result : f32, f64
+}
+
+// CHECK-LABEL: func @asin_caller
+// CHECK-SAME: %[[FLOAT:.*]]: f32
+// CHECK-SAME: %[[DOUBLE:.*]]: f64
+func.func @asin_caller(%float: f32, %double: f64) -> (f32, f64)  {
+  // CHECK-DAG: %[[FLOAT_RESULT:.*]] = call @asinf(%[[FLOAT]]) : (f32) -> f32
+  %float_result = math.asin %float : f32
+  // CHECK-DAG: %[[DOUBLE_RESULT:.*]] = call @asin(%[[DOUBLE]]) : (f64) -> f64
+  %double_result = math.asin %double : f64
+  // CHECK: return %[[FLOAT_RESULT]], %[[DOUBLE_RESULT]]
+  return %float_result, %double_result : f32, f64
+}
+
+// CHECK-LABEL: func @acosh_caller
+// CHECK-SAME: %[[FLOAT:.*]]: f32
+// CHECK-SAME: %[[DOUBLE:.*]]: f64
+func.func @acosh_caller(%float: f32, %double: f64) -> (f32, f64)  {
+  // CHECK-DAG: %[[FLOAT_RESULT:.*]] = call @acoshf(%[[FLOAT]]) : (f32) -> f32
+  %float_result = math.acosh %float : f32
+  // CHECK-DAG: %[[DOUBLE_RESULT:.*]] = call @acosh(%[[DOUBLE]]) : (f64) -> f64
+  %double_result = math.acosh %double : f64
+  // CHECK: return %[[FLOAT_RESULT]], %[[DOUBLE_RESULT]]
+  return %float_result, %double_result : f32, f64
+}
+
+// CHECK-LABEL: func @asinh_caller
+// CHECK-SAME: %[[FLOAT:.*]]: f32
+// CHECK-SAME: %[[DOUBLE:.*]]: f64
+func.func @asinh_caller(%float: f32, %double: f64) -> (f32, f64)  {
+  // CHECK-DAG: %[[FLOAT_RESULT:.*]] = call @asinhf(%[[FLOAT]]) : (f32) -> f32
+  %float_result = math.asinh %float : f32
+  // CHECK-DAG: %[[DOUBLE_RESULT:.*]] = call @asinh(%[[DOUBLE]]) : (f64) -> f64
+  %double_result = math.asinh %double : f64
   // CHECK: return %[[FLOAT_RESULT]], %[[DOUBLE_RESULT]]
   return %float_result, %double_result : f32, f64
 }
