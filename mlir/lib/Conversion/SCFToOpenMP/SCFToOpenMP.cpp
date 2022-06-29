@@ -10,7 +10,6 @@
 // parallel loops.
 //
 //===----------------------------------------------------------------------===//
-
 #include "mlir/Conversion/SCFToOpenMP/SCFToOpenMP.h"
 #include "../PassDetail.h"
 #include "mlir/Analysis/SliceAnalysis.h"
@@ -387,9 +386,57 @@ struct ParallelOpLowering : public OpRewritePattern<scf::ParallelOp> {
       // Replace the loop.
       {
         OpBuilder::InsertionGuard allocaGuard(rewriter);
+        auto chunk = rewriter.create<LLVM::ConstantOp>(
+            parallelOp.getLoopBody().getParentOp()->getParentOp()->getLoc(),
+            rewriter.getIntegerType(64), rewriter.getI64IntegerAttr(2));
         auto loop = rewriter.create<omp::WsLoopOp>(
             parallelOp.getLoc(), parallelOp.getLowerBound(),
             parallelOp.getUpperBound(), parallelOp.getStep());
+
+        if (static_cast<bool>(
+                parallelOp->getAttrOfType<DictionaryAttr>("tags"))) {
+          ::mlir::StringAttr schedAttr =
+              ::mlir::StringAttr::get(parallelOp.getContext(), "Static");
+          auto dict = parallelOp->getAttrOfType<DictionaryAttr>("tags");
+          if (dict.get("static").dyn_cast_or_null<UnitAttr>() != nullptr ||
+              dict.get("Static").dyn_cast_or_null<UnitAttr>() != nullptr) {
+            schedAttr =
+                ::mlir::StringAttr::get(parallelOp.getContext(), "Static");
+          } else if (dict.get("dynamic").dyn_cast_or_null<UnitAttr>() !=
+                         nullptr ||
+                     dict.get("Dynamic").dyn_cast_or_null<UnitAttr>() !=
+                         nullptr) {
+            schedAttr =
+                ::mlir::StringAttr::get(parallelOp.getContext(), "Dynamic");
+          } else if (dict.get("auto").dyn_cast_or_null<UnitAttr>() != nullptr ||
+                     dict.get("Auto").dyn_cast_or_null<UnitAttr>() != nullptr) {
+            schedAttr =
+                ::mlir::StringAttr::get(parallelOp.getContext(), "Auto");
+          } else if (dict.get("guided").dyn_cast_or_null<UnitAttr>() !=
+                         nullptr ||
+                     dict.get("Guided").dyn_cast_or_null<UnitAttr>() !=
+                         nullptr) {
+            schedAttr =
+                ::mlir::StringAttr::get(parallelOp.getContext(), "Guided");
+          } else if (dict.get("runtime").dyn_cast_or_null<UnitAttr>() !=
+                         nullptr ||
+                     dict.get("Runtime").dyn_cast_or_null<UnitAttr>() !=
+                         nullptr) {
+            schedAttr =
+                ::mlir::StringAttr::get(parallelOp.getContext(), "Runtime");
+          }
+          // loop.schedule_valAttr(schedAttr);
+
+          if (dict.get("chunk_size").dyn_cast_or_null<IntegerAttr>() !=
+              nullptr) {
+            loop.schedule_chunk_varMutable().assign(chunk);
+          }
+          if (dict.get("collapse").dyn_cast_or_null<IntegerAttr>() != nullptr) {
+            loop.collapse_valAttr(
+                dict.get("collapse").dyn_cast_or_null<IntegerAttr>());
+          }
+        }
+
         rewriter.create<omp::TerminatorOp>(loc);
 
         rewriter.inlineRegionBefore(parallelOp.getRegion(), loop.region(),
