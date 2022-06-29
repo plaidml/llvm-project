@@ -10,7 +10,6 @@
 // operations) within a function into their standard If and For equivalent ops.
 //
 //===----------------------------------------------------------------------===//
-
 #include "mlir/Conversion/AffineToStandard/AffineToStandard.h"
 
 #include "../PassDetail.h"
@@ -206,6 +205,14 @@ public:
       parOp = rewriter.create<scf::ParallelOp>(loc, lowerBoundTuple,
                                                upperBoundTuple, steps,
                                                /*bodyBuilderFn=*/nullptr);
+      static constexpr StringLiteral kTagAttribute = "tags";
+      NamedAttrList srcDict = op->getAttrOfType<DictionaryAttr>(kTagAttribute);
+      NamedAttrList dstDict =
+          parOp->getAttrOfType<DictionaryAttr>(kTagAttribute);
+      dstDict.append(srcDict.begin(), srcDict.end());
+      parOp->setAttr(kTagAttribute, dstDict.getDictionary(parOp->getContext()));
+      std::cout << "set attr to the par op\n";
+
       rewriter.eraseBlock(parOp.getBody());
       rewriter.inlineRegionBefore(op.region(), parOp.getRegion(),
                                   parOp.getRegion().end());
@@ -233,7 +240,6 @@ public:
     parOp = rewriter.create<scf::ParallelOp>(
         loc, lowerBoundTuple, upperBoundTuple, steps, identityVals,
         /*bodyBuilderFn=*/nullptr);
-
     //  Copy the body of the affine.parallel op.
     rewriter.eraseBlock(parOp.getBody());
     rewriter.inlineRegionBefore(op.region(), parOp.getRegion(),

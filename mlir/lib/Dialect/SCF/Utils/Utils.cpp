@@ -705,6 +705,10 @@ void mlir::collapseParallelLoops(
   newPloop.getBody()->getOperations().splice(
       Block::iterator(newPloop.getBody()->back()),
       loops.getBody()->getOperations());
+  static constexpr StringLiteral kTagAttribute = "tags";
+  auto srcDict = loops->getAttr(kTagAttribute);
+  newPloop->setAttr(kTagAttribute, srcDict);
+
   loops.erase();
 }
 
