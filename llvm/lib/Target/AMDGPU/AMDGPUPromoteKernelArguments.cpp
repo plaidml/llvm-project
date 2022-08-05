@@ -42,8 +42,6 @@ class AMDGPUPromoteKernelArguments : public FunctionPass {
 
   bool promotePointer(Value *Ptr);
 
-  bool promoteLoad(LoadInst *LI);
-
 public:
   static char ID;
 
@@ -75,10 +73,16 @@ void AMDGPUPromoteKernelArguments::enqueueUsers(Value *Ptr) {
       break;
     case Instruction::Load: {
       LoadInst *LD = cast<LoadInst>(U);
-      if (LD->getPointerOperand()->stripInBoundsOffsets() == Ptr &&
-          !AMDGPU::isClobberedInFunction(LD, MSSA, AA))
+      PointerType *PT = dyn_cast<PointerType>(LD->getType());
+      if (!PT ||
+          (PT->getAddressSpace() != AMDGPUAS::FLAT_ADDRESS &&
+           PT->getAddressSpace() != AMDGPUAS::GLOBAL_ADDRESS &&
+           PT->getAddressSpace() != AMDGPUAS::CONSTANT_ADDRESS) ||
+          LD->getPointerOperand()->stripInBoundsOffsets() != Ptr)
+        break;
+      // TODO: This load poprobably can be promoted to constant address space.
+      if (!AMDGPU::isClobberedInFunction(LD, MSSA, AA))
         Ptrs.push_back(LD);
-
       break;
     }
     case Instruction::GetElementPtr:
@@ -92,26 +96,15 @@ void AMDGPUPromoteKernelArguments::enqueueUsers(Value *Ptr) {
 }
 
 bool AMDGPUPromoteKernelArguments::promotePointer(Value *Ptr) {
-  bool Changed = false;
+  enqueueUsers(Ptr);
 
-  LoadInst *LI = dyn_cast<LoadInst>(Ptr);
-  if (LI)
-    Changed |= promoteLoad(LI);
-
-  PointerType *PT = dyn_cast<PointerType>(Ptr->getType());
-  if (!PT)
-    return Changed;
-
-  if (PT->getAddressSpace() == AMDGPUAS::FLAT_ADDRESS ||
-      PT->getAddressSpace() == AMDGPUAS::GLOBAL_ADDRESS ||
-      PT->getAddressSpace() == AMDGPUAS::CONSTANT_ADDRESS)
-    enqueueUsers(Ptr);
-
+  PointerType *PT = cast<PointerType>(Ptr->getType());
   if (PT->getAddressSpace() != AMDGPUAS::FLAT_ADDRESS)
-    return Changed;
+    return false;
 
-  IRBuilder<> B(LI ? &*std::next(cast<Instruction>(Ptr)->getIterator())
-                   : ArgCastInsertPt);
+  bool IsArg = isa<Argument>(Ptr);
+  IRBuilder<> B(IsArg ? ArgCastInsertPt
+                      : &*std::next(cast<Instruction>(Ptr)->getIterator()));
 
   // Cast pointer to global address space and back to flat and let
   // Infer Address Spaces pass to do all necessary rewriting.
@@ -124,38 +117,6 @@ bool AMDGPUPromoteKernelArguments::promotePointer(Value *Ptr) {
   Ptr->replaceUsesWithIf(CastBack,
                          [Cast](Use &U) { return U.getUser() != Cast; });
 
-  return true;
-}
-
-bool AMDGPUPromoteKernelArguments::promoteLoad(LoadInst *LI) {
-  if (!LI->isSimple())
-    return false;
-
-  Value *Ptr = LI->getPointerOperand();
-
-  // Strip casts we have created earlier.
-  Value *OrigPtr = Ptr;
-  PointerType *PT;
-  for ( ; ; ) {
-    PT = cast<PointerType>(OrigPtr->getType());
-    if (PT->getAddressSpace() == AMDGPUAS::CONSTANT_ADDRESS)
-      return false;
-    auto *P = dyn_cast<AddrSpaceCastInst>(OrigPtr);
-    if (!P)
-      break;
-    auto *NewPtr = P->getPointerOperand();
-    if (!cast<PointerType>(NewPtr->getType())->hasSameElementTypeAs(PT))
-      break;
-    OrigPtr = NewPtr;
-  }
-
-  IRBuilder<> B(LI);
-
-  PointerType *NewPT =
-      PointerType::getWithSamePointeeType(PT, AMDGPUAS::CONSTANT_ADDRESS);
-  Value *Cast = B.CreateAddrSpaceCast(OrigPtr, NewPT,
-                                      Twine(OrigPtr->getName(), ".const"));
-  LI->replaceUsesOfWith(Ptr, Cast);
   return true;
 }
 

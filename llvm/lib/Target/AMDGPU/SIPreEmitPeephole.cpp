@@ -133,7 +133,7 @@ bool SIPreEmitPeephole::optimizeVccBranch(MachineInstr &MI) const {
       return Changed;
     MaskValue = M->getOperand(1).getImm();
     // First if sreg is only used in the AND instruction fold the immediate
-    // into the AND.
+    // into into the AND.
     if (!ReadsSreg && Op2.isKill()) {
       A->getOperand(2).ChangeToImmediate(MaskValue);
       M->eraseFromParent();

@@ -30,18 +30,16 @@
     fprintf(stderr, "'%s' failed with '%s'\n", #expr, name);                   \
   }(expr)
 
-thread_local static int32_t defaultDevice = 0;
-
 // Sets the `Context` for the duration of the instance and restores the previous
 // context on destruction.
 class ScopedContext {
 public:
   ScopedContext() {
-    // Static reference to HIP primary context for device ordinal defaultDevice.
+    // Static reference to HIP primary context for device ordinal 0.
     static hipCtx_t context = [] {
       HIP_REPORT_IF_ERROR(hipInit(/*flags=*/0));
       hipDevice_t device;
-      HIP_REPORT_IF_ERROR(hipDeviceGet(&device, /*ordinal=*/defaultDevice));
+      HIP_REPORT_IF_ERROR(hipDeviceGet(&device, /*ordinal=*/0));
       hipCtx_t ctx;
       HIP_REPORT_IF_ERROR(hipDevicePrimaryCtxRetain(&ctx, device));
       return ctx;
@@ -200,9 +198,4 @@ mgpuMemGetDeviceMemRef1dInt32(int32_t *allocated, int32_t *aligned,
   int32_t *devicePtr = nullptr;
   mgpuMemGetDevicePointer(aligned, &devicePtr);
   return {devicePtr, devicePtr, offset, {size}, {stride}};
-}
-
-extern "C" void mgpuSetDefaultDevice(int32_t device) {
-  defaultDevice = device;
-  HIP_REPORT_IF_ERROR(hipSetDevice(device));
 }

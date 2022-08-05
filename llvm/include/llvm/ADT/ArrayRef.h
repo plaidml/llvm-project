@@ -25,7 +25,6 @@
 #include <vector>
 
 namespace llvm {
-  template<typename T> class LLVM_NODISCARD MutableArrayRef;
 
   /// ArrayRef - Represent a constant reference to an array (0 or more elements
   /// consecutively in memory), i.e. a start pointer and a length.  It allows
@@ -176,10 +175,10 @@ namespace llvm {
     }
 
     // copy - Allocate copy in Allocator and return ArrayRef<T> to it.
-    template <typename Allocator> MutableArrayRef<T> copy(Allocator &A) {
+    template <typename Allocator> ArrayRef<T> copy(Allocator &A) {
       T *Buff = A.template Allocate<T>(Length);
       std::uninitialized_copy(begin(), end(), Buff);
-      return MutableArrayRef<T>(Buff, Length);
+      return ArrayRef<T>(Buff, Length);
     }
 
     /// equals - Check for element-wise equality.

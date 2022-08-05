@@ -502,7 +502,6 @@ def StdC : StandardSpec<"stdc"> {
           SizeTType,
           BSearchCompareT,
           QSortCompareT,
-          AtexitHandlerT,
       ], // Types
       [], // Enumerations
       [
@@ -539,8 +538,6 @@ def StdC : StandardSpec<"stdc"> {
           FunctionSpec<"free", RetValSpec<VoidType>, [ArgSpec<VoidPtr>]>,
 
           FunctionSpec<"_Exit", RetValSpec<NoReturn>, [ArgSpec<IntType>]>,
-          FunctionSpec<"exit", RetValSpec<NoReturn>, [ArgSpec<IntType>]>,
-          FunctionSpec<"atexit", RetValSpec<IntType>, [ArgSpec<AtexitHandlerT>]>,
       ]
   >;
 

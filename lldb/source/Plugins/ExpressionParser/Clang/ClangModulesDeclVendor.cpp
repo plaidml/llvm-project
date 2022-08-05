@@ -726,8 +726,8 @@ ClangModulesDeclVendor::Create(Target &target) {
   parser->Initialize();
 
   clang::Parser::DeclGroupPtrTy parsed;
-  auto ImportState = clang::Sema::ModuleImportState::NotACXX20Module;
-  while (!parser->ParseTopLevelDecl(parsed, ImportState))
+
+  while (!parser->ParseTopLevelDecl(parsed))
     ;
 
   return new ClangModulesDeclVendorImpl(std::move(diagnostics_engine),

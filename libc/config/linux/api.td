@@ -159,8 +159,7 @@ def StdlibAPI : PublicAPI<"stdlib.h"> {
     "lldiv_t",
     "size_t",
     "__bsearchcompare_t",
-    "__qsortcompare_t",
-    "__atexithandler_t",
+    "__qsortcompare_t"
   ];
 }
 

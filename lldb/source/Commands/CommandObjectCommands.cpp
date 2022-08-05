@@ -1480,7 +1480,7 @@ protected:
     std::string m_class_name;
     std::string m_funct_name;
     std::string m_short_help;
-    bool m_overwrite = false;
+    bool m_overwrite;
     ScriptedCommandSynchronicity m_synchronicity =
         eScriptedCommandSynchronicitySynchronous;
   };
@@ -1637,9 +1637,8 @@ protected:
   std::string m_cmd_name;
   CommandObjectMultiword *m_container = nullptr;
   std::string m_short_help;
-  bool m_overwrite = false;
-  ScriptedCommandSynchronicity m_synchronicity =
-      eScriptedCommandSynchronicitySynchronous;
+  bool m_overwrite;
+  ScriptedCommandSynchronicity m_synchronicity;
 };
 
 // CommandObjectCommandsScriptList

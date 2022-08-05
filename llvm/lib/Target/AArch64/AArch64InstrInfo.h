@@ -103,12 +103,6 @@ public:
   /// Returns whether the instruction is a pre-indexed load/store.
   static bool isPreLdSt(const MachineInstr &MI);
 
-  /// Returns whether the instruction is FP or NEON.
-  static bool isFpOrNEON(const MachineInstr &MI);
-
-  /// Returns whether the instruction is in Q form (128 bit operands)
-  static bool isQForm(const MachineInstr &MI);
-
   /// Returns the index for the immediate for a given instruction.
   static unsigned getLoadStoreImmIdx(unsigned Opc);
 
@@ -280,11 +274,10 @@ public:
                                    bool OutlineFromLinkOnceODRs) const override;
   outliner::OutlinedFunction getOutliningCandidateInfo(
       std::vector<outliner::Candidate> &RepeatedSequenceLocs) const override;
-  outliner::InstrType getOutliningType(MachineBasicBlock::iterator &MIT,
-                                       unsigned Flags) const override;
-  SmallVector<
-      std::pair<MachineBasicBlock::iterator, MachineBasicBlock::iterator>>
-  getOutlinableRanges(MachineBasicBlock &MBB, unsigned &Flags) const override;
+  outliner::InstrType
+  getOutliningType(MachineBasicBlock::iterator &MIT, unsigned Flags) const override;
+  bool isMBBSafeToOutlineFrom(MachineBasicBlock &MBB,
+                              unsigned &Flags) const override;
   void buildOutlinedFrame(MachineBasicBlock &MBB, MachineFunction &MF,
                           const outliner::OutlinedFunction &OF) const override;
   MachineBasicBlock::iterator
@@ -362,33 +355,6 @@ private:
                           unsigned PredReg,
                           const MachineRegisterInfo *MRI) const;
 };
-
-struct UsedNZCV {
-  bool N = false;
-  bool Z = false;
-  bool C = false;
-  bool V = false;
-
-  UsedNZCV() = default;
-
-  UsedNZCV &operator|=(const UsedNZCV &UsedFlags) {
-    this->N |= UsedFlags.N;
-    this->Z |= UsedFlags.Z;
-    this->C |= UsedFlags.C;
-    this->V |= UsedFlags.V;
-    return *this;
-  }
-};
-
-/// \returns Conditions flags used after \p CmpInstr in its MachineBB if  NZCV
-/// flags are not alive in successors of the same \p CmpInstr and \p MI parent.
-/// \returns None otherwise.
-///
-/// Collect instructions using that flags in \p CCUseInstrs if provided.
-Optional<UsedNZCV>
-examineCFlagsUse(MachineInstr &MI, MachineInstr &CmpInstr,
-                 const TargetRegisterInfo &TRI,
-                 SmallVectorImpl<MachineInstr *> *CCUseInstrs = nullptr);
 
 /// Return true if there is an instruction /after/ \p DefMI and before \p UseMI
 /// which either reads or clobbers NZCV.

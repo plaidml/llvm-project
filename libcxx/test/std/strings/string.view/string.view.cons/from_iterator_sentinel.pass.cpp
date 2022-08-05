@@ -20,33 +20,25 @@
 #include "make_string.h"
 #include "test_iterators.h"
 
-template<class It, class Sentinel, class CharT>
-constexpr void test_construction(std::basic_string_view<CharT> val) {
-  auto sv = std::basic_string_view<CharT>(It(val.data()), Sentinel(It(val.data() + val.size())));
-  assert(sv.data() == val.data());
+template<class CharT, class Sentinel>
+constexpr void test() {
+  auto val = MAKE_STRING_VIEW(CharT, "test");
+  auto sv = std::basic_string_view<CharT>(val.begin(), Sentinel(val.end()));
+  ASSERT_SAME_TYPE(decltype(sv), std::basic_string_view<CharT>);
   assert(sv.size() == val.size());
-}
-
-template<class CharT>
-constexpr void test_with_char() {
-  const auto val = MAKE_STRING_VIEW(CharT, "test");
-  test_construction<CharT*, CharT*>(val);
-  test_construction<CharT*, const CharT*>(val);
-  test_construction<const CharT*, CharT*>(val);
-  test_construction<const CharT*, sized_sentinel<const CharT*>>(val);
-  test_construction<contiguous_iterator<const CharT*>, contiguous_iterator<const CharT*>>(val);
-  test_construction<contiguous_iterator<const CharT*>, sized_sentinel<contiguous_iterator<const CharT*>>>(val);
+  assert(sv.data() == val.data());
 }
 
 constexpr bool test() {
-  test_with_char<char>();
+  test<char, char*>();
 #ifndef TEST_HAS_NO_WIDE_CHARACTERS
-  test_with_char<wchar_t>();
+  test<wchar_t, wchar_t*>();
 #endif
-  test_with_char<char8_t>();
-  test_with_char<char16_t>();
-  test_with_char<char32_t>();
-
+  test<char8_t, char8_t*>();
+  test<char16_t, char16_t*>();
+  test<char32_t, char32_t*>();
+  test<char, const char*>();
+  test<char, sized_sentinel<const char*>>();
   return true;
 }
 
@@ -62,7 +54,7 @@ template <class CharT>
 void test_throwing() {
   auto val = MAKE_STRING_VIEW(CharT, "test");
   try {
-    (void)std::basic_string_view<CharT>(val.data(), ThrowingSentinel<CharT>());
+    (void)std::basic_string_view<CharT>(val.begin(), ThrowingSentinel<CharT>());
     assert(false);
   } catch (int i) {
     assert(i == 42);
@@ -97,3 +89,4 @@ int main(int, char**) {
 
   return 0;
 }
+

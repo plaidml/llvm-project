@@ -40,7 +40,7 @@ void checkWrap(int i) {
   }
 }
 
-// CHECK-LABEL: void checkGCCAsmRValueOutput(void)
+// CHECK-LABEL: void checkGCCAsmRValueOutput()
 // CHECK: [B2 (ENTRY)]
 // CHECK-NEXT: Succs (1): B1
 // CHECK: [B1]

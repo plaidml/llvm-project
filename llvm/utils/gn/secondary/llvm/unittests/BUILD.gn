@@ -31,7 +31,6 @@ group("unittests") {
     "MC:MCTests",
     "MI:MITests",
     "MIR:MIRTests",
-    "ObjCopy:ObjCopyTests",
     "Object:ObjectTests",
     "ObjectYAML:ObjectYAMLTests",
     "Option:OptionTests",

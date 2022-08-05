@@ -56,10 +56,7 @@ protected:
     return CGF.CXXABIThisValue;
   }
   Address getThisAddress(CodeGenFunction &CGF) {
-    return Address(
-        CGF.CXXABIThisValue,
-        CGF.ConvertTypeForMem(CGF.CXXABIThisDecl->getType()->getPointeeType()),
-        CGF.CXXABIThisAlignment);
+    return Address(CGF.CXXABIThisValue, CGF.CXXABIThisAlignment);
   }
 
   /// Issue a diagnostic about unsupported features in the ABI.

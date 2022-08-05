@@ -12,7 +12,6 @@
 #include "allocator_config.h"
 #include "secondary.h"
 
-#include <algorithm>
 #include <condition_variable>
 #include <memory>
 #include <mutex>

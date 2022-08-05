@@ -6034,9 +6034,7 @@ NamedDecl *Sema::FindInstantiatedDecl(SourceLocation Loc, NamedDecl *D,
       (ParentDependsOnArgs && (ParentDC->isFunctionOrMethod() ||
                                isa<OMPDeclareReductionDecl>(ParentDC) ||
                                isa<OMPDeclareMapperDecl>(ParentDC))) ||
-      (isa<CXXRecordDecl>(D) && cast<CXXRecordDecl>(D)->isLambda() &&
-       cast<CXXRecordDecl>(D)->getTemplateDepth() >
-           TemplateArgs.getNumRetainedOuterLevels())) {
+      (isa<CXXRecordDecl>(D) && cast<CXXRecordDecl>(D)->isLambda())) {
     // D is a local of some kind. Look into the map of local
     // declarations to their instantiations.
     if (CurrentInstantiationScope) {

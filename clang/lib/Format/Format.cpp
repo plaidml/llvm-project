@@ -768,7 +768,6 @@ template <> struct MappingTraits<FormatStyle> {
     IO.mapOptional("IndentWidth", Style.IndentWidth);
     IO.mapOptional("IndentWrappedFunctionNames",
                    Style.IndentWrappedFunctionNames);
-    IO.mapOptional("InsertBraces", Style.InsertBraces);
     IO.mapOptional("InsertTrailingCommas", Style.InsertTrailingCommas);
     IO.mapOptional("JavaImportGroups", Style.JavaImportGroups);
     IO.mapOptional("JavaScriptQuotes", Style.JavaScriptQuotes);
@@ -991,11 +990,11 @@ std::string ParseErrorCategory::message(int EV) const {
   case ParseError::InvalidQualifierSpecified:
     return "Invalid qualifier specified in QualifierOrder";
   case ParseError::DuplicateQualifierSpecified:
-    return "Duplicate qualifier specified in QualifierOrder";
+    return "Duplicate qualifier specified in QualfierOrder";
   case ParseError::MissingQualifierType:
-    return "Missing type in QualifierOrder";
+    return "Missing type in QualfierOrder";
   case ParseError::MissingQualifierOrder:
-    return "Missing QualifierOrder";
+    return "Missing QualfierOrder";
   }
   llvm_unreachable("unexpected parse error");
 }
@@ -1224,7 +1223,6 @@ FormatStyle getLLVMStyle(FormatStyle::LanguageKind Language) {
   LLVMStyle.IndentWrappedFunctionNames = false;
   LLVMStyle.IndentWidth = 2;
   LLVMStyle.PPIndentWidth = -1;
-  LLVMStyle.InsertBraces = false;
   LLVMStyle.InsertTrailingCommas = FormatStyle::TCS_None;
   LLVMStyle.JavaScriptQuotes = FormatStyle::JSQS_Leave;
   LLVMStyle.JavaScriptWrapImports = true;
@@ -1652,8 +1650,7 @@ ParseError validateQualifierOrder(FormatStyle *Style) {
     if (token == tok::identifier)
       return ParseError::InvalidQualifierSpecified;
   }
-
-  // Ensure the list is unique (no duplicates).
+  // Ensure the list is unqiue (no duplicates).
   std::set<std::string> UniqueQualifiers(Style->QualifierOrder.begin(),
                                          Style->QualifierOrder.end());
   if (Style->QualifierOrder.size() != UniqueQualifiers.size()) {
@@ -1663,12 +1660,10 @@ ParseError validateQualifierOrder(FormatStyle *Style) {
     return ParseError::DuplicateQualifierSpecified;
   }
 
-  // Ensure the list has 'type' in it.
   auto type = std::find(Style->QualifierOrder.begin(),
                         Style->QualifierOrder.end(), "type");
   if (type == Style->QualifierOrder.end())
     return ParseError::MissingQualifierType;
-
   return ParseError::Success;
 }
 
@@ -1818,48 +1813,6 @@ private:
         const auto Range =
             CharSourceRange::getCharRange(Start, Token->Tok.getEndLoc());
         cantFail(Result.add(tooling::Replacement(SourceMgr, Range, "")));
-      }
-    }
-  }
-};
-
-class BracesInserter : public TokenAnalyzer {
-public:
-  BracesInserter(const Environment &Env, const FormatStyle &Style)
-      : TokenAnalyzer(Env, Style) {}
-
-  std::pair<tooling::Replacements, unsigned>
-  analyze(TokenAnnotator &Annotator,
-          SmallVectorImpl<AnnotatedLine *> &AnnotatedLines,
-          FormatTokenLexer &Tokens) override {
-    AffectedRangeMgr.computeAffectedLines(AnnotatedLines);
-    tooling::Replacements Result;
-    insertBraces(AnnotatedLines, Result);
-    return {Result, 0};
-  }
-
-private:
-  void insertBraces(SmallVectorImpl<AnnotatedLine *> &Lines,
-                    tooling::Replacements &Result) {
-    const auto &SourceMgr = Env.getSourceManager();
-    for (AnnotatedLine *Line : Lines) {
-      insertBraces(Line->Children, Result);
-      if (!Line->Affected)
-        continue;
-      for (FormatToken *Token = Line->First; Token && !Token->Finalized;
-           Token = Token->Next) {
-        if (Token->BraceCount == 0)
-          continue;
-        std::string Brace;
-        if (Token->BraceCount < 0) {
-          assert(Token->BraceCount == -1);
-          Brace = '{';
-        } else {
-          Brace = std::string(Token->BraceCount, '}');
-        }
-        Token->BraceCount = 0;
-        const auto Start = Token->Tok.getEndLoc();
-        cantFail(Result.add(tooling::Replacement(SourceMgr, Start, 0, Brace)));
       }
     }
   }
@@ -3176,11 +3129,6 @@ reformat(const FormatStyle &Style, StringRef Code,
           .process();
     });
   }
-
-  if (Style.isCpp() && Style.InsertBraces)
-    Passes.emplace_back([&](const Environment &Env) {
-      return BracesInserter(Env, Expanded).process();
-    });
 
   if (Style.isCpp() && Style.RemoveBracesLLVM)
     Passes.emplace_back([&](const Environment &Env) {

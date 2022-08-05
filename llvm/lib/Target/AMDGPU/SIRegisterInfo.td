@@ -97,7 +97,7 @@ class RegSeqNames<int last_reg, int stride, int size, string prefix,
                     []);
 }
 
-// Generates list of dags for register tuples.
+// Generates list of dags for register tupless.
 class RegSeqDags<RegisterClass RC, int last_reg, int stride, int size,
                 int start = 0> {
   dag trunc_rc = (trunc RC,

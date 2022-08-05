@@ -396,6 +396,7 @@ cc_library(
         "//mlir:BufferizationTransforms",
         "//mlir:GPUDialect",
         "//mlir:IR",
+        "//mlir:LinalgBufferizableOpInterfaceImpl",
         "//mlir:LinalgOps",
         "//mlir:LinalgTransforms",
         "//mlir:MemRefDialect",

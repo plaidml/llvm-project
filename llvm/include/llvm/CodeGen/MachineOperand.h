@@ -460,16 +460,6 @@ public:
     return !isUndef() && !isInternalRead() && (isUse() || getSubReg());
   }
 
-  /// Return true if this operand can validly be appended to an arbitrary
-  /// operand list. i.e. this behaves like an implicit operand.
-  bool isValidExcessOperand() const {
-    if ((isReg() && isImplicit()) || isRegMask())
-      return true;
-
-    // Debug operands
-    return isMetadata() || isMCSymbol();
-  }
-
   //===--------------------------------------------------------------------===//
   // Mutators for Register Operands
   //===--------------------------------------------------------------------===//

@@ -13,7 +13,6 @@
 // charT translate_nocase(charT c) const;
 
 // REQUIRES: locale.en_US.UTF-8
-// XFAIL: broken-utf8-wchar-ctype
 
 #include <regex>
 #include <cassert>

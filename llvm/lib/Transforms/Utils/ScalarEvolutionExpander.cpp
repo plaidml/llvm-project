@@ -591,9 +591,7 @@ Value *SCEVExpander::expandAddToGEP(const SCEV *const *op_begin,
         if (isa<DbgInfoIntrinsic>(IP))
           ScanLimit++;
         if (IP->getOpcode() == Instruction::GetElementPtr &&
-            IP->getOperand(0) == V && IP->getOperand(1) == Idx &&
-            cast<GEPOperator>(&*IP)->getSourceElementType() ==
-                Type::getInt8Ty(Ty->getContext()))
+            IP->getOperand(0) == V && IP->getOperand(1) == Idx)
           return &*IP;
         if (IP == BlockBegin) break;
       }

@@ -1679,8 +1679,8 @@ class VMAddressProvider {
   ObjectFile::Type ObjectType;
   addr_t NextVMAddress = 0;
   VMMap::Allocator Alloc;
-  VMMap Segments{Alloc};
-  VMMap Sections{Alloc};
+  VMMap Segments = VMMap(Alloc);
+  VMMap Sections = VMMap(Alloc);
   lldb_private::Log *Log = GetLog(LLDBLog::Modules);
   size_t SegmentCount = 0;
   std::string SegmentName;

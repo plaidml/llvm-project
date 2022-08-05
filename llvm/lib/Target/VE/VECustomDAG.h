@@ -29,8 +29,6 @@ bool isPackedVectorType(EVT SomeVT);
 
 bool isMaskType(EVT SomeVT);
 
-bool isMaskArithmetic(SDValue Op);
-
 bool isVVPOrVEC(unsigned);
 
 bool maySafelyIgnoreMask(SDValue Op);
@@ -88,11 +86,6 @@ MVT getLegalVectorType(Packing P, MVT ElemVT);
 // Whether this type belongs to a packed mask or vector register.
 Packing getTypePacking(EVT);
 
-enum class PackElem : int8_t {
-  Lo = 0, // Integer (63, 32]
-  Hi = 1  // Float   (32,  0]
-};
-
 class VECustomDAG {
   SelectionDAG &DAG;
   SDLoc DL;
@@ -133,11 +126,6 @@ public:
 
   SDValue getUNDEF(EVT VT) const { return DAG.getUNDEF(VT); }
   /// } getNode
-
-  /// Packing {
-  SDValue getUnpack(EVT DestVT, SDValue Vec, PackElem Part, SDValue AVL);
-  SDValue getPack(EVT DestVT, SDValue LoVec, SDValue HiVec, SDValue AVL);
-  /// } Packing
 
   SDValue getConstant(uint64_t Val, EVT VT, bool IsTarget = false,
                       bool IsOpaque = false) const;

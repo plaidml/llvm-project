@@ -308,8 +308,8 @@ class ShrinkWrapping {
   std::vector<MCInst *> BestSavePos;
 
   /// Pass stats
-  static std::atomic_uint64_t SpillsMovedRegularMode;
-  static std::atomic_uint64_t SpillsMovedPushPopMode;
+  static uint64_t SpillsMovedRegularMode;
+  static uint64_t SpillsMovedPushPopMode;
 
   Optional<unsigned> AnnotationIndex;
 

@@ -64,10 +64,7 @@ stable_hash llvm::stableHashValue(const MachineOperand &MO) {
   case MachineOperand::MO_Register:
     if (Register::isVirtualRegister(MO.getReg())) {
       const MachineRegisterInfo &MRI = MO.getParent()->getMF()->getRegInfo();
-      SmallVector<unsigned> DefOpcodes;
-      for (auto &Def : MRI.def_instructions(MO.getReg()))
-        DefOpcodes.push_back(Def.getOpcode());
-      return hash_combine_range(DefOpcodes.begin(), DefOpcodes.end());
+      return MRI.getVRegDef(MO.getReg())->getOpcode();
     }
 
     // Register operands don't have target flags.

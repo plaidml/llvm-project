@@ -939,14 +939,15 @@ void GICombinerEmitter::run(raw_ostream &OS) {
      << "      report_fatal_error(\"Beginning of range should be before "
         "end of range\");\n"
      << "    return {{*First, *Last + 1}};\n"
-     << "  }\n"
-     << "  if (RangePair.first == \"*\") {\n"
+     << "  } else if (RangePair.first == \"*\") {\n"
      << "    return {{0, " << Rules.size() << "}};\n"
+     << "  } else {\n"
+     << "    const auto I = getRuleIdxForIdentifier(RangePair.first);\n"
+     << "    if (!I.hasValue())\n"
+     << "      return None;\n"
+     << "    return {{*I, *I + 1}};\n"
      << "  }\n"
-     << "  const auto I = getRuleIdxForIdentifier(RangePair.first);\n"
-     << "  if (!I.hasValue())\n"
-     << "    return None;\n"
-     << "  return {{*I, *I + 1}};\n"
+     << "  return None;\n"
      << "}\n\n";
 
   for (bool Enabled : {true, false}) {

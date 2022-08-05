@@ -16,7 +16,6 @@
 #include "InputFiles.h"
 #include "Symbols.h"
 #include "Target.h"
-
 #include "lld/Common/Args.h"
 #include "lld/Common/CommonLinkerContext.h"
 #include "lld/Common/ErrorHandler.h"
@@ -35,9 +34,6 @@ using namespace lld;
 using namespace lld::macho;
 
 namespace {
-
-size_t lowestPriority = std::numeric_limits<size_t>::max();
-
 struct Edge {
   int from;
   uint64_t weight;
@@ -212,7 +208,7 @@ DenseMap<const InputSection *, size_t> CallGraphSort::run() {
   // priority 0 and be placed at the end of sections.
   // NB: This is opposite from COFF/ELF to be compatible with the existing
   // order-file code.
-  int curOrder = lowestPriority;
+  int curOrder = clusters.size();
   for (int leader : sorted) {
     for (int i = leader;;) {
       orderMap[sections[i]] = curOrder--;
@@ -251,17 +247,8 @@ DenseMap<const InputSection *, size_t> CallGraphSort::run() {
   return orderMap;
 }
 
-static Optional<size_t> getSymbolPriority(const Defined *sym) {
-  if (sym->isAbsolute())
-    return None;
-
-  auto it = config->priorities.find(sym->getName());
-  if (it == config->priorities.end())
-    return None;
-  const SymbolPriorityEntry &entry = it->second;
-  const InputFile *f = sym->isec->getFile();
-  if (!f)
-    return entry.anyObjectFile;
+static size_t getSymbolPriority(const SymbolPriorityEntry &entry,
+                                const InputFile *f) {
   // We don't use toString(InputFile *) here because it returns the full path
   // for object files, and we only want the basename.
   StringRef filename;
@@ -275,7 +262,6 @@ static Optional<size_t> getSymbolPriority(const Defined *sym) {
 
 void macho::extractCallGraphProfile() {
   TimeTraceScope timeScope("Extract call graph profile");
-  bool hasOrderFile = !config->priorities.empty();
   for (const InputFile *file : inputFiles) {
     auto *obj = dyn_cast_or_null<ObjFile>(file);
     if (!obj)
@@ -285,9 +271,8 @@ void macho::extractCallGraphProfile() {
              entry.toIndex < obj->symbols.size());
       auto *fromSym = dyn_cast_or_null<Defined>(obj->symbols[entry.fromIndex]);
       auto *toSym = dyn_cast_or_null<Defined>(obj->symbols[entry.toIndex]);
-      if (!fromSym || !toSym ||
-          (hasOrderFile &&
-           (getSymbolPriority(fromSym) || getSymbolPriority(toSym))))
+
+      if (!fromSym || !toSym)
         continue;
       config->callGraphProfile[{fromSym->isec, toSym->isec}] += entry.count;
     }
@@ -295,8 +280,6 @@ void macho::extractCallGraphProfile() {
 }
 
 void macho::parseOrderFile(StringRef path) {
-  assert(config->callGraphProfile.empty() &&
-         "Order file must be parsed before call graph profile is processed");
   Optional<MemoryBufferRef> buffer = readFile(path);
   if (!buffer) {
     error("Could not read order file at " + path);
@@ -348,7 +331,6 @@ void macho::parseOrderFile(StringRef path) {
 
     --priority;
   }
-  lowestPriority = priority;
 }
 
 // Sort sections by the profile data provided by __LLVM,__cg_profile sections.
@@ -361,20 +343,28 @@ static DenseMap<const InputSection *, size_t> computeCallGraphProfileOrder() {
   return CallGraphSort().run();
 }
 
+// Each section gets assigned the priority of the highest-priority symbol it
+// contains.
 DenseMap<const InputSection *, size_t> macho::buildInputSectionPriorities() {
-  DenseMap<const InputSection *, size_t> sectionPriorities;
   if (config->callGraphProfileSort)
-    sectionPriorities = computeCallGraphProfileOrder();
+    return computeCallGraphProfileOrder();
+  DenseMap<const InputSection *, size_t> sectionPriorities;
 
   if (config->priorities.empty())
     return sectionPriorities;
 
-  auto addSym = [&](const Defined *sym) {
-    Optional<size_t> symbolPriority = getSymbolPriority(sym);
-    if (!symbolPriority.hasValue())
+  auto addSym = [&](Defined &sym) {
+    if (sym.isAbsolute())
       return;
-    size_t &priority = sectionPriorities[sym->isec];
-    priority = std::max(priority, symbolPriority.getValue());
+
+    auto it = config->priorities.find(sym.getName());
+    if (it == config->priorities.end())
+      return;
+
+    SymbolPriorityEntry &entry = it->second;
+    size_t &priority = sectionPriorities[sym.isec];
+    priority =
+        std::max(priority, getSymbolPriority(entry, sym.isec->getFile()));
   };
 
   // TODO: Make sure this handles weak symbols correctly.
@@ -382,7 +372,7 @@ DenseMap<const InputSection *, size_t> macho::buildInputSectionPriorities() {
     if (isa<ObjFile>(file))
       for (Symbol *sym : file->symbols)
         if (auto *d = dyn_cast_or_null<Defined>(sym))
-          addSym(d);
+          addSym(*d);
   }
 
   return sectionPriorities;

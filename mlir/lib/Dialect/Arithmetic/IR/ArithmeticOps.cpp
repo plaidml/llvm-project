@@ -210,7 +210,7 @@ OpFoldResult arith::AddIOp::fold(ArrayRef<Attribute> operands) {
 
 void arith::AddIOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<AddIAddConstant, AddISubConstantRHS, AddISubConstantLHS>(
+  patterns.insert<AddIAddConstant, AddISubConstantRHS, AddISubConstantLHS>(
       context);
 }
 
@@ -232,10 +232,9 @@ OpFoldResult arith::SubIOp::fold(ArrayRef<Attribute> operands) {
 
 void arith::SubIOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns
-      .add<SubIRHSAddConstant, SubILHSAddConstant, SubIRHSSubConstantRHS,
-           SubIRHSSubConstantLHS, SubILHSSubConstantRHS, SubILHSSubConstantLHS>(
-          context);
+  patterns.insert<SubIRHSAddConstant, SubILHSAddConstant, SubIRHSSubConstantRHS,
+                  SubIRHSSubConstantLHS, SubILHSSubConstantRHS,
+                  SubILHSSubConstantLHS>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -569,7 +568,7 @@ OpFoldResult arith::XOrIOp::fold(ArrayRef<Attribute> operands) {
 
 void arith::XOrIOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<XOrINotCmpI>(context);
+  patterns.insert<XOrINotCmpI>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -914,7 +913,7 @@ bool arith::ExtSIOp::areCastCompatible(TypeRange inputs, TypeRange outputs) {
 
 void arith::ExtSIOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<ExtSIOfExtUI>(context);
+  patterns.insert<ExtSIOfExtUI>(context);
 }
 
 LogicalResult arith::ExtSIOp::verify() {
@@ -1008,7 +1007,7 @@ LogicalResult arith::TruncFOp::verify() {
 
 void arith::AndIOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<AndOfExtUI, AndOfExtSI>(context);
+  patterns.insert<AndOfExtUI, AndOfExtSI>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1017,7 +1016,7 @@ void arith::AndIOp::getCanonicalizationPatterns(
 
 void arith::OrIOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<OrOfExtUI, OrOfExtSI>(context);
+  patterns.insert<OrOfExtUI, OrOfExtSI>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1156,7 +1155,7 @@ OpFoldResult arith::IndexCastOp::fold(ArrayRef<Attribute> operands) {
 
 void arith::IndexCastOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<IndexCastOfIndexCast, IndexCastOfExtSI>(context);
+  patterns.insert<IndexCastOfIndexCast, IndexCastOfExtSI>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1205,7 +1204,7 @@ OpFoldResult arith::BitcastOp::fold(ArrayRef<Attribute> operands) {
 
 void arith::BitcastOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<BitcastOfBitcast>(context);
+  patterns.insert<BitcastOfBitcast>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1462,7 +1461,7 @@ struct SelectToExtUI : public OpRewritePattern<arith::SelectOp> {
 
 void arith::SelectOp::getCanonicalizationPatterns(RewritePatternSet &results,
                                                   MLIRContext *context) {
-  results.add<SelectI1Simplify, SelectToExtUI>(context);
+  results.insert<SelectI1Simplify, SelectToExtUI>(context);
 }
 
 OpFoldResult arith::SelectOp::fold(ArrayRef<Attribute> operands) {

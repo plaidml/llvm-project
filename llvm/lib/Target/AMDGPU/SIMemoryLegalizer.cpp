@@ -63,7 +63,7 @@ enum class SIAtomicScope {
 };
 
 /// The distinct address spaces supported by the AMDGPU target for
-/// atomic memory operation. Can be ORed together.
+/// atomic memory operation. Can be ORed toether.
 enum class SIAtomicAddrSpace {
   NONE = 0u,
   GLOBAL = 1u << 0,
@@ -943,7 +943,7 @@ bool SIGfx6CacheControl::insertWait(MachineBasicBlock::iterator &MI,
     case SIAtomicScope::WAVEFRONT:
     case SIAtomicScope::SINGLETHREAD:
       // The LDS keeps all memory operations in order for
-      // the same wavefront.
+      // the same wavesfront.
       break;
     default:
       llvm_unreachable("Unsupported synchronization scope");
@@ -1547,7 +1547,7 @@ bool SIGfx10CacheControl::insertWait(MachineBasicBlock::iterator &MI,
     case SIAtomicScope::WAVEFRONT:
     case SIAtomicScope::SINGLETHREAD:
       // The LDS keeps all memory operations in order for
-      // the same wavefront.
+      // the same wavesfront.
       break;
     default:
       llvm_unreachable("Unsupported synchronization scope");

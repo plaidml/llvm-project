@@ -48,7 +48,6 @@
 #include <compression.h>
 
 #include <TargetConditionals.h>
-#include <algorithm>
 #include <iomanip>
 #include <memory>
 #include <sstream>

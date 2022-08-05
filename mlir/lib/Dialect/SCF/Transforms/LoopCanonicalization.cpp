@@ -196,11 +196,12 @@ void mlir::scf::populateSCFForLoopCanonicalizationPatterns(
     RewritePatternSet &patterns) {
   MLIRContext *ctx = patterns.getContext();
   patterns
-      .add<AffineOpSCFCanonicalizationPattern<AffineMinOp, /*IsMin=*/true>,
-           AffineOpSCFCanonicalizationPattern<AffineMaxOp, /*IsMin=*/false>,
-           DimOfIterArgFolder<tensor::DimOp>, DimOfIterArgFolder<memref::DimOp>,
-           DimOfLoopResultFolder<tensor::DimOp>,
-           DimOfLoopResultFolder<memref::DimOp>>(ctx);
+      .insert<AffineOpSCFCanonicalizationPattern<AffineMinOp, /*IsMin=*/true>,
+              AffineOpSCFCanonicalizationPattern<AffineMaxOp, /*IsMin=*/false>,
+              DimOfIterArgFolder<tensor::DimOp>,
+              DimOfIterArgFolder<memref::DimOp>,
+              DimOfLoopResultFolder<tensor::DimOp>,
+              DimOfLoopResultFolder<memref::DimOp>>(ctx);
 }
 
 std::unique_ptr<Pass> mlir::createSCFForLoopCanonicalizationPass() {

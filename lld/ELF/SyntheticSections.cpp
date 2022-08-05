@@ -112,7 +112,7 @@ std::unique_ptr<MipsAbiFlagsSection<ELFT>> MipsAbiFlagsSection<ELFT>::create() {
     create = true;
 
     std::string filename = toString(sec->file);
-    const size_t size = sec->rawData.size();
+    const size_t size = sec->data().size();
     // Older version of BFD (such as the default FreeBSD linker) concatenate
     // .MIPS.abiflags instead of merging. To allow for this case (or potential
     // zero padding) we ignore everything after the first Elf_Mips_ABIFlags
@@ -121,7 +121,7 @@ std::unique_ptr<MipsAbiFlagsSection<ELFT>> MipsAbiFlagsSection<ELFT>::create() {
             Twine(size) + " instead of " + Twine(sizeof(Elf_Mips_ABIFlags)));
       return nullptr;
     }
-    auto *s = reinterpret_cast<const Elf_Mips_ABIFlags *>(sec->rawData.data());
+    auto *s = reinterpret_cast<const Elf_Mips_ABIFlags *>(sec->data().data());
     if (s->version != 0) {
       error(filename + ": unexpected .MIPS.abiflags version " +
             Twine(s->version));
@@ -184,7 +184,7 @@ std::unique_ptr<MipsOptionsSection<ELFT>> MipsOptionsSection<ELFT>::create() {
     sec->markDead();
 
     std::string filename = toString(sec->file);
-    ArrayRef<uint8_t> d = sec->rawData;
+    ArrayRef<uint8_t> d = sec->data();
 
     while (!d.empty()) {
       if (d.size() < sizeof(Elf_Mips_Options)) {
@@ -240,12 +240,12 @@ std::unique_ptr<MipsReginfoSection<ELFT>> MipsReginfoSection<ELFT>::create() {
   for (InputSectionBase *sec : sections) {
     sec->markDead();
 
-    if (sec->rawData.size() != sizeof(Elf_Mips_RegInfo)) {
+    if (sec->data().size() != sizeof(Elf_Mips_RegInfo)) {
       error(toString(sec->file) + ": invalid size of .reginfo section");
       return nullptr;
     }
 
-    auto *r = reinterpret_cast<const Elf_Mips_RegInfo *>(sec->rawData.data());
+    auto *r = reinterpret_cast<const Elf_Mips_RegInfo *>(sec->data().data());
     reginfo.ri_gprmask |= r->ri_gprmask;
     sec->getFile<ELFT>()->mipsGp0 = r->ri_gp_value;
   };
@@ -1230,7 +1230,6 @@ StringTableSection::StringTableSection(StringRef name, bool dynamic)
       dynamic(dynamic) {
   // ELF string tables start with a NUL byte.
   strings.push_back("");
-  stringMap.try_emplace(CachedHashStringRef(""), 0);
   size = 1;
 }
 
@@ -2157,7 +2156,9 @@ void SymbolTableBaseSection::sortSymTabSymbols() {
 void SymbolTableBaseSection::addSymbol(Symbol *b) {
   // Adding a local symbol to a .dynsym is a bug.
   assert(this->type != SHT_DYNSYM || !b->isLocal());
-  symbols.push_back({b, strTabSec.addString(b->getName(), false)});
+
+  bool hashIt = b->isLocal() && config->optimize >= 2;
+  symbols.push_back({b, strTabSec.addString(b->getName(), hashIt)});
 }
 
 size_t SymbolTableBaseSection::getSymbolIndex(Symbol *sym) {
@@ -3535,7 +3536,7 @@ void ARMExidxSyntheticSection::writeTo(uint8_t *buf) {
   for (InputSection *isec : executableSections) {
     assert(isec->getParent() != nullptr);
     if (InputSection *d = findExidxSection(isec)) {
-      memcpy(buf + offset, d->rawData.data(), d->rawData.size());
+      memcpy(buf + offset, d->data().data(), d->data().size());
       d->relocateAlloc(buf + d->outSecOff, buf + d->outSecOff + d->getSize());
       offset += d->getSize();
     } else {

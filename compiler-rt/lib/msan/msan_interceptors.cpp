@@ -1436,15 +1436,6 @@ static uptr signal_impl(int signo, uptr cb) {
 #include "sanitizer_common/sanitizer_common_syscalls.inc"
 #include "sanitizer_common/sanitizer_syscalls_netbsd.inc"
 
-INTERCEPTOR(const char *, strsignal, int sig) {
-  void *ctx;
-  COMMON_INTERCEPTOR_ENTER(ctx, strsignal, sig);
-  const char *res = REAL(strsignal)(sig);
-  if (res)
-    __msan_unpoison(res, internal_strlen(res) + 1);
-  return res;
-}
-
 struct dlinfo {
   char *dli_fname;
   void *dli_fbase;
@@ -1708,7 +1699,6 @@ void InitializeInterceptors() {
   INTERCEPT_FUNCTION(gethostname);
   MSAN_MAYBE_INTERCEPT_EPOLL_WAIT;
   MSAN_MAYBE_INTERCEPT_EPOLL_PWAIT;
-  INTERCEPT_FUNCTION(strsignal);
   INTERCEPT_FUNCTION(dladdr);
   INTERCEPT_FUNCTION(dlerror);
   INTERCEPT_FUNCTION(dl_iterate_phdr);

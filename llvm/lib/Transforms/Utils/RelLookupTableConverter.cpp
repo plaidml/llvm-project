@@ -38,13 +38,11 @@ static bool shouldConvertToRelLookupTable(Module &M, GlobalVariable &GV) {
 
   GetElementPtrInst *GEP =
       dyn_cast<GetElementPtrInst>(GV.use_begin()->getUser());
-  if (!GEP || !GEP->hasOneUse() ||
-      GV.getValueType() != GEP->getSourceElementType())
+  if (!GEP || !GEP->hasOneUse())
     return false;
 
   LoadInst *Load = dyn_cast<LoadInst>(GEP->use_begin()->getUser());
-  if (!Load || !Load->hasOneUse() ||
-      Load->getType() != GEP->getResultElementType())
+  if (!Load || !Load->hasOneUse())
     return false;
 
   // If the original lookup table does not have local linkage and is

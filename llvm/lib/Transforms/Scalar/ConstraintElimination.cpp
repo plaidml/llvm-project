@@ -89,31 +89,52 @@ struct PreconditionTy {
 
 struct ConstraintTy {
   SmallVector<int64_t, 8> Coefficients;
-  SmallVector<PreconditionTy, 2> Preconditions;
 
-  bool IsSigned = false;
-  bool IsEq = false;
-
-  ConstraintTy() = default;
+  bool IsSigned;
 
   ConstraintTy(SmallVector<int64_t, 8> Coefficients, bool IsSigned)
       : Coefficients(Coefficients), IsSigned(IsSigned) {}
 
   unsigned size() const { return Coefficients.size(); }
+};
 
-  unsigned empty() const { return Coefficients.empty(); }
+/// Struct to manage a list of constraints with pre-conditions that must be
+/// satisfied before using the constraints.
+struct ConstraintListTy {
+  SmallVector<ConstraintTy, 4> Constraints;
+  SmallVector<PreconditionTy, 4> Preconditions;
+
+  ConstraintListTy() = default;
+
+  ConstraintListTy(ArrayRef<ConstraintTy> Constraints,
+                   ArrayRef<PreconditionTy> Preconditions)
+      : Constraints(Constraints.begin(), Constraints.end()),
+        Preconditions(Preconditions.begin(), Preconditions.end()) {}
+
+  void mergeIn(const ConstraintListTy &Other) {
+    append_range(Constraints, Other.Constraints);
+    // TODO: Do smarter merges here, e.g. exclude duplicates.
+    append_range(Preconditions, Other.Preconditions);
+  }
+
+  unsigned size() const { return Constraints.size(); }
+
+  unsigned empty() const { return Constraints.empty(); }
 
   /// Returns true if any constraint has a non-zero coefficient for any of the
   /// newly added indices. Zero coefficients for new indices are removed. If it
   /// returns true, no new variable need to be added to the system.
   bool needsNewIndices(const DenseMap<Value *, unsigned> &NewIndices) {
+    assert(size() == 1);
     for (unsigned I = 0; I < NewIndices.size(); ++I) {
-      int64_t Last = Coefficients.pop_back_val();
+      int64_t Last = get(0).Coefficients.pop_back_val();
       if (Last != 0)
         return true;
     }
     return false;
   }
+
+  ConstraintTy &get(unsigned I) { return Constraints[I]; }
 
   /// Returns true if all preconditions for this list of constraints are
   /// satisfied given \p CS and the corresponding \p Value2Index mapping.
@@ -228,11 +249,10 @@ decompose(Value *V, SmallVector<PreconditionTy, 4> &Preconditions,
 /// Turn a condition \p CmpI into a vector of constraints, using indices from \p
 /// Value2Index. Additional indices for newly discovered values are added to \p
 /// NewIndices.
-static ConstraintTy
+static ConstraintListTy
 getConstraint(CmpInst::Predicate Pred, Value *Op0, Value *Op1,
               const DenseMap<Value *, unsigned> &Value2Index,
               DenseMap<Value *, unsigned> &NewIndices) {
-  bool IsEq = false;
   // Try to convert Pred to one of ULE/SLT/SLE/SLT.
   switch (Pred) {
   case CmpInst::ICMP_UGT:
@@ -247,8 +267,12 @@ getConstraint(CmpInst::Predicate Pred, Value *Op0, Value *Op1,
     if (match(Op1, m_Zero())) {
       Pred = CmpInst::ICMP_ULE;
     } else {
-      IsEq = true;
-      Pred = CmpInst::ICMP_ULE;
+      auto A =
+          getConstraint(CmpInst::ICMP_UGE, Op0, Op1, Value2Index, NewIndices);
+      auto B =
+          getConstraint(CmpInst::ICMP_ULE, Op0, Op1, Value2Index, NewIndices);
+      A.mergeIn(B);
+      return A;
     }
     break;
   case CmpInst::ICMP_NE:
@@ -306,11 +330,7 @@ getConstraint(CmpInst::Predicate Pred, Value *Op0, Value *Op1,
 
   // Build result constraint, by first adding all coefficients from A and then
   // subtracting all coefficients from B.
-  ConstraintTy Res(
-      SmallVector<int64_t, 8>(Value2Index.size() + NewIndices.size() + 1, 0),
-      IsSigned);
-  Res.IsEq = IsEq;
-  auto &R = Res.Coefficients;
+  SmallVector<int64_t, 8> R(Value2Index.size() + NewIndices.size() + 1, 0);
   for (const auto &KV : VariablesA)
     R[GetOrAddIndex(KV.second)] += KV.first;
 
@@ -319,30 +339,27 @@ getConstraint(CmpInst::Predicate Pred, Value *Op0, Value *Op1,
 
   R[0] = Offset1 + Offset2 +
          (Pred == (IsSigned ? CmpInst::ICMP_SLT : CmpInst::ICMP_ULT) ? -1 : 0);
-  Res.Preconditions = std::move(Preconditions);
-  return Res;
+  return {{{R, IsSigned}}, Preconditions};
 }
 
-static ConstraintTy getConstraint(CmpInst *Cmp, ConstraintInfo &Info,
-                                  DenseMap<Value *, unsigned> &NewIndices) {
+static ConstraintListTy getConstraint(CmpInst *Cmp, ConstraintInfo &Info,
+                                      DenseMap<Value *, unsigned> &NewIndices) {
   return getConstraint(
       Cmp->getPredicate(), Cmp->getOperand(0), Cmp->getOperand(1),
       Info.getValue2Index(CmpInst::isSigned(Cmp->getPredicate())), NewIndices);
 }
 
-bool ConstraintTy::isValid(const ConstraintInfo &Info) const {
-  return Coefficients.size() > 0 &&
-         all_of(Preconditions, [&Info](const PreconditionTy &C) {
-           DenseMap<Value *, unsigned> NewIndices;
-           auto R = getConstraint(
-               C.Pred, C.Op0, C.Op1,
-               Info.getValue2Index(CmpInst::isSigned(C.Pred)), NewIndices);
-           // TODO: properly check NewIndices.
-           return NewIndices.empty() && R.Preconditions.empty() && !R.IsEq &&
-                  R.size() >= 2 &&
-                  Info.getCS(CmpInst::isSigned(C.Pred))
-                      .isConditionImplied(R.Coefficients);
-         });
+bool ConstraintListTy::isValid(const ConstraintInfo &Info) const {
+  return all_of(Preconditions, [&Info](const PreconditionTy &C) {
+    DenseMap<Value *, unsigned> NewIndices;
+    auto R = getConstraint(C.Pred, C.Op0, C.Op1,
+                           Info.getValue2Index(CmpInst::isSigned(C.Pred)),
+                           NewIndices);
+    // TODO: properly check NewIndices.
+    return NewIndices.empty() && R.Preconditions.empty() && R.size() == 1 &&
+           Info.getCS(CmpInst::isSigned(C.Pred))
+               .isConditionImplied(R.get(0).Coefficients);
+  });
 }
 
 namespace {
@@ -536,12 +553,11 @@ static bool eliminateConstraints(Function &F, DominatorTree &DT) {
 
         DenseMap<Value *, unsigned> NewIndices;
         auto R = getConstraint(Cmp, Info, NewIndices);
-        if (R.IsEq || R.size() < 2 || R.needsNewIndices(NewIndices) ||
-            !R.isValid(Info))
+        if (!R.isValidSingle(Info) || R.needsNewIndices(NewIndices))
           continue;
 
-        auto &CSToUse = Info.getCS(R.IsSigned);
-        if (CSToUse.isConditionImplied(R.Coefficients)) {
+        auto &CSToUse = Info.getCS(R.get(0).IsSigned);
+        if (CSToUse.isConditionImplied(R.get(0).Coefficients)) {
           if (!DebugCounter::shouldExecute(EliminatedCounter))
             continue;
 
@@ -562,7 +578,7 @@ static bool eliminateConstraints(Function &F, DominatorTree &DT) {
           Changed = true;
         }
         if (CSToUse.isConditionImplied(
-                ConstraintSystem::negate(R.Coefficients))) {
+                ConstraintSystem::negate(R.get(0).Coefficients))) {
           if (!DebugCounter::shouldExecute(EliminatedCounter))
             continue;
 
@@ -610,37 +626,23 @@ static bool eliminateConstraints(Function &F, DominatorTree &DT) {
 
     LLVM_DEBUG(dbgs() << "Adding " << *CB.Condition << " " << CB.Not << "\n");
     bool Added = false;
-    assert(CmpInst::isSigned(CB.Condition->getPredicate()) == R.IsSigned &&
-           "condition and constraint signs must match");
-    auto &CSToUse = Info.getCS(R.IsSigned);
-    if (R.Coefficients.empty())
-      continue;
-
-    Added |= CSToUse.addVariableRowFill(R.Coefficients);
-
-    // If R has been added to the system, queue it for removal once it goes
-    // out-of-scope.
-    if (Added) {
-      for (auto &KV : NewIndices)
-        Info.getValue2Index(R.IsSigned).insert(KV);
+    for (auto &E : R.Constraints) {
+      auto &CSToUse = Info.getCS(E.IsSigned);
+      if (E.Coefficients.empty())
+        continue;
 
       LLVM_DEBUG({
         dbgs() << "  constraint: ";
-        dumpWithNames(R, Info.getValue2Index(R.IsSigned));
+        dumpWithNames(E, Info.getValue2Index(E.IsSigned));
       });
 
-      DFSInStack.emplace_back(CB.NumIn, CB.NumOut, CB.Condition, CB.Not,
-                              R.IsSigned);
+      Added |= CSToUse.addVariableRowFill(E.Coefficients);
 
-      if (R.IsEq) {
-        // Also add the inverted constraint for equality constraints.
-        for (auto &Coeff : R.Coefficients)
-          Coeff *= -1;
-        CSToUse.addVariableRowFill(R.Coefficients);
-
+      // If R has been added to the system, queue it for removal once it goes
+      // out-of-scope.
+      if (Added)
         DFSInStack.emplace_back(CB.NumIn, CB.NumOut, CB.Condition, CB.Not,
-                                R.IsSigned);
-      }
+                                E.IsSigned);
     }
   }
 

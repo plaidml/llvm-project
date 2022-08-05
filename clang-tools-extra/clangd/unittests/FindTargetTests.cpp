@@ -946,9 +946,11 @@ TEST_F(TargetDeclTest, ObjC) {
   EXPECT_DECLS("ObjCCategoryImplDecl", "@interface Foo(Ext)");
 
   Code = R"cpp(
-    void test(id</*error-ok*/[[InvalidProtocol]]> p);
+    @protocol Foo
+    @end
+    void test([[id<Foo>]] p);
   )cpp";
-  EXPECT_DECLS("ParmVarDecl", "id p");
+  EXPECT_DECLS("ObjCObjectTypeLoc", "@protocol Foo");
 
   Code = R"cpp(
     @class C;
@@ -964,7 +966,7 @@ TEST_F(TargetDeclTest, ObjC) {
     @end
     void test(C<[[Foo]]> *p);
   )cpp";
-  EXPECT_DECLS("ObjCProtocolLoc", "@protocol Foo");
+  EXPECT_DECLS("ObjCObjectTypeLoc", "@protocol Foo");
 
   Code = R"cpp(
     @class C;
@@ -974,17 +976,8 @@ TEST_F(TargetDeclTest, ObjC) {
     @end
     void test(C<[[Foo]], Bar> *p);
   )cpp";
-  EXPECT_DECLS("ObjCProtocolLoc", "@protocol Foo");
-
-  Code = R"cpp(
-    @class C;
-    @protocol Foo
-    @end
-    @protocol Bar
-    @end
-    void test(C<Foo, [[Bar]]> *p);
-  )cpp";
-  EXPECT_DECLS("ObjCProtocolLoc", "@protocol Bar");
+  // FIXME: We currently can't disambiguate between multiple protocols.
+  EXPECT_DECLS("ObjCObjectTypeLoc", "@protocol Foo", "@protocol Bar");
 
   Code = R"cpp(
     @interface Foo

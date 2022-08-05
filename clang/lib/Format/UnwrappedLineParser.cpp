@@ -19,7 +19,6 @@
 #include "llvm/Support/raw_ostream.h"
 
 #include <algorithm>
-#include <utility>
 
 #define DEBUG_TYPE "format-parser"
 
@@ -2300,53 +2299,6 @@ void UnwrappedLineParser::keepAncestorBraces() {
   NestedTooDeep.push_back(false);
 }
 
-static FormatToken *getLastNonComment(const UnwrappedLine &Line) {
-  for (const auto &Token : llvm::reverse(Line.Tokens))
-    if (Token.Tok->isNot(tok::comment))
-      return Token.Tok;
-
-  return nullptr;
-}
-
-void UnwrappedLineParser::parseUnbracedBody(bool CheckEOF) {
-  FormatToken *Tok = nullptr;
-
-  if (Style.InsertBraces && !Line->InPPDirective && !Line->Tokens.empty() &&
-      PreprocessorDirectives.empty()) {
-    Tok = getLastNonComment(*Line);
-    assert(Tok);
-    if (Tok->BraceCount < 0) {
-      assert(Tok->BraceCount == -1);
-      Tok = nullptr;
-    } else {
-      Tok->BraceCount = -1;
-    }
-  }
-
-  addUnwrappedLine();
-  ++Line->Level;
-  parseStructuralElement();
-
-  if (Tok) {
-    assert(!Line->InPPDirective);
-    Tok = nullptr;
-    for (const auto &L : llvm::reverse(*CurrentLines)) {
-      if (!L.InPPDirective) {
-        Tok = getLastNonComment(L);
-        if (Tok)
-          break;
-      }
-    }
-    assert(Tok);
-    ++Tok->BraceCount;
-  }
-
-  if (CheckEOF && FormatTok->is(tok::eof))
-    addUnwrappedLine();
-
-  --Line->Level;
-}
-
 static void markOptionalBraces(FormatToken *LeftBrace) {
   if (!LeftBrace)
     return;
@@ -2401,7 +2353,10 @@ FormatToken *UnwrappedLineParser::parseIfThenElse(IfStmtKind *IfKind,
     else
       NeedsUnwrappedLine = true;
   } else {
-    parseUnbracedBody();
+    addUnwrappedLine();
+    ++Line->Level;
+    parseStructuralElement();
+    --Line->Level;
   }
 
   bool KeepIfBraces = false;
@@ -2447,7 +2402,12 @@ FormatToken *UnwrappedLineParser::parseIfThenElse(IfStmtKind *IfKind,
       if (IsPrecededByComment)
         --Line->Level;
     } else {
-      parseUnbracedBody(/*CheckEOF=*/true);
+      addUnwrappedLine();
+      ++Line->Level;
+      parseStructuralElement();
+      if (FormatTok->is(tok::eof))
+        addUnwrappedLine();
+      --Line->Level;
     }
   } else {
     if (Style.RemoveBracesLLVM)
@@ -2693,7 +2653,10 @@ void UnwrappedLineParser::parseForOrWhileLoop() {
     }
     addUnwrappedLine();
   } else {
-    parseUnbracedBody();
+    addUnwrappedLine();
+    ++Line->Level;
+    parseStructuralElement();
+    --Line->Level;
   }
 
   if (Style.RemoveBracesLLVM)
@@ -2712,7 +2675,10 @@ void UnwrappedLineParser::parseDoWhile() {
     if (Style.BraceWrapping.BeforeWhile)
       addUnwrappedLine();
   } else {
-    parseUnbracedBody();
+    addUnwrappedLine();
+    ++Line->Level;
+    parseStructuralElement();
+    --Line->Level;
   }
 
   if (Style.RemoveBracesLLVM)
@@ -3041,16 +3007,7 @@ void UnwrappedLineParser::parseRequiresExpression(FormatToken *RequiresToken) {
 /// clause. It returns, when the parsing is complete, or the expression is
 /// incorrect.
 void UnwrappedLineParser::parseConstraintExpression() {
-  // The special handling for lambdas is needed since tryToParseLambda() eats a
-  // token and if a requires expression is the last part of a requires clause
-  // and followed by an attribute like [[nodiscard]] the ClosesRequiresClause is
-  // not set on the correct token. Thus we need to be aware if we even expect a
-  // lambda to be possible.
-  // template <typename T> requires requires { ... } [[nodiscard]] ...;
-  bool LambdaNextTimeAllowed = true;
   do {
-    bool LambdaThisTimeAllowed = std::exchange(LambdaNextTimeAllowed, false);
-
     switch (FormatTok->Tok.getKind()) {
     case tok::kw_requires: {
       auto RequiresToken = FormatTok;
@@ -3064,7 +3021,7 @@ void UnwrappedLineParser::parseConstraintExpression() {
       break;
 
     case tok::l_square:
-      if (!LambdaThisTimeAllowed || !tryToParseLambda())
+      if (!tryToParseLambda())
         return;
       break;
 
@@ -3107,15 +3064,10 @@ void UnwrappedLineParser::parseConstraintExpression() {
     case tok::pipepipe:
       FormatTok->setType(TT_BinaryOperator);
       nextToken();
-      LambdaNextTimeAllowed = true;
       break;
 
-    case tok::comma:
-    case tok::comment:
-      LambdaNextTimeAllowed = LambdaThisTimeAllowed;
-      nextToken();
-      break;
-
+    case tok::kw_true:
+    case tok::kw_false:
     case tok::kw_sizeof:
     case tok::greater:
     case tok::greaterequal:
@@ -3130,16 +3082,11 @@ void UnwrappedLineParser::parseConstraintExpression() {
     case tok::minus:
     case tok::star:
     case tok::slash:
-    case tok::kw_decltype:
-      LambdaNextTimeAllowed = true;
-      // Just eat them.
-      nextToken();
-      break;
-
     case tok::numeric_constant:
+    case tok::kw_decltype:
+    case tok::comment:
+    case tok::comma:
     case tok::coloncolon:
-    case tok::kw_true:
-    case tok::kw_false:
       // Just eat them.
       nextToken();
       break;

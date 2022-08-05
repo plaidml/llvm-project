@@ -717,15 +717,10 @@ static SparseTensorCOO<V> *openSparseTensorCOO(char *filename, uint64_t rank,
 
 /// Writes the sparse tensor to extended FROSTT format.
 template <typename V>
-void outSparseTensor(void *tensor, void *dest, bool sort) {
-  assert(tensor && dest);
-  auto coo = static_cast<SparseTensorCOO<V> *>(tensor);
-  if (sort)
-    coo->sort();
-  char *filename = static_cast<char *>(dest);
-  auto &sizes = coo->getSizes();
-  auto &elements = coo->getElements();
-  uint64_t rank = coo->getRank();
+void outSparseTensor(const SparseTensorCOO<V> &tensor, char *filename) {
+  auto &sizes = tensor.getSizes();
+  auto &elements = tensor.getElements();
+  uint64_t rank = tensor.getRank();
   uint64_t nnz = elements.size();
   std::fstream file;
   file.open(filename, std::ios_base::out | std::ios_base::trunc);
@@ -743,67 +738,6 @@ void outSparseTensor(void *tensor, void *dest, bool sort) {
   file.flush();
   file.close();
   assert(file.good());
-  delete coo;
-}
-
-/// Initializes sparse tensor from an external COO-flavored format.
-template <typename V>
-SparseTensorStorage<uint64_t, uint64_t, V> *
-toMLIRSparseTensor(uint64_t rank, uint64_t nse, uint64_t *shape, V *values,
-                   uint64_t *indices) {
-  // Setup all-dims compressed and default ordering.
-  std::vector<DimLevelType> sparse(rank, DimLevelType::kCompressed);
-  std::vector<uint64_t> perm(rank);
-  std::iota(perm.begin(), perm.end(), 0);
-  // Convert external format to internal COO.
-  auto *tensor =
-      SparseTensorCOO<V>::newSparseTensorCOO(rank, shape, perm.data(), nse);
-  std::vector<uint64_t> idx(rank);
-  for (uint64_t i = 0, base = 0; i < nse; i++) {
-    for (uint64_t r = 0; r < rank; r++)
-      idx[r] = indices[base + r];
-    tensor->add(idx, values[i]);
-    base += rank;
-  }
-  // Return sparse tensor storage format as opaque pointer.
-  return SparseTensorStorage<uint64_t, uint64_t, V>::newSparseTensor(
-      rank, shape, perm.data(), sparse.data(), tensor);
-}
-
-/// Converts a sparse tensor to an external COO-flavored format.
-template <typename V>
-void fromMLIRSparseTensor(void *tensor, uint64_t *pRank, uint64_t *pNse,
-                          uint64_t **pShape, V **pValues, uint64_t **pIndices) {
-  auto sparseTensor =
-      static_cast<SparseTensorStorage<uint64_t, uint64_t, V> *>(tensor);
-  uint64_t rank = sparseTensor->getRank();
-  std::vector<uint64_t> perm(rank);
-  std::iota(perm.begin(), perm.end(), 0);
-  SparseTensorCOO<V> *coo = sparseTensor->toCOO(perm.data());
-
-  const std::vector<Element<V>> &elements = coo->getElements();
-  uint64_t nse = elements.size();
-
-  uint64_t *shape = new uint64_t[rank];
-  for (uint64_t i = 0; i < rank; i++)
-    shape[i] = coo->getSizes()[i];
-
-  V *values = new V[nse];
-  uint64_t *indices = new uint64_t[rank * nse];
-
-  for (uint64_t i = 0, base = 0; i < nse; i++) {
-    values[i] = elements[i].value;
-    for (uint64_t j = 0; j < rank; j++)
-      indices[base + j] = elements[i].indices[j];
-    base += rank;
-  }
-
-  delete coo;
-  *pRank = rank;
-  *pNse = nse;
-  *pShape = shape;
-  *pValues = values;
-  *pIndices = indices;
 }
 
 } // namespace
@@ -937,6 +871,17 @@ extern "C" {
     index_type *added = aref->data + aref->offset;                             \
     static_cast<SparseTensorStorageBase *>(tensor)->expInsert(                 \
         cursor, values, filled, added, count);                                 \
+  }
+
+#define IMPL_OUT(NAME, V)                                                      \
+  void NAME(void *tensor, void *dest, bool sort) {                             \
+    assert(tensor &&dest);                                                     \
+    auto coo = static_cast<SparseTensorCOO<V> *>(tensor);                      \
+    if (sort)                                                                  \
+      coo->sort();                                                             \
+    char *filename = static_cast<char *>(dest);                                \
+    outSparseTensor<V>(*coo, filename);                                        \
+    delete coo;                                                                \
   }
 
 // Assume index_type is in fact uint64_t, so that _mlir_ciface_newSparseTensor
@@ -1103,7 +1048,8 @@ IMPL_GETNEXT(getNextI32, int32_t)
 IMPL_GETNEXT(getNextI16, int16_t)
 IMPL_GETNEXT(getNextI8, int8_t)
 
-/// Insert elements in lexicographical index order, one per value type.
+/// Helper to insert elements in lexicographical index order, one per value
+/// type.
 IMPL_LEXINSERT(lexInsertF64, double)
 IMPL_LEXINSERT(lexInsertF32, float)
 IMPL_LEXINSERT(lexInsertI64, int64_t)
@@ -1111,13 +1057,21 @@ IMPL_LEXINSERT(lexInsertI32, int32_t)
 IMPL_LEXINSERT(lexInsertI16, int16_t)
 IMPL_LEXINSERT(lexInsertI8, int8_t)
 
-/// Insert using expansion, one per value type.
+/// Helper to insert using expansion, one per value type.
 IMPL_EXPINSERT(expInsertF64, double)
 IMPL_EXPINSERT(expInsertF32, float)
 IMPL_EXPINSERT(expInsertI64, int64_t)
 IMPL_EXPINSERT(expInsertI32, int32_t)
 IMPL_EXPINSERT(expInsertI16, int16_t)
 IMPL_EXPINSERT(expInsertI8, int8_t)
+
+/// Helper to output a sparse tensor, one per value type.
+IMPL_OUT(outSparseTensorF64, double)
+IMPL_OUT(outSparseTensorF32, float)
+IMPL_OUT(outSparseTensorI64, int64_t)
+IMPL_OUT(outSparseTensorI32, int32_t)
+IMPL_OUT(outSparseTensorI16, int16_t)
+IMPL_OUT(outSparseTensorI8, int8_t)
 
 #undef CASE
 #undef IMPL_SPARSEVALUES
@@ -1126,26 +1080,7 @@ IMPL_EXPINSERT(expInsertI8, int8_t)
 #undef IMPL_GETNEXT
 #undef IMPL_LEXINSERT
 #undef IMPL_EXPINSERT
-
-/// Output a sparse tensor, one per value type.
-void outSparseTensorF64(void *tensor, void *dest, bool sort) {
-  return outSparseTensor<double>(tensor, dest, sort);
-}
-void outSparseTensorF32(void *tensor, void *dest, bool sort) {
-  return outSparseTensor<float>(tensor, dest, sort);
-}
-void outSparseTensorI64(void *tensor, void *dest, bool sort) {
-  return outSparseTensor<int64_t>(tensor, dest, sort);
-}
-void outSparseTensorI32(void *tensor, void *dest, bool sort) {
-  return outSparseTensor<int32_t>(tensor, dest, sort);
-}
-void outSparseTensorI16(void *tensor, void *dest, bool sort) {
-  return outSparseTensor<int16_t>(tensor, dest, sort);
-}
-void outSparseTensorI8(void *tensor, void *dest, bool sort) {
-  return outSparseTensor<int8_t>(tensor, dest, sort);
-}
+#undef IMPL_OUT
 
 //===----------------------------------------------------------------------===//
 //
@@ -1199,16 +1134,27 @@ void delSparseTensor(void *tensor) {
 ///      values  = [1.0, 5.0, 3.0]
 ///      indices = [ 0, 0,  1, 1,  1, 2]
 //
-// TODO: generalize beyond 64-bit indices, no dim ordering, all dimensions
-// compressed
+// TODO: for now f64 tensors only, no dim ordering, all dimensions compressed
 //
-void *convertToMLIRSparseTensorF64(uint64_t rank, uint64_t nse, uint64_t *shape,
-                                   double *values, uint64_t *indices) {
-  return toMLIRSparseTensor<double>(rank, nse, shape, values, indices);
-}
-void *convertToMLIRSparseTensorF32(uint64_t rank, uint64_t nse, uint64_t *shape,
-                                   float *values, uint64_t *indices) {
-  return toMLIRSparseTensor<float>(rank, nse, shape, values, indices);
+void *convertToMLIRSparseTensor(uint64_t rank, uint64_t nse, uint64_t *shape,
+                                double *values, uint64_t *indices) {
+  // Setup all-dims compressed and default ordering.
+  std::vector<DimLevelType> sparse(rank, DimLevelType::kCompressed);
+  std::vector<uint64_t> perm(rank);
+  std::iota(perm.begin(), perm.end(), 0);
+  // Convert external format to internal COO.
+  SparseTensorCOO<double> *tensor = SparseTensorCOO<double>::newSparseTensorCOO(
+      rank, shape, perm.data(), nse);
+  std::vector<uint64_t> idx(rank);
+  for (uint64_t i = 0, base = 0; i < nse; i++) {
+    for (uint64_t r = 0; r < rank; r++)
+      idx[r] = indices[base + r];
+    tensor->add(idx, values[i]);
+    base += rank;
+  }
+  // Return sparse tensor storage format as opaque pointer.
+  return SparseTensorStorage<uint64_t, uint64_t, double>::newSparseTensor(
+      rank, shape, perm.data(), sparse.data(), tensor);
 }
 
 /// Converts a sparse tensor to COO-flavored format expressed using C-style
@@ -1228,18 +1174,41 @@ void *convertToMLIRSparseTensorF32(uint64_t rank, uint64_t nse, uint64_t *shape,
 //  SparseTensorCOO, then to the output. We may want to reduce the number of
 //  copies.
 //
-// TODO: generalize beyond 64-bit indices, no dim ordering, all dimensions
-// compressed
+//  TODO: for now f64 tensors only, no dim ordering, all dimensions compressed
 //
-void convertFromMLIRSparseTensorF64(void *tensor, uint64_t *pRank,
-                                    uint64_t *pNse, uint64_t **pShape,
-                                    double **pValues, uint64_t **pIndices) {
-  fromMLIRSparseTensor<double>(tensor, pRank, pNse, pShape, pValues, pIndices);
-}
-void convertFromMLIRSparseTensorF32(void *tensor, uint64_t *pRank,
-                                    uint64_t *pNse, uint64_t **pShape,
-                                    float **pValues, uint64_t **pIndices) {
-  fromMLIRSparseTensor<float>(tensor, pRank, pNse, pShape, pValues, pIndices);
+void convertFromMLIRSparseTensor(void *tensor, uint64_t *pRank, uint64_t *pNse,
+                                 uint64_t **pShape, double **pValues,
+                                 uint64_t **pIndices) {
+  SparseTensorStorage<uint64_t, uint64_t, double> *sparseTensor =
+      static_cast<SparseTensorStorage<uint64_t, uint64_t, double> *>(tensor);
+  uint64_t rank = sparseTensor->getRank();
+  std::vector<uint64_t> perm(rank);
+  std::iota(perm.begin(), perm.end(), 0);
+  SparseTensorCOO<double> *coo = sparseTensor->toCOO(perm.data());
+
+  const std::vector<Element<double>> &elements = coo->getElements();
+  uint64_t nse = elements.size();
+
+  uint64_t *shape = new uint64_t[rank];
+  for (uint64_t i = 0; i < rank; i++)
+    shape[i] = coo->getSizes()[i];
+
+  double *values = new double[nse];
+  uint64_t *indices = new uint64_t[rank * nse];
+
+  for (uint64_t i = 0, base = 0; i < nse; i++) {
+    values[i] = elements[i].value;
+    for (uint64_t j = 0; j < rank; j++)
+      indices[base + j] = elements[i].indices[j];
+    base += rank;
+  }
+
+  delete coo;
+  *pRank = rank;
+  *pNse = nse;
+  *pShape = shape;
+  *pValues = values;
+  *pIndices = indices;
 }
 
 } // extern "C"

@@ -20,9 +20,7 @@ using namespace _OMP;
 
 #pragma omp declare target
 
-// defined by CGOpenMPRuntimeGPU
-extern uint32_t __omp_rtl_debug_kind;
-extern uint32_t __omp_rtl_assume_no_thread_state;
+extern uint32_t __omp_rtl_debug_kind; // defined by CGOpenMPRuntimeGPU
 
 // TODO: We want to change the name as soon as the old runtime is gone.
 // This variable should be visibile to the plugin so we override the default
@@ -49,7 +47,5 @@ uint64_t config::getDynamicMemorySize() {
 bool config::isDebugMode(config::DebugKind Kind) {
   return config::getDebugKind() & Kind;
 }
-
-bool config::mayUseThreadStates() { return !__omp_rtl_assume_no_thread_state; }
 
 #pragma omp end declare target

@@ -138,7 +138,7 @@ KeepTmp("keep-tmp",
   cl::Hidden,
   cl::cat(BoltCategory));
 
-cl::opt<bool>
+static cl::opt<bool>
 Lite("lite",
   cl::desc("skip processing of cold functions"),
   cl::init(false),

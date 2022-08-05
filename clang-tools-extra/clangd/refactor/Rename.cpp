@@ -389,7 +389,7 @@ const NamedDecl *lookupSiblingsWithinContext(ASTContext &Ctx,
   DeclarationName LookupName(&II);
   DeclContextLookupResult LookupResult;
   const auto *DC = RenamedDecl.getDeclContext();
-  while (DC->isTransparentContext())
+  while (DC && DC->isTransparentContext())
     DC = DC->getParent();
   switch (DC->getDeclKind()) {
   // The enclosing DeclContext may not be the enclosing scope, it might have

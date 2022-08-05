@@ -14,7 +14,6 @@
 #include "llvm/Transforms/IPO/Attributor.h"
 
 #include "llvm/ADT/APInt.h"
-#include "llvm/ADT/MapVector.h"
 #include "llvm/ADT/SCCIterator.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SetOperations.h"
@@ -271,7 +270,7 @@ static bool genericValueTraversal(
     const AAIsDead *LivenessAA = nullptr;
     bool AnyDead = false;
   };
-  SmallMapVector<const Function *, LivenessInfo, 4> LivenessAAs;
+  DenseMap<const Function *, LivenessInfo> LivenessAAs;
   auto GetLivenessInfo = [&](const Function &F) -> LivenessInfo & {
     LivenessInfo &LI = LivenessAAs[&F];
     if (!LI.LivenessAA)

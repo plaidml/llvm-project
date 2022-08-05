@@ -446,6 +446,14 @@ std::string Attribute::getAsString(bool InAttrGrp) const {
                     Twine(Kind == UWTableKind::Sync ? "sync" : "async") + ")")
                        .str();
     }
+
+    if (Kind != UWTableKind::None) {
+      if (Kind == UWTableKind::Default)
+        return "uwtable";
+      return ("uwtable(" + Twine(Kind == UWTableKind::Sync ? "sync" : "async") +
+              ")")
+          .str();
+    }
   }
 
   // Convert target-dependent attributes to strings of the form:

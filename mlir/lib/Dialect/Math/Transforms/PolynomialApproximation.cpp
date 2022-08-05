@@ -182,21 +182,16 @@ static Value f32FromBits(ImplicitLocOpBuilder &builder, uint32_t bits) {
 // Helper functions to build math functions approximations.
 //----------------------------------------------------------------------------//
 
-// Return the minimum of the two values or NaN if value is NaN
-static Value min(ImplicitLocOpBuilder &builder, Value value, Value bound) {
+static Value min(ImplicitLocOpBuilder &builder, Value a, Value b) {
   return builder.create<arith::SelectOp>(
-      builder.create<arith::CmpFOp>(arith::CmpFPredicate::ULT, value, bound),
-      value, bound);
+      builder.create<arith::CmpFOp>(arith::CmpFPredicate::OLT, a, b), a, b);
 }
 
-// Return the maximum of the two values or NaN if value is NaN
-static Value max(ImplicitLocOpBuilder &builder, Value value, Value bound) {
+static Value max(ImplicitLocOpBuilder &builder, Value a, Value b) {
   return builder.create<arith::SelectOp>(
-      builder.create<arith::CmpFOp>(arith::CmpFPredicate::UGT, value, bound),
-      value, bound);
+      builder.create<arith::CmpFOp>(arith::CmpFPredicate::OGT, a, b), a, b);
 }
 
-// Return the clamped value or NaN if value is NaN
 static Value clamp(ImplicitLocOpBuilder &builder, Value value, Value lowerBound,
                    Value upperBound) {
   return max(builder, min(builder, value, upperBound), lowerBound);

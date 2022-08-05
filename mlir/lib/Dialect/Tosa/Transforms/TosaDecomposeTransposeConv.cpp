@@ -375,6 +375,6 @@ public:
 
 void mlir::tosa::populateTosaDecomposeTransposeConv(
     MLIRContext *ctx, RewritePatternSet &patterns) {
-  patterns.add<TransposeConvDilatedConverter>(ctx);
-  patterns.add<TransposeConvStridedConverter>(ctx);
+  patterns.insert<TransposeConvDilatedConverter>(ctx);
+  patterns.insert<TransposeConvStridedConverter>(ctx);
 }

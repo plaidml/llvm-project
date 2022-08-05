@@ -14,7 +14,9 @@
 
 #include <iterator>
 
+#include "MoveOnly.h"
 #include "test_iterators.h"
+#include "test_macros.h"
 
 using AllConstraintsSatisfied = forward_iterator<int*>;
 static_assert( std::forward_iterator<AllConstraintsSatisfied>);

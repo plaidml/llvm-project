@@ -1191,13 +1191,12 @@ inline void SDValue::dumpr(const SelectionDAG *G) const {
 inline void SDUse::set(const SDValue &V) {
   if (Val.getNode()) removeFromList();
   Val = V;
-  if (V.getNode())
-    V->addUse(*this);
+  if (V.getNode()) V.getNode()->addUse(*this);
 }
 
 inline void SDUse::setInitial(const SDValue &V) {
   Val = V;
-  V->addUse(*this);
+  V.getNode()->addUse(*this);
 }
 
 inline void SDUse::setNode(SDNode *N) {

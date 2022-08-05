@@ -12,8 +12,6 @@
 #include "llvm/ADT/Optional.h"
 
 namespace mlir {
-
-using namespace presburger_utils;
 using Direction = Simplex::Direction;
 
 const int nullIndex = std::numeric_limits<int>::max();
@@ -59,7 +57,13 @@ Simplex::Unknown &SimplexBase::unknownFromRow(unsigned row) {
   return unknownFromIndex(rowUnknown[row]);
 }
 
-unsigned SimplexBase::addZeroRow(bool makeRestricted) {
+/// Add a new row to the tableau corresponding to the given constant term and
+/// list of coefficients. The coefficients are specified as a vector of
+/// (variable index, coefficient) pairs.
+unsigned SimplexBase::addRow(ArrayRef<int64_t> coeffs, bool makeRestricted) {
+  assert(coeffs.size() == var.size() + 1 &&
+         "Incorrect number of coefficients!");
+
   ++nRow;
   // If the tableau is not big enough to accomodate the extra row, we extend it.
   if (nRow >= tableau.getNumRows())
@@ -71,17 +75,6 @@ unsigned SimplexBase::addZeroRow(bool makeRestricted) {
   tableau.fillRow(nRow - 1, 0);
 
   tableau(nRow - 1, 0) = 1;
-  return con.size() - 1;
-}
-
-/// Add a new row to the tableau corresponding to the given constant term and
-/// list of coefficients. The coefficients are specified as a vector of
-/// (variable index, coefficient) pairs.
-unsigned SimplexBase::addRow(ArrayRef<int64_t> coeffs, bool makeRestricted) {
-  assert(coeffs.size() == var.size() + 1 &&
-         "Incorrect number of coefficients!");
-
-  addZeroRow(makeRestricted);
   tableau(nRow - 1, 1) = coeffs.back();
   if (usingBigM) {
     // When the lexicographic pivot rule is used, instead of the variables
@@ -164,59 +157,9 @@ Direction flippedDirection(Direction direction) {
 }
 } // namespace
 
-MaybeOptimum<SmallVector<Fraction, 8>> LexSimplex::getRationalLexMin() {
+Optional<SmallVector<Fraction, 8>> LexSimplex::getRationalLexMin() {
   restoreRationalConsistency();
   return getRationalSample();
-}
-
-LogicalResult LexSimplex::addCut(unsigned row) {
-  int64_t denom = tableau(row, 0);
-  addZeroRow(/*makeRestricted=*/true);
-  tableau(nRow - 1, 0) = denom;
-  tableau(nRow - 1, 1) = -mod(-tableau(row, 1), denom);
-  tableau(nRow - 1, 2) = 0; // M has all factors in it.
-  for (unsigned col = 3; col < nCol; ++col)
-    tableau(nRow - 1, col) = mod(tableau(row, col), denom);
-  return moveRowUnknownToColumn(nRow - 1);
-}
-
-Optional<unsigned> LexSimplex::maybeGetNonIntegeralVarRow() const {
-  for (const Unknown &u : var) {
-    if (u.orientation == Orientation::Column)
-      continue;
-    // If the sample value is of the form (a/d)M + b/d, we need b to be
-    // divisible by d. We assume M is very large and contains all possible
-    // factors and is divisible by everything.
-    unsigned row = u.pos;
-    if (tableau(row, 1) % tableau(row, 0) != 0)
-      return row;
-  }
-  return {};
-}
-
-MaybeOptimum<SmallVector<int64_t, 8>> LexSimplex::getIntegerLexMin() {
-  while (!empty) {
-    restoreRationalConsistency();
-    if (empty)
-      return OptimumKind::Empty;
-
-    if (Optional<unsigned> maybeRow = maybeGetNonIntegeralVarRow()) {
-      // Failure occurs when the polytope is integer empty.
-      if (failed(addCut(*maybeRow)))
-        return OptimumKind::Empty;
-      continue;
-    }
-
-    MaybeOptimum<SmallVector<Fraction, 8>> sample = getRationalSample();
-    assert(!sample.isEmpty() && "If we reached here the sample should exist!");
-    if (sample.isUnbounded())
-      return OptimumKind::Unbounded;
-    return llvm::to_vector<8>(llvm::map_range(
-        *sample, [](const Fraction &f) { return f.getAsInteger(); }));
-  }
-
-  // Polytope is integer empty.
-  return OptimumKind::Empty;
 }
 
 bool LexSimplex::rowIsViolated(unsigned row) const {
@@ -843,14 +786,14 @@ void SimplexBase::intersectIntegerPolyhedron(const IntegerPolyhedron &poly) {
     addEquality(poly.getEquality(i));
 }
 
-MaybeOptimum<Fraction> Simplex::computeRowOptimum(Direction direction,
-                                                  unsigned row) {
+Optional<Fraction> Simplex::computeRowOptimum(Direction direction,
+                                              unsigned row) {
   // Keep trying to find a pivot for the row in the specified direction.
   while (Optional<Pivot> maybePivot = findPivot(row, direction)) {
     // If findPivot returns a pivot involving the row itself, then the optimum
     // is unbounded, so we return None.
     if (maybePivot->row == row)
-      return OptimumKind::Unbounded;
+      return {};
     pivot(*maybePivot);
   }
 
@@ -862,36 +805,34 @@ MaybeOptimum<Fraction> Simplex::computeRowOptimum(Direction direction,
 
 /// Compute the optimum of the specified expression in the specified direction,
 /// or None if it is unbounded.
-MaybeOptimum<Fraction> Simplex::computeOptimum(Direction direction,
-                                               ArrayRef<int64_t> coeffs) {
-  if (empty)
-    return OptimumKind::Empty;
+Optional<Fraction> Simplex::computeOptimum(Direction direction,
+                                           ArrayRef<int64_t> coeffs) {
+  assert(!empty && "Simplex should not be empty");
+
   unsigned snapshot = getSnapshot();
   unsigned conIndex = addRow(coeffs);
   unsigned row = con[conIndex].pos;
-  MaybeOptimum<Fraction> optimum = computeRowOptimum(direction, row);
+  Optional<Fraction> optimum = computeRowOptimum(direction, row);
   rollback(snapshot);
   return optimum;
 }
 
-MaybeOptimum<Fraction> Simplex::computeOptimum(Direction direction,
-                                               Unknown &u) {
-  if (empty)
-    return OptimumKind::Empty;
+Optional<Fraction> Simplex::computeOptimum(Direction direction, Unknown &u) {
+  assert(!empty && "Simplex should not be empty!");
   if (u.orientation == Orientation::Column) {
     unsigned column = u.pos;
     Optional<unsigned> pivotRow = findPivotRow({}, direction, column);
     // If no pivot is returned, the constraint is unbounded in the specified
     // direction.
     if (!pivotRow)
-      return OptimumKind::Unbounded;
+      return {};
     pivot(*pivotRow, column);
   }
 
   unsigned row = u.pos;
-  MaybeOptimum<Fraction> optimum = computeRowOptimum(direction, row);
+  Optional<Fraction> optimum = computeRowOptimum(direction, row);
   if (u.restricted && direction == Direction::Down &&
-      (optimum.isUnbounded() || *optimum < Fraction(0, 1))) {
+      (!optimum || *optimum < Fraction(0, 1))) {
     if (failed(restoreRow(u)))
       llvm_unreachable("Could not restore row!");
   }
@@ -903,7 +844,7 @@ bool Simplex::isBoundedAlongConstraint(unsigned constraintIndex) {
                    "in an empty set.");
   // The constraint's perpendicular is already bounded below, since it is a
   // constraint. If it is also bounded above, we can return true.
-  return computeOptimum(Direction::Up, con[constraintIndex]).isBounded();
+  return computeOptimum(Direction::Up, con[constraintIndex]).hasValue();
 }
 
 /// Redundant constraints are those that are in row orientation and lie in
@@ -954,8 +895,8 @@ void Simplex::detectRedundant() {
     }
 
     unsigned row = u.pos;
-    MaybeOptimum<Fraction> minimum = computeRowOptimum(Direction::Down, row);
-    if (minimum.isUnbounded() || *minimum < Fraction(0, 1)) {
+    Optional<Fraction> minimum = computeRowOptimum(Direction::Down, row);
+    if (!minimum || *minimum < Fraction(0, 1)) {
       // Constraint is unbounded below or can attain negative sample values and
       // hence is not redundant.
       if (failed(restoreRow(u)))
@@ -975,10 +916,12 @@ bool Simplex::isUnbounded() {
   for (unsigned i = 0; i < var.size(); ++i) {
     dir[i] = 1;
 
-    if (computeOptimum(Direction::Up, dir).isUnbounded())
+    Optional<Fraction> maybeMax = computeOptimum(Direction::Up, dir);
+    if (!maybeMax)
       return true;
 
-    if (computeOptimum(Direction::Down, dir).isUnbounded())
+    Optional<Fraction> maybeMin = computeOptimum(Direction::Down, dir);
+    if (!maybeMin)
       return true;
 
     dir[i] = 0;
@@ -1067,7 +1010,7 @@ Simplex Simplex::makeProduct(const Simplex &a, const Simplex &b) {
   return result;
 }
 
-Optional<SmallVector<Fraction, 8>> Simplex::getRationalSample() const {
+Optional<SmallVector<Fraction, 8>> SimplexBase::getRationalSample() const {
   if (empty)
     return {};
 
@@ -1079,41 +1022,20 @@ Optional<SmallVector<Fraction, 8>> Simplex::getRationalSample() const {
       // If the variable is in column position, its sample value is zero.
       sample.emplace_back(0, 1);
     } else {
-      // If the variable is in row position, its sample value is the
-      // entry in the constant column divided by the denominator.
       int64_t denom = tableau(u.pos, 0);
+
+      // When the big M parameter is being used, each variable x is represented
+      // as M + x, so its sample value is finite only if it is of the form
+      // 1*M + c. If the coefficient of M is not one then the sample value is
+      // infinite, and we return an empty optional.
+      if (usingBigM)
+        if (tableau(u.pos, 2) != denom)
+          return {};
+
+      // Otherwise, If the variable is in row position, its sample value is the
+      // entry in the constant column divided by the denominator.
       sample.emplace_back(tableau(u.pos, 1), denom);
     }
-  }
-  return sample;
-}
-
-MaybeOptimum<SmallVector<Fraction, 8>> LexSimplex::getRationalSample() const {
-  if (empty)
-    return OptimumKind::Empty;
-
-  SmallVector<Fraction, 8> sample;
-  sample.reserve(var.size());
-  // Push the sample value for each variable into the vector.
-  for (const Unknown &u : var) {
-    // When the big M parameter is being used, each variable x is represented
-    // as M + x, so its sample value is finite if and only if it is of the
-    // form 1*M + c. If the coefficient of M is not one then the sample value
-    // is infinite, and we return an empty optional.
-
-    if (u.orientation == Orientation::Column) {
-      // If the variable is in column position, the sample value of M + x is
-      // zero, so x = -M which is unbounded.
-      return OptimumKind::Unbounded;
-    }
-
-    // If the variable is in row position, its sample value is the
-    // entry in the constant column divided by the denominator.
-    int64_t denom = tableau(u.pos, 0);
-    if (usingBigM)
-      if (tableau(u.pos, 2) != denom)
-        return OptimumKind::Unbounded;
-    sample.emplace_back(tableau(u.pos, 1), denom);
   }
   return sample;
 }
@@ -1166,9 +1088,9 @@ public:
   }
   /// Compute max(dotProduct(dir, x - y)).
   Fraction computeWidth(ArrayRef<int64_t> dir) {
-    MaybeOptimum<Fraction> maybeWidth =
+    Optional<Fraction> maybeWidth =
         simplex.computeOptimum(Direction::Up, getCoeffsForDirection(dir));
-    assert(maybeWidth.isBounded() && "Width should be bounded!");
+    assert(maybeWidth.hasValue() && "Width should not be unbounded!");
     return *maybeWidth;
   }
 
@@ -1186,9 +1108,9 @@ public:
     unsigned snap = simplex.getSnapshot();
     unsigned conIndex = simplex.addRow(getCoeffsForDirection(dir));
     unsigned row = simplex.con[conIndex].pos;
-    MaybeOptimum<Fraction> maybeWidth =
+    Optional<Fraction> maybeWidth =
         simplex.computeRowOptimum(Simplex::Direction::Up, row);
-    assert(maybeWidth.isBounded() && "Width should be bounded!");
+    assert(maybeWidth.hasValue() && "Width should not be unbounded!");
     dualDenom = simplex.tableau(row, 0);
     dual.clear();
 
@@ -1534,32 +1456,16 @@ Optional<SmallVector<int64_t, 8>> Simplex::findIntegerSample() {
           llvm::to_vector<8>(basis.getRow(level));
       basisCoeffs.push_back(0);
 
-      MaybeOptimum<int64_t> minRoundedUp, maxRoundedDown;
+      Optional<int64_t> minRoundedUp, maxRoundedDown;
       std::tie(minRoundedUp, maxRoundedDown) =
           computeIntegerBounds(basisCoeffs);
-
-      // We don't have any integer values in the range.
-      // Pop the stack and return up a level.
-      if (minRoundedUp.isEmpty() || maxRoundedDown.isEmpty()) {
-        assert((minRoundedUp.isEmpty() && maxRoundedDown.isEmpty()) &&
-               "If one bound is empty, both should be.");
-        snapshotStack.pop_back();
-        nextValueStack.pop_back();
-        upperBoundStack.pop_back();
-        level--;
-        continue;
-      }
-
-      // We already checked the empty case above.
-      assert((minRoundedUp.isBounded() && maxRoundedDown.isBounded()) &&
-             "Polyhedron should be bounded!");
 
       // Heuristic: if the sample point is integral at this point, just return
       // it.
       if (auto maybeSample = getSamplePointIfIntegral())
         return *maybeSample;
 
-      if (*minRoundedUp < *maxRoundedDown) {
+      if (minRoundedUp < maxRoundedDown) {
         reduceBasis(basis, level);
         basisCoeffs = llvm::to_vector<8>(basis.getRow(level));
         basisCoeffs.push_back(0);
@@ -1609,12 +1515,18 @@ Optional<SmallVector<int64_t, 8>> Simplex::findIntegerSample() {
 
 /// Compute the minimum and maximum integer values the expression can take. We
 /// compute each separately.
-std::pair<MaybeOptimum<int64_t>, MaybeOptimum<int64_t>>
+std::pair<Optional<int64_t>, Optional<int64_t>>
 Simplex::computeIntegerBounds(ArrayRef<int64_t> coeffs) {
-  MaybeOptimum<int64_t> minRoundedUp(
-      computeOptimum(Simplex::Direction::Down, coeffs).map(ceil));
-  MaybeOptimum<int64_t> maxRoundedDown(
-      computeOptimum(Simplex::Direction::Up, coeffs).map(floor));
+  Optional<int64_t> minRoundedUp;
+  if (Optional<Fraction> maybeMin =
+          computeOptimum(Simplex::Direction::Down, coeffs))
+    minRoundedUp = ceil(*maybeMin);
+
+  Optional<int64_t> maxRoundedDown;
+  if (Optional<Fraction> maybeMax =
+          computeOptimum(Simplex::Direction::Up, coeffs))
+    maxRoundedDown = floor(*maybeMax);
+
   return {minRoundedUp, maxRoundedDown};
 }
 
@@ -1660,7 +1572,7 @@ bool Simplex::isRationalSubsetOf(const IntegerPolyhedron &poly) {
     return true;
 
   for (unsigned i = 0, e = poly.getNumInequalities(); i < e; ++i)
-    if (findIneqType(poly.getInequality(i)) != IneqType::Redundant)
+    if (!isRedundantInequality(poly.getInequality(i)))
       return false;
 
   for (unsigned i = 0, e = poly.getNumEqualities(); i < e; ++i)
@@ -1670,39 +1582,12 @@ bool Simplex::isRationalSubsetOf(const IntegerPolyhedron &poly) {
   return true;
 }
 
-/// Returns the type of the inequality with coefficients `coeffs`.
-/// Possible types are:
-/// Redundant   The inequality is satisfied by all points in the polytope
-/// Cut         The inequality is satisfied by some points, but not by others
-/// Separate    The inequality is not satisfied by any point
-///
-/// Internally, this computes the minimum and the maximum the inequality with
-/// coefficients `coeffs` can take. If the minimum is >= 0, the inequality holds
-/// for all points in the polytope, so it is redundant.  If the minimum is <= 0
-/// and the maximum is >= 0, the points in between the minimum and the
-/// inequality do not satisfy it, the points in between the inequality and the
-/// maximum satisfy it. Hence, it is a cut inequality. If both are < 0, no
-/// points of the polytope satisfy the inequality, which means it is a separate
-/// inequality.
-Simplex::IneqType Simplex::findIneqType(ArrayRef<int64_t> coeffs) {
-  MaybeOptimum<Fraction> minimum = computeOptimum(Direction::Down, coeffs);
-  if (minimum.isBounded() && *minimum >= Fraction(0, 1)) {
-    return IneqType::Redundant;
-  }
-  MaybeOptimum<Fraction> maximum = computeOptimum(Direction::Up, coeffs);
-  if ((!minimum.isBounded() || *minimum <= Fraction(0, 1)) &&
-      (!maximum.isBounded() || *maximum >= Fraction(0, 1))) {
-    return IneqType::Cut;
-  }
-  return IneqType::Separate;
-}
-
-/// Checks whether the type of the inequality with coefficients `coeffs`
-/// is Redundant.
+/// Computes the minimum value `coeffs` can take. If the value is greater than
+/// or equal to zero, the polytope entirely lies in the half-space defined by
+/// `coeffs >= 0`.
 bool Simplex::isRedundantInequality(ArrayRef<int64_t> coeffs) {
-  assert(!empty &&
-         "It is not meaningful to ask about redundancy in an empty set!");
-  return findIneqType(coeffs) == IneqType::Redundant;
+  Optional<Fraction> minimum = computeOptimum(Direction::Down, coeffs);
+  return minimum && *minimum >= Fraction(0, 1);
 }
 
 /// Check whether the equality given by `coeffs == 0` is redundant given
@@ -1710,14 +1595,10 @@ bool Simplex::isRedundantInequality(ArrayRef<int64_t> coeffs) {
 /// always zero under the existing constraints. `coeffs` is always zero
 /// when the minimum and maximum value that `coeffs` can take are both zero.
 bool Simplex::isRedundantEquality(ArrayRef<int64_t> coeffs) {
-  assert(!empty &&
-         "It is not meaningful to ask about redundancy in an empty set!");
-  MaybeOptimum<Fraction> minimum = computeOptimum(Direction::Down, coeffs);
-  MaybeOptimum<Fraction> maximum = computeOptimum(Direction::Up, coeffs);
-  assert((!minimum.isEmpty() && !maximum.isEmpty()) &&
-         "Optima should be non-empty for a non-empty set");
-  return minimum.isBounded() && maximum.isBounded() &&
-         *maximum == Fraction(0, 1) && *minimum == Fraction(0, 1);
+  Optional<Fraction> minimum = computeOptimum(Direction::Down, coeffs);
+  Optional<Fraction> maximum = computeOptimum(Direction::Up, coeffs);
+  return minimum && maximum && *maximum == Fraction(0, 1) &&
+         *minimum == Fraction(0, 1);
 }
 
 } // namespace mlir

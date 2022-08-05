@@ -1,3 +1,4 @@
+; XFAIL: *
 ; REQUIRES: asserts
 ; RUN: opt < %s -disable-output -passes=rewrite-statepoints-for-gc
 

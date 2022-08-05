@@ -72,34 +72,14 @@ bool IntegerPolyhedron::isSubsetOf(const IntegerPolyhedron &other) const {
   return PresburgerSet(*this).isSubsetOf(PresburgerSet(other));
 }
 
-MaybeOptimum<SmallVector<Fraction, 8>>
+Optional<SmallVector<Fraction, 8>>
 IntegerPolyhedron::getRationalLexMin() const {
   assert(getNumSymbolIds() == 0 && "Symbols are not supported!");
-  MaybeOptimum<SmallVector<Fraction, 8>> maybeLexMin =
+  Optional<SmallVector<Fraction, 8>> maybeLexMin =
       LexSimplex(*this).getRationalLexMin();
 
-  if (!maybeLexMin.isBounded())
-    return maybeLexMin;
-
-  // The Simplex returns the lexmin over all the variables including locals. But
-  // locals are not actually part of the space and should not be returned in the
-  // result. Since the locals are placed last in the list of identifiers, they
-  // will be minimized last in the lexmin. So simply truncating out the locals
-  // from the end of the answer gives the desired lexmin over the dimensions.
-  assert(maybeLexMin->size() == getNumIds() &&
-         "Incorrect number of vars in lexMin!");
-  maybeLexMin->resize(getNumDimAndSymbolIds());
-  return maybeLexMin;
-}
-
-MaybeOptimum<SmallVector<int64_t, 8>>
-IntegerPolyhedron::getIntegerLexMin() const {
-  assert(getNumSymbolIds() == 0 && "Symbols are not supported!");
-  MaybeOptimum<SmallVector<int64_t, 8>> maybeLexMin =
-      LexSimplex(*this).getIntegerLexMin();
-
-  if (!maybeLexMin.isBounded())
-    return maybeLexMin.getKind();
+  if (!maybeLexMin)
+    return {};
 
   // The Simplex returns the lexmin over all the variables including locals. But
   // locals are not actually part of the space and should not be returned in the
@@ -113,7 +93,7 @@ IntegerPolyhedron::getIntegerLexMin() const {
 }
 
 unsigned IntegerPolyhedron::insertDimId(unsigned pos, unsigned num) {
-  return insertId(IdKind::SetDim, pos, num);
+  return insertId(IdKind::Dimension, pos, num);
 }
 
 unsigned IntegerPolyhedron::insertSymbolId(unsigned pos, unsigned num) {
@@ -127,15 +107,16 @@ unsigned IntegerPolyhedron::insertLocalId(unsigned pos, unsigned num) {
 unsigned IntegerPolyhedron::insertId(IdKind kind, unsigned pos, unsigned num) {
   assert(pos <= getNumIdKind(kind));
 
-  unsigned insertPos = PresburgerLocalSpace::insertId(kind, pos, num);
-  inequalities.insertColumns(insertPos, num);
-  equalities.insertColumns(insertPos, num);
-  return insertPos;
+  unsigned absolutePos = getIdKindOffset(kind) + pos;
+  inequalities.insertColumns(absolutePos, num);
+  equalities.insertColumns(absolutePos, num);
+
+  return PresburgerLocalSpace::insertId(kind, pos, num);
 }
 
 unsigned IntegerPolyhedron::appendDimId(unsigned num) {
   unsigned pos = getNumDimIds();
-  insertId(IdKind::SetDim, pos, num);
+  insertId(IdKind::Dimension, pos, num);
   return pos;
 }
 
@@ -1052,23 +1033,20 @@ Optional<uint64_t> IntegerPolyhedron::computeVolume() const {
   bool hasUnboundedId = false;
   for (unsigned i = 0, e = getNumDimAndSymbolIds(); i < e; ++i) {
     dim[i] = 1;
-    MaybeOptimum<int64_t> min, max;
+    Optional<int64_t> min, max;
     std::tie(min, max) = simplex.computeIntegerBounds(dim);
     dim[i] = 0;
 
-    assert((!min.isEmpty() && !max.isEmpty()) &&
-           "Polytope should be rationally non-empty!");
-
     // One of the dimensions is unbounded. Note this fact. We will return
     // unbounded if none of the other dimensions makes the volume zero.
-    if (min.isUnbounded() || max.isUnbounded()) {
+    if (!min || !max) {
       hasUnboundedId = true;
       continue;
     }
 
     // In this case there are no valid integer points and the volume is
     // definitely zero.
-    if (min.getBoundedOptimum() > max.getBoundedOptimum())
+    if (*min > *max)
       return 0;
 
     count *= (*max - *min + 1);

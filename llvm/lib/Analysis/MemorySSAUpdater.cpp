@@ -243,7 +243,6 @@ MemoryAccess *MemorySSAUpdater::tryRemoveTrivialPhi(MemoryPhi *Phi,
 }
 
 void MemorySSAUpdater::insertUse(MemoryUse *MU, bool RenameUses) {
-  VisitedBlocks.clear();
   InsertedPHIs.clear();
   MU->setDefiningAccess(getPreviousDef(MU));
 
@@ -312,7 +311,6 @@ static void setMemoryPhiValueForBlock(MemoryPhi *MP, const BasicBlock *BB,
 // point to the correct new defs, to ensure we only have one variable, and no
 // disconnected stores.
 void MemorySSAUpdater::insertDef(MemoryDef *MD, bool RenameUses) {
-  VisitedBlocks.clear();
   InsertedPHIs.clear();
 
   // See if we had a local def, and if not, go hunting.

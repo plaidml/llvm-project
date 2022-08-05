@@ -24,7 +24,7 @@ int foo(void)
 // CHECK: }
 // CHECK: @end
 // CHECK: current *pc;
-// CHECK: int foo(void) {
+// CHECK: int foo() {
 // CHECK:     return pc->ivar2 + (*pc).ivar + pc->ivar1;
 // CHECK: }
 

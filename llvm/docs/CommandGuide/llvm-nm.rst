@@ -157,11 +157,6 @@ OPTIONS
 
  Display dynamic symbols instead of normal symbols.
 
-.. option:: --export-symbols
-
- Print sorted symbols with their visibility (if applicable), with duplicates
- removed.
-
 .. option:: --extern-only, -g
 
  Print only symbols whose definitions are external; that is, accessible from
@@ -286,13 +281,6 @@ MACH-O SPECIFIC OPTIONS
 .. option:: -x
 
  Print symbol entry in hex.
-
-XCOFF SPECIFIC OPTIONS
-----------------------
-
-.. option:: --no-rsrc
-
-  Exclude resource file symbols (``__rsrc``) from export symbol list.
 
 BUGS
 ----

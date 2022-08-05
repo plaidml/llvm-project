@@ -1542,12 +1542,12 @@ void ByteCodeExecutor::executeCreateOperation(PatternRewriter &rewriter,
     }
 
     // Handle the case where the operation has inferred types.
-    InferTypeOpInterface::Concept *inferInterface =
+    InferTypeOpInterface::Concept *concept =
         state.name.getRegisteredInfo()->getInterface<InferTypeOpInterface>();
 
     // TODO: Handle failure.
     state.types.clear();
-    if (failed(inferInterface->inferReturnTypes(
+    if (failed(concept->inferReturnTypes(
             state.getContext(), state.location, state.operands,
             state.attributes.getDictionary(state.getContext()), state.regions,
             state.types)))

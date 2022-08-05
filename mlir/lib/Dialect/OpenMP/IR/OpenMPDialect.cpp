@@ -66,9 +66,54 @@ void ParallelOp::build(OpBuilder &builder, OperationState &state,
                        ArrayRef<NamedAttribute> attributes) {
   ParallelOp::build(
       builder, state, /*if_expr_var=*/nullptr, /*num_threads_var=*/nullptr,
-      /*allocate_vars=*/ValueRange(), /*allocators_vars=*/ValueRange(),
-      /*proc_bind_val=*/nullptr);
+      /*default_val=*/nullptr, /*private_vars=*/ValueRange(),
+      /*firstprivate_vars=*/ValueRange(), /*shared_vars=*/ValueRange(),
+      /*copyin_vars=*/ValueRange(), /*allocate_vars=*/ValueRange(),
+      /*allocators_vars=*/ValueRange(), /*proc_bind_val=*/nullptr);
   state.addAttributes(attributes);
+}
+
+//===----------------------------------------------------------------------===//
+// Parser and printer for Operand and type list
+//===----------------------------------------------------------------------===//
+
+/// Parse a list of operands with types.
+///
+/// operand-and-type-list ::= `(` ssa-id-and-type-list `)`
+/// ssa-id-and-type-list ::= ssa-id-and-type |
+///                          ssa-id-and-type `,` ssa-id-and-type-list
+/// ssa-id-and-type ::= ssa-id `:` type
+static ParseResult
+parseOperandAndTypeList(OpAsmParser &parser,
+                        SmallVectorImpl<OpAsmParser::OperandType> &operands,
+                        SmallVectorImpl<Type> &types) {
+  return parser.parseCommaSeparatedList(
+      OpAsmParser::Delimiter::Paren, [&]() -> ParseResult {
+        OpAsmParser::OperandType operand;
+        Type type;
+        if (parser.parseOperand(operand) || parser.parseColonType(type))
+          return failure();
+        operands.push_back(operand);
+        types.push_back(type);
+        return success();
+      });
+}
+
+/// Print an operand and type list with parentheses
+static void printOperandAndTypeList(OpAsmPrinter &p, OperandRange operands) {
+  p << "(";
+  llvm::interleaveComma(
+      operands, p, [&](const Value &v) { p << v << " : " << v.getType(); });
+  p << ") ";
+}
+
+/// Print data variables corresponding to a data-sharing clause `name`
+static void printDataVars(OpAsmPrinter &p, OperandRange operands,
+                          StringRef name) {
+  if (!operands.empty()) {
+    p << name;
+    printOperandAndTypeList(p, operands);
+  }
 }
 
 //===----------------------------------------------------------------------===//
@@ -77,6 +122,7 @@ void ParallelOp::build(OpBuilder &builder, OperationState &state,
 
 /// Parse an allocate clause with allocators and a list of operands with types.
 ///
+/// allocate ::= `allocate` `(` allocate-operand-list `)`
 /// allocate-operand-list :: = allocate-operand |
 ///                            allocator-operand `,` allocate-operand-list
 /// allocate-operand :: = ssa-id-and-type -> ssa-id-and-type
@@ -88,53 +134,35 @@ static ParseResult parseAllocateAndAllocator(
     SmallVectorImpl<OpAsmParser::OperandType> &operandsAllocator,
     SmallVectorImpl<Type> &typesAllocator) {
 
-  return parser.parseCommaSeparatedList([&]() -> ParseResult {
-    OpAsmParser::OperandType operand;
-    Type type;
-    if (parser.parseOperand(operand) || parser.parseColonType(type))
-      return failure();
-    operandsAllocator.push_back(operand);
-    typesAllocator.push_back(type);
-    if (parser.parseArrow())
-      return failure();
-    if (parser.parseOperand(operand) || parser.parseColonType(type))
-      return failure();
+  return parser.parseCommaSeparatedList(
+      OpAsmParser::Delimiter::Paren, [&]() -> ParseResult {
+        OpAsmParser::OperandType operand;
+        Type type;
+        if (parser.parseOperand(operand) || parser.parseColonType(type))
+          return failure();
+        operandsAllocator.push_back(operand);
+        typesAllocator.push_back(type);
+        if (parser.parseArrow())
+          return failure();
+        if (parser.parseOperand(operand) || parser.parseColonType(type))
+          return failure();
 
-    operandsAllocate.push_back(operand);
-    typesAllocate.push_back(type);
-    return success();
-  });
+        operandsAllocate.push_back(operand);
+        typesAllocate.push_back(type);
+        return success();
+      });
 }
 
 /// Print allocate clause
-static void printAllocateAndAllocator(OpAsmPrinter &p, Operation *op,
+static void printAllocateAndAllocator(OpAsmPrinter &p,
                                       OperandRange varsAllocate,
-                                      TypeRange typesAllocate,
-                                      OperandRange varsAllocator,
-                                      TypeRange typesAllocator) {
+                                      OperandRange varsAllocator) {
+  p << "allocate(";
   for (unsigned i = 0; i < varsAllocate.size(); ++i) {
-    std::string separator = i == varsAllocate.size() - 1 ? "" : ", ";
-    p << varsAllocator[i] << " : " << typesAllocator[i] << " -> ";
-    p << varsAllocate[i] << " : " << typesAllocate[i] << separator;
+    std::string separator = i == varsAllocate.size() - 1 ? ") " : ", ";
+    p << varsAllocator[i] << " : " << varsAllocator[i].getType() << " -> ";
+    p << varsAllocate[i] << " : " << varsAllocate[i].getType() << separator;
   }
-}
-
-ParseResult parseProcBindKind(OpAsmParser &parser,
-                              omp::ClauseProcBindKindAttr &procBindAttr) {
-  StringRef procBindStr;
-  if (parser.parseKeyword(&procBindStr))
-    return failure();
-  if (auto procBindVal = symbolizeClauseProcBindKind(procBindStr)) {
-    procBindAttr =
-        ClauseProcBindKindAttr::get(parser.getContext(), *procBindVal);
-    return success();
-  }
-  return failure();
-}
-
-void printProcBindKind(OpAsmPrinter &p, Operation *op,
-                       omp::ClauseProcBindKindAttr procBindAttr) {
-  p << stringifyClauseProcBindKind(procBindAttr.getValue());
 }
 
 LogicalResult ParallelOp::verify() {
@@ -142,6 +170,49 @@ LogicalResult ParallelOp::verify() {
     return emitError(
         "expected equal sizes for allocate and allocator variables");
   return success();
+}
+
+void ParallelOp::print(OpAsmPrinter &p) {
+  p << " ";
+  if (auto ifCond = if_expr_var())
+    p << "if(" << ifCond << " : " << ifCond.getType() << ") ";
+
+  if (auto threads = num_threads_var())
+    p << "num_threads(" << threads << " : " << threads.getType() << ") ";
+
+  printDataVars(p, private_vars(), "private");
+  printDataVars(p, firstprivate_vars(), "firstprivate");
+  printDataVars(p, shared_vars(), "shared");
+  printDataVars(p, copyin_vars(), "copyin");
+
+  if (!allocate_vars().empty())
+    printAllocateAndAllocator(p, allocate_vars(), allocators_vars());
+
+  if (auto def = default_val())
+    p << "default(" << stringifyClauseDefault(*def).drop_front(3) << ") ";
+
+  if (auto bind = proc_bind_val())
+    p << "proc_bind(" << stringifyClauseProcBindKind(*bind) << ") ";
+
+  p << ' ';
+  p.printRegion(getRegion());
+}
+
+void TargetOp::print(OpAsmPrinter &p) {
+  p << " ";
+  if (auto ifCond = if_expr())
+    p << "if(" << ifCond << " : " << ifCond.getType() << ") ";
+
+  if (auto device = this->device())
+    p << "device(" << device << " : " << device.getType() << ") ";
+
+  if (auto threads = thread_limit())
+    p << "thread_limit(" << threads << " : " << threads.getType() << ") ";
+
+  if (nowait())
+    p << "nowait ";
+
+  p.printRegion(getRegion());
 }
 
 //===----------------------------------------------------------------------===//
@@ -299,35 +370,39 @@ static void printScheduleClause(OpAsmPrinter &p, ClauseScheduleKind sched,
 // Parser, printer and verifier for ReductionVarList
 //===----------------------------------------------------------------------===//
 
+/// reduction ::= `reduction` `(` reduction-entry-list `)`
 /// reduction-entry-list ::= reduction-entry
 ///                        | reduction-entry-list `,` reduction-entry
 /// reduction-entry ::= symbol-ref `->` ssa-id `:` type
-static ParseResult parseReductionVarList(
-    OpAsmParser &parser, SmallVectorImpl<OpAsmParser::OperandType> &operands,
-    SmallVectorImpl<Type> &types, ArrayAttr &redcuctionSymbols) {
-  SmallVector<SymbolRefAttr> reductionVec;
+static ParseResult
+parseReductionVarList(OpAsmParser &parser,
+                      SmallVectorImpl<SymbolRefAttr> &symbols,
+                      SmallVectorImpl<OpAsmParser::OperandType> &operands,
+                      SmallVectorImpl<Type> &types) {
+  if (failed(parser.parseLParen()))
+    return failure();
+
   do {
-    if (parser.parseAttribute(reductionVec.emplace_back()) ||
-        parser.parseArrow() || parser.parseOperand(operands.emplace_back()) ||
+    if (parser.parseAttribute(symbols.emplace_back()) || parser.parseArrow() ||
+        parser.parseOperand(operands.emplace_back()) ||
         parser.parseColonType(types.emplace_back()))
       return failure();
   } while (succeeded(parser.parseOptionalComma()));
-  SmallVector<Attribute> reductions(reductionVec.begin(), reductionVec.end());
-  redcuctionSymbols = ArrayAttr::get(parser.getContext(), reductions);
-  return success();
+  return parser.parseRParen();
 }
 
 /// Print Reduction clause
-static void printReductionVarList(OpAsmPrinter &p, Operation *op,
-                                  OperandRange reductionVars,
-                                  TypeRange reductionTypes,
-                                  Optional<ArrayAttr> reductions) {
+static void printReductionVarList(OpAsmPrinter &p,
+                                  Optional<ArrayAttr> reductions,
+                                  OperandRange reductionVars) {
+  p << "reduction(";
   for (unsigned i = 0, e = reductions->size(); i < e; ++i) {
     if (i != 0)
       p << ", ";
     p << (*reductions)[i] << " -> " << reductionVars[i] << " : "
       << reductionVars[i].getType();
   }
+  p << ") ";
 }
 
 /// Verifies Reduction Clause
@@ -467,7 +542,13 @@ enum ClauseType {
   numThreadsClause,
   deviceClause,
   threadLimitClause,
+  privateClause,
+  firstprivateClause,
+  lastprivateClause,
+  sharedClause,
+  copyinClause,
   allocateClause,
+  defaultClause,
   procBindClause,
   reductionClause,
   nowaitClause,
@@ -508,11 +589,19 @@ static ParseResult parseClauseAttr(AsmParser &parser, OperationState &state,
 /// `clauses` list. The operand segments are added over the prevSegments
 
 /// clause-list ::= clause clause-list | empty
-/// clause ::= if | num-threads | allocate | proc-bind | reduction | nowait
-///          | linear | schedule | collapse | order | ordered | inclusive
+/// clause ::= if | num-threads | private | firstprivate | lastprivate |
+///            shared | copyin | allocate | default | proc-bind | reduction |
+///            nowait | linear | schedule | collapse | order | ordered |
+///            inclusive
 /// if ::= `if` `(` ssa-id-and-type `)`
 /// num-threads ::= `num_threads` `(` ssa-id-and-type `)`
+/// private ::= `private` operand-and-type-list
+/// firstprivate ::= `firstprivate` operand-and-type-list
+/// lastprivate ::= `lastprivate` operand-and-type-list
+/// shared ::= `shared` operand-and-type-list
+/// copyin ::= `copyin` operand-and-type-list
 /// allocate ::= `allocate` `(` allocate-operand-list `)`
+/// default ::= `default` `(` (`private` | `firstprivate` | `shared` | `none`)
 /// proc-bind ::= `proc_bind` `(` (`master` | `close` | `spread`) `)`
 /// reduction ::= `reduction` `(` reduction-entry-list `)`
 /// nowait ::= `nowait`
@@ -544,10 +633,15 @@ static ParseResult parseClauses(OpAsmParser &parser, OperationState &result,
   std::pair<OpAsmParser::OperandType, Type> device;
   std::pair<OpAsmParser::OperandType, Type> threadLimit;
 
+  SmallVector<OpAsmParser::OperandType> privates, firstprivates, lastprivates,
+      shareds, copyins;
+  SmallVector<Type> privateTypes, firstprivateTypes, lastprivateTypes,
+      sharedTypes, copyinTypes;
+
   SmallVector<OpAsmParser::OperandType> allocates, allocators;
   SmallVector<Type> allocateTypes, allocatorTypes;
 
-  ArrayAttr reductions;
+  SmallVector<SymbolRefAttr> reductionSymbols;
   SmallVector<OpAsmParser::OperandType> reductionVars;
   SmallVector<Type> reductionVarTypes;
 
@@ -566,9 +660,9 @@ static ParseResult parseClauses(OpAsmParser &parser, OperationState &result,
 
     // Skip the following clauses - they do not take any position in operand
     // segments
-    if (clause == procBindClause || clause == nowaitClause ||
-        clause == collapseClause || clause == orderClause ||
-        clause == orderedClause)
+    if (clause == defaultClause || clause == procBindClause ||
+        clause == nowaitClause || clause == collapseClause ||
+        clause == orderClause || clause == orderedClause)
       continue;
 
     pos[clause] = currPos++;
@@ -620,24 +714,62 @@ static ParseResult parseClauses(OpAsmParser &parser, OperationState &result,
           parser.parseColonType(threadLimit.second) || parser.parseRParen())
         return failure();
       clauseSegments[pos[threadLimitClause]] = 1;
+    } else if (clauseKeyword == "private") {
+      if (checkAllowed(privateClause) ||
+          parseOperandAndTypeList(parser, privates, privateTypes))
+        return failure();
+      clauseSegments[pos[privateClause]] = privates.size();
+    } else if (clauseKeyword == "firstprivate") {
+      if (checkAllowed(firstprivateClause) ||
+          parseOperandAndTypeList(parser, firstprivates, firstprivateTypes))
+        return failure();
+      clauseSegments[pos[firstprivateClause]] = firstprivates.size();
+    } else if (clauseKeyword == "lastprivate") {
+      if (checkAllowed(lastprivateClause) ||
+          parseOperandAndTypeList(parser, lastprivates, lastprivateTypes))
+        return failure();
+      clauseSegments[pos[lastprivateClause]] = lastprivates.size();
+    } else if (clauseKeyword == "shared") {
+      if (checkAllowed(sharedClause) ||
+          parseOperandAndTypeList(parser, shareds, sharedTypes))
+        return failure();
+      clauseSegments[pos[sharedClause]] = shareds.size();
+    } else if (clauseKeyword == "copyin") {
+      if (checkAllowed(copyinClause) ||
+          parseOperandAndTypeList(parser, copyins, copyinTypes))
+        return failure();
+      clauseSegments[pos[copyinClause]] = copyins.size();
     } else if (clauseKeyword == "allocate") {
-      if (checkAllowed(allocateClause) || parser.parseLParen() ||
+      if (checkAllowed(allocateClause) ||
           parseAllocateAndAllocator(parser, allocates, allocateTypes,
-                                    allocators, allocatorTypes) ||
-          parser.parseRParen())
+                                    allocators, allocatorTypes))
         return failure();
       clauseSegments[pos[allocateClause]] = allocates.size();
       clauseSegments[pos[allocateClause] + 1] = allocators.size();
+    } else if (clauseKeyword == "default") {
+      StringRef defval;
+      SMLoc loc = parser.getCurrentLocation();
+      if (checkAllowed(defaultClause) || parser.parseLParen() ||
+          parser.parseKeyword(&defval) || parser.parseRParen())
+        return failure();
+      // The def prefix is required for the attribute as "private" is a keyword
+      // in C++.
+      if (Optional<ClauseDefault> def =
+              symbolizeClauseDefault(("def" + defval).str())) {
+        result.addAttribute("default_val",
+                            ClauseDefaultAttr::get(parser.getContext(), *def));
+      } else {
+        return parser.emitError(loc, "invalid default clause");
+      }
     } else if (clauseKeyword == "proc_bind") {
       if (checkAllowed(procBindClause) ||
           parseClauseAttr<ClauseProcBindKindAttr>(parser, result,
                                                   "proc_bind_val", "proc bind"))
         return failure();
     } else if (clauseKeyword == "reduction") {
-      if (checkAllowed(reductionClause) || parser.parseLParen() ||
-          parseReductionVarList(parser, reductionVars, reductionVarTypes,
-                                reductions) ||
-          parser.parseRParen())
+      if (checkAllowed(reductionClause) ||
+          parseReductionVarList(parser, reductionSymbols, reductionVars,
+                                reductionVarTypes))
         return failure();
       clauseSegments[pos[reductionClause]] = reductionVars.size();
     } else if (clauseKeyword == "nowait") {
@@ -725,6 +857,37 @@ static ParseResult parseClauses(OpAsmParser &parser, OperationState &result,
                                    result.operands)))
     return failure();
 
+  // Add private parameters.
+  if (done[privateClause] && clauseSegments[pos[privateClause]] &&
+      failed(parser.resolveOperands(privates, privateTypes,
+                                    privates[0].location, result.operands)))
+    return failure();
+
+  // Add firstprivate parameters.
+  if (done[firstprivateClause] && clauseSegments[pos[firstprivateClause]] &&
+      failed(parser.resolveOperands(firstprivates, firstprivateTypes,
+                                    firstprivates[0].location,
+                                    result.operands)))
+    return failure();
+
+  // Add lastprivate parameters.
+  if (done[lastprivateClause] && clauseSegments[pos[lastprivateClause]] &&
+      failed(parser.resolveOperands(lastprivates, lastprivateTypes,
+                                    lastprivates[0].location, result.operands)))
+    return failure();
+
+  // Add shared parameters.
+  if (done[sharedClause] && clauseSegments[pos[sharedClause]] &&
+      failed(parser.resolveOperands(shareds, sharedTypes, shareds[0].location,
+                                    result.operands)))
+    return failure();
+
+  // Add copyin parameters.
+  if (done[copyinClause] && clauseSegments[pos[copyinClause]] &&
+      failed(parser.resolveOperands(copyins, copyinTypes, copyins[0].location,
+                                    result.operands)))
+    return failure();
+
   // Add allocate parameters.
   if (done[allocateClause] && clauseSegments[pos[allocateClause]] &&
       failed(parser.resolveOperands(allocates, allocateTypes,
@@ -742,7 +905,11 @@ static ParseResult parseClauses(OpAsmParser &parser, OperationState &result,
     if (failed(parser.resolveOperands(reductionVars, reductionVarTypes,
                                       parser.getNameLoc(), result.operands)))
       return failure();
-    result.addAttribute("reductions", reductions);
+
+    SmallVector<Attribute> reductions(reductionSymbols.begin(),
+                                      reductionSymbols.end());
+    result.addAttribute("reductions",
+                        parser.getBuilder().getArrayAttr(reductions));
   }
 
   // Add linear parameters
@@ -796,11 +963,124 @@ static ParseResult parseClauses(OpAsmParser &parser, OperationState &result,
   return success();
 }
 
+/// Parses a parallel operation.
+///
+/// operation ::= `omp.parallel` clause-list
+/// clause-list ::= clause | clause clause-list
+/// clause ::= if | num-threads | private | firstprivate | shared | copyin |
+///            allocate | default | proc-bind
+///
+ParseResult ParallelOp::parse(OpAsmParser &parser, OperationState &result) {
+  SmallVector<ClauseType> clauses = {
+      ifClause,           numThreadsClause, privateClause,
+      firstprivateClause, sharedClause,     copyinClause,
+      allocateClause,     defaultClause,    procBindClause};
+
+  SmallVector<int> segments;
+
+  if (failed(parseClauses(parser, result, clauses, segments)))
+    return failure();
+
+  result.addAttribute("operand_segment_sizes",
+                      parser.getBuilder().getI32VectorAttr(segments));
+
+  Region *body = result.addRegion();
+  SmallVector<OpAsmParser::OperandType> regionArgs;
+  SmallVector<Type> regionArgTypes;
+  if (parser.parseRegion(*body, regionArgs, regionArgTypes))
+    return failure();
+  return success();
+}
+
+/// Parses a target operation.
+///
+/// operation ::= `omp.target` clause-list
+/// clause-list ::= clause | clause clause-list
+/// clause ::= if | device | thread_limit | nowait
+///
+ParseResult TargetOp::parse(OpAsmParser &parser, OperationState &result) {
+  SmallVector<ClauseType> clauses = {ifClause, deviceClause, threadLimitClause,
+                                     nowaitClause};
+
+  SmallVector<int> segments;
+
+  if (failed(parseClauses(parser, result, clauses, segments)))
+    return failure();
+
+  result.addAttribute(
+      TargetOp::AttrSizedOperandSegments::getOperandSegmentSizeAttr(),
+      parser.getBuilder().getI32VectorAttr(segments));
+
+  Region *body = result.addRegion();
+  SmallVector<OpAsmParser::OperandType> regionArgs;
+  SmallVector<Type> regionArgTypes;
+  if (parser.parseRegion(*body, regionArgs, regionArgTypes))
+    return failure();
+  return success();
+}
+
 //===----------------------------------------------------------------------===//
-// Verifier for SectionsOp
+// Parser, printer and verifier for SectionsOp
 //===----------------------------------------------------------------------===//
 
+/// Parses an OpenMP Sections operation
+///
+/// sections ::= `omp.sections` clause-list
+/// clause-list ::= clause clause-list | empty
+/// clause ::= private | firstprivate | lastprivate | reduction | allocate |
+///            nowait
+ParseResult SectionsOp::parse(OpAsmParser &parser, OperationState &result) {
+  SmallVector<ClauseType> clauses = {privateClause,     firstprivateClause,
+                                     lastprivateClause, reductionClause,
+                                     allocateClause,    nowaitClause};
+
+  SmallVector<int> segments;
+
+  if (failed(parseClauses(parser, result, clauses, segments)))
+    return failure();
+
+  result.addAttribute("operand_segment_sizes",
+                      parser.getBuilder().getI32VectorAttr(segments));
+
+  // Now parse the body.
+  Region *body = result.addRegion();
+  if (parser.parseRegion(*body))
+    return failure();
+  return success();
+}
+
+void SectionsOp::print(OpAsmPrinter &p) {
+  p << " ";
+  printDataVars(p, private_vars(), "private");
+  printDataVars(p, firstprivate_vars(), "firstprivate");
+  printDataVars(p, lastprivate_vars(), "lastprivate");
+
+  if (!reduction_vars().empty())
+    printReductionVarList(p, reductions(), reduction_vars());
+
+  if (!allocate_vars().empty())
+    printAllocateAndAllocator(p, allocate_vars(), allocators_vars());
+
+  if (nowait())
+    p << "nowait";
+
+  p << ' ';
+  p.printRegion(region());
+}
+
 LogicalResult SectionsOp::verify() {
+  // A list item may not appear in more than one clause on the same directive,
+  // except that it may be specified in both firstprivate and lastprivate
+  // clauses.
+  for (auto var : private_vars()) {
+    if (llvm::is_contained(firstprivate_vars(), var))
+      return emitOpError()
+             << "operand used in both private and firstprivate clauses";
+    if (llvm::is_contained(lastprivate_vars(), var))
+      return emitOpError()
+             << "operand used in both private and lastprivate clauses";
+  }
+
   if (allocate_vars().size() != allocators_vars().size())
     return emitError(
         "expected equal sizes for allocate and allocator variables");
@@ -822,8 +1102,8 @@ LogicalResult SectionsOp::verify() {
 /// loop-bounds := `(` ssa-id-list `)` to `(` ssa-id-list `)` inclusive? steps
 /// steps := `step` `(`ssa-id-list`)`
 /// clause-list ::= clause clause-list | empty
-/// clause ::= linear | schedule | collapse | nowait | ordered | order
-///          | reduction
+/// clause ::= private | firstprivate | lastprivate | linear | schedule |
+//             collapse | nowait | ordered | order | reduction
 ParseResult WsLoopOp::parse(OpAsmParser &parser, OperationState &result) {
   // Parse an opening `(` followed by induction variables followed by `)`
   SmallVector<OpAsmParser::OperandType> ivs;
@@ -862,8 +1142,9 @@ ParseResult WsLoopOp::parse(OpAsmParser &parser, OperationState &result) {
     return failure();
 
   SmallVector<ClauseType> clauses = {
-      linearClause,  reductionClause, collapseClause, orderClause,
-      orderedClause, nowaitClause,    scheduleClause};
+      privateClause,   firstprivateClause, lastprivateClause, linearClause,
+      reductionClause, collapseClause,     orderClause,       orderedClause,
+      nowaitClause,    scheduleClause};
   SmallVector<int> segments{numIVs, numIVs, numIVs};
   if (failed(parseClauses(parser, result, clauses, segments)))
     return failure();
@@ -889,6 +1170,10 @@ void WsLoopOp::print(OpAsmPrinter &p) {
   }
   p << "step (" << step() << ") ";
 
+  printDataVars(p, private_vars(), "private");
+  printDataVars(p, firstprivate_vars(), "firstprivate");
+  printDataVars(p, lastprivate_vars(), "lastprivate");
+
   if (!linear_vars().empty())
     printLinearClause(p, linear_vars(), linear_step_vars());
 
@@ -908,11 +1193,8 @@ void WsLoopOp::print(OpAsmPrinter &p) {
   if (auto order = order_val())
     p << "order(" << stringifyClauseOrderKind(*order) << ") ";
 
-  if (!reduction_vars().empty()) {
-    printReductionVarList(p << "reduction(", *this, reduction_vars(),
-                          reduction_vars().getTypes(), reductions());
-    p << ")";
-  }
+  if (!reduction_vars().empty())
+    printReductionVarList(p, reductions(), reduction_vars());
 
   p << ' ';
   p.printRegion(region(), /*printEntryBlockArgs=*/false);
@@ -1006,6 +1288,8 @@ void WsLoopOp::build(OpBuilder &builder, OperationState &state,
                      ValueRange lowerBound, ValueRange upperBound,
                      ValueRange step, ArrayRef<NamedAttribute> attributes) {
   build(builder, state, TypeRange(), lowerBound, upperBound, step,
+        /*privateVars=*/ValueRange(),
+        /*firstprivateVars=*/ValueRange(), /*lastprivate_vars=*/ValueRange(),
         /*linear_vars=*/ValueRange(), /*linear_step_vars=*/ValueRange(),
         /*reduction_vars=*/ValueRange(), /*schedule_val=*/nullptr,
         /*schedule_chunk_var=*/nullptr, /*collapse_val=*/nullptr,
@@ -1026,14 +1310,18 @@ void WsLoopOp::build(OpBuilder &, OperationState &state, TypeRange resultTypes,
 void WsLoopOp::build(OpBuilder &builder, OperationState &result,
                      TypeRange typeRange, ValueRange lowerBounds,
                      ValueRange upperBounds, ValueRange steps,
-                     ValueRange linearVars, ValueRange linearStepVars,
-                     ValueRange reductionVars, StringAttr scheduleVal,
-                     Value scheduleChunkVar, IntegerAttr collapseVal,
-                     UnitAttr nowait, IntegerAttr orderedVal,
-                     StringAttr orderVal, UnitAttr inclusive, bool buildBody) {
+                     ValueRange privateVars, ValueRange firstprivateVars,
+                     ValueRange lastprivateVars, ValueRange linearVars,
+                     ValueRange linearStepVars, ValueRange reductionVars,
+                     StringAttr scheduleVal, Value scheduleChunkVar,
+                     IntegerAttr collapseVal, UnitAttr nowait,
+                     IntegerAttr orderedVal, StringAttr orderVal,
+                     UnitAttr inclusive, bool buildBody) {
   result.addOperands(lowerBounds);
   result.addOperands(upperBounds);
   result.addOperands(steps);
+  result.addOperands(privateVars);
+  result.addOperands(firstprivateVars);
   result.addOperands(linearVars);
   result.addOperands(linearStepVars);
   if (scheduleChunkVar)
@@ -1057,6 +1345,9 @@ void WsLoopOp::build(OpBuilder &builder, OperationState &result,
           {static_cast<int32_t>(lowerBounds.size()),
            static_cast<int32_t>(upperBounds.size()),
            static_cast<int32_t>(steps.size()),
+           static_cast<int32_t>(privateVars.size()),
+           static_cast<int32_t>(firstprivateVars.size()),
+           static_cast<int32_t>(lastprivateVars.size()),
            static_cast<int32_t>(linearVars.size()),
            static_cast<int32_t>(linearStepVars.size()),
            static_cast<int32_t>(reductionVars.size()),

@@ -18,5 +18,4 @@ add_llvm_library(LLVMDebuginfod
 
   LINK_COMPONENTS
   Support
-  Symbolize
   )

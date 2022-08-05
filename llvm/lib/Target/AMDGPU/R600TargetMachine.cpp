@@ -131,7 +131,7 @@ void R600PassConfig::addPreSched2() {
 }
 
 void R600PassConfig::addPreEmitPass() {
-  addPass(createR600MachineCFGStructurizerPass());
+  addPass(createAMDGPUCFGStructurizerPass());
   addPass(createR600ExpandSpecialInstrsPass());
   addPass(&FinalizeMachineBundlesID);
   addPass(createR600Packetizer());

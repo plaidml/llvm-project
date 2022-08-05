@@ -58,7 +58,7 @@ struct TestDialect : public Dialect {
   }
 
   void getCanonicalizationPatterns(RewritePatternSet &results) const override {
-    results.add<DisabledPattern, EnabledPattern>(results.getContext());
+    results.insert<DisabledPattern, EnabledPattern>(results.getContext());
   }
 };
 

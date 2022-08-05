@@ -46,18 +46,14 @@ extern cl::opt<unsigned> SetLicmMssaNoAccForPromotionCap;
 class LICMPass : public PassInfoMixin<LICMPass> {
   unsigned LicmMssaOptCap;
   unsigned LicmMssaNoAccForPromotionCap;
-  bool LicmAllowSpeculation;
 
 public:
   LICMPass()
       : LicmMssaOptCap(SetLicmMssaOptCap),
-        LicmMssaNoAccForPromotionCap(SetLicmMssaNoAccForPromotionCap),
-        LicmAllowSpeculation(true) {}
-  LICMPass(unsigned LicmMssaOptCap, unsigned LicmMssaNoAccForPromotionCap,
-           bool LicmAllowSpeculation)
+        LicmMssaNoAccForPromotionCap(SetLicmMssaNoAccForPromotionCap) {}
+  LICMPass(unsigned LicmMssaOptCap, unsigned LicmMssaNoAccForPromotionCap)
       : LicmMssaOptCap(LicmMssaOptCap),
-        LicmMssaNoAccForPromotionCap(LicmMssaNoAccForPromotionCap),
-        LicmAllowSpeculation(LicmAllowSpeculation) {}
+        LicmMssaNoAccForPromotionCap(LicmMssaNoAccForPromotionCap) {}
   PreservedAnalyses run(Loop &L, LoopAnalysisManager &AM,
                         LoopStandardAnalysisResults &AR, LPMUpdater &U);
 };
@@ -66,18 +62,14 @@ public:
 class LNICMPass : public PassInfoMixin<LNICMPass> {
   unsigned LicmMssaOptCap;
   unsigned LicmMssaNoAccForPromotionCap;
-  bool LicmAllowSpeculation;
 
 public:
   LNICMPass()
       : LicmMssaOptCap(SetLicmMssaOptCap),
-        LicmMssaNoAccForPromotionCap(SetLicmMssaNoAccForPromotionCap),
-        LicmAllowSpeculation(true) {}
-  LNICMPass(unsigned LicmMssaOptCap, unsigned LicmMssaNoAccForPromotionCap,
-            bool LicmAllowSpeculation)
+        LicmMssaNoAccForPromotionCap(SetLicmMssaNoAccForPromotionCap) {}
+  LNICMPass(unsigned LicmMssaOptCap, unsigned LicmMssaNoAccForPromotionCap)
       : LicmMssaOptCap(LicmMssaOptCap),
-        LicmMssaNoAccForPromotionCap(LicmMssaNoAccForPromotionCap),
-        LicmAllowSpeculation(LicmAllowSpeculation) {}
+        LicmMssaNoAccForPromotionCap(LicmMssaNoAccForPromotionCap) {}
   PreservedAnalyses run(LoopNest &L, LoopAnalysisManager &AM,
                         LoopStandardAnalysisResults &AR, LPMUpdater &U);
 };

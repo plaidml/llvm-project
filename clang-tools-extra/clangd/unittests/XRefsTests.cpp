@@ -815,12 +815,6 @@ TEST(LocateSymbol, All) {
         }
       )cpp",
 
-      R"cpp(// auto lambda param where there's a single instantiation
-        struct [[Bar]] {};
-        auto Lambda = [](^auto){ return 0; };
-        int x = Lambda(Bar{});
-      )cpp",
-
       R"cpp(// decltype(auto) in function return
         struct [[Bar]] {};
         ^decltype(auto) test() {

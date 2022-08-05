@@ -385,7 +385,7 @@ def SPV_GlobalVariableOp : SPV_Op<"GlobalVariable", [InModuleScope, Symbol]> {
     OptionalAttr<FlatSymbolRefAttr>:$initializer,
     OptionalAttr<I32Attr>:$location,
     OptionalAttr<I32Attr>:$binding,
-    OptionalAttr<I32Attr>:$descriptor_set,
+    OptionalAttr<I32Attr>:$descriptorSet,
     OptionalAttr<StrAttr>:$builtin
   );
 

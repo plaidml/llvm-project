@@ -8,7 +8,6 @@
 
 #include "mlir/Analysis/Presburger/IntegerPolyhedron.h"
 #include "./Utils.h"
-#include "mlir/Analysis/Presburger/Simplex.h"
 #include "mlir/IR/MLIRContext.h"
 
 #include <gmock/gmock.h>
@@ -17,7 +16,7 @@
 #include <numeric>
 
 namespace mlir {
-using namespace presburger_utils;
+
 using testing::ElementsAre;
 
 enum class TestFunction { Sample, Empty };
@@ -37,53 +36,29 @@ makeSetFromConstraints(unsigned ids, ArrayRef<SmallVector<int64_t, 4>> ineqs,
   return set;
 }
 
-static void dump(ArrayRef<int64_t> vec) {
-  for (int64_t x : vec)
-    llvm::errs() << x << ' ';
-  llvm::errs() << '\n';
-}
-
 /// If fn is TestFunction::Sample (default):
-///
-///   If hasSample is true, check that findIntegerSample returns a valid sample
-///   for the IntegerPolyhedron poly. Also check that getIntegerLexmin finds a
-///   non-empty lexmin.
-///
-///   If hasSample is false, check that findIntegerSample returns None and
-///   getIntegerLexMin returns Empty.
+/// If hasSample is true, check that findIntegerSample returns a valid sample
+/// for the IntegerPolyhedron poly.
+/// If hasSample is false, check that findIntegerSample returns None.
 ///
 /// If fn is TestFunction::Empty, check that isIntegerEmpty returns the
 /// opposite of hasSample.
 static void checkSample(bool hasSample, const IntegerPolyhedron &poly,
                         TestFunction fn = TestFunction::Sample) {
   Optional<SmallVector<int64_t, 8>> maybeSample;
-  MaybeOptimum<SmallVector<int64_t, 8>> maybeLexMin;
   switch (fn) {
   case TestFunction::Sample:
     maybeSample = poly.findIntegerSample();
-    maybeLexMin = poly.getIntegerLexMin();
-
     if (!hasSample) {
       EXPECT_FALSE(maybeSample.hasValue());
       if (maybeSample.hasValue()) {
-        llvm::errs() << "findIntegerSample gave sample: ";
-        dump(*maybeSample);
-      }
-
-      EXPECT_TRUE(maybeLexMin.isEmpty());
-      if (maybeLexMin.isBounded()) {
-        llvm::errs() << "getIntegerLexMin gave sample: ";
-        dump(*maybeLexMin);
+        for (auto x : *maybeSample)
+          llvm::errs() << x << ' ';
+        llvm::errs() << '\n';
       }
     } else {
       ASSERT_TRUE(maybeSample.hasValue());
       EXPECT_TRUE(poly.containsPoint(*maybeSample));
-
-      ASSERT_FALSE(maybeLexMin.isEmpty());
-      if (maybeLexMin.isUnbounded())
-        EXPECT_TRUE(Simplex(poly).isUnbounded());
-      if (maybeLexMin.isBounded())
-        EXPECT_TRUE(poly.containsPoint(*maybeLexMin));
     }
     break;
   case TestFunction::Empty:
@@ -183,7 +158,7 @@ TEST(IntegerPolyhedronTest, removeIdRange) {
   EXPECT_THAT(set.getInequality(0),
               testing::ElementsAre(10, 11, 12, 20, 30, 40));
 
-  set.removeIdRange(IntegerPolyhedron::IdKind::SetDim, 0, 2);
+  set.removeIdRange(IntegerPolyhedron::IdKind::Dimension, 0, 2);
   EXPECT_THAT(set.getInequality(0), testing::ElementsAre(12, 20, 30, 40));
 
   set.removeIdRange(IntegerPolyhedron::IdKind::Local, 1, 1);
@@ -1082,14 +1057,12 @@ TEST(IntegerPolyhedronTest, negativeDividends) {
 void expectRationalLexMin(const IntegerPolyhedron &poly,
                           ArrayRef<Fraction> min) {
   auto lexMin = poly.getRationalLexMin();
-  ASSERT_TRUE(lexMin.isBounded());
+  ASSERT_TRUE(lexMin.hasValue());
   EXPECT_EQ(ArrayRef<Fraction>(*lexMin), min);
 }
 
-void expectNoRationalLexMin(OptimumKind kind, const IntegerPolyhedron &poly) {
-  ASSERT_NE(kind, OptimumKind::Bounded)
-      << "Use expectRationalLexMin for bounded min";
-  EXPECT_EQ(poly.getRationalLexMin().getKind(), kind);
+void expectNoRationalLexMin(const IntegerPolyhedron &poly) {
+  EXPECT_FALSE(poly.getRationalLexMin().hasValue());
 }
 
 TEST(IntegerPolyhedronTest, getRationalLexMin) {
@@ -1145,7 +1118,6 @@ TEST(IntegerPolyhedronTest, getRationalLexMin) {
 
   // Same as above with one constraint removed, making the lexmin unbounded.
   expectNoRationalLexMin(
-      OptimumKind::Unbounded,
       parsePoly("(x, y, z, w) : (3*x + 2*y + 10 >= 0, -4*x + 7*y + 10 >= 0,"
                 "-3*y + 10 >= 0, 3*z + 2*w - 9*x - 12*y >= 0,"
                 "-4*z + 7*w + - 9*x - 9*y - 10>= 0)",
@@ -1153,39 +1125,12 @@ TEST(IntegerPolyhedronTest, getRationalLexMin) {
 
   // Again, the lexmin is unbounded.
   expectNoRationalLexMin(
-      OptimumKind::Unbounded,
       parsePoly("(x, y, z) : (2*x + 5*y + 8*z - 10 >= 0,"
                 "2*x + 10*y + 8*z - 10 >= 0, 2*x + 5*y + 10*z - 10 >= 0)",
                 &context));
 
   // The set is empty.
-  expectNoRationalLexMin(OptimumKind::Empty,
-                         parsePoly("(x) : (2*x >= 0, -x - 1 >= 0)", &context));
-}
-
-void expectIntegerLexMin(const IntegerPolyhedron &poly, ArrayRef<int64_t> min) {
-  auto lexMin = poly.getIntegerLexMin();
-  ASSERT_TRUE(lexMin.isBounded());
-  EXPECT_EQ(ArrayRef<int64_t>(*lexMin), min);
-}
-
-void expectNoIntegerLexMin(OptimumKind kind, const IntegerPolyhedron &poly) {
-  ASSERT_NE(kind, OptimumKind::Bounded)
-      << "Use expectRationalLexMin for bounded min";
-  EXPECT_EQ(poly.getRationalLexMin().getKind(), kind);
-}
-
-TEST(IntegerPolyhedronTest, getIntegerLexMin) {
-  MLIRContext context;
-  expectIntegerLexMin(parsePoly("(x, y, z) : (2*x + 13 >= 0, 4*y - 3*x - 2  >= "
-                                "0, 11*z + 5*y - 3*x + 7 >= 0)",
-                                &context),
-                      {-6, -4, 0});
-  // Similar to above but no lower bound on z.
-  expectNoIntegerLexMin(OptimumKind::Unbounded,
-                        parsePoly("(x, y, z) : (2*x + 13 >= 0, 4*y - 3*x - 2  "
-                                  ">= 0, -11*z + 5*y - 3*x + 7 >= 0)",
-                                  &context));
+  expectNoRationalLexMin(parsePoly("(x) : (2*x >= 0, -x - 1 >= 0)", &context));
 }
 
 static void

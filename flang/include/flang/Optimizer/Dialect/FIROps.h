@@ -38,10 +38,6 @@ mlir::ParseResult parseSelector(mlir::OpAsmParser &parser,
                                 mlir::OpAsmParser::OperandType &selector,
                                 mlir::Type &type);
 
-static constexpr llvm::StringRef getAdaptToByRefAttrName() {
-  return "adapt.valuebyref";
-}
-
 } // namespace fir
 
 #define GET_OP_CLASSES

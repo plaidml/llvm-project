@@ -96,7 +96,7 @@ add_llvm_target(AMDGPUCodeGen
   AMDGPUTargetTransformInfo.cpp
   AMDGPUUnifyDivergentExitNodes.cpp
   AMDGPUUnifyMetadata.cpp
-  R600MachineCFGStructurizer.cpp
+  AMDILCFGStructurizer.cpp
   GCNDPPCombine.cpp
   GCNHazardRecognizer.cpp
   GCNILPSched.cpp

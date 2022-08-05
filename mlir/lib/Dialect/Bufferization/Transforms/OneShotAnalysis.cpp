@@ -707,8 +707,7 @@ assertDestinationPassingStyle(Operation *op, BufferizationState &state,
   LogicalResult status = success();
   DominanceInfo domInfo(op);
   op->walk([&](Operation *returnOp) {
-    if (!isRegionReturnLike(returnOp) ||
-        !state.getOptions().isOpAllowed(returnOp))
+    if (!isRegionReturnLike(returnOp))
       return WalkResult::advance();
 
     for (OpOperand &returnValOperand : returnOp->getOpOperands()) {
@@ -779,19 +778,6 @@ LogicalResult bufferization::analyzeOp(Operation *op,
       return failure();
   }
 
-  // Analysis verification: After setting up alias/equivalence sets, each op
-  // can check for expected invariants/limitations and fail the analysis if
-  // necessary.
-  bool passedAnalysis = true;
-  op->walk([&](Operation *op) {
-    if (BufferizableOpInterface bufferizableOp =
-            options.dynCastBufferizableOp(op))
-      if (failed(bufferizableOp.verifyAnalysis(state)))
-        passedAnalysis = false;
-  });
-  if (!passedAnalysis)
-    return failure();
-
   // Annotate operations if we only want to report the analysis.
   if (options.testAnalysisOnly)
     annotateOpsWithBufferizationMarkers(op, aliasInfo, state);
@@ -800,11 +786,11 @@ LogicalResult bufferization::analyzeOp(Operation *op,
 }
 
 LogicalResult bufferization::runOneShotBufferize(
-    Operation *op, const AnalysisBufferizationOptions &options) {
-  AnalysisBufferizationState state(op, options);
+    Operation *op, std::unique_ptr<AnalysisBufferizationOptions> options) {
+  AnalysisBufferizationState state(op, *options);
   if (failed(analyzeOp(op, state)))
     return failure();
-  if (options.testAnalysisOnly)
+  if (options->testAnalysisOnly)
     return success();
   return bufferizeOp(op, state);
 }
