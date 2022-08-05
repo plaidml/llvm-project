@@ -11,12 +11,13 @@
 
 #include "ARMBuildAttributes.h"
 #include "ELFAttributeParser.h"
-#include "llvm/ADT/StringRef.h"
+#include "ScopedPrinter.h"
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/Support/DataExtractor.h"
+#include "llvm/Support/Endian.h"
 #include "llvm/Support/Error.h"
 
 namespace llvm {
-
-class ScopedPrinter;
 
 class ARMAttributeParser : public ELFAttributeParser {
   struct DisplayHandler {

@@ -15,7 +15,6 @@
 #include "llvm/IR/PassManager.h"
 
 #include <deque>
-#include <map>
 #include <memory>
 
 namespace llvm {

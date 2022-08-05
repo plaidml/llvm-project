@@ -21,7 +21,6 @@
 #include "llvm/MC/MCSectionMachO.h"
 #include "llvm/MC/MCSectionWasm.h"
 #include "llvm/MC/MCSectionXCOFF.h"
-#include "llvm/Support/Casting.h"
 
 using namespace llvm;
 
@@ -299,18 +298,6 @@ void MCObjectFileInfo::initMachOMCObjectFileInfo(const Triple &T) {
 
   RemarksSection = Ctx->getMachOSection(
       "__LLVM", "__remarks", MachO::S_ATTR_DEBUG, SectionKind::getMetadata());
-
-  // The architecture of dsymutil makes it very difficult to copy the Swift
-  // reflection metadata sections into the __TEXT segment, so dsymutil creates
-  // these sections in the __DWARF segment instead.
-  if (!Ctx->getSwift5ReflectionSegmentName().empty()) {
-#define HANDLE_SWIFT_SECTION(KIND, MACHO, ELF, COFF)                           \
-  Swift5ReflectionSections                                                     \
-      [llvm::binaryformat::Swift5ReflectionSectionKind::KIND] =                \
-          Ctx->getMachOSection(Ctx->getSwift5ReflectionSegmentName().data(),   \
-                               MACHO, 0, SectionKind::getMetadata());
-#include "llvm/BinaryFormat/Swift.def"
-  }
 
   TLSExtraDataSection = TLSTLVSection;
 }
@@ -994,7 +981,7 @@ void MCObjectFileInfo::initXCOFFMCObjectFileInfo(const Triple &T) {
       /* MultiSymbolsAllowed */ true, ".dwmac", XCOFF::SSUBTYP_DWMAC);
 }
 
-MCObjectFileInfo::~MCObjectFileInfo() = default;
+MCObjectFileInfo::~MCObjectFileInfo() {}
 
 void MCObjectFileInfo::initMCObjectFileInfo(MCContext &MCCtx, bool PIC,
                                             bool LargeCodeModel) {

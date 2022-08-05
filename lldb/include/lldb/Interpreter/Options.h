@@ -169,7 +169,7 @@ public:
   /// user wants returned.
   ///
   /// \return
-  ///     \b true if we were in an option, \b false otherwise.
+  ///     \btrue if we were in an option, \bfalse otherwise.
   bool HandleOptionCompletion(lldb_private::CompletionRequest &request,
                               OptionElementVector &option_map,
                               CommandInterpreter &interpreter);

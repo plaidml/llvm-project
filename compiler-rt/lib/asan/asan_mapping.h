@@ -13,8 +13,6 @@
 #ifndef ASAN_MAPPING_H
 #define ASAN_MAPPING_H
 
-#include "sanitizer_common/sanitizer_platform.h"
-
 // The full explanation of the memory mapping could be found here:
 // https://github.com/google/sanitizers/wiki/AddressSanitizerAlgorithm
 //

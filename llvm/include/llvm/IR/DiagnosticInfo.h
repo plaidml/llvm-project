@@ -15,16 +15,14 @@
 #define LLVM_IR_DIAGNOSTICINFO_H
 
 #include "llvm-c/Types.h"
-#include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/IR/DebugLoc.h"
 #include "llvm/Support/CBindingWrapping.h"
-#include "llvm/Support/ErrorHandling.h"
-#include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/TypeSize.h"
+#include "llvm/Support/YAMLTraits.h"
 #include <algorithm>
 #include <cstdint>
 #include <functional>
@@ -35,15 +33,13 @@ namespace llvm {
 
 // Forward declarations.
 class DiagnosticPrinter;
-class DIFile;
-class DISubprogram;
 class CallInst;
 class Function;
 class Instruction;
 class InstructionCost;
+class LLVMContext;
 class Module;
-class Type;
-class Value;
+class SMDiagnostic;
 
 /// Defines the different supported severity of a diagnostic.
 enum DiagnosticSeverity : char {
@@ -1053,20 +1049,18 @@ static DiagnosticSeverity getDiagnosticSeverity(SourceMgr::DiagKind DK) {
 /// Diagnostic information for SMDiagnostic reporting.
 class DiagnosticInfoSrcMgr : public DiagnosticInfo {
   const SMDiagnostic &Diagnostic;
-  StringRef ModName;
 
   // For inlineasm !srcloc translation.
   bool InlineAsmDiag;
   unsigned LocCookie;
 
 public:
-  DiagnosticInfoSrcMgr(const SMDiagnostic &Diagnostic, StringRef ModName,
+  DiagnosticInfoSrcMgr(const SMDiagnostic &Diagnostic,
                        bool InlineAsmDiag = true, unsigned LocCookie = 0)
       : DiagnosticInfo(DK_SrcMgr, getDiagnosticSeverity(Diagnostic.getKind())),
-        Diagnostic(Diagnostic), ModName(ModName), InlineAsmDiag(InlineAsmDiag),
+        Diagnostic(Diagnostic), InlineAsmDiag(InlineAsmDiag),
         LocCookie(LocCookie) {}
 
-  StringRef getModuleName() const { return ModName; }
   bool isInlineAsmDiag() const { return InlineAsmDiag; }
   const SMDiagnostic &getSMDiag() const { return Diagnostic; }
   unsigned getLocCookie() const { return LocCookie; }

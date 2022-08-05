@@ -22,7 +22,6 @@
     __cpp_lib_generic_associative_lookup           201304L [C++14]
     __cpp_lib_node_extract                         201606L [C++17]
     __cpp_lib_nonmember_container_access           201411L [C++17]
-    __cpp_lib_ranges_to_container                  202202L [C++2b]
 */
 
 #include <set>
@@ -54,10 +53,6 @@
 #   error "__cpp_lib_nonmember_container_access should not be defined before c++17"
 # endif
 
-# ifdef __cpp_lib_ranges_to_container
-#   error "__cpp_lib_ranges_to_container should not be defined before c++2b"
-# endif
-
 #elif TEST_STD_VER == 14
 
 # ifdef __cpp_lib_allocator_traits_is_always_equal
@@ -85,10 +80,6 @@
 
 # ifdef __cpp_lib_nonmember_container_access
 #   error "__cpp_lib_nonmember_container_access should not be defined before c++17"
-# endif
-
-# ifdef __cpp_lib_ranges_to_container
-#   error "__cpp_lib_ranges_to_container should not be defined before c++2b"
 # endif
 
 #elif TEST_STD_VER == 17
@@ -127,10 +118,6 @@
 # endif
 # if __cpp_lib_nonmember_container_access != 201411L
 #   error "__cpp_lib_nonmember_container_access should have the value 201411L in c++17"
-# endif
-
-# ifdef __cpp_lib_ranges_to_container
-#   error "__cpp_lib_ranges_to_container should not be defined before c++2b"
 # endif
 
 #elif TEST_STD_VER == 20
@@ -172,10 +159,6 @@
 # endif
 # if __cpp_lib_nonmember_container_access != 201411L
 #   error "__cpp_lib_nonmember_container_access should have the value 201411L in c++20"
-# endif
-
-# ifdef __cpp_lib_ranges_to_container
-#   error "__cpp_lib_ranges_to_container should not be defined before c++2b"
 # endif
 
 #elif TEST_STD_VER > 20
@@ -226,19 +209,6 @@
 # endif
 # if __cpp_lib_nonmember_container_access != 201411L
 #   error "__cpp_lib_nonmember_container_access should have the value 201411L in c++2b"
-# endif
-
-# if !defined(_LIBCPP_VERSION)
-#   ifndef __cpp_lib_ranges_to_container
-#     error "__cpp_lib_ranges_to_container should be defined in c++2b"
-#   endif
-#   if __cpp_lib_ranges_to_container != 202202L
-#     error "__cpp_lib_ranges_to_container should have the value 202202L in c++2b"
-#   endif
-# else // _LIBCPP_VERSION
-#   ifdef __cpp_lib_ranges_to_container
-#     error "__cpp_lib_ranges_to_container should not be defined because it is unimplemented in libc++!"
-#   endif
 # endif
 
 #endif // TEST_STD_VER > 20

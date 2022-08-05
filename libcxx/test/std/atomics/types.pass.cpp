@@ -22,11 +22,11 @@
 #include <memory>
 #include <type_traits>
 
-#include "test_macros.h"
-
-#ifndef TEST_HAS_NO_THREADS
-#  include <thread>
+#ifndef _LIBCPP_HAS_NO_THREADS
+#   include <thread>
 #endif
+
+#include "test_macros.h"
 
 template <class A, bool Integral>
 struct test_atomic
@@ -167,7 +167,7 @@ int main(int, char**)
     test<LargeTriviallyCopyable>();
 #endif
 
-#ifndef TEST_HAS_NO_THREADS
+#ifndef _LIBCPP_HAS_NO_THREADS
     test<std::thread::id>();
 #endif
     test<std::chrono::nanoseconds>();

@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "llvm/Demangle/MicrosoftDemangleNodes.h"
+#include "llvm/Demangle/DemangleConfig.h"
 #include "llvm/Demangle/Utility.h"
 #include <cctype>
 #include <string>

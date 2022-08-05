@@ -19,12 +19,14 @@
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/MC/MCSection.h"
 #include "llvm/MC/StringTableBuilder.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/MD5.h"
 #include <cassert>
 #include <cstdint>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -34,7 +36,6 @@ template <typename T> class ArrayRef;
 class MCAsmBackend;
 class MCContext;
 class MCObjectStreamer;
-class MCSection;
 class MCStreamer;
 class MCSymbol;
 class raw_ostream;

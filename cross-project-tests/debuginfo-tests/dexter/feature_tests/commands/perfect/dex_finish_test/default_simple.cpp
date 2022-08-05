@@ -4,14 +4,16 @@
 //      is stepped on.
 //      Tests using the default controller (no \DexLimitSteps).
 //
+// REQUIRES: system-linux
+//
 // RUN: %dexter_regression_test -- %s | FileCheck %s
 // CHECK: default_simple.cpp
 
 int main() {
-    int x = 0;
-    x = 1; // DexLabel('start_line')
+    int x = 0; // DexLabel('start_line')
+    x = 1;
     x = 2; // DexLabel('finish_line')
 }
 
 // DexFinishTest(on_line=ref('finish_line'))
-// DexExpectWatchValue('x', 0, 1, from_line=ref('start_line'), to_line=ref('finish_line'))
+// DexExpectWatchValue('x', 0, 1)

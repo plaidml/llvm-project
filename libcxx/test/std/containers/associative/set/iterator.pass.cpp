@@ -72,12 +72,6 @@ int main(int, char**)
         assert(i == k);
         for (int j = 1; static_cast<std::size_t>(j) <= m.size(); ++j, ++i)
             assert(*i == j);
-        assert(i == m.end());
-        for (int j = m.size(); j >= 1; --j) {
-            --i;
-            assert(*i == j);
-        }
-        assert(i == m.begin());
     }
     {
         typedef int V;
@@ -117,12 +111,6 @@ int main(int, char**)
         i = m.begin();
         for (int j = 1; static_cast<std::size_t>(j) <= m.size(); ++j, ++i)
             assert(*i == j);
-        assert(i == m.end());
-        for (int j = m.size(); j >= 1; --j) {
-            --i;
-            assert(*i == j);
-        }
-        assert(i == m.begin());
     }
 #if TEST_STD_VER >= 11
     {
@@ -163,12 +151,6 @@ int main(int, char**)
         assert(i == k);
         for (int j = 1; static_cast<std::size_t>(j) <= m.size(); ++j, ++i)
             assert(*i == j);
-        assert(i == m.end());
-        for (int j = m.size(); j >= 1; --j) {
-            --i;
-            assert(*i == j);
-        }
-        assert(i == m.begin());
     }
     {
         typedef int V;
@@ -208,12 +190,6 @@ int main(int, char**)
         i = m.begin();
         for (int j = 1; static_cast<std::size_t>(j) <= m.size(); ++j, ++i)
             assert(*i == j);
-        assert(i == m.end());
-        for (int j = m.size(); j >= 1; --j) {
-            --i;
-            assert(*i == j);
-        }
-        assert(i == m.begin());
     }
 #endif
 #if TEST_STD_VER > 11

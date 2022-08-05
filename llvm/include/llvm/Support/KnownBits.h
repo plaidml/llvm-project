@@ -31,7 +31,7 @@ private:
 
 public:
   // Default construct Zero and One.
-  KnownBits() = default;
+  KnownBits() {}
 
   /// Create a known bits object of BitWidth bits initialized to unknown.
   KnownBits(unsigned BitWidth) : Zero(BitWidth, 0), One(BitWidth, 0) {}
@@ -324,7 +324,7 @@ public:
 
   /// Compute known bits resulting from multiplying LHS and RHS.
   static KnownBits mul(const KnownBits &LHS, const KnownBits &RHS,
-                       bool NoUndefSelfMultiply = false);
+                       bool SelfMultiply = false);
 
   /// Compute known bits from sign-extended multiply-hi.
   static KnownBits mulhs(const KnownBits &LHS, const KnownBits &RHS);

@@ -17,7 +17,6 @@ add_clang_unittest(ToolingTests
   ExecutionTest.cpp
   FixItTest.cpp
   HeaderIncludesTest.cpp
-  StandardLibraryTest.cpp
   LexicallyOrderedRecursiveASTVisitorTest.cpp
   LookupTest.cpp
   QualTypeNamesTest.cpp

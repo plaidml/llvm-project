@@ -136,7 +136,7 @@ void ManualDWARFIndex::Index() {
 
 void ManualDWARFIndex::IndexUnit(DWARFUnit &unit, SymbolFileDWARFDwo *dwp,
                                  IndexSet &set) {
-  Log *log = GetLog(DWARFLog::Lookups);
+  Log *log = LogChannelDWARF::GetLogIfAll(DWARF_LOG_LOOKUPS);
 
   if (log) {
     m_module.LogMessage(

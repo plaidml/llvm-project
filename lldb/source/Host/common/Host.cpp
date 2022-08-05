@@ -58,7 +58,6 @@
 #include "lldb/Host/posix/ConnectionFileDescriptorPosix.h"
 #include "lldb/Utility/DataBufferLLVM.h"
 #include "lldb/Utility/FileSpec.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/Predicate.h"
 #include "lldb/Utility/ReproducerProvider.h"
@@ -164,7 +163,7 @@ static bool CheckForMonitorCancellation() {
 }
 
 static thread_result_t MonitorChildProcessThreadFunction(void *arg) {
-  Log *log = GetLog(LLDBLog::Process);
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_PROCESS));
   const char *function = __FUNCTION__;
   LLDB_LOGF(log, "%s (arg = %p) thread starting...", function, arg);
 
@@ -193,7 +192,7 @@ static thread_result_t MonitorChildProcessThreadFunction(void *arg) {
 #endif // __linux__
 
   while (true) {
-    log = GetLog(LLDBLog::Process);
+    log = lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_PROCESS);
     LLDB_LOGF(log, "%s ::waitpid (pid = %" PRIi32 ", &status, options = %i)...",
               function, pid, options);
 
@@ -244,7 +243,7 @@ static thread_result_t MonitorChildProcessThreadFunction(void *arg) {
         ScopedPThreadCancelDisabler pthread_cancel_disabler;
 #endif
 
-        log = GetLog(LLDBLog::Process);
+        log = lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_PROCESS);
         LLDB_LOGF(log,
                   "%s ::waitpid (pid = %" PRIi32
                   ", &status, options = %i) => pid = %" PRIi32
@@ -278,7 +277,7 @@ static thread_result_t MonitorChildProcessThreadFunction(void *arg) {
     }
   }
 
-  log = GetLog(LLDBLog::Process);
+  log = lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_PROCESS);
   LLDB_LOGF(log, "%s (arg = %p) thread exiting...", __FUNCTION__, arg);
 
   return nullptr;
@@ -302,7 +301,7 @@ void Host::SystemLog(SystemLogType type, const char *format, ...) {
     va_end(args);
   }
 
-  Log *log = GetLog(LLDBLog::Host);
+  Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_HOST));
   if (log && log->GetVerbose()) {
     // Log to log channel. This allows testcases to grep for log output.
     va_list args;

@@ -15,7 +15,6 @@
 #include "lldb/Symbol/TypeSystem.h"
 #include "lldb/Target/Target.h"
 #include "lldb/Target/Thread.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
 #include "llvm/MC/TargetRegistry.h"
 #include <cctype>
@@ -204,7 +203,7 @@ std::unique_ptr<llvm::MCRegisterInfo> ABI::MakeMCRegisterInfo(const ArchSpec &ar
   const llvm::Target *target =
       llvm::TargetRegistry::lookupTarget(triple, lookup_error);
   if (!target) {
-    LLDB_LOG(GetLog(LLDBLog::Process),
+    LLDB_LOG(GetLogIfAllCategoriesSet(LIBLLDB_LOG_PROCESS),
              "Failed to create an llvm target for {0}: {1}", triple,
              lookup_error);
     return nullptr;

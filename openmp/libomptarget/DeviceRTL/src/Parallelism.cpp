@@ -87,7 +87,7 @@ void __kmpc_parallel_51(IdentTy *ident, int32_t, int32_t if_expr,
   uint32_t TId = mapping::getThreadIdInBlock();
   // Handle the serialized case first, same for SPMD/non-SPMD.
   if (OMP_UNLIKELY(!if_expr || icv::Level)) {
-    state::DateEnvironmentRAII DERAII(ident);
+    state::enterDataEnvironment();
     ++icv::Level;
     invokeMicrotask(TId, 0, fn, args, nargs);
     state::exitDataEnvironment();
@@ -104,10 +104,9 @@ void __kmpc_parallel_51(IdentTy *ident, int32_t, int32_t if_expr,
       // last or the other updates will cause a thread specific state to be
       // created.
       state::ValueRAII ParallelTeamSizeRAII(state::ParallelTeamSize, NumThreads,
-                                            1u, TId == 0, ident);
-      state::ValueRAII ActiveLevelRAII(icv::ActiveLevel, 1u, 0u, TId == 0,
-                                       ident);
-      state::ValueRAII LevelRAII(icv::Level, 1u, 0u, TId == 0, ident);
+                                            1u, TId == 0);
+      state::ValueRAII ActiveLevelRAII(icv::ActiveLevel, 1u, 0u, TId == 0);
+      state::ValueRAII LevelRAII(icv::Level, 1u, 0u, TId == 0);
 
       // Synchronize all threads after the main thread (TId == 0) set up the
       // team state properly.
@@ -143,7 +142,7 @@ void __kmpc_parallel_51(IdentTy *ident, int32_t, int32_t if_expr,
 
   bool IsActiveParallelRegion = NumThreads > 1;
   if (!IsActiveParallelRegion) {
-    state::ValueRAII LevelRAII(icv::Level, 1u, 0u, true, ident);
+    state::ValueRAII LevelRAII(icv::Level, 1u, 0u, true);
     invokeMicrotask(TId, 0, fn, args, nargs);
     return;
   }
@@ -161,11 +160,11 @@ void __kmpc_parallel_51(IdentTy *ident, int32_t, int32_t if_expr,
     // last or the other updates will cause a thread specific state to be
     // created.
     state::ValueRAII ParallelTeamSizeRAII(state::ParallelTeamSize, NumThreads,
-                                          1u, true, ident);
+                                          1u, true);
     state::ValueRAII ParallelRegionFnRAII(state::ParallelRegionFn, wrapper_fn,
-                                          (void *)nullptr, true, ident);
-    state::ValueRAII ActiveLevelRAII(icv::ActiveLevel, 1u, 0u, true, ident);
-    state::ValueRAII LevelRAII(icv::Level, 1u, 0u, true, ident);
+                                          (void *)nullptr, true);
+    state::ValueRAII ActiveLevelRAII(icv::ActiveLevel, 1u, 0u, true);
+    state::ValueRAII LevelRAII(icv::Level, 1u, 0u, true);
 
     // Master signals work to activate workers.
     synchronize::threads();

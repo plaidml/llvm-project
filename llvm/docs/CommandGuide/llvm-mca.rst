@@ -299,9 +299,9 @@ C++. As a workaround, inline assembly directives may be used:
 .. code-block:: c++
 
   int foo(int a, int b) {
-    __asm volatile("# LLVM-MCA-BEGIN foo":::"memory");
+    __asm volatile("# LLVM-MCA-BEGIN foo");
     a += 42;
-    __asm volatile("# LLVM-MCA-END":::"memory");
+    __asm volatile("# LLVM-MCA-END");
     a *= b;
     return a;
   }

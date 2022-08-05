@@ -360,7 +360,7 @@ public:
   MachineBasicBlock::iterator
   insertOutlinedCall(Module &M, MachineBasicBlock &MBB,
                      MachineBasicBlock::iterator &It, MachineFunction &MF,
-                     outliner::Candidate &C) const override;
+                     const outliner::Candidate &C) const override;
 
   /// Enable outlining by default at -Oz.
   bool shouldOutlineFromFunctionByDefault(MachineFunction &MF) const override;
@@ -375,7 +375,7 @@ public:
 private:
   /// Returns an unused general-purpose register which can be used for
   /// constructing an outlined call if one exists. Returns 0 otherwise.
-  Register findRegisterToSaveLRTo(outliner::Candidate &C) const;
+  unsigned findRegisterToSaveLRTo(const outliner::Candidate &C) const;
 
   /// Adds an instruction which saves the link register on top of the stack into
   /// the MachineBasicBlock \p MBB at position \p It. If \p Auth is true,

@@ -17,6 +17,7 @@ class ImplicitLocOpBuilder;
 class LLVMConversionTarget;
 class LLVMTypeConverter;
 class RewritePatternSet;
+using OwningRewritePatternList = RewritePatternSet;
 
 namespace x86vector {
 

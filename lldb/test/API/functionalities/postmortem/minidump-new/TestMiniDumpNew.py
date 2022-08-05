@@ -65,7 +65,7 @@ class MiniDumpNewTestCase(TestBase):
         error = lldb.SBError()
         self.process = self.target.LoadCore(minidump_path, error)
         self.assertTrue(self.process, PROCESS_IS_VALID)
-        self.assertSuccess(error)
+        self.assertTrue(error.Success())
 
     def test_loadcore_error_status_failure(self):
         """Test the SBTarget.LoadCore(core, error) overload."""

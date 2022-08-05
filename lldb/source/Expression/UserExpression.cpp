@@ -37,7 +37,6 @@
 #include "lldb/Target/ThreadPlan.h"
 #include "lldb/Target/ThreadPlanCallUserExpression.h"
 #include "lldb/Utility/ConstString.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/StreamString.h"
 
@@ -142,7 +141,8 @@ UserExpression::Evaluate(ExecutionContext &exe_ctx,
                          llvm::StringRef expr, llvm::StringRef prefix,
                          lldb::ValueObjectSP &result_valobj_sp, Status &error,
                          std::string *fixed_expression, ValueObject *ctx_obj) {
-  Log *log(GetLog(LLDBLog::Expressions | LLDBLog::Step));
+  Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_EXPRESSIONS |
+                                                  LIBLLDB_LOG_STEP));
 
   if (ctx_obj) {
     static unsigned const ctx_type_mask =

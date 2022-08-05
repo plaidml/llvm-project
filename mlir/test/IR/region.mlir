@@ -46,13 +46,13 @@ func @unnamed_region_has_wrong_number_of_blocks() {
     "test.sized_region_op"() (
     {
         "work"() : () -> ()
-        cf.br ^next1
+        br ^next1
       ^next1:
         "work"() : () -> ()
     },
     {
         "work"() : () -> ()
-        cf.br ^next2
+        br ^next2
       ^next2:
         "work"() : () -> ()
     }) : () -> ()

@@ -194,6 +194,9 @@ llvm::objcarc::Depends(DependenceKind Flavor, Instruction *Inst,
       return CanInterruptRV(Class);
     }
   }
+
+  case RetainRVDep:
+    return CanInterruptRV(GetBasicARCInstKind(Inst));
   }
 
   llvm_unreachable("Invalid dependence flavor");

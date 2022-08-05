@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "memprof_meminfoblock.h"
 #include "memprof_rawprofile.h"
 #include "profile/MemProfData.inc"
 #include "sanitizer_common/sanitizer_allocator_internal.h"
@@ -15,7 +16,6 @@
 
 namespace __memprof {
 using ::__sanitizer::Vector;
-using ::llvm::memprof::MemInfoBlock;
 using SegmentEntry = ::llvm::memprof::SegmentEntry;
 using Header = ::llvm::memprof::Header;
 
@@ -65,8 +65,11 @@ void SerializeSegmentsToBuffer(MemoryMappingLayoutBase &Layout,
 
   for (Layout.Reset(); Layout.Next(&segment);) {
     if (segment.IsReadable() && segment.IsExecutable()) {
-      // TODO: Record segment.uuid when it is implemented for Linux-Elf.
-      SegmentEntry Entry(segment.start, segment.end, segment.offset);
+      SegmentEntry Entry{};
+      Entry.Start = segment.start;
+      Entry.End = segment.end;
+      Entry.Offset = segment.offset;
+      memcpy(Entry.BuildId, segment.uuid, sizeof(segment.uuid));
       memcpy(Ptr, &Entry, sizeof(SegmentEntry));
       Ptr += sizeof(SegmentEntry);
       NumSegmentsRecorded++;

@@ -8,19 +8,23 @@ define signext i32 @test_floor_si32(float %x) {
 ; RV32IF-LABEL: test_floor_si32:
 ; RV32IF:       # %bb.0:
 ; RV32IF-NEXT:    feq.s a0, fa0, fa0
-; RV32IF-NEXT:    beqz a0, .LBB0_2
+; RV32IF-NEXT:    bnez a0, .LBB0_2
 ; RV32IF-NEXT:  # %bb.1:
-; RV32IF-NEXT:    fcvt.w.s a0, fa0, rdn
+; RV32IF-NEXT:    li a0, 0
+; RV32IF-NEXT:    ret
 ; RV32IF-NEXT:  .LBB0_2:
+; RV32IF-NEXT:    fcvt.w.s a0, fa0, rdn
 ; RV32IF-NEXT:    ret
 ;
 ; RV64IF-LABEL: test_floor_si32:
 ; RV64IF:       # %bb.0:
 ; RV64IF-NEXT:    feq.s a0, fa0, fa0
-; RV64IF-NEXT:    beqz a0, .LBB0_2
+; RV64IF-NEXT:    bnez a0, .LBB0_2
 ; RV64IF-NEXT:  # %bb.1:
-; RV64IF-NEXT:    fcvt.w.s a0, fa0, rdn
+; RV64IF-NEXT:    li a0, 0
+; RV64IF-NEXT:    ret
 ; RV64IF-NEXT:  .LBB0_2:
+; RV64IF-NEXT:    fcvt.w.s a0, fa0, rdn
 ; RV64IF-NEXT:    ret
   %a = call float @llvm.floor.f32(float %x)
   %b = call i32 @llvm.fptosi.sat.i32.f32(float %a)
@@ -87,10 +91,12 @@ define i64 @test_floor_si64(float %x) nounwind {
 ; RV64IF-LABEL: test_floor_si64:
 ; RV64IF:       # %bb.0:
 ; RV64IF-NEXT:    feq.s a0, fa0, fa0
-; RV64IF-NEXT:    beqz a0, .LBB1_2
+; RV64IF-NEXT:    bnez a0, .LBB1_2
 ; RV64IF-NEXT:  # %bb.1:
-; RV64IF-NEXT:    fcvt.l.s a0, fa0, rdn
+; RV64IF-NEXT:    li a0, 0
+; RV64IF-NEXT:    ret
 ; RV64IF-NEXT:  .LBB1_2:
+; RV64IF-NEXT:    fcvt.l.s a0, fa0, rdn
 ; RV64IF-NEXT:    ret
   %a = call float @llvm.floor.f32(float %x)
   %b = call i64 @llvm.fptosi.sat.i64.f32(float %a)
@@ -101,19 +107,23 @@ define signext i32 @test_floor_ui32(float %x) {
 ; RV32IF-LABEL: test_floor_ui32:
 ; RV32IF:       # %bb.0:
 ; RV32IF-NEXT:    feq.s a0, fa0, fa0
-; RV32IF-NEXT:    beqz a0, .LBB2_2
+; RV32IF-NEXT:    bnez a0, .LBB2_2
 ; RV32IF-NEXT:  # %bb.1:
-; RV32IF-NEXT:    fcvt.wu.s a0, fa0, rdn
+; RV32IF-NEXT:    li a0, 0
+; RV32IF-NEXT:    ret
 ; RV32IF-NEXT:  .LBB2_2:
+; RV32IF-NEXT:    fcvt.wu.s a0, fa0, rdn
 ; RV32IF-NEXT:    ret
 ;
 ; RV64IF-LABEL: test_floor_ui32:
 ; RV64IF:       # %bb.0:
 ; RV64IF-NEXT:    feq.s a0, fa0, fa0
-; RV64IF-NEXT:    beqz a0, .LBB2_2
+; RV64IF-NEXT:    bnez a0, .LBB2_2
 ; RV64IF-NEXT:  # %bb.1:
-; RV64IF-NEXT:    fcvt.wu.s a0, fa0, rdn
+; RV64IF-NEXT:    li a0, 0
+; RV64IF-NEXT:    ret
 ; RV64IF-NEXT:  .LBB2_2:
+; RV64IF-NEXT:    fcvt.wu.s a0, fa0, rdn
 ; RV64IF-NEXT:    ret
   %a = call float @llvm.floor.f32(float %x)
   %b = call i32 @llvm.fptoui.sat.i32.f32(float %a)
@@ -167,10 +177,12 @@ define i64 @test_floor_ui64(float %x) nounwind {
 ; RV64IF-LABEL: test_floor_ui64:
 ; RV64IF:       # %bb.0:
 ; RV64IF-NEXT:    feq.s a0, fa0, fa0
-; RV64IF-NEXT:    beqz a0, .LBB3_2
+; RV64IF-NEXT:    bnez a0, .LBB3_2
 ; RV64IF-NEXT:  # %bb.1:
-; RV64IF-NEXT:    fcvt.lu.s a0, fa0, rdn
+; RV64IF-NEXT:    li a0, 0
+; RV64IF-NEXT:    ret
 ; RV64IF-NEXT:  .LBB3_2:
+; RV64IF-NEXT:    fcvt.lu.s a0, fa0, rdn
 ; RV64IF-NEXT:    ret
   %a = call float @llvm.floor.f32(float %x)
   %b = call i64 @llvm.fptoui.sat.i64.f32(float %a)
@@ -181,19 +193,23 @@ define signext i32 @test_ceil_si32(float %x) {
 ; RV32IF-LABEL: test_ceil_si32:
 ; RV32IF:       # %bb.0:
 ; RV32IF-NEXT:    feq.s a0, fa0, fa0
-; RV32IF-NEXT:    beqz a0, .LBB4_2
+; RV32IF-NEXT:    bnez a0, .LBB4_2
 ; RV32IF-NEXT:  # %bb.1:
-; RV32IF-NEXT:    fcvt.w.s a0, fa0, rup
+; RV32IF-NEXT:    li a0, 0
+; RV32IF-NEXT:    ret
 ; RV32IF-NEXT:  .LBB4_2:
+; RV32IF-NEXT:    fcvt.w.s a0, fa0, rup
 ; RV32IF-NEXT:    ret
 ;
 ; RV64IF-LABEL: test_ceil_si32:
 ; RV64IF:       # %bb.0:
 ; RV64IF-NEXT:    feq.s a0, fa0, fa0
-; RV64IF-NEXT:    beqz a0, .LBB4_2
+; RV64IF-NEXT:    bnez a0, .LBB4_2
 ; RV64IF-NEXT:  # %bb.1:
-; RV64IF-NEXT:    fcvt.w.s a0, fa0, rup
+; RV64IF-NEXT:    li a0, 0
+; RV64IF-NEXT:    ret
 ; RV64IF-NEXT:  .LBB4_2:
+; RV64IF-NEXT:    fcvt.w.s a0, fa0, rup
 ; RV64IF-NEXT:    ret
   %a = call float @llvm.ceil.f32(float %x)
   %b = call i32 @llvm.fptosi.sat.i32.f32(float %a)
@@ -260,10 +276,12 @@ define i64 @test_ceil_si64(float %x) nounwind {
 ; RV64IF-LABEL: test_ceil_si64:
 ; RV64IF:       # %bb.0:
 ; RV64IF-NEXT:    feq.s a0, fa0, fa0
-; RV64IF-NEXT:    beqz a0, .LBB5_2
+; RV64IF-NEXT:    bnez a0, .LBB5_2
 ; RV64IF-NEXT:  # %bb.1:
-; RV64IF-NEXT:    fcvt.l.s a0, fa0, rup
+; RV64IF-NEXT:    li a0, 0
+; RV64IF-NEXT:    ret
 ; RV64IF-NEXT:  .LBB5_2:
+; RV64IF-NEXT:    fcvt.l.s a0, fa0, rup
 ; RV64IF-NEXT:    ret
   %a = call float @llvm.ceil.f32(float %x)
   %b = call i64 @llvm.fptosi.sat.i64.f32(float %a)
@@ -274,19 +292,23 @@ define signext i32 @test_ceil_ui32(float %x) {
 ; RV32IF-LABEL: test_ceil_ui32:
 ; RV32IF:       # %bb.0:
 ; RV32IF-NEXT:    feq.s a0, fa0, fa0
-; RV32IF-NEXT:    beqz a0, .LBB6_2
+; RV32IF-NEXT:    bnez a0, .LBB6_2
 ; RV32IF-NEXT:  # %bb.1:
-; RV32IF-NEXT:    fcvt.wu.s a0, fa0, rup
+; RV32IF-NEXT:    li a0, 0
+; RV32IF-NEXT:    ret
 ; RV32IF-NEXT:  .LBB6_2:
+; RV32IF-NEXT:    fcvt.wu.s a0, fa0, rup
 ; RV32IF-NEXT:    ret
 ;
 ; RV64IF-LABEL: test_ceil_ui32:
 ; RV64IF:       # %bb.0:
 ; RV64IF-NEXT:    feq.s a0, fa0, fa0
-; RV64IF-NEXT:    beqz a0, .LBB6_2
+; RV64IF-NEXT:    bnez a0, .LBB6_2
 ; RV64IF-NEXT:  # %bb.1:
-; RV64IF-NEXT:    fcvt.wu.s a0, fa0, rup
+; RV64IF-NEXT:    li a0, 0
+; RV64IF-NEXT:    ret
 ; RV64IF-NEXT:  .LBB6_2:
+; RV64IF-NEXT:    fcvt.wu.s a0, fa0, rup
 ; RV64IF-NEXT:    ret
   %a = call float @llvm.ceil.f32(float %x)
   %b = call i32 @llvm.fptoui.sat.i32.f32(float %a)
@@ -340,10 +362,12 @@ define i64 @test_ceil_ui64(float %x) nounwind {
 ; RV64IF-LABEL: test_ceil_ui64:
 ; RV64IF:       # %bb.0:
 ; RV64IF-NEXT:    feq.s a0, fa0, fa0
-; RV64IF-NEXT:    beqz a0, .LBB7_2
+; RV64IF-NEXT:    bnez a0, .LBB7_2
 ; RV64IF-NEXT:  # %bb.1:
-; RV64IF-NEXT:    fcvt.lu.s a0, fa0, rup
+; RV64IF-NEXT:    li a0, 0
+; RV64IF-NEXT:    ret
 ; RV64IF-NEXT:  .LBB7_2:
+; RV64IF-NEXT:    fcvt.lu.s a0, fa0, rup
 ; RV64IF-NEXT:    ret
   %a = call float @llvm.ceil.f32(float %x)
   %b = call i64 @llvm.fptoui.sat.i64.f32(float %a)
@@ -354,19 +378,23 @@ define signext i32 @test_trunc_si32(float %x) {
 ; RV32IF-LABEL: test_trunc_si32:
 ; RV32IF:       # %bb.0:
 ; RV32IF-NEXT:    feq.s a0, fa0, fa0
-; RV32IF-NEXT:    beqz a0, .LBB8_2
+; RV32IF-NEXT:    bnez a0, .LBB8_2
 ; RV32IF-NEXT:  # %bb.1:
-; RV32IF-NEXT:    fcvt.w.s a0, fa0, rtz
+; RV32IF-NEXT:    li a0, 0
+; RV32IF-NEXT:    ret
 ; RV32IF-NEXT:  .LBB8_2:
+; RV32IF-NEXT:    fcvt.w.s a0, fa0, rtz
 ; RV32IF-NEXT:    ret
 ;
 ; RV64IF-LABEL: test_trunc_si32:
 ; RV64IF:       # %bb.0:
 ; RV64IF-NEXT:    feq.s a0, fa0, fa0
-; RV64IF-NEXT:    beqz a0, .LBB8_2
+; RV64IF-NEXT:    bnez a0, .LBB8_2
 ; RV64IF-NEXT:  # %bb.1:
-; RV64IF-NEXT:    fcvt.w.s a0, fa0, rtz
+; RV64IF-NEXT:    li a0, 0
+; RV64IF-NEXT:    ret
 ; RV64IF-NEXT:  .LBB8_2:
+; RV64IF-NEXT:    fcvt.w.s a0, fa0, rtz
 ; RV64IF-NEXT:    ret
   %a = call float @llvm.trunc.f32(float %x)
   %b = call i32 @llvm.fptosi.sat.i32.f32(float %a)
@@ -433,10 +461,12 @@ define i64 @test_trunc_si64(float %x) nounwind {
 ; RV64IF-LABEL: test_trunc_si64:
 ; RV64IF:       # %bb.0:
 ; RV64IF-NEXT:    feq.s a0, fa0, fa0
-; RV64IF-NEXT:    beqz a0, .LBB9_2
+; RV64IF-NEXT:    bnez a0, .LBB9_2
 ; RV64IF-NEXT:  # %bb.1:
-; RV64IF-NEXT:    fcvt.l.s a0, fa0, rtz
+; RV64IF-NEXT:    li a0, 0
+; RV64IF-NEXT:    ret
 ; RV64IF-NEXT:  .LBB9_2:
+; RV64IF-NEXT:    fcvt.l.s a0, fa0, rtz
 ; RV64IF-NEXT:    ret
   %a = call float @llvm.trunc.f32(float %x)
   %b = call i64 @llvm.fptosi.sat.i64.f32(float %a)
@@ -447,19 +477,23 @@ define signext i32 @test_trunc_ui32(float %x) {
 ; RV32IF-LABEL: test_trunc_ui32:
 ; RV32IF:       # %bb.0:
 ; RV32IF-NEXT:    feq.s a0, fa0, fa0
-; RV32IF-NEXT:    beqz a0, .LBB10_2
+; RV32IF-NEXT:    bnez a0, .LBB10_2
 ; RV32IF-NEXT:  # %bb.1:
-; RV32IF-NEXT:    fcvt.wu.s a0, fa0, rtz
+; RV32IF-NEXT:    li a0, 0
+; RV32IF-NEXT:    ret
 ; RV32IF-NEXT:  .LBB10_2:
+; RV32IF-NEXT:    fcvt.wu.s a0, fa0, rtz
 ; RV32IF-NEXT:    ret
 ;
 ; RV64IF-LABEL: test_trunc_ui32:
 ; RV64IF:       # %bb.0:
 ; RV64IF-NEXT:    feq.s a0, fa0, fa0
-; RV64IF-NEXT:    beqz a0, .LBB10_2
+; RV64IF-NEXT:    bnez a0, .LBB10_2
 ; RV64IF-NEXT:  # %bb.1:
-; RV64IF-NEXT:    fcvt.wu.s a0, fa0, rtz
+; RV64IF-NEXT:    li a0, 0
+; RV64IF-NEXT:    ret
 ; RV64IF-NEXT:  .LBB10_2:
+; RV64IF-NEXT:    fcvt.wu.s a0, fa0, rtz
 ; RV64IF-NEXT:    ret
   %a = call float @llvm.trunc.f32(float %x)
   %b = call i32 @llvm.fptoui.sat.i32.f32(float %a)
@@ -513,10 +547,12 @@ define i64 @test_trunc_ui64(float %x) nounwind {
 ; RV64IF-LABEL: test_trunc_ui64:
 ; RV64IF:       # %bb.0:
 ; RV64IF-NEXT:    feq.s a0, fa0, fa0
-; RV64IF-NEXT:    beqz a0, .LBB11_2
+; RV64IF-NEXT:    bnez a0, .LBB11_2
 ; RV64IF-NEXT:  # %bb.1:
-; RV64IF-NEXT:    fcvt.lu.s a0, fa0, rtz
+; RV64IF-NEXT:    li a0, 0
+; RV64IF-NEXT:    ret
 ; RV64IF-NEXT:  .LBB11_2:
+; RV64IF-NEXT:    fcvt.lu.s a0, fa0, rtz
 ; RV64IF-NEXT:    ret
   %a = call float @llvm.trunc.f32(float %x)
   %b = call i64 @llvm.fptoui.sat.i64.f32(float %a)
@@ -527,19 +563,23 @@ define signext i32 @test_round_si32(float %x) {
 ; RV32IF-LABEL: test_round_si32:
 ; RV32IF:       # %bb.0:
 ; RV32IF-NEXT:    feq.s a0, fa0, fa0
-; RV32IF-NEXT:    beqz a0, .LBB12_2
+; RV32IF-NEXT:    bnez a0, .LBB12_2
 ; RV32IF-NEXT:  # %bb.1:
-; RV32IF-NEXT:    fcvt.w.s a0, fa0, rmm
+; RV32IF-NEXT:    li a0, 0
+; RV32IF-NEXT:    ret
 ; RV32IF-NEXT:  .LBB12_2:
+; RV32IF-NEXT:    fcvt.w.s a0, fa0, rmm
 ; RV32IF-NEXT:    ret
 ;
 ; RV64IF-LABEL: test_round_si32:
 ; RV64IF:       # %bb.0:
 ; RV64IF-NEXT:    feq.s a0, fa0, fa0
-; RV64IF-NEXT:    beqz a0, .LBB12_2
+; RV64IF-NEXT:    bnez a0, .LBB12_2
 ; RV64IF-NEXT:  # %bb.1:
-; RV64IF-NEXT:    fcvt.w.s a0, fa0, rmm
+; RV64IF-NEXT:    li a0, 0
+; RV64IF-NEXT:    ret
 ; RV64IF-NEXT:  .LBB12_2:
+; RV64IF-NEXT:    fcvt.w.s a0, fa0, rmm
 ; RV64IF-NEXT:    ret
   %a = call float @llvm.round.f32(float %x)
   %b = call i32 @llvm.fptosi.sat.i32.f32(float %a)
@@ -606,10 +646,12 @@ define i64 @test_round_si64(float %x) nounwind {
 ; RV64IF-LABEL: test_round_si64:
 ; RV64IF:       # %bb.0:
 ; RV64IF-NEXT:    feq.s a0, fa0, fa0
-; RV64IF-NEXT:    beqz a0, .LBB13_2
+; RV64IF-NEXT:    bnez a0, .LBB13_2
 ; RV64IF-NEXT:  # %bb.1:
-; RV64IF-NEXT:    fcvt.l.s a0, fa0, rmm
+; RV64IF-NEXT:    li a0, 0
+; RV64IF-NEXT:    ret
 ; RV64IF-NEXT:  .LBB13_2:
+; RV64IF-NEXT:    fcvt.l.s a0, fa0, rmm
 ; RV64IF-NEXT:    ret
   %a = call float @llvm.round.f32(float %x)
   %b = call i64 @llvm.fptosi.sat.i64.f32(float %a)
@@ -620,19 +662,23 @@ define signext i32 @test_round_ui32(float %x) {
 ; RV32IF-LABEL: test_round_ui32:
 ; RV32IF:       # %bb.0:
 ; RV32IF-NEXT:    feq.s a0, fa0, fa0
-; RV32IF-NEXT:    beqz a0, .LBB14_2
+; RV32IF-NEXT:    bnez a0, .LBB14_2
 ; RV32IF-NEXT:  # %bb.1:
-; RV32IF-NEXT:    fcvt.wu.s a0, fa0, rmm
+; RV32IF-NEXT:    li a0, 0
+; RV32IF-NEXT:    ret
 ; RV32IF-NEXT:  .LBB14_2:
+; RV32IF-NEXT:    fcvt.wu.s a0, fa0, rmm
 ; RV32IF-NEXT:    ret
 ;
 ; RV64IF-LABEL: test_round_ui32:
 ; RV64IF:       # %bb.0:
 ; RV64IF-NEXT:    feq.s a0, fa0, fa0
-; RV64IF-NEXT:    beqz a0, .LBB14_2
+; RV64IF-NEXT:    bnez a0, .LBB14_2
 ; RV64IF-NEXT:  # %bb.1:
-; RV64IF-NEXT:    fcvt.wu.s a0, fa0, rmm
+; RV64IF-NEXT:    li a0, 0
+; RV64IF-NEXT:    ret
 ; RV64IF-NEXT:  .LBB14_2:
+; RV64IF-NEXT:    fcvt.wu.s a0, fa0, rmm
 ; RV64IF-NEXT:    ret
   %a = call float @llvm.round.f32(float %x)
   %b = call i32 @llvm.fptoui.sat.i32.f32(float %a)
@@ -686,10 +732,12 @@ define i64 @test_round_ui64(float %x) nounwind {
 ; RV64IF-LABEL: test_round_ui64:
 ; RV64IF:       # %bb.0:
 ; RV64IF-NEXT:    feq.s a0, fa0, fa0
-; RV64IF-NEXT:    beqz a0, .LBB15_2
+; RV64IF-NEXT:    bnez a0, .LBB15_2
 ; RV64IF-NEXT:  # %bb.1:
-; RV64IF-NEXT:    fcvt.lu.s a0, fa0, rmm
+; RV64IF-NEXT:    li a0, 0
+; RV64IF-NEXT:    ret
 ; RV64IF-NEXT:  .LBB15_2:
+; RV64IF-NEXT:    fcvt.lu.s a0, fa0, rmm
 ; RV64IF-NEXT:    ret
   %a = call float @llvm.round.f32(float %x)
   %b = call i64 @llvm.fptoui.sat.i64.f32(float %a)
@@ -700,19 +748,23 @@ define signext i32 @test_roundeven_si32(float %x) {
 ; RV32IF-LABEL: test_roundeven_si32:
 ; RV32IF:       # %bb.0:
 ; RV32IF-NEXT:    feq.s a0, fa0, fa0
-; RV32IF-NEXT:    beqz a0, .LBB16_2
+; RV32IF-NEXT:    bnez a0, .LBB16_2
 ; RV32IF-NEXT:  # %bb.1:
-; RV32IF-NEXT:    fcvt.w.s a0, fa0, rne
+; RV32IF-NEXT:    li a0, 0
+; RV32IF-NEXT:    ret
 ; RV32IF-NEXT:  .LBB16_2:
+; RV32IF-NEXT:    fcvt.w.s a0, fa0, rne
 ; RV32IF-NEXT:    ret
 ;
 ; RV64IF-LABEL: test_roundeven_si32:
 ; RV64IF:       # %bb.0:
 ; RV64IF-NEXT:    feq.s a0, fa0, fa0
-; RV64IF-NEXT:    beqz a0, .LBB16_2
+; RV64IF-NEXT:    bnez a0, .LBB16_2
 ; RV64IF-NEXT:  # %bb.1:
-; RV64IF-NEXT:    fcvt.w.s a0, fa0, rne
+; RV64IF-NEXT:    li a0, 0
+; RV64IF-NEXT:    ret
 ; RV64IF-NEXT:  .LBB16_2:
+; RV64IF-NEXT:    fcvt.w.s a0, fa0, rne
 ; RV64IF-NEXT:    ret
   %a = call float @llvm.roundeven.f32(float %x)
   %b = call i32 @llvm.fptosi.sat.i32.f32(float %a)
@@ -779,10 +831,12 @@ define i64 @test_roundeven_si64(float %x) nounwind {
 ; RV64IF-LABEL: test_roundeven_si64:
 ; RV64IF:       # %bb.0:
 ; RV64IF-NEXT:    feq.s a0, fa0, fa0
-; RV64IF-NEXT:    beqz a0, .LBB17_2
+; RV64IF-NEXT:    bnez a0, .LBB17_2
 ; RV64IF-NEXT:  # %bb.1:
-; RV64IF-NEXT:    fcvt.l.s a0, fa0, rne
+; RV64IF-NEXT:    li a0, 0
+; RV64IF-NEXT:    ret
 ; RV64IF-NEXT:  .LBB17_2:
+; RV64IF-NEXT:    fcvt.l.s a0, fa0, rne
 ; RV64IF-NEXT:    ret
   %a = call float @llvm.roundeven.f32(float %x)
   %b = call i64 @llvm.fptosi.sat.i64.f32(float %a)
@@ -793,19 +847,23 @@ define signext i32 @test_roundeven_ui32(float %x) {
 ; RV32IF-LABEL: test_roundeven_ui32:
 ; RV32IF:       # %bb.0:
 ; RV32IF-NEXT:    feq.s a0, fa0, fa0
-; RV32IF-NEXT:    beqz a0, .LBB18_2
+; RV32IF-NEXT:    bnez a0, .LBB18_2
 ; RV32IF-NEXT:  # %bb.1:
-; RV32IF-NEXT:    fcvt.wu.s a0, fa0, rne
+; RV32IF-NEXT:    li a0, 0
+; RV32IF-NEXT:    ret
 ; RV32IF-NEXT:  .LBB18_2:
+; RV32IF-NEXT:    fcvt.wu.s a0, fa0, rne
 ; RV32IF-NEXT:    ret
 ;
 ; RV64IF-LABEL: test_roundeven_ui32:
 ; RV64IF:       # %bb.0:
 ; RV64IF-NEXT:    feq.s a0, fa0, fa0
-; RV64IF-NEXT:    beqz a0, .LBB18_2
+; RV64IF-NEXT:    bnez a0, .LBB18_2
 ; RV64IF-NEXT:  # %bb.1:
-; RV64IF-NEXT:    fcvt.wu.s a0, fa0, rne
+; RV64IF-NEXT:    li a0, 0
+; RV64IF-NEXT:    ret
 ; RV64IF-NEXT:  .LBB18_2:
+; RV64IF-NEXT:    fcvt.wu.s a0, fa0, rne
 ; RV64IF-NEXT:    ret
   %a = call float @llvm.roundeven.f32(float %x)
   %b = call i32 @llvm.fptoui.sat.i32.f32(float %a)
@@ -859,10 +917,12 @@ define i64 @test_roundeven_ui64(float %x) nounwind {
 ; RV64IF-LABEL: test_roundeven_ui64:
 ; RV64IF:       # %bb.0:
 ; RV64IF-NEXT:    feq.s a0, fa0, fa0
-; RV64IF-NEXT:    beqz a0, .LBB19_2
+; RV64IF-NEXT:    bnez a0, .LBB19_2
 ; RV64IF-NEXT:  # %bb.1:
-; RV64IF-NEXT:    fcvt.lu.s a0, fa0, rne
+; RV64IF-NEXT:    li a0, 0
+; RV64IF-NEXT:    ret
 ; RV64IF-NEXT:  .LBB19_2:
+; RV64IF-NEXT:    fcvt.lu.s a0, fa0, rne
 ; RV64IF-NEXT:    ret
   %a = call float @llvm.roundeven.f32(float %x)
   %b = call i64 @llvm.fptoui.sat.i64.f32(float %a)

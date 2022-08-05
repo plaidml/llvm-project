@@ -453,7 +453,7 @@ LogicalResult MemRefAccess::getAccessRelation(FlatAffineRelation &rel) const {
     }
   }
 
-  // Append domain constraints to `rel`.
+  // Append domain constraints to `ret`.
   domainRel.appendRangeId(rel.getNumRangeDims());
   domainRel.mergeSymbolIds(rel);
   domainRel.mergeLocalIds(rel);

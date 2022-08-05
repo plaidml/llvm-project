@@ -14,7 +14,6 @@
 #include "lldb/Interpreter/OptionValueProperties.h"
 #include "lldb/Target/Process.h"
 #include "lldb/Target/Target.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Listener.h"
 #include "lldb/Utility/Log.h"
 
@@ -161,7 +160,7 @@ static Environment ComputeLaunchEnvironment(Environment target,
 lldb::ProcessSP PlatformQemuUser::DebugProcess(ProcessLaunchInfo &launch_info,
                                                Debugger &debugger,
                                                Target &target, Status &error) {
-  Log *log = GetLog(LLDBLog::Platform);
+  Log *log = GetLogIfAnyCategoriesSet(LIBLLDB_LOG_PLATFORM);
 
   FileSpec qemu = GetGlobalProperties().GetEmulatorPath();
   if (!qemu)

@@ -4098,9 +4098,7 @@ StmtResult Sema::BuildReturnStmt(SourceLocation ReturnLoc, Expr *RetValExp,
   } else if (!RetValExp && !HasDependentReturnType) {
     FunctionDecl *FD = getCurFunctionDecl();
 
-    if ((FD && FD->isInvalidDecl()) || FnRetType->containsErrors()) {
-      // The intended return type might have been "void", so don't warn.
-    } else if (getLangOpts().CPlusPlus11 && FD && FD->isConstexpr()) {
+    if (getLangOpts().CPlusPlus11 && FD && FD->isConstexpr()) {
       // C++11 [stmt.return]p2
       Diag(ReturnLoc, diag::err_constexpr_return_missing_expr)
           << FD << FD->isConsteval();

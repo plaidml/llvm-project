@@ -30,7 +30,7 @@ struct AffineLoopNormalizePass
       if (auto affineParallel = dyn_cast<AffineParallelOp>(op))
         normalizeAffineParallel(affineParallel);
       else if (auto affineFor = dyn_cast<AffineForOp>(op))
-        (void)normalizeAffineFor(affineFor);
+        normalizeAffineFor(affineFor);
     });
   }
 };

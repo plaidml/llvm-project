@@ -874,14 +874,12 @@ void mapped_file_region::unmapImpl() {
 
 void mapped_file_region::dontNeedImpl() {
   assert(Mode == mapped_file_region::readonly);
-  if (!Mapping)
-      return;
 #if defined(__MVS__) || defined(_AIX)
   // If we don't have madvise, or it isn't beneficial, treat this as a no-op.
-#elif defined(POSIX_MADV_DONTNEED)
-  ::posix_madvise(Mapping, Size, POSIX_MADV_DONTNEED);
+  return;
 #else
-  ::madvise(Mapping, Size, MADV_DONTNEED);
+  if (Mapping)
+    ::madvise(Mapping, Size, MADV_DONTNEED);
 #endif
 }
 

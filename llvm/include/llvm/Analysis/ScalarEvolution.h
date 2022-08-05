@@ -31,6 +31,7 @@
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/IR/ConstantRange.h"
+#include "llvm/IR/Function.h"
 #include "llvm/IR/InstrTypes.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Operator.h"
@@ -38,6 +39,9 @@
 #include "llvm/IR/ValueHandle.h"
 #include "llvm/IR/ValueMap.h"
 #include "llvm/Pass.h"
+#include "llvm/Support/Allocator.h"
+#include "llvm/Support/Casting.h"
+#include "llvm/Support/Compiler.h"
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
@@ -52,7 +56,6 @@ class Constant;
 class ConstantInt;
 class DataLayout;
 class DominatorTree;
-class Function;
 class GEPOperator;
 class Instruction;
 class LLVMContext;
@@ -219,7 +222,7 @@ class SCEVPredicate : public FoldingSetNode {
   FoldingSetNodeIDRef FastID;
 
 public:
-  enum SCEVPredicateKind { P_Union, P_Compare, P_Wrap };
+  enum SCEVPredicateKind { P_Union, P_Equal, P_Wrap };
 
 protected:
   SCEVPredicateKind Kind;
@@ -246,6 +249,10 @@ public:
   /// Prints a textual representation of this predicate with an indentation of
   /// \p Depth.
   virtual void print(raw_ostream &OS, unsigned Depth = 0) const = 0;
+
+  /// Returns the SCEV to which this predicate applies, or nullptr if this is
+  /// a SCEVUnionPredicate.
+  virtual const SCEV *getExpr() const = 0;
 };
 
 inline raw_ostream &operator<<(raw_ostream &OS, const SCEVPredicate &P) {
@@ -272,35 +279,32 @@ struct FoldingSetTrait<SCEVPredicate> : DefaultFoldingSetTrait<SCEVPredicate> {
   }
 };
 
-/// This class represents an assumption that the expression LHS Pred RHS
-/// evaluates to true, and this can be checked at run-time.
-class SCEVComparePredicate final : public SCEVPredicate {
-  /// We assume that LHS Pred RHS is true.
-  const ICmpInst::Predicate Pred;
+/// This class represents an assumption that two SCEV expressions are equal,
+/// and this can be checked at run-time.
+class SCEVEqualPredicate final : public SCEVPredicate {
+  /// We assume that LHS == RHS.
   const SCEV *LHS;
   const SCEV *RHS;
 
 public:
-  SCEVComparePredicate(const FoldingSetNodeIDRef ID,
-                       const ICmpInst::Predicate Pred,
-                       const SCEV *LHS, const SCEV *RHS);
+  SCEVEqualPredicate(const FoldingSetNodeIDRef ID, const SCEV *LHS,
+                     const SCEV *RHS);
 
   /// Implementation of the SCEVPredicate interface
   bool implies(const SCEVPredicate *N) const override;
   void print(raw_ostream &OS, unsigned Depth = 0) const override;
   bool isAlwaysTrue() const override;
+  const SCEV *getExpr() const override;
 
-  ICmpInst::Predicate getPredicate() const { return Pred; }
-
-  /// Returns the left hand side of the predicate.
+  /// Returns the left hand side of the equality.
   const SCEV *getLHS() const { return LHS; }
 
-  /// Returns the right hand side of the predicate.
+  /// Returns the right hand side of the equality.
   const SCEV *getRHS() const { return RHS; }
 
   /// Methods for support type inquiry through isa, cast, and dyn_cast:
   static bool classof(const SCEVPredicate *P) {
-    return P->getKind() == P_Compare;
+    return P->getKind() == P_Equal;
   }
 };
 
@@ -392,7 +396,7 @@ public:
   IncrementWrapFlags getFlags() const { return Flags; }
 
   /// Implementation of the SCEVPredicate interface
-  const SCEVAddRecExpr *getExpr() const;
+  const SCEV *getExpr() const override;
   bool implies(const SCEVPredicate *N) const override;
   void print(raw_ostream &OS, unsigned Depth = 0) const override;
   bool isAlwaysTrue() const override;
@@ -417,20 +421,28 @@ private:
   /// Vector with references to all predicates in this union.
   SmallVector<const SCEVPredicate *, 16> Preds;
 
-  /// Adds a predicate to this union.
-  void add(const SCEVPredicate *N);
+  /// Maps SCEVs to predicates for quick look-ups.
+  PredicateMap SCEVToPreds;
 
 public:
-  SCEVUnionPredicate(ArrayRef<const SCEVPredicate *> Preds);
+  SCEVUnionPredicate();
 
   const SmallVectorImpl<const SCEVPredicate *> &getPredicates() const {
     return Preds;
   }
 
+  /// Adds a predicate to this union.
+  void add(const SCEVPredicate *N);
+
+  /// Returns a reference to a vector containing all predicates which apply to
+  /// \p Expr.
+  ArrayRef<const SCEVPredicate *> getPredicatesForExpr(const SCEV *Expr);
+
   /// Implementation of the SCEVPredicate interface
   bool isAlwaysTrue() const override;
   bool implies(const SCEVPredicate *N) const override;
   void print(raw_ostream &OS, unsigned Depth) const override;
+  const SCEV *getExpr() const override;
 
   /// We estimate the complexity of a union predicate as the size number of
   /// predicates in the union.
@@ -873,7 +885,7 @@ public:
   /// the answer to be correct. Predicates can be checked with run-time
   /// checks and can be used to perform loop versioning.
   const SCEV *getPredicatedBackedgeTakenCount(const Loop *L,
-                                              SmallVector<const SCEVPredicate *, 4> &Predicates);
+                                              SCEVUnionPredicate &Predicates);
 
   /// When successful, this returns a SCEVConstant that is greater than or equal
   /// to (i.e. a "conservative over-approximation") of the value returend by
@@ -1099,11 +1111,9 @@ public:
   /// Simplify LHS and RHS in a comparison with predicate Pred. Return true
   /// iff any changes were made. If the operands are provably equal or
   /// unequal, LHS and RHS are set to the same value and Pred is set to either
-  /// ICMP_EQ or ICMP_NE. ControllingFiniteLoop is set if this comparison
-  /// controls the exit of a loop known to have a finite number of iterations.
+  /// ICMP_EQ or ICMP_NE.
   bool SimplifyICmpOperands(ICmpInst::Predicate &Pred, const SCEV *&LHS,
-                            const SCEV *&RHS, unsigned Depth = 0,
-                            bool ControllingFiniteLoop = false);
+                            const SCEV *&RHS, unsigned Depth = 0);
 
   /// Return the "disposition" of the given SCEV with respect to the given
   /// loop.
@@ -1154,8 +1164,6 @@ public:
   }
 
   const SCEVPredicate *getEqualPredicate(const SCEV *LHS, const SCEV *RHS);
-  const SCEVPredicate *getComparePredicate(ICmpInst::Predicate Pred,
-                                           const SCEV *LHS, const SCEV *RHS);
 
   const SCEVPredicate *
   getWrapPredicate(const SCEVAddRecExpr *AR,
@@ -1163,7 +1171,7 @@ public:
 
   /// Re-writes the SCEV according to the Predicates in \p A.
   const SCEV *rewriteUsingPredicate(const SCEV *S, const Loop *L,
-                                    const SCEVPredicate &A);
+                                    SCEVUnionPredicate &A);
   /// Tries to convert the \p S expression to an AddRec expression,
   /// adding additional predicates to \p Preds as required.
   const SCEVAddRecExpr *convertSCEVToAddRecWithPredicates(
@@ -1359,17 +1367,17 @@ private:
     PoisoningVH<BasicBlock> ExitingBlock;
     const SCEV *ExactNotTaken;
     const SCEV *MaxNotTaken;
-    SmallPtrSet<const SCEVPredicate *, 4> Predicates;
+    std::unique_ptr<SCEVUnionPredicate> Predicate;
 
     explicit ExitNotTakenInfo(PoisoningVH<BasicBlock> ExitingBlock,
                               const SCEV *ExactNotTaken,
                               const SCEV *MaxNotTaken,
-                              const SmallPtrSet<const SCEVPredicate *, 4> &Predicates)
+                              std::unique_ptr<SCEVUnionPredicate> Predicate)
       : ExitingBlock(ExitingBlock), ExactNotTaken(ExactNotTaken),
-        MaxNotTaken(ExactNotTaken), Predicates(Predicates) {}
+        MaxNotTaken(ExactNotTaken), Predicate(std::move(Predicate)) {}
 
     bool hasAlwaysTruePredicate() const {
-      return Predicates.empty();
+      return !Predicate || Predicate->isAlwaysTrue();
     }
   };
 
@@ -1442,7 +1450,7 @@ private:
     /// vector, this information can contain them and therefore a
     /// SCEVPredicate argument should be added to getExact.
     const SCEV *getExact(const Loop *L, ScalarEvolution *SE,
-                         SmallVector<const SCEVPredicate *, 4> *Predicates = nullptr) const;
+                         SCEVUnionPredicate *Predicates = nullptr) const;
 
     /// Return the number of times this loop exit may fall through to the back
     /// edge, or SCEVCouldNotCompute. The loop is guaranteed not to exit via
@@ -1609,22 +1617,8 @@ private:
   /// is either a select instruction or a phi node).  \p I is the instruction
   /// being processed, and it is assumed equivalent to "Cond ? TrueVal :
   /// FalseVal".
-  const SCEV *createNodeForSelectOrPHIInstWithICmpInstCond(Instruction *I,
-                                                           ICmpInst *Cond,
-                                                           Value *TrueVal,
-                                                           Value *FalseVal);
-
-  /// See if we can model this select-like instruction via umin_seq expression.
-  const SCEV *createNodeForSelectOrPHIViaUMinSeq(Value *I, Value *Cond,
-                                                 Value *TrueVal,
-                                                 Value *FalseVal);
-
-  /// Given a value \p V, which is a select-like instruction (currently this is
-  /// either a select instruction or a phi node), which is assumed equivalent to
-  ///   Cond ? TrueVal : FalseVal
-  /// see if we can model it as a SCEV expression.
-  const SCEV *createNodeForSelectOrPHI(Value *V, Value *Cond, Value *TrueVal,
-                                       Value *FalseVal);
+  const SCEV *createNodeForSelectOrPHI(Instruction *I, Value *Cond,
+                                       Value *TrueVal, Value *FalseVal);
 
   /// Provide the special handling we need to analyze GEP SCEVs.
   const SCEV *createNodeForGEP(GEPOperator *GEP);
@@ -1904,15 +1898,6 @@ private:
                          const SCEV *FoundLHS, const SCEV *FoundRHS,
                          unsigned Depth);
 
-  /// Test whether the condition described by Pred, LHS, and RHS is true
-  /// whenever the condition described by Pred, FoundLHS, and FoundRHS is
-  /// true.
-  ///
-  /// This routine tries to reason about shifts.
-  bool isImpliedCondOperandsViaShift(ICmpInst::Predicate Pred, const SCEV *LHS,
-                                     const SCEV *RHS, const SCEV *FoundLHS,
-                                     const SCEV *FoundRHS);
-
   /// If we know that the specified Phi is in the header of its containing
   /// loop, we know the loop executes a constant number of times, and the PHI
   /// node is just a recurrence involving constants, fold it.
@@ -2186,7 +2171,7 @@ class PredicatedScalarEvolution {
 public:
   PredicatedScalarEvolution(ScalarEvolution &SE, Loop &L);
 
-  const SCEVPredicate &getPredicate() const;
+  const SCEVUnionPredicate &getUnionPredicate() const;
 
   /// Returns the SCEV expression of V, in the context of the current SCEV
   /// predicate.  The order of transformations applied on the expression of V
@@ -2255,7 +2240,7 @@ private:
 
   /// The SCEVPredicate that forms our context. We will rewrite all
   /// expressions assuming that this predicate true.
-  std::unique_ptr<SCEVUnionPredicate> Preds;
+  SCEVUnionPredicate Preds;
 
   /// Marks the version of the SCEV predicate used. When rewriting a SCEV
   /// expression we mark it with the version of the predicate. We use this to

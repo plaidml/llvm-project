@@ -8,7 +8,7 @@
 
 #include "lldb/API/SBTarget.h"
 #include "lldb/Utility/Instrumentation.h"
-#include "lldb/Utility/LLDBLog.h"
+
 #include "lldb/lldb-public.h"
 
 #include "lldb/API/SBBreakpoint.h"
@@ -1116,7 +1116,8 @@ bool SBTarget::FindBreakpointsByName(const char *name,
     llvm::Expected<std::vector<BreakpointSP>> expected_vector =
         target_sp->GetBreakpointList().FindBreakpointsByName(name);
     if (!expected_vector) {
-      LLDB_LOG(GetLog(LLDBLog::Breakpoints), "invalid breakpoint name: {}",
+      LLDB_LOG(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_BREAKPOINTS),
+               "invalid breakpoint name: {}",
                llvm::toString(expected_vector.takeError()));
       return false;
     }
@@ -2194,7 +2195,7 @@ lldb::SBValue SBTarget::EvaluateExpression(const char *expr,
                                            const SBExpressionOptions &options) {
   LLDB_INSTRUMENT_VA(this, expr, options);
 
-  Log *expr_log = GetLog(LLDBLog::Expressions);
+  Log *expr_log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
   SBValue expr_result;
   ValueObjectSP expr_value_sp;
   TargetSP target_sp(GetSP());

@@ -10,7 +10,6 @@
 #include "Plugins/TypeSystem/Clang/TypeSystemClang.h"
 #include "lldb/Symbol/Type.h"
 #include "lldb/Utility/LLDBAssert.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/lldb-enumerations.h"
 #include "lldb/lldb-forward.h"
 
@@ -170,7 +169,7 @@ Error UdtRecordCompleter::visitKnownMember(
             TypeSystemClang::SetIntegerInitializerForVariable(
                 decl, constant.Value.extOrTrunc(type_width));
           } else {
-            LLDB_LOG(GetLog(LLDBLog::AST),
+            LLDB_LOG(GetLogIfAllCategoriesSet(LIBLLDB_LOG_AST),
                      "Class '{0}' has a member '{1}' of type '{2}' ({3} bits) "
                      "which resolves to a wider constant value ({4} bits). "
                      "Ignoring constant.",
@@ -191,7 +190,7 @@ Error UdtRecordCompleter::visitKnownMember(
               decl->setConstexpr(true);
             } else {
               LLDB_LOG(
-                  GetLog(LLDBLog::AST),
+                  GetLogIfAllCategoriesSet(LIBLLDB_LOG_AST),
                   "Class '{0}' has a member '{1}' of type '{2}' ({3} bits) "
                   "which resolves to a constant value of mismatched width "
                   "({4} bits). Ignoring constant.",

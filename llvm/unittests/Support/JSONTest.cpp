@@ -138,9 +138,9 @@ TEST(JSONTest, Object) {
   EXPECT_FALSE(O.try_emplace("a", 4).second);
 
   auto D = O.find("d");
-  EXPECT_NE(D, O.end());
+  EXPECT_FALSE(D == O.end());
   auto E = O.find("e");
-  EXPECT_EQ(E, O.end());
+  EXPECT_TRUE(E == O.end());
 
   O.erase("b");
   O.erase(D);

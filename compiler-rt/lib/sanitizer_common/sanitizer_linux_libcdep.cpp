@@ -216,12 +216,14 @@ void InitTlsSize() { }
 // On glibc x86_64, ThreadDescriptorSize() needs to be precise due to the usage
 // of g_tls_size. On other targets, ThreadDescriptorSize() is only used by lsan
 // to get the pointer to thread-specific data keys in the thread control block.
-#if (SANITIZER_FREEBSD || SANITIZER_LINUX) && !SANITIZER_ANDROID && !SANITIZER_GO
+#if (SANITIZER_FREEBSD || SANITIZER_LINUX) && !SANITIZER_ANDROID
 // sizeof(struct pthread) from glibc.
 static atomic_uintptr_t thread_descriptor_size;
 
-static uptr ThreadDescriptorSizeFallback() {
-  uptr val = 0;
+uptr ThreadDescriptorSize() {
+  uptr val = atomic_load_relaxed(&thread_descriptor_size);
+  if (val)
+    return val;
 #if defined(__x86_64__) || defined(__i386__) || defined(__arm__)
   int major;
   int minor;
@@ -283,21 +285,8 @@ static uptr ThreadDescriptorSizeFallback() {
 #elif defined(__powerpc64__)
   val = 1776; // from glibc.ppc64le 2.20-8.fc21
 #endif
-  return val;
-}
-
-uptr ThreadDescriptorSize() {
-  uptr val = atomic_load_relaxed(&thread_descriptor_size);
   if (val)
-    return val;
-  // _thread_db_sizeof_pthread is a GLIBC_PRIVATE symbol that is exported in
-  // glibc 2.34 and later.
-  if (unsigned *psizeof = static_cast<unsigned *>(
-          dlsym(RTLD_DEFAULT, "_thread_db_sizeof_pthread")))
-    val = *psizeof;
-  if (!val)
-    val = ThreadDescriptorSizeFallback();
-  atomic_store_relaxed(&thread_descriptor_size, val);
+    atomic_store_relaxed(&thread_descriptor_size, val);
   return val;
 }
 
@@ -319,6 +308,7 @@ static uptr TlsPreTcbSize() {
 }
 #endif
 
+#if !SANITIZER_GO
 namespace {
 struct TlsBlock {
   uptr begin, end, align;
@@ -406,8 +396,9 @@ __attribute__((unused)) static void GetStaticTlsBoundary(uptr *addr, uptr *size,
   *addr = ranges[l].begin;
   *size = ranges[r - 1].end - ranges[l].begin;
 }
+#endif  // !SANITIZER_GO
 #endif  // (x86_64 || i386 || mips || ...) && (SANITIZER_FREEBSD ||
-        // SANITIZER_LINUX) && !SANITIZER_ANDROID && !SANITIZER_GO
+        // SANITIZER_LINUX) && !SANITIZER_ANDROID
 
 #if SANITIZER_NETBSD
 static struct tls_tcb * ThreadSelfTlsTcb() {

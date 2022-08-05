@@ -173,7 +173,6 @@ opaque pointer transition::
     LLVMBuildGEP -> LLVMBuildGEP2
     LLVMBuildInBoundsGEP -> LLVMBuildInBoundsGEP2
     LLVMBuildStructGEP -> LLVMBuildStructGEP2
-    LLVMBuildPtrDiff -> LLVMBuildPtrDiff2
     LLVMConstGEP -> LLVMConstGEP2
     LLVMConstInBoundsGEP -> LLVMConstInBoundsGEP2
     LLVMAddAlias -> LLVMAddAlias2
@@ -184,15 +183,13 @@ on a pointer type.
 Transition State
 ================
 
-As of Febuary 2022 large parts of LLVM support opaque pointers. It is possible
-to build a lot of C and C++ code in opaque pointer mode, both with and without
-optimization, and produce working binaries. However, thes are still some major
-open problems:
+As of January 2022 large parts of LLVM support opaque pointers, but there are
+still some major open problems:
 
 * Bitcode already fully supports opaque pointers, and reading up-to-date
   typed pointer bitcode in opaque pointers mode also works. However, we
-  currently do not fully support pointee type based auto-upgrade of old bitcode
-  in opaque pointer mode.
+  currently do not support pointee type based auto-upgrade of old bitcode in
+  opaque pointer mode.
 
 * While clang has limited support for opaque pointers (sufficient to compile
   CTMark on Linux), a major effort will be needed to systematically remove all
@@ -203,5 +200,8 @@ open problems:
   opaque pointers during the migration. Currently, individual tests for
   opaque pointers are being added, but the bulk of tests still uses typed
   pointers.
+
+* Loop access analysis does not support opaque pointers yet, and is currently
+  the main source of assertion failures in optimized builds.
 
 * Miscellanous uses of pointer element types remain everywhere.

@@ -58,7 +58,7 @@ module m
         integer, allocatable :: allocVal
         integer, allocatable :: elt(:)
         integer val
-        type(specialNumbers) numsArray(10)
+        type(specialNumbers) numsArray(5)
       end type
       type(large) largeNumber
       type(large), allocatable :: allocatableLarge
@@ -69,7 +69,8 @@ module m
         real :: x
       end type
       type(small), pointer :: sp
-      !This case is ok.
+      !C877
+      !ERROR: Default-initialized 'largenumber' must not be initialized in a DATA statement
       DATA(largeNumber % numsArray(j) % headOfTheList, j = 1, 10) / 10 * NULL() /
       !C877
       !ERROR: Data object must not contain pointer 'headofthelist' as a non-rightmost part
@@ -79,12 +80,12 @@ module m
       DATA(largeNumber % numsArray(j) % ptoarray(1), j = 1, 10) / 10 * 1 /
       !C877
       !ERROR: Rightmost data object pointer 'ptochar' must not be subscripted
-      DATA largeNumber % numsArray(1) % ptochar(1:2) / 'ab' /
+      DATA largeNumber % numsArray(0) % ptochar(1:2) / 'ab' /
       !C876
-      !ERROR: Allocatable 'elt' must not be initialized in a DATA statement
+      !ERROR: Default-initialized 'largenumber' must not be initialized in a DATA statement
       DATA(largeNumber % elt(j) , j = 1, 10) / 10 * 1/
       !C876
-      !ERROR: Allocatable 'allocval' must not be initialized in a DATA statement
+      !ERROR: Default-initialized 'largearray' must not be initialized in a DATA statement
       DATA(largeArray(j) % allocVal , j = 1, 10) / 10 * 1/
       !C876
       !ERROR: Allocatable 'allocatablelarge' must not be initialized in a DATA statement

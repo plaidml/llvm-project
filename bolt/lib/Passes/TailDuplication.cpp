@@ -11,7 +11,6 @@
 //===----------------------------------------------------------------------===//
 
 #include "bolt/Passes/TailDuplication.h"
-#include "llvm/MC/MCRegisterInfo.h"
 #include <numeric>
 
 #define DEBUG_TYPE "taildup"

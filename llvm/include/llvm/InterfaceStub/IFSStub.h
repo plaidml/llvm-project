@@ -95,7 +95,7 @@ struct IFSStub {
   std::vector<std::string> NeededLibs;
   std::vector<IFSSymbol> Symbols;
 
-  IFSStub() = default;
+  IFSStub() {}
   IFSStub(const IFSStub &Stub);
   IFSStub(IFSStub &&Stub);
 };
@@ -106,7 +106,7 @@ struct IFSStub {
 // This class makes it possible to map a second traits so the same data
 // structure can be used for 2 different yaml schema.
 struct IFSStubTriple : IFSStub {
-  IFSStubTriple() = default;
+  IFSStubTriple() {}
   IFSStubTriple(const IFSStub &Stub);
   IFSStubTriple(const IFSStubTriple &Stub);
   IFSStubTriple(IFSStubTriple &&Stub);

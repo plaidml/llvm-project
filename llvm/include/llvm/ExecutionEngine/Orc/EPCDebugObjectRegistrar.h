@@ -34,7 +34,7 @@ class ExecutionSession;
 class DebugObjectRegistrar {
 public:
   virtual Error registerDebugObject(ExecutorAddrRange TargetMem) = 0;
-  virtual ~DebugObjectRegistrar() = default;
+  virtual ~DebugObjectRegistrar() {}
 };
 
 /// Use ExecutorProcessControl to register debug objects locally or in a remote

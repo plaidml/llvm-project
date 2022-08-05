@@ -27,9 +27,11 @@
 #include "llvm/ADT/iterator_range.h"
 #include "llvm/IR/Attributes.h"
 #include "llvm/IR/BasicBlock.h"
+#include "llvm/IR/CallingConv.h"
 #include "llvm/IR/CFG.h"
 #include "llvm/IR/Constant.h"
 #include "llvm/IR/DerivedTypes.h"
+#include "llvm/IR/Function.h"
 #include "llvm/IR/InstrTypes.h"
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/OperandTraits.h"
@@ -50,6 +52,7 @@ namespace llvm {
 class APInt;
 class ConstantInt;
 class DataLayout;
+class LLVMContext;
 
 //===----------------------------------------------------------------------===//
 //                                AllocaInst Class

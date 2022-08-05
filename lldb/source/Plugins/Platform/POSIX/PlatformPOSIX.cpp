@@ -28,7 +28,6 @@
 #include "lldb/Target/Thread.h"
 #include "lldb/Utility/DataBufferHeap.h"
 #include "lldb/Utility/FileSpec.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/StreamString.h"
 #include "llvm/ADT/ScopeExit.h"
@@ -90,7 +89,7 @@ lldb_private::Status
 PlatformPOSIX::PutFile(const lldb_private::FileSpec &source,
                        const lldb_private::FileSpec &destination, uint32_t uid,
                        uint32_t gid) {
-  Log *log = GetLog(LLDBLog::Platform);
+  Log *log(GetLogIfAnyCategoriesSet(LIBLLDB_LOG_PLATFORM));
 
   if (IsHost()) {
     if (source == destination)
@@ -155,7 +154,7 @@ lldb_private::Status PlatformPOSIX::GetFile(
     const lldb_private::FileSpec &source,      // remote file path
     const lldb_private::FileSpec &destination) // local file path
 {
-  Log *log = GetLog(LLDBLog::Platform);
+  Log *log(GetLogIfAnyCategoriesSet(LIBLLDB_LOG_PLATFORM));
 
   // Check the args, first.
   std::string src_path(source.GetPath());
@@ -361,7 +360,7 @@ lldb::ProcessSP PlatformPOSIX::Attach(ProcessAttachInfo &attach_info,
                                       Debugger &debugger, Target *target,
                                       Status &error) {
   lldb::ProcessSP process_sp;
-  Log *log = GetLog(LLDBLog::Platform);
+  Log *log(GetLogIfAnyCategoriesSet(LIBLLDB_LOG_PLATFORM));
 
   if (IsHost()) {
     if (target == nullptr) {
@@ -414,7 +413,7 @@ lldb::ProcessSP PlatformPOSIX::Attach(ProcessAttachInfo &attach_info,
 lldb::ProcessSP PlatformPOSIX::DebugProcess(ProcessLaunchInfo &launch_info,
                                             Debugger &debugger, Target &target,
                                             Status &error) {
-  Log *log = GetLog(LLDBLog::Platform);
+  Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_PLATFORM));
   LLDB_LOG(log, "target {0}", &target);
 
   ProcessSP process_sp;

@@ -86,5 +86,6 @@ unittest("ADTTests") {
     "TwineTest.cpp",
     "TypeSwitchTest.cpp",
     "TypeTraitsTest.cpp",
+    "WaymarkingTest.cpp",
   ]
 }

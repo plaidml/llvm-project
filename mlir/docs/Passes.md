@@ -8,10 +8,6 @@ This document describes the available MLIR passes and their contracts.
 
 [include "GeneralPasses.md"]
 
-## Bufferization Passes
-
-[include "BufferizationPasses.md"]
-
 ## Conversion Passes
 
 [include "ConversionPasses.md"]
@@ -75,10 +71,6 @@ This document describes the available MLIR passes and their contracts.
 ## `tensor` Dialect Passes
 
 [include "TensorPasses.md"]
-
-## `vector` Dialect Passes
-
-[include "VectorPasses.md"]
 
 ## TOSA Dialect Passes
 

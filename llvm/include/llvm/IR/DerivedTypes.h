@@ -667,7 +667,12 @@ public:
                                              unsigned AddressSpace) {
     if (PT->isOpaque())
       return get(PT->getContext(), AddressSpace);
-    return get(PT->PointeeTy, AddressSpace);
+    return get(PT->getElementType(), AddressSpace);
+  }
+
+  Type *getElementType() const {
+    assert(!isOpaque() && "Attempting to get element type of opaque pointer");
+    return PointeeTy;
   }
 
   bool isOpaque() const { return !PointeeTy; }

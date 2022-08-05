@@ -28,8 +28,6 @@
 
 namespace lldb_private {
 
-class ClangExpressionParser;
-
 /// \class ClangUserExpression ClangUserExpression.h
 /// "lldb/Expression/ClangUserExpression.h" Encapsulates a single expression
 /// for use with Clang

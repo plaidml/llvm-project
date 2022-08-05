@@ -112,7 +112,7 @@ void FuncOp::build(OpBuilder &builder, OperationState &state, StringRef name,
                                                 /*resultAttrs=*/llvm::None);
 }
 
-ParseResult FuncOp::parse(OpAsmParser &parser, OperationState &result) {
+static ParseResult parseFuncOp(OpAsmParser &parser, OperationState &result) {
   auto buildFuncType =
       [](Builder &builder, ArrayRef<Type> argTypes, ArrayRef<Type> results,
          function_interface_impl::VariadicFlag,
@@ -122,25 +122,25 @@ ParseResult FuncOp::parse(OpAsmParser &parser, OperationState &result) {
       parser, result, /*allowVariadic=*/false, buildFuncType);
 }
 
-void FuncOp::print(OpAsmPrinter &p) {
-  FunctionType fnType = getType();
+static void print(FuncOp op, OpAsmPrinter &p) {
+  FunctionType fnType = op.getType();
   function_interface_impl::printFunctionOp(
-      p, *this, fnType.getInputs(), /*isVariadic=*/false, fnType.getResults());
+      p, op, fnType.getInputs(), /*isVariadic=*/false, fnType.getResults());
 }
 
-LogicalResult FuncOp::verify() {
+static LogicalResult verify(FuncOp op) {
   // If this function is external there is nothing to do.
-  if (isExternal())
+  if (op.isExternal())
     return success();
 
   // Verify that the argument list of the function and the arg list of the entry
   // block line up.  The trait already verified that the number of arguments is
   // the same between the signature and the block.
-  auto fnInputTypes = getType().getInputs();
-  Block &entryBlock = front();
+  auto fnInputTypes = op.getType().getInputs();
+  Block &entryBlock = op.front();
   for (unsigned i = 0, e = entryBlock.getNumArguments(); i != e; ++i)
     if (fnInputTypes[i] != entryBlock.getArgument(i).getType())
-      return emitOpError("type of entry block argument #")
+      return op.emitOpError("type of entry block argument #")
              << i << '(' << entryBlock.getArgument(i).getType()
              << ") must match the type of the corresponding argument in "
              << "function signature(" << fnInputTypes[i] << ')';
@@ -245,28 +245,28 @@ DataLayoutSpecInterface ModuleOp::getDataLayoutSpec() {
   return {};
 }
 
-LogicalResult ModuleOp::verify() {
+static LogicalResult verify(ModuleOp op) {
   // Check that none of the attributes are non-dialect attributes, except for
   // the symbol related attributes.
-  for (auto attr : (*this)->getAttrs()) {
+  for (auto attr : op->getAttrs()) {
     if (!attr.getName().strref().contains('.') &&
         !llvm::is_contained(
             ArrayRef<StringRef>{mlir::SymbolTable::getSymbolAttrName(),
                                 mlir::SymbolTable::getVisibilityAttrName()},
             attr.getName().strref()))
-      return emitOpError() << "can only contain attributes with "
-                              "dialect-prefixed names, found: '"
-                           << attr.getName().getValue() << "'";
+      return op.emitOpError() << "can only contain attributes with "
+                                 "dialect-prefixed names, found: '"
+                              << attr.getName().getValue() << "'";
   }
 
   // Check that there is at most one data layout spec attribute.
   StringRef layoutSpecAttrName;
   DataLayoutSpecInterface layoutSpec;
-  for (const NamedAttribute &na : (*this)->getAttrs()) {
+  for (const NamedAttribute &na : op->getAttrs()) {
     if (auto spec = na.getValue().dyn_cast<DataLayoutSpecInterface>()) {
       if (layoutSpec) {
         InFlightDiagnostic diag =
-            emitOpError() << "expects at most one data layout attribute";
+            op.emitOpError() << "expects at most one data layout attribute";
         diag.attachNote() << "'" << layoutSpecAttrName
                           << "' is a data layout attribute";
         diag.attachNote() << "'" << na.getName().getValue()

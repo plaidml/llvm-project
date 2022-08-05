@@ -9,5 +9,4 @@ add_mlir_dialect_library(MLIRArmSVETransforms
   MLIRIR
   MLIRLLVMCommonConversion
   MLIRLLVMIR
-  MLIRStandard
   )

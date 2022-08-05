@@ -676,11 +676,8 @@ static void checkAsyncFuncPointer(const Instruction *I, Value *V) {
   if (!AsyncFuncPtrAddr)
     fail(I, "llvm.coro.id.async async function pointer not a global", V);
 
-  if (AsyncFuncPtrAddr->getType()->isOpaquePointerTy())
-    return;
-
-  auto *StructTy = cast<StructType>(
-      AsyncFuncPtrAddr->getType()->getNonOpaquePointerElementType());
+  auto *StructTy =
+      cast<StructType>(AsyncFuncPtrAddr->getType()->getPointerElementType());
   if (StructTy->isOpaque() || !StructTy->isPacked() ||
       StructTy->getNumElements() != 2 ||
       !StructTy->getElementType(0)->isIntegerTy(32) ||
@@ -704,16 +701,14 @@ void CoroIdAsyncInst::checkWellFormed() const {
 static void checkAsyncContextProjectFunction(const Instruction *I,
                                              Function *F) {
   auto *FunTy = cast<FunctionType>(F->getValueType());
-  Type *Int8Ty = Type::getInt8Ty(F->getContext());
-  auto *RetPtrTy = dyn_cast<PointerType>(FunTy->getReturnType());
-  if (!RetPtrTy || !RetPtrTy->isOpaqueOrPointeeTypeMatches(Int8Ty))
+  if (!FunTy->getReturnType()->isPointerTy() ||
+      !FunTy->getReturnType()->getPointerElementType()->isIntegerTy(8))
     fail(I,
          "llvm.coro.suspend.async resume function projection function must "
          "return an i8* type",
          F);
   if (FunTy->getNumParams() != 1 || !FunTy->getParamType(0)->isPointerTy() ||
-      !cast<PointerType>(FunTy->getParamType(0))
-           ->isOpaqueOrPointeeTypeMatches(Int8Ty))
+      !FunTy->getParamType(0)->getPointerElementType()->isIntegerTy(8))
     fail(I,
          "llvm.coro.suspend.async resume function projection function must "
          "take one i8* type as parameter",
@@ -728,7 +723,8 @@ void CoroAsyncEndInst::checkWellFormed() const {
   auto *MustTailCallFunc = getMustTailCallFunction();
   if (!MustTailCallFunc)
     return;
-  auto *FnTy = MustTailCallFunc->getFunctionType();
+  auto *FnTy =
+      cast<FunctionType>(MustTailCallFunc->getType()->getPointerElementType());
   if (FnTy->getNumParams() != (arg_size() - 3))
     fail(this,
          "llvm.coro.end.async must tail call function argument type must "

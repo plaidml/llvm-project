@@ -32,7 +32,7 @@ include "TestAttrDefs.td"
 include "TestTypeDefs.td"
 
 
-class TEST_Op<string mnemonic, list<Trait> traits = []> :
+class TEST_Op<string mnemonic, list<OpTrait> traits = []> :
     Op<Test_Dialect, mnemonic, traits>;
 
 //===----------------------------------------------------------------------===//
@@ -360,7 +360,8 @@ def SingleNoTerminatorOp : TEST_Op<"single_no_terminator_op",
 def SingleNoTerminatorCustomAsmOp : TEST_Op<"single_no_terminator_custom_asm_op",
                                             [SingleBlock, NoTerminator]> {
   let regions = (region SizedRegion<1>);
-  let hasCustomAssemblyFormat = 1;
+  let parser = [{ return ::parseSingleNoTerminatorCustomAsmOp(parser, result); }];
+  let printer = [{ return ::print(*this, p); }];
 }
 
 def VariadicNoTerminatorOp : TEST_Op<"variadic_no_terminator_op",
@@ -636,54 +637,6 @@ def AttrSizedResultOp : TEST_Op<"attr_sized_results",
 // is the dialect parser and printer hooks.
 def CustomFormatFallbackOp : TEST_Op<"dialect_custom_format_fallback">;
 
-// Ops related to OIList primitive
-def OIListTrivial : TEST_Op<"oilist_with_keywords_only"> {
-  let assemblyFormat = [{
-    oilist( `keyword`
-          | `otherKeyword`) attr-dict
-  }];
-}
-
-def OIListSimple : TEST_Op<"oilist_with_simple_args", [AttrSizedOperandSegments]> {
-  let arguments = (ins Optional<AnyType>:$arg0,
-                       Optional<AnyType>:$arg1,
-                       Optional<AnyType>:$arg2);
-  let assemblyFormat = [{
-    oilist( `keyword` $arg0 `:` type($arg0)
-          | `otherKeyword` $arg1 `:` type($arg1)
-          | `thirdKeyword` $arg2 `:` type($arg2) ) attr-dict
-  }];
-}
-
-def OIListVariadic : TEST_Op<"oilist_variadic_with_parens", [AttrSizedOperandSegments]> {
-  let arguments = (ins Variadic<AnyType>:$arg0,
-                       Variadic<AnyType>:$arg1,
-                       Variadic<AnyType>:$arg2);
-  let assemblyFormat = [{
-    oilist( `keyword` `(` $arg0 `:` type($arg0) `)`
-          | `otherKeyword` `(` $arg1 `:` type($arg1) `)`
-          | `thirdKeyword` `(` $arg2 `:` type($arg2) `)`) attr-dict
-  }];
-}
-
-def OIListCustom : TEST_Op<"oilist_custom", [AttrSizedOperandSegments]> {
-  let arguments = (ins Variadic<AnyType>:$arg0,
-                       Optional<I32>:$optOperand,
-                       UnitAttr:$nowait);
-  let assemblyFormat = [{
-    oilist( `private` `(` $arg0 `:` type($arg0) `)`
-          | `nowait`
-          | `reduction` custom<CustomOptionalOperand>($optOperand)
-    ) attr-dict
-  }];
-}
-
-def OIListAllowedLiteral : TEST_Op<"oilist_allowed_literal"> {
-  let assemblyFormat = [{
-    oilist( `foo` | `bar` ) `buzz` attr-dict
-  }];
-}
-
 // This is used to test encoding of a string attribute into an SSA name of a
 // pretty printed value name.
 def StringAttrPrettyNameOp
@@ -691,7 +644,9 @@ def StringAttrPrettyNameOp
            [DeclareOpInterfaceMethods<OpAsmOpInterface, ["getAsmResultNames"]>]> {
   let arguments = (ins StrArrayAttr:$names);
   let results = (outs Variadic<I32>:$r);
-  let hasCustomAssemblyFormat = 1;
+
+  let printer = [{ return ::print(p, *this); }];
+  let parser = [{ return ::parse$cppClass(parser, result); }];
 }
 
 // This is used to test the OpAsmOpInterface::getDefaultDialect() feature:
@@ -708,36 +663,29 @@ def DefaultDialectOp : TEST_Op<"default_dialect", [OpAsmOpInterface]> {
   let assemblyFormat = "regions attr-dict-with-keyword";
 }
 
-// This is used to test the OpAsmOpInterface::getAsmBlockName() feature:
-// blocks nested in a region under this op will have a name defined by the
-// interface.
-def AsmBlockNameOp : TEST_Op<"block_names", [OpAsmOpInterface]> {
- let regions = (region AnyRegion:$body);
-  let extraClassDeclaration = [{
-    void getAsmBlockNames(mlir::OpAsmSetBlockNameFn setNameFn) {
-      std::string name;
-      int count = 0;
-      for (::mlir::Block &block : getRegion().getBlocks()) {
-        name = "foo" + std::to_string(count++);
-        setNameFn(&block, name);
-      }
-    }
-  }];
-  let assemblyFormat = "regions attr-dict-with-keyword";
-}
-
 // This operation requires its return type to have the trait 'TestTypeTrait'.
 def ResultTypeWithTraitOp : TEST_Op<"result_type_with_trait", []> {
   let results = (outs AnyType);
-  let hasVerifier = 1;
+
+  let verifier = [{
+    if((*this)->getResultTypes()[0].hasTrait<TypeTrait::TestTypeTrait>())
+      return success();
+    return this->emitError("result type should have trait 'TestTypeTrait'");
+  }];
 }
 
 // This operation requires its "attr" attribute to have the
 // trait 'TestAttrTrait'.
 def AttrWithTraitOp : TEST_Op<"attr_with_trait", []> {
   let arguments = (ins AnyAttr:$attr);
-  let hasVerifier = 1;
+
+  let verifier = [{
+    if (this->getAttr().hasTrait<AttributeTrait::TestAttrTrait>())
+      return success();
+    return this->emitError("'attr' attribute should have trait 'TestAttrTrait'");
+  }];
 }
+
 
 //===----------------------------------------------------------------------===//
 // Test Locations
@@ -751,16 +699,6 @@ def TestLocationSrcOp : TEST_Op<"loc_src"> {
 def TestLocationDstOp : TEST_Op<"loc_dst", [SameOperandsAndResultType]> {
   let arguments = (ins I32:$input);
   let results = (outs I32:$output);
-}
-
-def TestLocationSrcNoResOp : TEST_Op<"loc_src_no_res"> {
-  let arguments = (ins I32:$input);
-  let results = (outs);
-}
-
-def TestLocationDstNoResOp : TEST_Op<"loc_dst_no_res"> {
-  let arguments = (ins I32:$input);
-  let results = (outs);
 }
 
 //===----------------------------------------------------------------------===//
@@ -1448,11 +1386,6 @@ def : Pat<(TestLocationSrcOp:$res1
               (location "named")),
             (location "fused", $res2, $res3))>;
 
-// Test that we can use the location of an op without results
-def : Pat<(TestLocationSrcNoResOp:$loc
-            (TestLocationSrcOp (TestLocationSrcOp $input))),
-          (TestLocationDstNoResOp $input, (location $loc))>;
-
 //===----------------------------------------------------------------------===//
 // Test Patterns (Type Builders)
 
@@ -1603,8 +1536,6 @@ def TestAnotherTypeProducerOp : TEST_Op<"another_type_producer">,
   Results<(outs AnyType)>;
 def TestTypeConsumerOp : TEST_Op<"type_consumer">,
   Arguments<(ins AnyType)>;
-def TestTypeChangerOp : TEST_Op<"type_changer">,
-  Arguments<(ins AnyType)>, Results<(outs AnyType)>;
 def TestValidOp : TEST_Op<"valid", [Terminator]>,
   Arguments<(ins Variadic<AnyType>)>;
 
@@ -1645,12 +1576,14 @@ def TestSignatureConversionNoConverterOp
 
 def ParseIntegerLiteralOp : TEST_Op<"parse_integer_literal"> {
   let results = (outs Variadic<Index>:$results);
-  let hasCustomAssemblyFormat = 1;
+  let parser = [{ return ::parse$cppClass(parser, result); }];
+  let printer = [{ return ::print(p, *this); }];
 }
 
 def ParseWrappedKeywordOp : TEST_Op<"parse_wrapped_keyword"> {
   let arguments = (ins StrAttr:$keyword);
-  let hasCustomAssemblyFormat = 1;
+  let parser = [{ return ::parse$cppClass(parser, result); }];
+  let printer = [{ return ::print(p, *this); }];
 }
 
 //===----------------------------------------------------------------------===//
@@ -1665,7 +1598,8 @@ def IsolatedRegionOp : TEST_Op<"isolated_region", [IsolatedFromAbove]> {
 
   let arguments = (ins Index);
   let regions = (region SizedRegion<1>:$region);
-  let hasCustomAssemblyFormat = 1;
+  let parser = [{ return ::parse$cppClass(parser, result); }];
+  let printer = [{ return ::print(p, *this); }];
 }
 
 def SSACFGRegionOp : TEST_Op<"ssacfg_region",  [
@@ -1688,7 +1622,8 @@ def GraphRegionOp : TEST_Op<"graph_region",  [
   }];
 
   let regions = (region AnyRegion:$region);
-  let hasCustomAssemblyFormat = 1;
+  let parser = [{ return ::parse$cppClass(parser, result); }];
+  let printer = [{ return ::print(p, *this); }];
 }
 
 def AffineScopeOp : TEST_Op<"affine_scope", [AffineScope]> {
@@ -1698,7 +1633,8 @@ def AffineScopeOp : TEST_Op<"affine_scope", [AffineScope]> {
   }];
 
   let regions = (region SizedRegion<1>:$region);
-  let hasCustomAssemblyFormat = 1;
+  let parser = [{ return ::parse$cppClass(parser, result); }];
+  let printer = [{ return ::print(p, *this); }];
 }
 
 def WrappingRegionOp : TEST_Op<"wrapping_region",
@@ -1711,7 +1647,8 @@ def WrappingRegionOp : TEST_Op<"wrapping_region",
 
   let results = (outs Variadic<AnyType>);
   let regions = (region SizedRegion<1>:$region);
-  let hasCustomAssemblyFormat = 1;
+  let parser = [{ return ::parse$cppClass(parser, result); }];
+  let printer = [{ return ::print(p, *this); }];
 }
 
 def PrettyPrintedRegionOp : TEST_Op<"pretty_printed_region",
@@ -1729,10 +1666,12 @@ def PrettyPrintedRegionOp : TEST_Op<"pretty_printed_region",
 
   let results = (outs AnyType);
   let regions = (region SizedRegion<1>:$region);
-  let hasCustomAssemblyFormat = 1;
+  let parser = [{ return ::parse$cppClass(parser, result); }];
+  let printer = [{ return ::print(p, *this); }];
 }
 
-def PolyForOp : TEST_Op<"polyfor", [OpAsmOpInterface]> {
+def PolyForOp : TEST_Op<"polyfor", [OpAsmOpInterface]>
+{
   let summary =  "polyfor operation";
   let description = [{
     Test op with multiple region arguments, each argument of index type.
@@ -1742,7 +1681,7 @@ def PolyForOp : TEST_Op<"polyfor", [OpAsmOpInterface]> {
                                   mlir::OpAsmSetValueNameFn setNameFn);
   }];
   let regions = (region SizedRegion<1>:$region);
-  let hasCustomAssemblyFormat = 1;
+  let parser = [{ return ::parse$cppClass(parser, result); }];
 }
 
 //===----------------------------------------------------------------------===//
@@ -2224,7 +2163,7 @@ def FormatInferType2Op : TEST_Op<"format_infer_type2", [DeclareOpInterfaceMethod
 
 // Base class for testing mixing allOperandTypes, allOperands, and
 // inferResultTypes.
-class FormatInferAllTypesBaseOp<string mnemonic, list<Trait> traits = []>
+class FormatInferAllTypesBaseOp<string mnemonic, list<OpTrait> traits = []>
     : TEST_Op<mnemonic, [InferTypeOpInterface] # traits> {
   let arguments = (ins Variadic<AnyType>:$args);
   let results = (outs Variadic<AnyType>:$outs);
@@ -2356,7 +2295,7 @@ def RegionYieldOp : TEST_Op<"region_yield",
   ];
 }
 
-class BufferBasedOpBase<string mnemonic, list<Trait> traits>
+class BufferBasedOpBase<string mnemonic, list<OpTrait> traits>
     : TEST_Op<mnemonic, traits> {
   let description = [{
     A buffer based operation, that uses memRefs as input and output.
@@ -2406,16 +2345,17 @@ def RegionIfYieldOp : TEST_Op<"region_if_yield",
 }
 
 def RegionIfOp : TEST_Op<"region_if",
-      [DeclareOpInterfaceMethods<RegionBranchOpInterface,
-                                 ["getRegionInvocationBounds"]>,
+      [DeclareOpInterfaceMethods<RegionBranchOpInterface>,
        SingleBlockImplicitTerminator<"RegionIfYieldOp">,
        RecursiveSideEffects]> {
   let description =[{
     Represents an abstract if-then-else-join pattern. In this context, the then
     and else regions jump to the join region, which finally returns to its
     parent op.
-  }];
+    }];
 
+  let printer = [{ return ::print(p, *this); }];
+  let parser = [{ return ::parseRegionIfOp(parser, result); }];
   let arguments = (ins Variadic<AnyType>);
   let results = (outs Variadic<AnyType>:$results);
   let regions = (region SizedRegion<1>:$thenRegion,
@@ -2433,15 +2373,6 @@ def RegionIfOp : TEST_Op<"region_if",
     }
     ::mlir::OperandRange getSuccessorEntryOperands(unsigned index);
   }];
-  let hasCustomAssemblyFormat = 1;
-}
-
-def AnyCondOp : TEST_Op<"any_cond",
-      [DeclareOpInterfaceMethods<RegionBranchOpInterface,
-                                 ["getRegionInvocationBounds"]>,
-       RecursiveSideEffects]> {
-  let results = (outs Variadic<AnyType>:$results);
-  let regions = (region AnyRegion:$region);
 }
 
 //===----------------------------------------------------------------------===//
@@ -2487,7 +2418,7 @@ def TableGenBuildOp4 : TEST_Op<"tblgen_build_4", [SameOperandsAndResultType]> {
 // Base class for testing `build` methods for ops with
 // InferReturnTypeOpInterface.
 class TableGenBuildInferReturnTypeBaseOp<string mnemonic,
-                                         list<Trait> traits = []>
+                                         list<OpTrait> traits = []>
     : TEST_Op<mnemonic, [InferTypeOpInterface] # traits> {
   let arguments = (ins Variadic<AnyType>:$inputs);
   let results = (outs AnyType:$result);
@@ -2608,13 +2539,11 @@ def TestLinalgConvOp :
   let extraClassDeclaration = [{
     bool hasIndexSemantics() { return false; }
 
-    static void regionBuilder(mlir::ImplicitLocOpBuilder &b, mlir::Block &block,
-                              mlir::ArrayRef<mlir::NamedAttribute> attrs) {
+    static void regionBuilder(mlir::ImplicitLocOpBuilder &b, mlir::Block &block) {
       b.create<mlir::linalg::YieldOp>(block.getArguments().back());
     }
 
-    static std::function<void(mlir::ImplicitLocOpBuilder &, mlir::Block &,
-                              mlir::ArrayRef<mlir::NamedAttribute>)>
+    static std::function<void(mlir::ImplicitLocOpBuilder &b, mlir::Block &block)>
     getRegionBuilder() {
       return &regionBuilder;
     }

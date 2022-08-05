@@ -24,6 +24,7 @@ class MCInstrInfo;
 class MCRegisterInfo;
 
 MCCodeEmitter *createR600MCCodeEmitter(const MCInstrInfo &MCII,
+                                       const MCRegisterInfo &MRI,
                                        MCContext &Ctx);
 MCInstrInfo *createR600MCInstrInfo();
 

@@ -15,7 +15,6 @@
 #include "llvm/Transforms/Utils/LoopVersioning.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/Analysis/AliasAnalysis.h"
-#include "llvm/Analysis/InstSimplifyFolder.h"
 #include "llvm/Analysis/LoopAccessAnalysis.h"
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Analysis/ScalarEvolution.h"
@@ -41,8 +40,9 @@ LoopVersioning::LoopVersioning(const LoopAccessInfo &LAI,
                                ArrayRef<RuntimePointerCheck> Checks, Loop *L,
                                LoopInfo *LI, DominatorTree *DT,
                                ScalarEvolution *SE)
-    : VersionedLoop(L), AliasChecks(Checks.begin(), Checks.end()),
-      Preds(LAI.getPSE().getPredicate()), LAI(LAI), LI(LI), DT(DT),
+    : VersionedLoop(L), NonVersionedLoop(nullptr),
+      AliasChecks(Checks.begin(), Checks.end()),
+      Preds(LAI.getPSE().getUnionPredicate()), LAI(LAI), LI(LI), DT(DT),
       SE(SE) {
 }
 
@@ -70,14 +70,17 @@ void LoopVersioning::versionLoop(
                    "scev.check");
   SCEVRuntimeCheck =
       Exp.expandCodeForPredicate(&Preds, RuntimeCheckBB->getTerminator());
+  auto *CI = dyn_cast<ConstantInt>(SCEVRuntimeCheck);
 
-  IRBuilder<InstSimplifyFolder> Builder(
-      RuntimeCheckBB->getContext(),
-      InstSimplifyFolder(RuntimeCheckBB->getModule()->getDataLayout()));
+  // Discard the SCEV runtime check if it is always true.
+  if (CI && CI->isZero())
+    SCEVRuntimeCheck = nullptr;
+
   if (MemRuntimeCheck && SCEVRuntimeCheck) {
-    Builder.SetInsertPoint(RuntimeCheckBB->getTerminator());
-    RuntimeCheck =
-        Builder.CreateOr(MemRuntimeCheck, SCEVRuntimeCheck, "lver.safe");
+    RuntimeCheck = BinaryOperator::Create(Instruction::Or, MemRuntimeCheck,
+                                          SCEVRuntimeCheck, "lver.safe");
+    if (auto *I = dyn_cast<Instruction>(RuntimeCheck))
+      I->insertBefore(RuntimeCheckBB->getTerminator());
   } else
     RuntimeCheck = MemRuntimeCheck ? MemRuntimeCheck : SCEVRuntimeCheck;
 
@@ -106,9 +109,8 @@ void LoopVersioning::versionLoop(
 
   // Insert the conditional branch based on the result of the memchecks.
   Instruction *OrigTerm = RuntimeCheckBB->getTerminator();
-  Builder.SetInsertPoint(OrigTerm);
-  Builder.CreateCondBr(RuntimeCheck, NonVersionedLoop->getLoopPreheader(),
-                       VersionedLoop->getLoopPreheader());
+  BranchInst::Create(NonVersionedLoop->getLoopPreheader(),
+                     VersionedLoop->getLoopPreheader(), RuntimeCheck, OrigTerm);
   OrigTerm->eraseFromParent();
 
   // The loops merge in the original exit block.  This is now dominated by the
@@ -276,7 +278,7 @@ bool runImpl(LoopInfo *LI, function_ref<const LoopAccessInfo &(Loop &)> GetLAA,
     const LoopAccessInfo &LAI = GetLAA(*L);
     if (!LAI.hasConvergentOp() &&
         (LAI.getNumRuntimePointerChecks() ||
-         !LAI.getPSE().getPredicate().isAlwaysTrue())) {
+         !LAI.getPSE().getUnionPredicate().isAlwaysTrue())) {
       LoopVersioning LVer(LAI, LAI.getRuntimePointerChecking()->getChecks(), L,
                           LI, DT, SE);
       LVer.versionLoop();

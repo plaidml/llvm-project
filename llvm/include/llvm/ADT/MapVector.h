@@ -5,13 +5,12 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-///
-/// \file
-/// This file implements a map that provides insertion order iteration. The
-/// interface is purposefully minimal. The key is assumed to be cheap to copy
-/// and 2 copies are kept, one for indexing in a DenseMap, one for iteration in
-/// a std::vector.
-///
+//
+// This file implements a map that provides insertion order iteration. The
+// interface is purposefully minimal. The key is assumed to be cheap to copy
+// and 2 copies are kept, one for indexing in a DenseMap, one for iteration in
+// a std::vector.
+//
 //===----------------------------------------------------------------------===//
 
 #ifndef LLVM_ADT_MAPVECTOR_H
@@ -19,6 +18,7 @@
 
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/SmallVector.h"
+#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <iterator>

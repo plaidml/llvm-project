@@ -20,7 +20,7 @@ void t3(unsigned char *src, unsigned long long temp) {
   __asm__ volatile("" : "+m"(temp), "+r"(src));
 }
 
-void t4(void) {
+void t4() {
   unsigned long long a;
   struct reg { unsigned long long a, b; } b;
 
@@ -43,7 +43,7 @@ void t7(int a) {
   // CHECK: T7 NAMED: $1
 }
 
-void t8(void) {
+void t8() {
   __asm__ volatile("T8 NAMED MODIFIER: %c[input]" :: [input] "i" (4));
   // CHECK: @t8()
   // CHECK: T8 NAMED MODIFIER: ${0:c}
@@ -110,7 +110,7 @@ void t14(struct S *P) {
 }
 
 // PR4938
-int t16(void) {
+int t16() {
   int a,b;
   asm ( "nop;"
        :"=%c" (a)
@@ -120,7 +120,7 @@ int t16(void) {
 }
 
 // PR6475
-void t17(void) {
+void t17() {
   int i;
   __asm__ ( "nop": "=m"(i));
 

@@ -4,7 +4,7 @@
 
 // Just check that we don't emit any dead blocks.
 @interface NSArray @end
-void f0(void) {
+void f0() {
   @try {
     @try {
       @throw @"a";
@@ -15,7 +15,7 @@ void f0(void) {
 }
 
 // CHECK-LABEL: define{{.*}} void @f1()
-void f1(void) {
+void f1() {
   extern void foo(void);
 
   while (1) {
@@ -41,7 +41,7 @@ void f1(void) {
 // optimization.  rdar://problem/8160285
 
 // CHECK-LABEL: define{{.*}} i32 @f2()
-int f2(void) {
+int f2() {
   extern void foo(void);
 
   // CHECK:        [[X:%.*]] = alloca i32
@@ -76,7 +76,7 @@ int f2(void) {
 // Test that the cleanup destination is saved when entering a finally
 // block.  rdar://problem/8293901
 // CHECK-LABEL: define{{.*}} void @f3()
-void f3(void) {
+void f3() {
   extern void f3_helper(int, int*);
 
   // CHECK:      [[X:%.*]] = alloca i32
@@ -128,7 +128,7 @@ void f3(void) {
 }
 
 // rdar://problem/8440970
-void f4(void) {
+void f4() {
   extern void f4_help(int);
 
   // CHECK-LABEL: define{{.*}} void @f4()

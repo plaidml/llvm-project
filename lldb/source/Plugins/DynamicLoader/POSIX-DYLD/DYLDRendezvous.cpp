@@ -14,7 +14,6 @@
 #include "lldb/Target/Process.h"
 #include "lldb/Target/Target.h"
 #include "lldb/Utility/ArchSpec.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/Status.h"
 
@@ -35,7 +34,7 @@ DYLDRendezvous::DYLDRendezvous(Process *process)
 }
 
 addr_t DYLDRendezvous::ResolveRendezvousAddress() {
-  Log *log = GetLog(LLDBLog::DynamicLoader);
+  Log *log(GetLogIfAnyCategoriesSet(LIBLLDB_LOG_DYNAMIC_LOADER));
   addr_t info_location;
   addr_t info_addr;
   Status error;
@@ -114,7 +113,7 @@ addr_t DYLDRendezvous::ResolveRendezvousAddress() {
 
 void DYLDRendezvous::UpdateExecutablePath() {
   if (m_process) {
-    Log *log = GetLog(LLDBLog::DynamicLoader);
+    Log *log(GetLogIfAnyCategoriesSet(LIBLLDB_LOG_DYNAMIC_LOADER));
     Module *exe_mod = m_process->GetTarget().GetExecutableModulePointer();
     if (exe_mod) {
       m_exe_file_spec = exe_mod->GetPlatformFileSpec();
@@ -130,7 +129,7 @@ void DYLDRendezvous::UpdateExecutablePath() {
 }
 
 bool DYLDRendezvous::Resolve() {
-  Log *log = GetLog(LLDBLog::DynamicLoader);
+  Log *log(GetLogIfAnyCategoriesSet(LIBLLDB_LOG_DYNAMIC_LOADER));
 
   const size_t word_size = 4;
   Rendezvous info;

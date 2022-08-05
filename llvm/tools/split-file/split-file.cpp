@@ -71,7 +71,6 @@ struct Part {
 static int handle(MemoryBuffer &inputBuf, StringRef input) {
   DenseMap<StringRef, Part> partToBegin;
   StringRef lastPart, separator;
-  StringRef EOL = inputBuf.getBuffer().detectEOL();
   for (line_iterator i(inputBuf, /*SkipBlanks=*/false, '\0'); !i.is_at_eof();) {
     const int64_t lineNo = i.line_number();
     const StringRef line = *i++;
@@ -129,7 +128,7 @@ static int handle(MemoryBuffer &inputBuf, StringRef input) {
 
     Part &part = keyValue.second;
     for (int64_t i = 0; i != part.leadingLines; ++i)
-      (*f).os() << EOL;
+      (*f).os().write('\n');
     if (part.begin)
       (*f).os().write(part.begin, part.end - part.begin);
     outputFiles.push_back(std::move(f));

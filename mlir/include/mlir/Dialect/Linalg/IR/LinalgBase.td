@@ -37,6 +37,7 @@ def Linalg_Dialect : Dialect {
     "AffineDialect",
     "math::MathDialect",
     "memref::MemRefDialect",
+    "StandardOpsDialect",
     "tensor::TensorDialect",
   ];
   let hasCanonicalizer = 1;
@@ -47,8 +48,8 @@ def Linalg_Dialect : Dialect {
     constexpr const static ::llvm::StringLiteral
         kMemoizedIndexingMapsAttrName = "linalg.memoized_indexing_maps";
 
-    using RegionBuilderFunType = llvm::function_ref<
-      void(ImplicitLocOpBuilder &b, Block &, ArrayRef<NamedAttribute>)>;
+    using RegionBuilderFunType =
+      llvm::function_ref<void(ImplicitLocOpBuilder &b, Block &)>;
     RegionBuilderFunType getRegionBuilder(StringRef name) {
       return namedStructuredOpRegionBuilders.lookup(name);
     }

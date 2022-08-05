@@ -5,10 +5,9 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-///
-/// \file
-/// This file defines the ImmutableList class.
-///
+//
+// This file defines the ImmutableList class.
+//
 //===----------------------------------------------------------------------===//
 
 #ifndef LLVM_ADT_IMMUTABLELIST_H

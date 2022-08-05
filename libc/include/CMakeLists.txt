@@ -1,4 +1,3 @@
-add_subdirectory(llvm-libc-macros)
 add_subdirectory(llvm-libc-types)
 
 add_header(
@@ -13,16 +12,6 @@ add_gen_header(
   GEN_HDR ctype.h
   DEPENDS
     .llvm_libc_common_h
-)
-
-add_gen_header(
-  fcntl
-  DEF_FILE fcntl.h.def
-  GEN_HDR fcntl.h
-  DEPENDS
-    .llvm_libc_common_h
-    .llvm-libc-macros.fcntl_macros
-    .llvm-libc-types.mode_t
 )
 
 add_gen_header(
@@ -124,7 +113,6 @@ add_gen_header(
   GEN_HDR stdio.h
   DEPENDS
     .llvm_libc_common_h
-    .llvm-libc-macros.stdio_macros
     .llvm-libc-types.FILE
     .llvm-libc-types.size_t
 )
@@ -166,15 +154,6 @@ add_gen_header(
     .llvm_libc_common_h
     .llvm-libc-types.off_t
     .llvm-libc-types.ssize_t
-)
-
-add_gen_header(
-  sys_stat
-  DEF_FILE sys/stat.h.def
-  GEN_HDR sys/stat.h
-  DEPENDS
-    .llvm_libc_common_h
-    .llvm-libc-types.mode_t
 )
 
 add_gen_header(

@@ -12,7 +12,6 @@
 #include "lldb/Host/common/NativeRegisterContext.h"
 #include "lldb/Host/common/NativeThreadProtocol.h"
 #include "lldb/Utility/LLDBAssert.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/State.h"
 #include "lldb/lldb-enumerations.h"
@@ -75,7 +74,7 @@ llvm::Optional<WaitStatus> NativeProcessProtocol::GetExitStatus() {
 
 bool NativeProcessProtocol::SetExitStatus(WaitStatus status,
                                           bool bNotifyStateChange) {
-  Log *log = GetLog(LLDBLog::Process);
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_PROCESS));
   LLDB_LOG(log, "status = {0}, notify = {1}", status, bNotifyStateChange);
 
   // Exit status already set
@@ -129,7 +128,7 @@ NativeProcessProtocol::GetWatchpointMap() const {
 
 llvm::Optional<std::pair<uint32_t, uint32_t>>
 NativeProcessProtocol::GetHardwareDebugSupportInfo() const {
-  Log *log = GetLog(LLDBLog::Process);
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_PROCESS));
 
   // get any thread
   NativeThreadProtocol *thread(
@@ -153,7 +152,7 @@ Status NativeProcessProtocol::SetWatchpoint(lldb::addr_t addr, size_t size,
   // thread that is attached to via the (FIXME implement) OnThreadAttached ()
   // method.
 
-  Log *log = GetLog(LLDBLog::Process);
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_PROCESS));
 
   // Update the thread list
   UpdateThreads();
@@ -237,7 +236,7 @@ Status NativeProcessProtocol::SetHardwareBreakpoint(lldb::addr_t addr,
   // This default implementation assumes setting a hardware breakpoint for this
   // process will require setting same hardware breakpoint for each of its
   // existing threads. New thread will do the same once created.
-  Log *log = GetLog(LLDBLog::Process);
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_PROCESS));
 
   // Update the thread list
   UpdateThreads();
@@ -309,7 +308,7 @@ Status NativeProcessProtocol::RemoveHardwareBreakpoint(lldb::addr_t addr) {
 
 void NativeProcessProtocol::SynchronouslyNotifyProcessStateChanged(
     lldb::StateType state) {
-  Log *log = GetLog(LLDBLog::Process);
+  Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_PROCESS));
 
   m_delegate.ProcessStateChanged(this, state);
 
@@ -318,7 +317,7 @@ void NativeProcessProtocol::SynchronouslyNotifyProcessStateChanged(
 }
 
 void NativeProcessProtocol::NotifyDidExec() {
-  Log *log = GetLog(LLDBLog::Process);
+  Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_PROCESS));
   LLDB_LOG(log, "process {0} exec()ed", GetID());
 
   m_delegate.DidExec(this);
@@ -326,7 +325,7 @@ void NativeProcessProtocol::NotifyDidExec() {
 
 Status NativeProcessProtocol::SetSoftwareBreakpoint(lldb::addr_t addr,
                                                     uint32_t size_hint) {
-  Log *log = GetLog(LLDBLog::Breakpoints);
+  Log *log(GetLogIfAnyCategoriesSet(LIBLLDB_LOG_BREAKPOINTS));
   LLDB_LOG(log, "addr = {0:x}, size_hint = {1}", addr, size_hint);
 
   auto it = m_software_breakpoints.find(addr);
@@ -343,7 +342,7 @@ Status NativeProcessProtocol::SetSoftwareBreakpoint(lldb::addr_t addr,
 }
 
 Status NativeProcessProtocol::RemoveSoftwareBreakpoint(lldb::addr_t addr) {
-  Log *log = GetLog(LLDBLog::Breakpoints);
+  Log *log(GetLogIfAnyCategoriesSet(LIBLLDB_LOG_BREAKPOINTS));
   LLDB_LOG(log, "addr = {0:x}", addr);
   auto it = m_software_breakpoints.find(addr);
   if (it == m_software_breakpoints.end())
@@ -409,7 +408,7 @@ Status NativeProcessProtocol::RemoveSoftwareBreakpoint(lldb::addr_t addr) {
 llvm::Expected<NativeProcessProtocol::SoftwareBreakpoint>
 NativeProcessProtocol::EnableSoftwareBreakpoint(lldb::addr_t addr,
                                                 uint32_t size_hint) {
-  Log *log = GetLog(LLDBLog::Breakpoints);
+  Log *log(GetLogIfAnyCategoriesSet(LIBLLDB_LOG_BREAKPOINTS));
 
   auto expected_trap = GetSoftwareBreakpointTrapOpcode(size_hint);
   if (!expected_trap)
@@ -555,7 +554,7 @@ size_t NativeProcessProtocol::GetSoftwareBreakpointPCOffset() {
 
 void NativeProcessProtocol::FixupBreakpointPCAsNeeded(
     NativeThreadProtocol &thread) {
-  Log *log = GetLog(LLDBLog::Breakpoints);
+  Log *log = GetLogIfAnyCategoriesSet(LIBLLDB_LOG_BREAKPOINTS);
 
   Status error;
 

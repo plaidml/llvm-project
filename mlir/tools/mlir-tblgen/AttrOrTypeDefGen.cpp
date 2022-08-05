@@ -179,11 +179,6 @@ DefGen::DefGen(const AttrOrTypeDef &def)
     : def(def), params(def.getParameters()), defCls(def.getCppClassName()),
       valueType(isa<AttrDef>(def) ? "Attribute" : "Type"),
       defType(isa<AttrDef>(def) ? "Attr" : "Type") {
-  // Check that all parameters have names.
-  for (const AttrOrTypeParameter &param : def.getParameters())
-    if (param.isAnonymous())
-      llvm::PrintFatalError("all parameters must have a name");
-
   // If a storage class is needed, create one.
   if (def.getNumParameters() > 0)
     storageCls.emplace(def.getStorageClassName(), /*isStruct=*/true);
@@ -271,9 +266,9 @@ void DefGen::emitParserPrinter() {
 
   // Declare the parser.
   SmallVector<MethodParameter> parserParams;
-  parserParams.emplace_back("::mlir::AsmParser &", "odsParser");
+  parserParams.emplace_back("::mlir::AsmParser &", "parser");
   if (isa<AttrDef>(&def))
-    parserParams.emplace_back("::mlir::Type", "odsType");
+    parserParams.emplace_back("::mlir::Type", "type");
   auto *parser = defCls.addMethod(
       strfmt("::mlir::{0}", valueType), "parse",
       def.hasGeneratedParser() ? Method::Static : Method::StaticDeclaration,
@@ -283,7 +278,7 @@ void DefGen::emitParserPrinter() {
       def.hasGeneratedPrinter() ? Method::Const : Method::ConstDeclaration;
   Method *printer =
       defCls.addMethod("void", "print", props,
-                       MethodParameter("::mlir::AsmPrinter &", "odsPrinter"));
+                       MethodParameter("::mlir::AsmPrinter &", "printer"));
   // Emit the bodies.
   emitParserPrinterBody(parser->body(), printer->body());
 }
@@ -436,15 +431,14 @@ void DefGen::emitParserPrinterBody(MethodBody &parser, MethodBody &printer) {
   if (asmFormat)
     return generateAttrOrTypeFormat(def, parser, printer);
 
-  FmtContext ctx = FmtContext({{"_parser", "odsParser"},
-                               {"_printer", "odsPrinter"},
-                               {"_type", "odsType"}});
+  FmtContext ctx = FmtContext(
+      {{"_parser", "parser"}, {"_printer", "printer"}, {"_type", "type"}});
   if (parserCode) {
-    ctx.addSubst("_ctxt", "odsParser.getContext()");
+    ctx.addSubst("_ctxt", "parser.getContext()");
     parser.indent().getStream().printReindented(tgfmt(*parserCode, &ctx).str());
   }
   if (printerCode) {
-    ctx.addSubst("_ctxt", "odsPrinter.getContext()");
+    ctx.addSubst("_ctxt", "printer.getContext()");
     printer.indent().getStream().printReindented(
         tgfmt(*printerCode, &ctx).str());
   }
@@ -540,7 +534,8 @@ void DefGen::emitEquals() {
                                  ? "getType()"
                                  : it.value().getName()},
                     {"_rhs", strfmt("std::get<{0}>(tblgenKey)", it.index())}});
-    body << tgfmt(it.value().getComparator(), &ctx);
+    Optional<StringRef> comparator = it.value().getComparator();
+    body << tgfmt(comparator ? *comparator : "$_lhs == $_rhs", &ctx);
   };
   llvm::interleave(llvm::enumerate(params), body, eachFn, ") && (");
 }

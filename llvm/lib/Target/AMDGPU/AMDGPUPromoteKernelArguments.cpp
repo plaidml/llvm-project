@@ -16,9 +16,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "AMDGPU.h"
-#include "Utils/AMDGPUMemoryUtils.h"
 #include "llvm/ADT/SmallVector.h"
-#include "llvm/Analysis/AliasAnalysis.h"
 #include "llvm/Analysis/MemorySSA.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/InitializePasses.h"
@@ -31,8 +29,6 @@ namespace {
 
 class AMDGPUPromoteKernelArguments : public FunctionPass {
   MemorySSA *MSSA;
-
-  AliasAnalysis *AA;
 
   Instruction *ArgCastInsertPt;
 
@@ -47,12 +43,11 @@ public:
 
   AMDGPUPromoteKernelArguments() : FunctionPass(ID) {}
 
-  bool run(Function &F, MemorySSA &MSSA, AliasAnalysis &AA);
+  bool run(Function &F, MemorySSA &MSSA);
 
   bool runOnFunction(Function &F) override;
 
   void getAnalysisUsage(AnalysisUsage &AU) const override {
-    AU.addRequired<AAResultsWrapperPass>();
     AU.addRequired<MemorySSAWrapperPass>();
     AU.setPreservesAll();
   }
@@ -80,8 +75,9 @@ void AMDGPUPromoteKernelArguments::enqueueUsers(Value *Ptr) {
            PT->getAddressSpace() != AMDGPUAS::CONSTANT_ADDRESS) ||
           LD->getPointerOperand()->stripInBoundsOffsets() != Ptr)
         break;
+      const MemoryAccess *MA = MSSA->getWalker()->getClobberingMemoryAccess(LD);
       // TODO: This load poprobably can be promoted to constant address space.
-      if (!AMDGPU::isClobberedInFunction(LD, MSSA, AA))
+      if (MSSA->isLiveOnEntryDef(MA))
         Ptrs.push_back(LD);
       break;
     }
@@ -135,8 +131,7 @@ static BasicBlock::iterator getInsertPt(BasicBlock &BB) {
   return InsPt;
 }
 
-bool AMDGPUPromoteKernelArguments::run(Function &F, MemorySSA &MSSA,
-                                       AliasAnalysis &AA) {
+bool AMDGPUPromoteKernelArguments::run(Function &F, MemorySSA &MSSA) {
   if (skipFunction(F))
     return false;
 
@@ -146,7 +141,6 @@ bool AMDGPUPromoteKernelArguments::run(Function &F, MemorySSA &MSSA,
 
   ArgCastInsertPt = &*getInsertPt(*F.begin());
   this->MSSA = &MSSA;
-  this->AA = &AA;
 
   for (Argument &Arg : F.args()) {
     if (Arg.use_empty())
@@ -172,13 +166,11 @@ bool AMDGPUPromoteKernelArguments::run(Function &F, MemorySSA &MSSA,
 
 bool AMDGPUPromoteKernelArguments::runOnFunction(Function &F) {
   MemorySSA &MSSA = getAnalysis<MemorySSAWrapperPass>().getMSSA();
-  AliasAnalysis &AA = getAnalysis<AAResultsWrapperPass>().getAAResults();
-  return run(F, MSSA, AA);
+  return run(F, MSSA);
 }
 
 INITIALIZE_PASS_BEGIN(AMDGPUPromoteKernelArguments, DEBUG_TYPE,
                       "AMDGPU Promote Kernel Arguments", false, false)
-INITIALIZE_PASS_DEPENDENCY(AAResultsWrapperPass)
 INITIALIZE_PASS_DEPENDENCY(MemorySSAWrapperPass)
 INITIALIZE_PASS_END(AMDGPUPromoteKernelArguments, DEBUG_TYPE,
                     "AMDGPU Promote Kernel Arguments", false, false)
@@ -193,8 +185,7 @@ PreservedAnalyses
 AMDGPUPromoteKernelArgumentsPass::run(Function &F,
                                       FunctionAnalysisManager &AM) {
   MemorySSA &MSSA = AM.getResult<MemorySSAAnalysis>(F).getMSSA();
-  AliasAnalysis &AA = AM.getResult<AAManager>(F);
-  if (AMDGPUPromoteKernelArguments().run(F, MSSA, AA)) {
+  if (AMDGPUPromoteKernelArguments().run(F, MSSA)) {
     PreservedAnalyses PA;
     PA.preserveSet<CFGAnalyses>();
     PA.preserve<MemorySSAAnalysis>();

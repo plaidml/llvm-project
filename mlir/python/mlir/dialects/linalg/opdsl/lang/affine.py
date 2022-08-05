@@ -64,6 +64,9 @@ __all__ = [
     "SymbolDef",
 ]
 
+# Type aliases.
+SymbolPosMap = Dict[str, int]
+
 
 class AffineBuildState:
   """Internal state for the AffineExprDef._create impls.

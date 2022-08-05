@@ -1210,14 +1210,12 @@ if(NOT LLVM_TOOLCHAIN_TOOLS)
     llvm-ar
     llvm-cov
     llvm-cxxfilt
-    llvm-dwp
     llvm-ranlib
     llvm-lib
     llvm-ml
     llvm-nm
     llvm-objcopy
     llvm-objdump
-    llvm-pdbutil
     llvm-rc
     llvm-readobj
     llvm-size

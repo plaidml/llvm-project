@@ -11,17 +11,16 @@
 #define _LIBCPP___FUNCTIONAL_RANGES_OPERATIONS_H
 
 #include <__config>
-#include <__utility/forward.h>
 #include <concepts>
+#include <utility>
 
 #if !defined(_LIBCPP_HAS_NO_PRAGMA_SYSTEM_HEADER)
-#  pragma GCC system_header
+#pragma GCC system_header
 #endif
 
 _LIBCPP_BEGIN_NAMESPACE_STD
 
-#if !defined(_LIBCPP_HAS_NO_CONCEPTS) && !defined(_LIBCPP_HAS_NO_INCOMPLETE_RANGES)
-
+#if !defined(_LIBCPP_HAS_NO_RANGES)
 namespace ranges {
 
 struct equal_to {
@@ -91,7 +90,7 @@ struct greater_equal {
 };
 
 } // namespace ranges
-#endif // !defined(_LIBCPP_HAS_NO_CONCEPTS) && !defined(_LIBCPP_HAS_NO_INCOMPLETE_RANGES)
+#endif // !defined(_LIBCPP_HAS_NO_RANGES)
 
 _LIBCPP_END_NAMESPACE_STD
 

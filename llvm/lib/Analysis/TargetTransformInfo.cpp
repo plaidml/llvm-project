@@ -179,7 +179,7 @@ bool HardwareLoopInfo::isHardwareLoopCandidate(ScalarEvolution &SE,
 TargetTransformInfo::TargetTransformInfo(const DataLayout &DL)
     : TTIImpl(new Model<NoTTIImpl>(NoTTIImpl(DL))) {}
 
-TargetTransformInfo::~TargetTransformInfo() = default;
+TargetTransformInfo::~TargetTransformInfo() {}
 
 TargetTransformInfo::TargetTransformInfo(TargetTransformInfo &&Arg)
     : TTIImpl(std::move(Arg.TTIImpl)) {}
@@ -1155,7 +1155,7 @@ TargetTransformInfo::getInstructionThroughput(const Instruction *I) const {
   }
 }
 
-TargetTransformInfo::Concept::~Concept() = default;
+TargetTransformInfo::Concept::~Concept() {}
 
 TargetIRAnalysis::TargetIRAnalysis() : TTICallback(&getDefaultTTI) {}
 

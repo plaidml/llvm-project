@@ -36,13 +36,10 @@ static std::string wrapSnippet(StringRef ExtraPreface,
     namespace N { class C {}; }
     namespace { class AnonC {}; }
     struct S { int Field; };
-    namespace std {
-    template <typename T>
-    struct unique_ptr {
-      T* operator->() const;
-      T& operator*() const;
+    struct Smart {
+      S* operator->() const;
+      S& operator*() const;
     };
-    }
   )cc";
   return (Preface + ExtraPreface + "auto stencil_test_snippet = []{" +
           StatementCode + "};")
@@ -329,15 +326,32 @@ TEST_F(StencilTest, MaybeDerefAddressExpr) {
 TEST_F(StencilTest, MaybeDerefSmartPointer) {
   StringRef Id = "id";
   std::string Snippet = R"cc(
-    std::unique_ptr<S> x;
+    Smart x;
     x;
   )cc";
   testExpr(Id, Snippet, maybeDeref(Id), "*x");
 }
 
+// Tests that unique_ptr specifically is handled.
+TEST_F(StencilTest, MaybeDerefSmartPointerUniquePtr) {
+  StringRef Id = "id";
+  // We deliberately specify `unique_ptr` as empty to verify that it matches
+  // because of its name, rather than its contents.
+  StringRef ExtraPreface =
+      "namespace std { template <typename T> class unique_ptr {}; }\n";
+  StringRef Snippet = R"cc(
+    std::unique_ptr<int> x;
+    x;
+  )cc";
+  auto StmtMatch = matchStmt(Snippet, expr().bind(Id), ExtraPreface);
+  ASSERT_TRUE(StmtMatch);
+  EXPECT_THAT_EXPECTED(maybeDeref(Id)->eval(StmtMatch->Result),
+                       HasValue(std::string("*x")));
+}
+
 TEST_F(StencilTest, MaybeDerefSmartPointerFromMemberExpr) {
   StringRef Id = "id";
-  std::string Snippet = "std::unique_ptr<S> x; x->Field;";
+  std::string Snippet = "Smart x; x->Field;";
   auto StmtMatch =
       matchStmt(Snippet, memberExpr(hasObjectExpression(expr().bind(Id))));
   ASSERT_TRUE(StmtMatch);
@@ -367,12 +381,12 @@ TEST_F(StencilTest, MaybeAddressOfDerefExpr) {
 
 TEST_F(StencilTest, MaybeAddressOfSmartPointer) {
   StringRef Id = "id";
-  testExpr(Id, "std::unique_ptr<S> x; x;", maybeAddressOf(Id), "x");
+  testExpr(Id, "Smart x; x;", maybeAddressOf(Id), "x");
 }
 
 TEST_F(StencilTest, MaybeAddressOfSmartPointerFromMemberCall) {
   StringRef Id = "id";
-  std::string Snippet = "std::unique_ptr<S> x; x->Field;";
+  std::string Snippet = "Smart x; x->Field;";
   auto StmtMatch =
       matchStmt(Snippet, memberExpr(hasObjectExpression(expr().bind(Id))));
   ASSERT_TRUE(StmtMatch);
@@ -382,7 +396,7 @@ TEST_F(StencilTest, MaybeAddressOfSmartPointerFromMemberCall) {
 
 TEST_F(StencilTest, MaybeAddressOfSmartPointerDerefNoCancel) {
   StringRef Id = "id";
-  testExpr(Id, "std::unique_ptr<S> x; *x;", maybeAddressOf(Id), "&*x");
+  testExpr(Id, "Smart x; *x;", maybeAddressOf(Id), "&*x");
 }
 
 TEST_F(StencilTest, AccessOpValue) {
@@ -432,7 +446,7 @@ TEST_F(StencilTest, AccessOpPointerDereference) {
 
 TEST_F(StencilTest, AccessOpSmartPointer) {
   StringRef Snippet = R"cc(
-    std::unique_ptr<S> x;
+    Smart x;
     x;
   )cc";
   StringRef Id = "id";
@@ -441,7 +455,7 @@ TEST_F(StencilTest, AccessOpSmartPointer) {
 
 TEST_F(StencilTest, AccessOpSmartPointerDereference) {
   StringRef Snippet = R"cc(
-    std::unique_ptr<S> x;
+    Smart x;
     *x;
   )cc";
   StringRef Id = "id";
@@ -450,7 +464,7 @@ TEST_F(StencilTest, AccessOpSmartPointerDereference) {
 
 TEST_F(StencilTest, AccessOpSmartPointerMemberCall) {
   StringRef Snippet = R"cc(
-    std::unique_ptr<S> x;
+    Smart x;
     x->Field;
   )cc";
   StringRef Id = "id";

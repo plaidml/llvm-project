@@ -61,10 +61,10 @@ constexpr void test(const CharT* fmt) {
 constexpr bool test() {
   test("abc");
   test(L"abc");
-#ifndef TEST_HAS_NO_CHAR8_T
+#ifndef _LIBCPP_HAS_NO_CHAR8_T
   test(u8"abc");
 #endif
-#ifndef TEST_HAS_NO_UNICODE_CHARS
+#ifndef _LIBCPP_HAS_NO_UNICODE_CHARS
   test(u"abc");
   test(U"abc");
 #endif

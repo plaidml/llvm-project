@@ -8,19 +8,23 @@ define signext i32 @test_floor_si32(half %x) {
 ; RV32IZFH-LABEL: test_floor_si32:
 ; RV32IZFH:       # %bb.0:
 ; RV32IZFH-NEXT:    feq.h a0, fa0, fa0
-; RV32IZFH-NEXT:    beqz a0, .LBB0_2
+; RV32IZFH-NEXT:    bnez a0, .LBB0_2
 ; RV32IZFH-NEXT:  # %bb.1:
-; RV32IZFH-NEXT:    fcvt.w.h a0, fa0, rdn
+; RV32IZFH-NEXT:    li a0, 0
+; RV32IZFH-NEXT:    ret
 ; RV32IZFH-NEXT:  .LBB0_2:
+; RV32IZFH-NEXT:    fcvt.w.h a0, fa0, rdn
 ; RV32IZFH-NEXT:    ret
 ;
 ; RV64IZFH-LABEL: test_floor_si32:
 ; RV64IZFH:       # %bb.0:
 ; RV64IZFH-NEXT:    feq.h a0, fa0, fa0
-; RV64IZFH-NEXT:    beqz a0, .LBB0_2
+; RV64IZFH-NEXT:    bnez a0, .LBB0_2
 ; RV64IZFH-NEXT:  # %bb.1:
-; RV64IZFH-NEXT:    fcvt.w.h a0, fa0, rdn
+; RV64IZFH-NEXT:    li a0, 0
+; RV64IZFH-NEXT:    ret
 ; RV64IZFH-NEXT:  .LBB0_2:
+; RV64IZFH-NEXT:    fcvt.w.h a0, fa0, rdn
 ; RV64IZFH-NEXT:    ret
   %a = call half @llvm.floor.f16(half %x)
   %b = call i32 @llvm.fptosi.sat.i32.f16(half %a)
@@ -90,10 +94,12 @@ define i64 @test_floor_si64(half %x) nounwind {
 ; RV64IZFH-LABEL: test_floor_si64:
 ; RV64IZFH:       # %bb.0:
 ; RV64IZFH-NEXT:    feq.h a0, fa0, fa0
-; RV64IZFH-NEXT:    beqz a0, .LBB1_2
+; RV64IZFH-NEXT:    bnez a0, .LBB1_2
 ; RV64IZFH-NEXT:  # %bb.1:
-; RV64IZFH-NEXT:    fcvt.l.h a0, fa0, rdn
+; RV64IZFH-NEXT:    li a0, 0
+; RV64IZFH-NEXT:    ret
 ; RV64IZFH-NEXT:  .LBB1_2:
+; RV64IZFH-NEXT:    fcvt.l.h a0, fa0, rdn
 ; RV64IZFH-NEXT:    ret
   %a = call half @llvm.floor.f16(half %x)
   %b = call i64 @llvm.fptosi.sat.i64.f16(half %a)
@@ -104,19 +110,23 @@ define signext i32 @test_floor_ui32(half %x) {
 ; RV32IZFH-LABEL: test_floor_ui32:
 ; RV32IZFH:       # %bb.0:
 ; RV32IZFH-NEXT:    feq.h a0, fa0, fa0
-; RV32IZFH-NEXT:    beqz a0, .LBB2_2
+; RV32IZFH-NEXT:    bnez a0, .LBB2_2
 ; RV32IZFH-NEXT:  # %bb.1:
-; RV32IZFH-NEXT:    fcvt.wu.h a0, fa0, rdn
+; RV32IZFH-NEXT:    li a0, 0
+; RV32IZFH-NEXT:    ret
 ; RV32IZFH-NEXT:  .LBB2_2:
+; RV32IZFH-NEXT:    fcvt.wu.h a0, fa0, rdn
 ; RV32IZFH-NEXT:    ret
 ;
 ; RV64IZFH-LABEL: test_floor_ui32:
 ; RV64IZFH:       # %bb.0:
 ; RV64IZFH-NEXT:    feq.h a0, fa0, fa0
-; RV64IZFH-NEXT:    beqz a0, .LBB2_2
+; RV64IZFH-NEXT:    bnez a0, .LBB2_2
 ; RV64IZFH-NEXT:  # %bb.1:
-; RV64IZFH-NEXT:    fcvt.wu.h a0, fa0, rdn
+; RV64IZFH-NEXT:    li a0, 0
+; RV64IZFH-NEXT:    ret
 ; RV64IZFH-NEXT:  .LBB2_2:
+; RV64IZFH-NEXT:    fcvt.wu.h a0, fa0, rdn
 ; RV64IZFH-NEXT:    ret
   %a = call half @llvm.floor.f16(half %x)
   %b = call i32 @llvm.fptoui.sat.i32.f16(half %a)
@@ -173,10 +183,12 @@ define i64 @test_floor_ui64(half %x) nounwind {
 ; RV64IZFH-LABEL: test_floor_ui64:
 ; RV64IZFH:       # %bb.0:
 ; RV64IZFH-NEXT:    feq.h a0, fa0, fa0
-; RV64IZFH-NEXT:    beqz a0, .LBB3_2
+; RV64IZFH-NEXT:    bnez a0, .LBB3_2
 ; RV64IZFH-NEXT:  # %bb.1:
-; RV64IZFH-NEXT:    fcvt.lu.h a0, fa0, rdn
+; RV64IZFH-NEXT:    li a0, 0
+; RV64IZFH-NEXT:    ret
 ; RV64IZFH-NEXT:  .LBB3_2:
+; RV64IZFH-NEXT:    fcvt.lu.h a0, fa0, rdn
 ; RV64IZFH-NEXT:    ret
   %a = call half @llvm.floor.f16(half %x)
   %b = call i64 @llvm.fptoui.sat.i64.f16(half %a)
@@ -187,19 +199,23 @@ define signext i32 @test_ceil_si32(half %x) {
 ; RV32IZFH-LABEL: test_ceil_si32:
 ; RV32IZFH:       # %bb.0:
 ; RV32IZFH-NEXT:    feq.h a0, fa0, fa0
-; RV32IZFH-NEXT:    beqz a0, .LBB4_2
+; RV32IZFH-NEXT:    bnez a0, .LBB4_2
 ; RV32IZFH-NEXT:  # %bb.1:
-; RV32IZFH-NEXT:    fcvt.w.h a0, fa0, rup
+; RV32IZFH-NEXT:    li a0, 0
+; RV32IZFH-NEXT:    ret
 ; RV32IZFH-NEXT:  .LBB4_2:
+; RV32IZFH-NEXT:    fcvt.w.h a0, fa0, rup
 ; RV32IZFH-NEXT:    ret
 ;
 ; RV64IZFH-LABEL: test_ceil_si32:
 ; RV64IZFH:       # %bb.0:
 ; RV64IZFH-NEXT:    feq.h a0, fa0, fa0
-; RV64IZFH-NEXT:    beqz a0, .LBB4_2
+; RV64IZFH-NEXT:    bnez a0, .LBB4_2
 ; RV64IZFH-NEXT:  # %bb.1:
-; RV64IZFH-NEXT:    fcvt.w.h a0, fa0, rup
+; RV64IZFH-NEXT:    li a0, 0
+; RV64IZFH-NEXT:    ret
 ; RV64IZFH-NEXT:  .LBB4_2:
+; RV64IZFH-NEXT:    fcvt.w.h a0, fa0, rup
 ; RV64IZFH-NEXT:    ret
   %a = call half @llvm.ceil.f16(half %x)
   %b = call i32 @llvm.fptosi.sat.i32.f16(half %a)
@@ -269,10 +285,12 @@ define i64 @test_ceil_si64(half %x) nounwind {
 ; RV64IZFH-LABEL: test_ceil_si64:
 ; RV64IZFH:       # %bb.0:
 ; RV64IZFH-NEXT:    feq.h a0, fa0, fa0
-; RV64IZFH-NEXT:    beqz a0, .LBB5_2
+; RV64IZFH-NEXT:    bnez a0, .LBB5_2
 ; RV64IZFH-NEXT:  # %bb.1:
-; RV64IZFH-NEXT:    fcvt.l.h a0, fa0, rup
+; RV64IZFH-NEXT:    li a0, 0
+; RV64IZFH-NEXT:    ret
 ; RV64IZFH-NEXT:  .LBB5_2:
+; RV64IZFH-NEXT:    fcvt.l.h a0, fa0, rup
 ; RV64IZFH-NEXT:    ret
   %a = call half @llvm.ceil.f16(half %x)
   %b = call i64 @llvm.fptosi.sat.i64.f16(half %a)
@@ -283,19 +301,23 @@ define signext i32 @test_ceil_ui32(half %x) {
 ; RV32IZFH-LABEL: test_ceil_ui32:
 ; RV32IZFH:       # %bb.0:
 ; RV32IZFH-NEXT:    feq.h a0, fa0, fa0
-; RV32IZFH-NEXT:    beqz a0, .LBB6_2
+; RV32IZFH-NEXT:    bnez a0, .LBB6_2
 ; RV32IZFH-NEXT:  # %bb.1:
-; RV32IZFH-NEXT:    fcvt.wu.h a0, fa0, rup
+; RV32IZFH-NEXT:    li a0, 0
+; RV32IZFH-NEXT:    ret
 ; RV32IZFH-NEXT:  .LBB6_2:
+; RV32IZFH-NEXT:    fcvt.wu.h a0, fa0, rup
 ; RV32IZFH-NEXT:    ret
 ;
 ; RV64IZFH-LABEL: test_ceil_ui32:
 ; RV64IZFH:       # %bb.0:
 ; RV64IZFH-NEXT:    feq.h a0, fa0, fa0
-; RV64IZFH-NEXT:    beqz a0, .LBB6_2
+; RV64IZFH-NEXT:    bnez a0, .LBB6_2
 ; RV64IZFH-NEXT:  # %bb.1:
-; RV64IZFH-NEXT:    fcvt.wu.h a0, fa0, rup
+; RV64IZFH-NEXT:    li a0, 0
+; RV64IZFH-NEXT:    ret
 ; RV64IZFH-NEXT:  .LBB6_2:
+; RV64IZFH-NEXT:    fcvt.wu.h a0, fa0, rup
 ; RV64IZFH-NEXT:    ret
   %a = call half @llvm.ceil.f16(half %x)
   %b = call i32 @llvm.fptoui.sat.i32.f16(half %a)
@@ -352,10 +374,12 @@ define i64 @test_ceil_ui64(half %x) nounwind {
 ; RV64IZFH-LABEL: test_ceil_ui64:
 ; RV64IZFH:       # %bb.0:
 ; RV64IZFH-NEXT:    feq.h a0, fa0, fa0
-; RV64IZFH-NEXT:    beqz a0, .LBB7_2
+; RV64IZFH-NEXT:    bnez a0, .LBB7_2
 ; RV64IZFH-NEXT:  # %bb.1:
-; RV64IZFH-NEXT:    fcvt.lu.h a0, fa0, rup
+; RV64IZFH-NEXT:    li a0, 0
+; RV64IZFH-NEXT:    ret
 ; RV64IZFH-NEXT:  .LBB7_2:
+; RV64IZFH-NEXT:    fcvt.lu.h a0, fa0, rup
 ; RV64IZFH-NEXT:    ret
   %a = call half @llvm.ceil.f16(half %x)
   %b = call i64 @llvm.fptoui.sat.i64.f16(half %a)
@@ -366,19 +390,23 @@ define signext i32 @test_trunc_si32(half %x) {
 ; RV32IZFH-LABEL: test_trunc_si32:
 ; RV32IZFH:       # %bb.0:
 ; RV32IZFH-NEXT:    feq.h a0, fa0, fa0
-; RV32IZFH-NEXT:    beqz a0, .LBB8_2
+; RV32IZFH-NEXT:    bnez a0, .LBB8_2
 ; RV32IZFH-NEXT:  # %bb.1:
-; RV32IZFH-NEXT:    fcvt.w.h a0, fa0, rtz
+; RV32IZFH-NEXT:    li a0, 0
+; RV32IZFH-NEXT:    ret
 ; RV32IZFH-NEXT:  .LBB8_2:
+; RV32IZFH-NEXT:    fcvt.w.h a0, fa0, rtz
 ; RV32IZFH-NEXT:    ret
 ;
 ; RV64IZFH-LABEL: test_trunc_si32:
 ; RV64IZFH:       # %bb.0:
 ; RV64IZFH-NEXT:    feq.h a0, fa0, fa0
-; RV64IZFH-NEXT:    beqz a0, .LBB8_2
+; RV64IZFH-NEXT:    bnez a0, .LBB8_2
 ; RV64IZFH-NEXT:  # %bb.1:
-; RV64IZFH-NEXT:    fcvt.w.h a0, fa0, rtz
+; RV64IZFH-NEXT:    li a0, 0
+; RV64IZFH-NEXT:    ret
 ; RV64IZFH-NEXT:  .LBB8_2:
+; RV64IZFH-NEXT:    fcvt.w.h a0, fa0, rtz
 ; RV64IZFH-NEXT:    ret
   %a = call half @llvm.trunc.f16(half %x)
   %b = call i32 @llvm.fptosi.sat.i32.f16(half %a)
@@ -448,10 +476,12 @@ define i64 @test_trunc_si64(half %x) nounwind {
 ; RV64IZFH-LABEL: test_trunc_si64:
 ; RV64IZFH:       # %bb.0:
 ; RV64IZFH-NEXT:    feq.h a0, fa0, fa0
-; RV64IZFH-NEXT:    beqz a0, .LBB9_2
+; RV64IZFH-NEXT:    bnez a0, .LBB9_2
 ; RV64IZFH-NEXT:  # %bb.1:
-; RV64IZFH-NEXT:    fcvt.l.h a0, fa0, rtz
+; RV64IZFH-NEXT:    li a0, 0
+; RV64IZFH-NEXT:    ret
 ; RV64IZFH-NEXT:  .LBB9_2:
+; RV64IZFH-NEXT:    fcvt.l.h a0, fa0, rtz
 ; RV64IZFH-NEXT:    ret
   %a = call half @llvm.trunc.f16(half %x)
   %b = call i64 @llvm.fptosi.sat.i64.f16(half %a)
@@ -462,19 +492,23 @@ define signext i32 @test_trunc_ui32(half %x) {
 ; RV32IZFH-LABEL: test_trunc_ui32:
 ; RV32IZFH:       # %bb.0:
 ; RV32IZFH-NEXT:    feq.h a0, fa0, fa0
-; RV32IZFH-NEXT:    beqz a0, .LBB10_2
+; RV32IZFH-NEXT:    bnez a0, .LBB10_2
 ; RV32IZFH-NEXT:  # %bb.1:
-; RV32IZFH-NEXT:    fcvt.wu.h a0, fa0, rtz
+; RV32IZFH-NEXT:    li a0, 0
+; RV32IZFH-NEXT:    ret
 ; RV32IZFH-NEXT:  .LBB10_2:
+; RV32IZFH-NEXT:    fcvt.wu.h a0, fa0, rtz
 ; RV32IZFH-NEXT:    ret
 ;
 ; RV64IZFH-LABEL: test_trunc_ui32:
 ; RV64IZFH:       # %bb.0:
 ; RV64IZFH-NEXT:    feq.h a0, fa0, fa0
-; RV64IZFH-NEXT:    beqz a0, .LBB10_2
+; RV64IZFH-NEXT:    bnez a0, .LBB10_2
 ; RV64IZFH-NEXT:  # %bb.1:
-; RV64IZFH-NEXT:    fcvt.wu.h a0, fa0, rtz
+; RV64IZFH-NEXT:    li a0, 0
+; RV64IZFH-NEXT:    ret
 ; RV64IZFH-NEXT:  .LBB10_2:
+; RV64IZFH-NEXT:    fcvt.wu.h a0, fa0, rtz
 ; RV64IZFH-NEXT:    ret
   %a = call half @llvm.trunc.f16(half %x)
   %b = call i32 @llvm.fptoui.sat.i32.f16(half %a)
@@ -531,10 +565,12 @@ define i64 @test_trunc_ui64(half %x) nounwind {
 ; RV64IZFH-LABEL: test_trunc_ui64:
 ; RV64IZFH:       # %bb.0:
 ; RV64IZFH-NEXT:    feq.h a0, fa0, fa0
-; RV64IZFH-NEXT:    beqz a0, .LBB11_2
+; RV64IZFH-NEXT:    bnez a0, .LBB11_2
 ; RV64IZFH-NEXT:  # %bb.1:
-; RV64IZFH-NEXT:    fcvt.lu.h a0, fa0, rtz
+; RV64IZFH-NEXT:    li a0, 0
+; RV64IZFH-NEXT:    ret
 ; RV64IZFH-NEXT:  .LBB11_2:
+; RV64IZFH-NEXT:    fcvt.lu.h a0, fa0, rtz
 ; RV64IZFH-NEXT:    ret
   %a = call half @llvm.trunc.f16(half %x)
   %b = call i64 @llvm.fptoui.sat.i64.f16(half %a)
@@ -545,19 +581,23 @@ define signext i32 @test_round_si32(half %x) {
 ; RV32IZFH-LABEL: test_round_si32:
 ; RV32IZFH:       # %bb.0:
 ; RV32IZFH-NEXT:    feq.h a0, fa0, fa0
-; RV32IZFH-NEXT:    beqz a0, .LBB12_2
+; RV32IZFH-NEXT:    bnez a0, .LBB12_2
 ; RV32IZFH-NEXT:  # %bb.1:
-; RV32IZFH-NEXT:    fcvt.w.h a0, fa0, rmm
+; RV32IZFH-NEXT:    li a0, 0
+; RV32IZFH-NEXT:    ret
 ; RV32IZFH-NEXT:  .LBB12_2:
+; RV32IZFH-NEXT:    fcvt.w.h a0, fa0, rmm
 ; RV32IZFH-NEXT:    ret
 ;
 ; RV64IZFH-LABEL: test_round_si32:
 ; RV64IZFH:       # %bb.0:
 ; RV64IZFH-NEXT:    feq.h a0, fa0, fa0
-; RV64IZFH-NEXT:    beqz a0, .LBB12_2
+; RV64IZFH-NEXT:    bnez a0, .LBB12_2
 ; RV64IZFH-NEXT:  # %bb.1:
-; RV64IZFH-NEXT:    fcvt.w.h a0, fa0, rmm
+; RV64IZFH-NEXT:    li a0, 0
+; RV64IZFH-NEXT:    ret
 ; RV64IZFH-NEXT:  .LBB12_2:
+; RV64IZFH-NEXT:    fcvt.w.h a0, fa0, rmm
 ; RV64IZFH-NEXT:    ret
   %a = call half @llvm.round.f16(half %x)
   %b = call i32 @llvm.fptosi.sat.i32.f16(half %a)
@@ -627,10 +667,12 @@ define i64 @test_round_si64(half %x) nounwind {
 ; RV64IZFH-LABEL: test_round_si64:
 ; RV64IZFH:       # %bb.0:
 ; RV64IZFH-NEXT:    feq.h a0, fa0, fa0
-; RV64IZFH-NEXT:    beqz a0, .LBB13_2
+; RV64IZFH-NEXT:    bnez a0, .LBB13_2
 ; RV64IZFH-NEXT:  # %bb.1:
-; RV64IZFH-NEXT:    fcvt.l.h a0, fa0, rmm
+; RV64IZFH-NEXT:    li a0, 0
+; RV64IZFH-NEXT:    ret
 ; RV64IZFH-NEXT:  .LBB13_2:
+; RV64IZFH-NEXT:    fcvt.l.h a0, fa0, rmm
 ; RV64IZFH-NEXT:    ret
   %a = call half @llvm.round.f16(half %x)
   %b = call i64 @llvm.fptosi.sat.i64.f16(half %a)
@@ -641,19 +683,23 @@ define signext i32 @test_round_ui32(half %x) {
 ; RV32IZFH-LABEL: test_round_ui32:
 ; RV32IZFH:       # %bb.0:
 ; RV32IZFH-NEXT:    feq.h a0, fa0, fa0
-; RV32IZFH-NEXT:    beqz a0, .LBB14_2
+; RV32IZFH-NEXT:    bnez a0, .LBB14_2
 ; RV32IZFH-NEXT:  # %bb.1:
-; RV32IZFH-NEXT:    fcvt.wu.h a0, fa0, rmm
+; RV32IZFH-NEXT:    li a0, 0
+; RV32IZFH-NEXT:    ret
 ; RV32IZFH-NEXT:  .LBB14_2:
+; RV32IZFH-NEXT:    fcvt.wu.h a0, fa0, rmm
 ; RV32IZFH-NEXT:    ret
 ;
 ; RV64IZFH-LABEL: test_round_ui32:
 ; RV64IZFH:       # %bb.0:
 ; RV64IZFH-NEXT:    feq.h a0, fa0, fa0
-; RV64IZFH-NEXT:    beqz a0, .LBB14_2
+; RV64IZFH-NEXT:    bnez a0, .LBB14_2
 ; RV64IZFH-NEXT:  # %bb.1:
-; RV64IZFH-NEXT:    fcvt.wu.h a0, fa0, rmm
+; RV64IZFH-NEXT:    li a0, 0
+; RV64IZFH-NEXT:    ret
 ; RV64IZFH-NEXT:  .LBB14_2:
+; RV64IZFH-NEXT:    fcvt.wu.h a0, fa0, rmm
 ; RV64IZFH-NEXT:    ret
   %a = call half @llvm.round.f16(half %x)
   %b = call i32 @llvm.fptoui.sat.i32.f16(half %a)
@@ -710,10 +756,12 @@ define i64 @test_round_ui64(half %x) nounwind {
 ; RV64IZFH-LABEL: test_round_ui64:
 ; RV64IZFH:       # %bb.0:
 ; RV64IZFH-NEXT:    feq.h a0, fa0, fa0
-; RV64IZFH-NEXT:    beqz a0, .LBB15_2
+; RV64IZFH-NEXT:    bnez a0, .LBB15_2
 ; RV64IZFH-NEXT:  # %bb.1:
-; RV64IZFH-NEXT:    fcvt.lu.h a0, fa0, rmm
+; RV64IZFH-NEXT:    li a0, 0
+; RV64IZFH-NEXT:    ret
 ; RV64IZFH-NEXT:  .LBB15_2:
+; RV64IZFH-NEXT:    fcvt.lu.h a0, fa0, rmm
 ; RV64IZFH-NEXT:    ret
   %a = call half @llvm.round.f16(half %x)
   %b = call i64 @llvm.fptoui.sat.i64.f16(half %a)
@@ -724,19 +772,23 @@ define signext i32 @test_roundeven_si32(half %x) {
 ; RV32IZFH-LABEL: test_roundeven_si32:
 ; RV32IZFH:       # %bb.0:
 ; RV32IZFH-NEXT:    feq.h a0, fa0, fa0
-; RV32IZFH-NEXT:    beqz a0, .LBB16_2
+; RV32IZFH-NEXT:    bnez a0, .LBB16_2
 ; RV32IZFH-NEXT:  # %bb.1:
-; RV32IZFH-NEXT:    fcvt.w.h a0, fa0, rne
+; RV32IZFH-NEXT:    li a0, 0
+; RV32IZFH-NEXT:    ret
 ; RV32IZFH-NEXT:  .LBB16_2:
+; RV32IZFH-NEXT:    fcvt.w.h a0, fa0, rne
 ; RV32IZFH-NEXT:    ret
 ;
 ; RV64IZFH-LABEL: test_roundeven_si32:
 ; RV64IZFH:       # %bb.0:
 ; RV64IZFH-NEXT:    feq.h a0, fa0, fa0
-; RV64IZFH-NEXT:    beqz a0, .LBB16_2
+; RV64IZFH-NEXT:    bnez a0, .LBB16_2
 ; RV64IZFH-NEXT:  # %bb.1:
-; RV64IZFH-NEXT:    fcvt.w.h a0, fa0, rne
+; RV64IZFH-NEXT:    li a0, 0
+; RV64IZFH-NEXT:    ret
 ; RV64IZFH-NEXT:  .LBB16_2:
+; RV64IZFH-NEXT:    fcvt.w.h a0, fa0, rne
 ; RV64IZFH-NEXT:    ret
   %a = call half @llvm.roundeven.f16(half %x)
   %b = call i32 @llvm.fptosi.sat.i32.f16(half %a)
@@ -806,10 +858,12 @@ define i64 @test_roundeven_si64(half %x) nounwind {
 ; RV64IZFH-LABEL: test_roundeven_si64:
 ; RV64IZFH:       # %bb.0:
 ; RV64IZFH-NEXT:    feq.h a0, fa0, fa0
-; RV64IZFH-NEXT:    beqz a0, .LBB17_2
+; RV64IZFH-NEXT:    bnez a0, .LBB17_2
 ; RV64IZFH-NEXT:  # %bb.1:
-; RV64IZFH-NEXT:    fcvt.l.h a0, fa0, rne
+; RV64IZFH-NEXT:    li a0, 0
+; RV64IZFH-NEXT:    ret
 ; RV64IZFH-NEXT:  .LBB17_2:
+; RV64IZFH-NEXT:    fcvt.l.h a0, fa0, rne
 ; RV64IZFH-NEXT:    ret
   %a = call half @llvm.roundeven.f16(half %x)
   %b = call i64 @llvm.fptosi.sat.i64.f16(half %a)
@@ -820,19 +874,23 @@ define signext i32 @test_roundeven_ui32(half %x) {
 ; RV32IZFH-LABEL: test_roundeven_ui32:
 ; RV32IZFH:       # %bb.0:
 ; RV32IZFH-NEXT:    feq.h a0, fa0, fa0
-; RV32IZFH-NEXT:    beqz a0, .LBB18_2
+; RV32IZFH-NEXT:    bnez a0, .LBB18_2
 ; RV32IZFH-NEXT:  # %bb.1:
-; RV32IZFH-NEXT:    fcvt.wu.h a0, fa0, rne
+; RV32IZFH-NEXT:    li a0, 0
+; RV32IZFH-NEXT:    ret
 ; RV32IZFH-NEXT:  .LBB18_2:
+; RV32IZFH-NEXT:    fcvt.wu.h a0, fa0, rne
 ; RV32IZFH-NEXT:    ret
 ;
 ; RV64IZFH-LABEL: test_roundeven_ui32:
 ; RV64IZFH:       # %bb.0:
 ; RV64IZFH-NEXT:    feq.h a0, fa0, fa0
-; RV64IZFH-NEXT:    beqz a0, .LBB18_2
+; RV64IZFH-NEXT:    bnez a0, .LBB18_2
 ; RV64IZFH-NEXT:  # %bb.1:
-; RV64IZFH-NEXT:    fcvt.wu.h a0, fa0, rne
+; RV64IZFH-NEXT:    li a0, 0
+; RV64IZFH-NEXT:    ret
 ; RV64IZFH-NEXT:  .LBB18_2:
+; RV64IZFH-NEXT:    fcvt.wu.h a0, fa0, rne
 ; RV64IZFH-NEXT:    ret
   %a = call half @llvm.roundeven.f16(half %x)
   %b = call i32 @llvm.fptoui.sat.i32.f16(half %a)
@@ -889,10 +947,12 @@ define i64 @test_roundeven_ui64(half %x) nounwind {
 ; RV64IZFH-LABEL: test_roundeven_ui64:
 ; RV64IZFH:       # %bb.0:
 ; RV64IZFH-NEXT:    feq.h a0, fa0, fa0
-; RV64IZFH-NEXT:    beqz a0, .LBB19_2
+; RV64IZFH-NEXT:    bnez a0, .LBB19_2
 ; RV64IZFH-NEXT:  # %bb.1:
-; RV64IZFH-NEXT:    fcvt.lu.h a0, fa0, rne
+; RV64IZFH-NEXT:    li a0, 0
+; RV64IZFH-NEXT:    ret
 ; RV64IZFH-NEXT:  .LBB19_2:
+; RV64IZFH-NEXT:    fcvt.lu.h a0, fa0, rne
 ; RV64IZFH-NEXT:    ret
   %a = call half @llvm.roundeven.f16(half %x)
   %b = call i64 @llvm.fptoui.sat.i64.f16(half %a)

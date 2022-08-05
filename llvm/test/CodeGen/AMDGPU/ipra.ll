@@ -91,7 +91,6 @@ define void @func_call_tail_call() #1 {
   ret void
 }
 
-; GCN-LABEL: {{^}}void_func_void:
 define void @void_func_void() noinline {
   ret void
 }
@@ -106,7 +105,6 @@ define void @test_funcx2() #0 {
   ret void
 }
 
-; GCN-LABEL: {{^}}wombat:
 define weak amdgpu_kernel void @wombat(i32* %arg, i32* %arg2) {
 bb:
   call void @hoge() #0

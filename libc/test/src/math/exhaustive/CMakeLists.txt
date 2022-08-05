@@ -80,40 +80,6 @@ add_fp_unittest(
 )
 
 add_fp_unittest(
-  log10f_test
-  NO_RUN_POSTBUILD
-  NEED_MPFR
-  SUITE
-    libc_math_exhaustive_tests
-  SRCS
-    log10f_test.cpp
-  DEPENDS
-    .exhaustive_test
-    libc.include.math
-    libc.src.math.log10f
-    libc.src.__support.FPUtil.fputil
-  LINK_OPTIONS
-    -lpthread
-)
-
-add_fp_unittest(
-  log1pf_test
-  NO_RUN_POSTBUILD
-  NEED_MPFR
-  SUITE
-    libc_math_exhaustive_tests
-  SRCS
-    log1pf_test.cpp
-  DEPENDS
-    .exhaustive_test
-    libc.include.math
-    libc.src.math.log1pf
-    libc.src.__support.FPUtil.fputil
-  LINK_OPTIONS
-    -lpthread
-)
-
-add_fp_unittest(
   log2f_test
   NO_RUN_POSTBUILD
   NEED_MPFR
@@ -126,25 +92,6 @@ add_fp_unittest(
     libc.include.math
     libc.src.math.log2f
     libc.src.__support.FPUtil.fputil
-  LINK_OPTIONS
-    -lpthread
-)
-
-add_fp_unittest(
-  hypotf_test
-  NO_RUN_POSTBUILD
-  NEED_MPFR
-  SUITE
-    libc_math_exhaustive_tests
-  SRCS
-    hypotf_test.cpp
-  DEPENDS
-    .exhaustive_test
-    libc.include.math
-    libc.src.math.hypotf
-    libc.src.__support.FPUtil.fputil
-  COMPILE_OPTIONS
-    -O3
   LINK_OPTIONS
     -lpthread
 )

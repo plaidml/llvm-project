@@ -40,7 +40,6 @@
 #include "lldb/Target/Target.h"
 #include "lldb/Target/Thread.h"
 #include "lldb/Utility/Endian.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/RegisterValue.h"
 #include "lldb/Utility/Status.h"
@@ -253,7 +252,7 @@ bool ClangExpressionDeclMap::AddPersistentVariable(const NamedDecl *decl,
     return true;
   }
 
-  Log *log = GetLog(LLDBLog::Expressions);
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
   ExecutionContext &exe_ctx = m_parser_vars->m_exe_ctx;
   Target *target = exe_ctx.GetTargetPtr();
   if (target == nullptr)
@@ -329,7 +328,7 @@ bool ClangExpressionDeclMap::AddValueToStruct(const NamedDecl *decl,
 
   bool is_persistent_variable = false;
 
-  Log *log = GetLog(LLDBLog::Expressions);
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
 
   m_struct_vars->m_struct_laid_out = false;
 
@@ -647,7 +646,7 @@ void ClangExpressionDeclMap::FindExternalVisibleDecls(
 
   const ConstString name(context.m_decl_name.getAsString().c_str());
 
-  Log *log = GetLog(LLDBLog::Expressions);
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
 
   if (log) {
     if (!context.m_decl_context)
@@ -729,7 +728,7 @@ clang::NamedDecl *ClangExpressionDeclMap::GetPersistentDecl(ConstString name) {
 
 void ClangExpressionDeclMap::SearchPersistenDecls(NameSearchContext &context,
                                                   const ConstString name) {
-  Log *log = GetLog(LLDBLog::Expressions);
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
 
   NamedDecl *persistent_decl = GetPersistentDecl(name);
 
@@ -757,7 +756,7 @@ void ClangExpressionDeclMap::SearchPersistenDecls(NameSearchContext &context,
 }
 
 void ClangExpressionDeclMap::LookUpLldbClass(NameSearchContext &context) {
-  Log *log = GetLog(LLDBLog::Expressions);
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
 
   StackFrame *frame = m_parser_vars->m_exe_ctx.GetFramePtr();
   SymbolContext sym_ctx;
@@ -858,7 +857,7 @@ void ClangExpressionDeclMap::LookUpLldbClass(NameSearchContext &context) {
 }
 
 void ClangExpressionDeclMap::LookUpLldbObjCClass(NameSearchContext &context) {
-  Log *log = GetLog(LLDBLog::Expressions);
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
 
   StackFrame *frame = m_parser_vars->m_exe_ctx.GetFramePtr();
 
@@ -1015,7 +1014,7 @@ void ClangExpressionDeclMap::LookupLocalVarNamespace(
 
 void ClangExpressionDeclMap::LookupInModulesDeclVendor(
     NameSearchContext &context, ConstString name) {
-  Log *log = GetLog(LLDBLog::Expressions);
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
 
   if (!m_target)
     return;
@@ -1332,7 +1331,7 @@ void ClangExpressionDeclMap::FindExternalVisibleDecls(
     const CompilerDeclContext &namespace_decl) {
   assert(m_ast_context);
 
-  Log *log = GetLog(LLDBLog::Expressions);
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
 
   const ConstString name(context.m_decl_name.getAsString().c_str());
   if (IgnoreName(name, false))
@@ -1461,7 +1460,7 @@ bool ClangExpressionDeclMap::GetVariableValue(VariableSP &var,
                                               lldb_private::Value &var_location,
                                               TypeFromUser *user_type,
                                               TypeFromParser *parser_type) {
-  Log *log = GetLog(LLDBLog::Expressions);
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
 
   Type *var_type = var->GetType();
 
@@ -1547,7 +1546,7 @@ void ClangExpressionDeclMap::AddOneVariable(NameSearchContext &context,
                                             ValueObjectSP valobj) {
   assert(m_parser_vars.get());
 
-  Log *log = GetLog(LLDBLog::Expressions);
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
 
   TypeFromUser ut;
   TypeFromParser pt;
@@ -1601,7 +1600,7 @@ void ClangExpressionDeclMap::AddOneVariable(NameSearchContext &context,
 
 void ClangExpressionDeclMap::AddOneVariable(NameSearchContext &context,
                                             ExpressionVariableSP &pvar_sp) {
-  Log *log = GetLog(LLDBLog::Expressions);
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
 
   TypeFromUser user_type(
       llvm::cast<ClangExpressionVariable>(pvar_sp.get())->GetTypeFromUser());
@@ -1634,7 +1633,7 @@ void ClangExpressionDeclMap::AddOneGenericVariable(NameSearchContext &context,
                                                    const Symbol &symbol) {
   assert(m_parser_vars.get());
 
-  Log *log = GetLog(LLDBLog::Expressions);
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
 
   Target *target = m_parser_vars->m_exe_ctx.GetTargetPtr();
 
@@ -1684,7 +1683,7 @@ void ClangExpressionDeclMap::AddOneGenericVariable(NameSearchContext &context,
 
 void ClangExpressionDeclMap::AddOneRegister(NameSearchContext &context,
                                             const RegisterInfo *reg_info) {
-  Log *log = GetLog(LLDBLog::Expressions);
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
 
   CompilerType clang_type =
       m_clang_ast_context->GetBuiltinTypeForEncodingAndBitSize(
@@ -1726,7 +1725,7 @@ void ClangExpressionDeclMap::AddOneFunction(NameSearchContext &context,
                                             Symbol *symbol) {
   assert(m_parser_vars.get());
 
-  Log *log = GetLog(LLDBLog::Expressions);
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
 
   NamedDecl *function_decl = nullptr;
   Address fun_address;
@@ -1896,7 +1895,7 @@ void ClangExpressionDeclMap::AddContextClassType(NameSearchContext &context,
                                                  const TypeFromUser &ut) {
   CompilerType copied_clang_type = GuardedCopyType(ut);
 
-  Log *log = GetLog(LLDBLog::Expressions);
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
 
   if (!copied_clang_type) {
     LLDB_LOG(log,
@@ -1962,7 +1961,7 @@ void ClangExpressionDeclMap::AddOneType(NameSearchContext &context,
   CompilerType copied_clang_type = GuardedCopyType(ut);
 
   if (!copied_clang_type) {
-    Log *log = GetLog(LLDBLog::Expressions);
+    Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
 
     LLDB_LOG(log,
              "ClangExpressionDeclMap::AddOneType - Couldn't import the type");

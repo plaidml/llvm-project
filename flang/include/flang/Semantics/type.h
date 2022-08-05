@@ -265,7 +265,7 @@ public:
 
   bool MightBeParameterized() const;
   bool IsForwardReferenced() const;
-  bool HasDefaultInitialization(bool ignoreAllocatable = false) const;
+  bool HasDefaultInitialization() const;
   bool HasDestruction() const;
   bool HasFinalization() const;
 

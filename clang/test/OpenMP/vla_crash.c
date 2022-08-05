@@ -5,7 +5,7 @@
 
 int a;
 
-void foo(void) {
+void foo() {
   int(*b)[a];
   int *(**c)[a];
 #pragma omp parallel if (0)

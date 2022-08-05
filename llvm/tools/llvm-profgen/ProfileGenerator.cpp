@@ -589,24 +589,27 @@ void CSProfileGenerator::generateProfile() {
 }
 
 void CSProfileGenerator::computeSizeForProfiledFunctions() {
-  std::unordered_set<const BinaryFunction *> ProfiledFunctions;
-
+  // Hash map to deduplicate the function range and the item is a pair of
+  // function start and end offset.
+  std::unordered_map<uint64_t, uint64_t> AggregatedRanges;
   // Go through all the ranges in the CS counters, use the start of the range to
-  // look up the function it belongs and record the function.
+  // look up the function it belongs and record the function range.
   for (const auto &CI : SampleCounters) {
     for (const auto &Item : CI.second.RangeCounter) {
       // FIXME: Filter the bogus crossing function range.
       uint64_t StartOffset = Item.first.first;
-      if (FuncRange *FRange = Binary->findFuncRangeForOffset(StartOffset))
-        ProfiledFunctions.insert(FRange->Func);
+      // Note that a function can be spilt into multiple ranges, so get all
+      // ranges of the function.
+      for (const auto &Range : Binary->getRangesForOffset(StartOffset))
+        AggregatedRanges[Range.first] = Range.second;
     }
   }
 
-  for (auto *Func : ProfiledFunctions)
-    Binary->computeInlinedContextSizeForFunc(Func);
-
-  // Flush the symbolizer to save memory.
-  Binary->flushSymbolizer();
+  for (const auto &I : AggregatedRanges) {
+    uint64_t StartOffset = I.first;
+    uint64_t EndOffset = I.second;
+    Binary->computeInlinedContextSizeForRange(StartOffset, EndOffset);
+  }
 }
 
 void CSProfileGenerator::generateLineNumBasedProfile() {
@@ -817,7 +820,8 @@ static void extractPrefixContextStack(
 
 void CSProfileGenerator::generateProbeBasedProfile() {
   for (const auto &CI : SampleCounters) {
-    const auto *CtxKey = cast<ProbeBasedCtxKey>(CI.first.getPtr());
+    const ProbeBasedCtxKey *CtxKey =
+        dyn_cast<ProbeBasedCtxKey>(CI.first.getPtr());
     SampleContextFrameVector ContextStack;
     extractPrefixContextStack(ContextStack, CtxKey->Probes, Binary);
     // Fill in function body samples from probes, also infer caller's samples

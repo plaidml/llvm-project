@@ -1211,11 +1211,11 @@ bool IfConverter::FeasibilityAnalysis(BBInfo &BBI,
 void IfConverter::AnalyzeBlock(
     MachineBasicBlock &MBB, std::vector<std::unique_ptr<IfcvtToken>> &Tokens) {
   struct BBState {
-    BBState(MachineBasicBlock &MBB) : MBB(&MBB) {}
+    BBState(MachineBasicBlock &MBB) : MBB(&MBB), SuccsAnalyzed(false) {}
     MachineBasicBlock *MBB;
 
     /// This flag is true if MBB's successors have been analyzed.
-    bool SuccsAnalyzed = false;
+    bool SuccsAnalyzed;
   };
 
   // Push MBB to the stack.

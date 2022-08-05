@@ -120,6 +120,7 @@ class RegisterCommandsTestCase(TestBase):
 
     @skipIfiOSSimulator
     @skipIf(archs=no_match(['amd64', 'x86_64']))
+    @expectedFailureAll(oslist=["windows"], bugnumber="llvm.org/pr37683")
     def test_convenience_registers_with_process_attach(self):
         """Test convenience registers after a 'process attach'."""
         self.build()
@@ -127,6 +128,7 @@ class RegisterCommandsTestCase(TestBase):
 
     @skipIfiOSSimulator
     @skipIf(archs=no_match(['amd64', 'x86_64']))
+    @expectedFailureAll(oslist=["windows"], bugnumber="llvm.org/pr37683")
     def test_convenience_registers_16bit_with_process_attach(self):
         """Test convenience registers after a 'process attach'."""
         self.build()

@@ -16,7 +16,6 @@
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Dialect.h"
-#include "mlir/IR/Verifier.h"
 #include "mlir/Parser.h"
 #include "mlir/Support/FileUtilities.h"
 #include "mlir/Target/SPIRV/Deserialization.h"
@@ -36,8 +35,8 @@ using namespace mlir;
 
 // Deserializes the SPIR-V binary module stored in the file named as
 // `inputFilename` and returns a module containing the SPIR-V module.
-static OwningOpRef<ModuleOp> deserializeModule(const llvm::MemoryBuffer *input,
-                                               MLIRContext *context) {
+static OwningModuleRef deserializeModule(const llvm::MemoryBuffer *input,
+                                         MLIRContext *context) {
   context->loadDialect<spirv::SPIRVDialect>();
 
   // Make sure the input stream can be treated as a stream of SPIR-V words
@@ -57,7 +56,7 @@ static OwningOpRef<ModuleOp> deserializeModule(const llvm::MemoryBuffer *input,
   if (!spirvModule)
     return {};
 
-  OwningOpRef<ModuleOp> module(ModuleOp::create(FileLineColLoc::get(
+  OwningModuleRef module(ModuleOp::create(FileLineColLoc::get(
       context, input->getBufferIdentifier(), /*line=*/0, /*column=*/0)));
   module->getBody()->push_front(spirvModule.release());
 
@@ -148,12 +147,10 @@ static LogicalResult roundTripModule(ModuleOp srcModule, bool emitDebugInfo,
     return failure();
 
   // Wrap around in a new MLIR module.
-  OwningOpRef<ModuleOp> dstModule(ModuleOp::create(
+  OwningModuleRef dstModule(ModuleOp::create(
       FileLineColLoc::get(&deserializationContext,
                           /*filename=*/"", /*line=*/0, /*column=*/0)));
   dstModule->getBody()->push_front(spirvModule.release());
-  if (failed(verify(*dstModule)))
-    return failure();
   dstModule->print(output);
 
   return mlir::success();

@@ -16,7 +16,6 @@
 
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/OpDefinition.h"
-#include "llvm/ADT/BitVector.h"
 #include "llvm/ADT/SmallString.h"
 
 namespace mlir {
@@ -83,12 +82,12 @@ void insertFunctionResults(Operation *op, ArrayRef<unsigned> resultIndices,
                            unsigned originalNumResults, Type newType);
 
 /// Erase the specified arguments and update the function type attribute.
-void eraseFunctionArguments(Operation *op, const BitVector &argIndices,
-                            Type newType);
+void eraseFunctionArguments(Operation *op, ArrayRef<unsigned> argIndices,
+                            unsigned originalNumArgs, Type newType);
 
 /// Erase the specified results and update the function type attribute.
-void eraseFunctionResults(Operation *op, const BitVector &resultIndices,
-                          Type newType);
+void eraseFunctionResults(Operation *op, ArrayRef<unsigned> resultIndices,
+                          unsigned originalNumResults, Type newType);
 
 /// Set a FunctionOpInterface operation's type signature.
 void setFunctionType(Operation *op, Type newType);
@@ -101,7 +100,7 @@ TypeRange insertTypesInto(TypeRange oldTypes, ArrayRef<unsigned> indices,
 
 /// Filters out any elements referenced by `indices`. If any types are removed,
 /// `storage` is used to hold the new type list. Returns the new type list.
-TypeRange filterTypesOut(TypeRange types, const BitVector &indices,
+TypeRange filterTypesOut(TypeRange types, ArrayRef<unsigned> indices,
                          SmallVectorImpl<Type> &storage);
 
 //===----------------------------------------------------------------------===//

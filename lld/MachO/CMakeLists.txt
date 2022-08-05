@@ -10,6 +10,7 @@ add_lld_library(lldMachO
   Arch/ARM64Common.cpp
   Arch/ARM64_32.cpp
   Arch/X86_64.cpp
+  CallGraphSort.cpp
   ConcatOutputSection.cpp
   Driver.cpp
   DriverUtils.cpp
@@ -25,7 +26,6 @@ add_lld_library(lldMachO
   OutputSection.cpp
   OutputSegment.cpp
   Relocations.cpp
-  SectionPriorities.cpp
   SymbolTable.cpp
   Symbols.cpp
   SyntheticSections.cpp

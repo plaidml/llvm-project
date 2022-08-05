@@ -1393,13 +1393,10 @@ public:
   const Use &getCalledOperandUse() const { return Op<CalledOperandOpEndIdx>(); }
   Use &getCalledOperandUse() { return Op<CalledOperandOpEndIdx>(); }
 
-  /// Returns the function called, or null if this is an indirect function
-  /// invocation or the function signature does not match the call signature.
+  /// Returns the function called, or null if this is an
+  /// indirect function invocation.
   Function *getCalledFunction() const {
-    if (auto *F = dyn_cast_or_null<Function>(getCalledOperand()))
-      if (F->getValueType() == getFunctionType())
-        return F;
-    return nullptr;
+    return dyn_cast_or_null<Function>(getCalledOperand());
   }
 
   /// Return true if the callsite is an indirect call.
@@ -1726,13 +1723,7 @@ public:
   }
 
   /// Extract the alignment of the return value.
-  MaybeAlign getRetAlign() const {
-    if (auto Align = Attrs.getRetAlignment())
-      return Align;
-    if (const Function *F = getCalledFunction())
-      return F->getAttributes().getRetAlignment();
-    return None;
-  }
+  MaybeAlign getRetAlign() const { return Attrs.getRetAlignment(); }
 
   /// Extract the alignment for a call or parameter (0=unknown).
   MaybeAlign getParamAlign(unsigned ArgNo) const {
@@ -1761,29 +1752,13 @@ public:
     return nullptr;
   }
 
-  /// Extract the inalloca type for a call or parameter.
+  /// Extract the preallocated type for a call or parameter.
   Type *getParamInAllocaType(unsigned ArgNo) const {
     if (auto *Ty = Attrs.getParamInAllocaType(ArgNo))
       return Ty;
     if (const Function *F = getCalledFunction())
       return F->getAttributes().getParamInAllocaType(ArgNo);
     return nullptr;
-  }
-
-  /// Extract the sret type for a call or parameter.
-  Type *getParamStructRetType(unsigned ArgNo) const {
-    if (auto *Ty = Attrs.getParamStructRetType(ArgNo))
-      return Ty;
-    if (const Function *F = getCalledFunction())
-      return F->getAttributes().getParamStructRetType(ArgNo);
-    return nullptr;
-  }
-
-  /// Extract the elementtype type for a parameter.
-  /// Note that elementtype() can only be applied to call arguments, not
-  /// function declaration parameters.
-  Type *getParamElementType(unsigned ArgNo) const {
-    return Attrs.getParamElementType(ArgNo);
   }
 
   /// Extract the number of dereferenceable bytes for a call or
@@ -2068,8 +2043,7 @@ public:
   bool hasClobberingOperandBundles() const {
     for (auto &BOI : bundle_op_infos()) {
       if (BOI.Tag->second == LLVMContext::OB_deopt ||
-          BOI.Tag->second == LLVMContext::OB_funclet ||
-          BOI.Tag->second == LLVMContext::OB_ptrauth)
+          BOI.Tag->second == LLVMContext::OB_funclet)
         continue;
 
       // This instruction has an operand bundle that is not known to us.

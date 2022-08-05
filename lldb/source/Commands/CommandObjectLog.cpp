@@ -45,7 +45,8 @@ public:
   CommandObjectLogEnable(CommandInterpreter &interpreter)
       : CommandObjectParsed(interpreter, "log enable",
                             "Enable logging for a single log channel.",
-                            nullptr) {
+                            nullptr),
+        m_options() {
     CommandArgumentEntry arg1;
     CommandArgumentEntry arg2;
     CommandArgumentData channel_arg;
@@ -75,7 +76,7 @@ public:
 
   class CommandOptions : public Options {
   public:
-    CommandOptions() {}
+    CommandOptions() : Options(), log_file() {}
 
     ~CommandOptions() override = default;
 

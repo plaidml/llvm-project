@@ -9,23 +9,21 @@
 #ifndef LLD_ELF_OUTPUT_SECTIONS_H
 #define LLD_ELF_OUTPUT_SECTIONS_H
 
+#include "Config.h"
 #include "InputSection.h"
 #include "LinkerScript.h"
+#include "Relocations.h"
 #include "lld/Common/LLVM.h"
-
+#include "llvm/MC/StringTableBuilder.h"
+#include "llvm/Object/ELF.h"
 #include <array>
 
 namespace lld {
 namespace elf {
 
 struct PhdrEntry;
-
-struct CompressedData {
-  std::unique_ptr<SmallVector<uint8_t, 0>[]> shards;
-  uint32_t numShards = 0;
-  uint32_t checksum = 0;
-  uint64_t uncompressedSize;
-};
+class InputSection;
+class InputSectionBase;
 
 // This represents a section in an output file.
 // It is composed of multiple InputSections.
@@ -114,7 +112,8 @@ public:
 
 private:
   // Used for implementation of --compress-debug-sections option.
-  CompressedData compressed;
+  SmallVector<uint8_t, 0> zDebugHeader;
+  SmallVector<char, 0> compressedData;
 
   std::array<uint8_t, 4> getFiller();
 };

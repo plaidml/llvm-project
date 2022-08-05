@@ -18,7 +18,6 @@
 #include "lldb/Target/Thread.h"
 #include "lldb/Target/ThreadPlanRunToAddress.h"
 #include "lldb/Target/ThreadPlanStepOut.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
 
 #include "Plugins/LanguageRuntime/ObjC/ObjCLanguageRuntime.h"
@@ -142,7 +141,7 @@ bool AppleThreadPlanStepThroughObjCTrampoline::ShouldStop(Event *event_ptr) {
     }
     Address target_so_addr;
     target_so_addr.SetOpcodeLoadAddress(target_addr, exc_ctx.GetTargetPtr());
-    Log *log = GetLog(LLDBLog::Step);
+    Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_STEP));
     if (target_addr == 0) {
       LLDB_LOGF(log, "Got target implementation of 0x0, stopping.");
       SetPlanComplete();
@@ -355,7 +354,7 @@ bool AppleThreadPlanStepThroughDirectDispatch::ShouldStop(Event *event_ptr) {
   // If we have a step through plan, then w're in the process of getting 
   // through an ObjC msgSend.  If we arrived at the target function, then 
   // check whether we have debug info, and if we do, stop.
-  Log *log = GetLog(LLDBLog::Step);
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_STEP));
 
   if (m_objc_step_through_sp && m_objc_step_through_sp->IsPlanComplete()) {
     // If the plan failed for some reason, we should probably just let the

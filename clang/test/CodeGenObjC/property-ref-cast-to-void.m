@@ -8,7 +8,7 @@
 - (double)myGetter;
 @end
 
-void FUNC (void) {
+void FUNC () {
     TestClass *obj;
     (void)obj.myProperty; 
     (void)obj.myGetter; 

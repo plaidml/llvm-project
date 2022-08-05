@@ -31,6 +31,8 @@
 namespace clang {
 namespace clangd {
 
+class SymbolIndex;
+
 /// This class exposes ClangdServer's capabilities via Language Server Protocol.
 ///
 /// MessageHandler binds the implemented LSP methods (e.g. onInitialize) to

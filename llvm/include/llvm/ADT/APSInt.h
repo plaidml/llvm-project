@@ -5,11 +5,10 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-///
-/// \file
-/// This file implements the APSInt class, which is a simple class that
-/// represents an arbitrary sized integer that knows its signedness.
-///
+//
+// This file implements the APSInt class, which is a simple class that
+// represents an arbitrary sized integer that knows its signedness.
+//
 //===----------------------------------------------------------------------===//
 
 #ifndef LLVM_ADT_APSINT_H

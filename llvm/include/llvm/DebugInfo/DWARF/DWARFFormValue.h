@@ -14,14 +14,12 @@
 #include "llvm/ADT/Optional.h"
 #include "llvm/BinaryFormat/Dwarf.h"
 #include "llvm/DebugInfo/DIContext.h"
-#include "llvm/Support/DataExtractor.h"
+#include "llvm/DebugInfo/DWARF/DWARFDataExtractor.h"
 #include <cstdint>
 
 namespace llvm {
 
 class DWARFContext;
-class DWARFObject;
-class DWARFDataExtractor;
 class DWARFUnit;
 class raw_ostream;
 

@@ -7,7 +7,6 @@
 //===----------------------------------------------------------------------===//
 
 #include "llvm/ProfileData/InstrProfCorrelator.h"
-#include "llvm/DebugInfo/DWARF/DWARFExpression.h"
 #include "llvm/Object/MachO.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/FileSystem.h"
@@ -24,8 +23,7 @@ Expected<object::SectionRef> getCountersSection(const object::ObjectFile &Obj) {
       if (SectionName.get() == INSTR_PROF_CNTS_SECT_NAME)
         return Section;
   return make_error<InstrProfError>(
-      instrprof_error::unable_to_correlate_profile,
-      "could not find counter section (" INSTR_PROF_CNTS_SECT_NAME ")");
+      instrprof_error::unable_to_correlate_profile);
 }
 
 const char *InstrProfCorrelator::FunctionNameAttributeName = "Function Name";
@@ -56,9 +54,9 @@ InstrProfCorrelator::get(StringRef DebugInfoFilename) {
     // TODO: Enable profile correlation when there are multiple objects in a
     // dSYM bundle.
     if (DsymObjectsOrErr->size() > 1)
-      return make_error<InstrProfError>(
-          instrprof_error::unable_to_correlate_profile,
-          "using multiple objects is not yet supported");
+      return createStringError(
+          std::error_code(),
+          "Profile correlation using multiple objects is not yet supported");
     DebugInfoFilename = *DsymObjectsOrErr->begin();
   }
   auto BufferOrErr =
@@ -86,16 +84,7 @@ InstrProfCorrelator::get(std::unique_ptr<MemoryBuffer> Buffer) {
       return InstrProfCorrelatorImpl<uint32_t>::get(std::move(*CtxOrErr), *Obj);
   }
   return make_error<InstrProfError>(
-      instrprof_error::unable_to_correlate_profile, "not an object file");
-}
-
-Optional<size_t> InstrProfCorrelator::getDataSize() const {
-  if (auto *C = dyn_cast<InstrProfCorrelatorImpl<uint32_t>>(this)) {
-    return C->getDataSize();
-  } else if (auto *C = dyn_cast<InstrProfCorrelatorImpl<uint64_t>>(this)) {
-    return C->getDataSize();
-  }
-  return {};
+      instrprof_error::unable_to_correlate_profile);
 }
 
 namespace llvm {
@@ -131,23 +120,17 @@ InstrProfCorrelatorImpl<IntPtrT>::get(
     return std::make_unique<DwarfInstrProfCorrelator<IntPtrT>>(std::move(DICtx),
                                                                std::move(Ctx));
   }
-  return make_error<InstrProfError>(
-      instrprof_error::unable_to_correlate_profile,
-      "unsupported debug info format (only DWARF is supported)");
+  return make_error<InstrProfError>(instrprof_error::unsupported_debug_format);
 }
 
 template <class IntPtrT>
 Error InstrProfCorrelatorImpl<IntPtrT>::correlateProfileData() {
-  assert(Data.empty() && Names.empty() && NamesVec.empty());
+  assert(Data.empty() && CompressedNames.empty() && Names.empty());
   correlateProfileDataImpl();
-  if (Data.empty() || NamesVec.empty())
-    return make_error<InstrProfError>(
-        instrprof_error::unable_to_correlate_profile,
-        "could not find any profile metadata in debug info");
   auto Result =
-      collectPGOFuncNameStrings(NamesVec, /*doCompression=*/false, Names);
+      collectPGOFuncNameStrings(Names, /*doCompression=*/true, CompressedNames);
   CounterOffsets.clear();
-  NamesVec.clear();
+  Names.clear();
   return Result;
 }
 
@@ -172,7 +155,7 @@ void InstrProfCorrelatorImpl<IntPtrT>::addProbe(StringRef FunctionName,
       maybeSwap<uint32_t>(NumCounters),
       /*NumValueSites=*/{maybeSwap<uint16_t>(0), maybeSwap<uint16_t>(0)},
   });
-  NamesVec.push_back(FunctionName.str());
+  Names.push_back(FunctionName.str());
 }
 
 template <class IntPtrT>
@@ -184,19 +167,13 @@ DwarfInstrProfCorrelator<IntPtrT>::getLocation(const DWARFDie &Die) const {
     return {};
   }
   auto &DU = *Die.getDwarfUnit();
-  auto AddressSize = DU.getAddressByteSize();
   for (auto &Location : *Locations) {
+    auto AddressSize = DU.getAddressByteSize();
     DataExtractor Data(Location.Expr, DICtx->isLittleEndian(), AddressSize);
     DWARFExpression Expr(Data, AddressSize);
-    for (auto &Op : Expr) {
-      if (Op.getCode() == dwarf::DW_OP_addr) {
+    for (auto &Op : Expr)
+      if (Op.getCode() == dwarf::DW_OP_addr)
         return Op.getRawOperand(0);
-      } else if (Op.getCode() == dwarf::DW_OP_addrx) {
-        uint64_t Index = Op.getRawOperand(0);
-        if (auto SA = DU.getAddrOffsetSectionItem(Index))
-          return SA->Address;
-      }
-    }
   }
   return {};
 }

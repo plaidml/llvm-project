@@ -12,7 +12,7 @@ def Test_Dialect : Dialect {
   let name = "test";
   let cppNamespace = "Test";
 }
-class TestOp<string mnemonic, list<Trait> traits = []> :
+class TestOp<string mnemonic, list<OpTrait> traits = []> :
     Op<Test_Dialect, mnemonic, traits>;
 
 // CHECK: @_ods_cext.register_operation(_Dialect)

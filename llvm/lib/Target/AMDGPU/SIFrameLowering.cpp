@@ -1195,8 +1195,7 @@ void SIFrameLowering::processFunctionBeforeFrameFinalized(
           }
         } else if (TII->isStoreToStackSlot(MI, FrameIndex) ||
                    TII->isLoadFromStackSlot(MI, FrameIndex))
-          if (!MFI.isFixedObjectIndex(FrameIndex))
-            NonVGPRSpillFIs.set(FrameIndex);
+          NonVGPRSpillFIs.set(FrameIndex);
       }
     }
 
@@ -1229,11 +1228,7 @@ void SIFrameLowering::processFunctionBeforeFrameFinalized(
     }
   }
 
-  // At this point we've already allocated all spilled SGPRs to VGPRs if we
-  // can. Any remaining SGPR spills will go to memory, so move them back to the
-  // default stack.
-  bool HaveSGPRToVMemSpill =
-      FuncInfo->removeDeadFrameIndices(MFI, /*ResetSGPRSpillStackIDs*/ true);
+  FuncInfo->removeDeadFrameIndices(MFI);
   assert(allSGPRSpillsAreDead(MF) &&
          "SGPR spill should have been removed in SILowerSGPRSpills");
 
@@ -1245,13 +1240,6 @@ void SIFrameLowering::processFunctionBeforeFrameFinalized(
 
     // Add an emergency spill slot
     RS->addScavengingFrameIndex(FuncInfo->getScavengeFI(MFI, *TRI));
-
-    // If we are spilling SGPRs to memory with a large frame, we may need a
-    // second VGPR emergency frame index.
-    if (HaveSGPRToVMemSpill &&
-        allocateScavengingFrameIndexesNearIncomingSP(MF)) {
-      RS->addScavengingFrameIndex(MFI.CreateStackObject(4, Align(4), false));
-    }
   }
 }
 

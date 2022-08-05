@@ -13,7 +13,6 @@
 #include "flang/Optimizer/Dialect/FIRDialect.h"
 #include "flang/Optimizer/Support/FIRContext.h"
 #include "flang/Optimizer/Transforms/Passes.h"
-#include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/Dialect/SCF/SCF.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "llvm/Support/Debug.h"
@@ -139,7 +138,7 @@ private:
     }
     if (auto mergeStore = mlir::dyn_cast<ArrayMergeStoreOp>(op)) {
       if (opIsInsideLoops(mergeStore))
-        collectArrayAccessFrom(mergeStore.getSequence());
+        collectArrayAccessFrom(mergeStore.sequence());
       return;
     }
 
@@ -149,7 +148,7 @@ private:
       for (mlir::Operation *user : op->getUsers())
         if (auto store = mlir::dyn_cast<fir::StoreOp>(user))
           if (opIsInsideLoops(store))
-            collectArrayAccessFrom(store.getValue());
+            collectArrayAccessFrom(store.value());
       return;
     }
 
@@ -285,7 +284,7 @@ ArrayCopyAnalysis::arrayAccesses(ArrayLoadOp load) {
     auto structuredLoop = [&](auto ro) {
       if (auto blockArg = ro.iterArgToBlockArg(operand->get())) {
         int64_t arg = blockArg.getArgNumber();
-        mlir::Value output = ro.getResult(ro.getFinalValue() ? arg : arg - 1);
+        mlir::Value output = ro.getResult(ro.finalValue() ? arg : arg - 1);
         appendToQueue(output);
         appendToQueue(blockArg);
       }
@@ -333,9 +332,9 @@ ArrayCopyAnalysis::arrayAccesses(ArrayLoadOp load) {
                  << "add modify {" << *owner << "} to array value set\n");
       accesses.push_back(owner);
       appendToQueue(update.getResult(1));
-    } else if (auto br = mlir::dyn_cast<mlir::cf::BranchOp>(owner)) {
+    } else if (auto br = mlir::dyn_cast<mlir::BranchOp>(owner)) {
       branchOp(br.getDest(), br.getDestOperands());
-    } else if (auto br = mlir::dyn_cast<mlir::cf::CondBranchOp>(owner)) {
+    } else if (auto br = mlir::dyn_cast<mlir::CondBranchOp>(owner)) {
       branchOp(br.getTrueDest(), br.getTrueOperands());
       branchOp(br.getFalseDest(), br.getFalseOperands());
     } else if (mlir::isa<ArrayMergeStoreOp>(owner)) {
@@ -353,19 +352,19 @@ ArrayCopyAnalysis::arrayAccesses(ArrayLoadOp load) {
 static bool conflictOnLoad(llvm::ArrayRef<mlir::Operation *> reach,
                            ArrayMergeStoreOp st) {
   mlir::Value load;
-  mlir::Value addr = st.getMemref();
+  mlir::Value addr = st.memref();
   auto stEleTy = fir::dyn_cast_ptrOrBoxEleTy(addr.getType());
   for (auto *op : reach) {
     auto ld = mlir::dyn_cast<ArrayLoadOp>(op);
     if (!ld)
       continue;
-    mlir::Type ldTy = ld.getMemref().getType();
+    mlir::Type ldTy = ld.memref().getType();
     if (auto boxTy = ldTy.dyn_cast<fir::BoxType>())
       ldTy = boxTy.getEleTy();
     if (ldTy.isa<fir::PointerType>() && stEleTy == dyn_cast_ptrEleTy(ldTy))
       return true;
-    if (ld.getMemref() == addr) {
-      if (ld.getResult() != st.getOriginal())
+    if (ld.memref() == addr) {
+      if (ld.getResult() != st.original())
         return true;
       if (load)
         return true;
@@ -391,22 +390,22 @@ static bool conflictOnMerge(llvm::ArrayRef<mlir::Operation *> accesses) {
     llvm::SmallVector<mlir::Value> compareVector;
     if (auto u = mlir::dyn_cast<ArrayUpdateOp>(op)) {
       if (indices.empty()) {
-        indices = u.getIndices();
+        indices = u.indices();
         continue;
       }
-      compareVector = u.getIndices();
+      compareVector = u.indices();
     } else if (auto f = mlir::dyn_cast<ArrayModifyOp>(op)) {
       if (indices.empty()) {
-        indices = f.getIndices();
+        indices = f.indices();
         continue;
       }
-      compareVector = f.getIndices();
+      compareVector = f.indices();
     } else if (auto f = mlir::dyn_cast<ArrayFetchOp>(op)) {
       if (indices.empty()) {
-        indices = f.getIndices();
+        indices = f.indices();
         continue;
       }
-      compareVector = f.getIndices();
+      compareVector = f.indices();
     }
     if (compareVector != indices)
       return true;
@@ -428,18 +427,18 @@ void ArrayCopyAnalysis::construct(mlir::Operation *topLevelOp) {
   topLevelOp->walk([&](Operation *op) {
     if (auto st = mlir::dyn_cast<fir::ArrayMergeStoreOp>(op)) {
       llvm::SmallVector<Operation *> values;
-      ReachCollector::reachingValues(values, st.getSequence());
-      const llvm::SmallVector<Operation *> &accesses = arrayAccesses(
-          mlir::cast<ArrayLoadOp>(st.getOriginal().getDefiningOp()));
+      ReachCollector::reachingValues(values, st.sequence());
+      const llvm::SmallVector<Operation *> &accesses =
+          arrayAccesses(mlir::cast<ArrayLoadOp>(st.original().getDefiningOp()));
       if (conflictDetected(values, accesses, st)) {
         LLVM_DEBUG(llvm::dbgs()
                    << "CONFLICT: copies required for " << st << '\n'
                    << "   adding conflicts on: " << op << " and "
-                   << st.getOriginal() << '\n');
+                   << st.original() << '\n');
         conflicts.insert(op);
-        conflicts.insert(st.getOriginal().getDefiningOp());
+        conflicts.insert(st.original().getDefiningOp());
       }
-      auto *ld = st.getOriginal().getDefiningOp();
+      auto *ld = st.original().getDefiningOp();
       LLVM_DEBUG(llvm::dbgs()
                  << "map: adding {" << *ld << " -> " << st << "}\n");
       useMap.insert({ld, op});
@@ -533,22 +532,22 @@ getOrReadExtentsAndShapeOp(mlir::Location loc, mlir::PatternRewriter &rewriter,
                            fir::ArrayLoadOp loadOp,
                            llvm::SmallVectorImpl<mlir::Value> &result) {
   assert(result.empty());
-  if (auto boxTy = loadOp.getMemref().getType().dyn_cast<fir::BoxType>()) {
+  if (auto boxTy = loadOp.memref().getType().dyn_cast<fir::BoxType>()) {
     auto rank = fir::dyn_cast_ptrOrBoxEleTy(boxTy)
                     .cast<fir::SequenceType>()
                     .getDimension();
     auto idxTy = rewriter.getIndexType();
     for (decltype(rank) dim = 0; dim < rank; ++dim) {
       auto dimVal = rewriter.create<arith::ConstantIndexOp>(loc, dim);
-      auto dimInfo = rewriter.create<fir::BoxDimsOp>(
-          loc, idxTy, idxTy, idxTy, loadOp.getMemref(), dimVal);
+      auto dimInfo = rewriter.create<fir::BoxDimsOp>(loc, idxTy, idxTy, idxTy,
+                                                     loadOp.memref(), dimVal);
       result.emplace_back(dimInfo.getResult(1));
     }
     auto shapeType = fir::ShapeType::get(rewriter.getContext(), rank);
     return rewriter.create<fir::ShapeOp>(loc, shapeType, result);
   }
-  getExtents(result, loadOp.getShape());
-  return loadOp.getShape();
+  getExtents(result, loadOp.shape());
+  return loadOp.shape();
 }
 
 static mlir::Type toRefType(mlir::Type ty) {
@@ -657,22 +656,22 @@ public:
       mlir::Value shapeOp =
           getOrReadExtentsAndShapeOp(loc, rewriter, load, extents);
       auto allocmem = rewriter.create<AllocMemOp>(
-          loc, dyn_cast_ptrOrBoxEleTy(load.getMemref().getType()),
-          load.getTypeparams(), extents);
-      genArrayCopy(load.getLoc(), rewriter, allocmem, load.getMemref(), shapeOp,
+          loc, dyn_cast_ptrOrBoxEleTy(load.memref().getType()),
+          load.typeparams(), extents);
+      genArrayCopy(load.getLoc(), rewriter, allocmem, load.memref(), shapeOp,
                    load.getType());
       rewriter.setInsertionPoint(op);
       mlir::Value coor = genCoorOp(
           rewriter, loc, getEleTy(load.getType()), lhsEltRefType, allocmem,
-          shapeOp, load.getSlice(), update.getIndices(), load.getTypeparams(),
+          shapeOp, load.slice(), update.indices(), load.typeparams(),
           update->hasAttr(fir::factory::attrFortranArrayOffsets()));
       assignElement(coor);
       mlir::Operation *storeOp = useMap.lookup(loadOp);
       auto store = mlir::cast<ArrayMergeStoreOp>(storeOp);
       rewriter.setInsertionPoint(storeOp);
       // Copy out.
-      genArrayCopy(store.getLoc(), rewriter, store.getMemref(), allocmem,
-                   shapeOp, load.getType());
+      genArrayCopy(store.getLoc(), rewriter, store.memref(), allocmem, shapeOp,
+                   load.getType());
       rewriter.create<FreeMemOp>(loc, allocmem);
       return {coor, load.getResult()};
     }
@@ -682,8 +681,8 @@ public:
     rewriter.setInsertionPoint(op);
     auto coorTy = getEleTy(load.getType());
     mlir::Value coor = genCoorOp(
-        rewriter, loc, coorTy, lhsEltRefType, load.getMemref(), load.getShape(),
-        load.getSlice(), update.getIndices(), load.getTypeparams(),
+        rewriter, loc, coorTy, lhsEltRefType, load.memref(), load.shape(),
+        load.slice(), update.indices(), load.typeparams(),
         update->hasAttr(fir::factory::attrFortranArrayOffsets()));
     assignElement(coor);
     return {coor, load.getResult()};
@@ -706,9 +705,9 @@ public:
                   mlir::PatternRewriter &rewriter) const override {
     auto loc = update.getLoc();
     auto assignElement = [&](mlir::Value coor) {
-      rewriter.create<fir::StoreOp>(loc, update.getMerge(), coor);
+      rewriter.create<fir::StoreOp>(loc, update.merge(), coor);
     };
-    auto lhsEltRefType = toRefType(update.getMerge().getType());
+    auto lhsEltRefType = toRefType(update.merge().getType());
     auto [_, lhsLoadResult] = materializeAssignment(
         loc, rewriter, update, assignElement, lhsEltRefType);
     update.replaceAllUsesWith(lhsLoadResult);
@@ -755,8 +754,8 @@ public:
     auto loc = fetch.getLoc();
     mlir::Value coor =
         genCoorOp(rewriter, loc, getEleTy(load.getType()),
-                  toRefType(fetch.getType()), load.getMemref(), load.getShape(),
-                  load.getSlice(), fetch.getIndices(), load.getTypeparams(),
+                  toRefType(fetch.getType()), load.memref(), load.shape(),
+                  load.slice(), fetch.indices(), load.typeparams(),
                   fetch->hasAttr(fir::factory::attrFortranArrayOffsets()));
     rewriter.replaceOpWithNewOp<fir::LoadOp>(fetch, coor);
     return mlir::success();
@@ -785,14 +784,14 @@ public:
     // array accesses are rewritten we can go on phase 2.
     // Phase 2 gets rid of the useless copy-in/copyout operations. The copy-in
     // /copy-out refers the Fortran copy-in/copy-out semantics on statements.
-    mlir::RewritePatternSet patterns1(context);
+    mlir::OwningRewritePatternList patterns1(context);
     patterns1.insert<ArrayFetchConversion>(context, useMap);
     patterns1.insert<ArrayUpdateConversion>(context, analysis, useMap);
     patterns1.insert<ArrayModifyConversion>(context, analysis, useMap);
     mlir::ConversionTarget target(*context);
-    target.addLegalDialect<
-        FIROpsDialect, mlir::scf::SCFDialect, mlir::arith::ArithmeticDialect,
-        mlir::cf::ControlFlowDialect, mlir::StandardOpsDialect>();
+    target.addLegalDialect<FIROpsDialect, mlir::scf::SCFDialect,
+                           mlir::arith::ArithmeticDialect,
+                           mlir::StandardOpsDialect>();
     target.addIllegalOp<ArrayFetchOp, ArrayUpdateOp, ArrayModifyOp>();
     // Rewrite the array fetch and array update ops.
     if (mlir::failed(
@@ -802,7 +801,7 @@ public:
       signalPassFailure();
     }
 
-    mlir::RewritePatternSet patterns2(context);
+    mlir::OwningRewritePatternList patterns2(context);
     patterns2.insert<ArrayLoadConversion>(context);
     patterns2.insert<ArrayMergeStoreConversion>(context);
     target.addIllegalOp<ArrayLoadOp, ArrayMergeStoreOp>();

@@ -1213,9 +1213,8 @@ void Sema::PopPragmaVisibility(bool IsNamespaceEnd, SourceLocation EndLoc) {
 }
 
 template <typename Ty>
-static bool checkCommonAttributeFeatures(Sema &S, const Ty *Node,
-                                         const ParsedAttr &A,
-                                         bool SkipArgCountCheck) {
+static bool checkCommonAttributeFeatures(Sema& S, const Ty *Node,
+                                         const ParsedAttr& A) {
   // Several attributes carry different semantics than the parsing requires, so
   // those are opted out of the common argument checks.
   //
@@ -1241,30 +1240,26 @@ static bool checkCommonAttributeFeatures(Sema &S, const Ty *Node,
   if (A.hasCustomParsing())
     return false;
 
-  if (!SkipArgCountCheck) {
-    if (A.getMinArgs() == A.getMaxArgs()) {
-      // If there are no optional arguments, then checking for the argument
-      // count is trivial.
-      if (!A.checkExactlyNumArgs(S, A.getMinArgs()))
-        return true;
-    } else {
-      // There are optional arguments, so checking is slightly more involved.
-      if (A.getMinArgs() && !A.checkAtLeastNumArgs(S, A.getMinArgs()))
-        return true;
-      else if (!A.hasVariadicArg() && A.getMaxArgs() &&
-               !A.checkAtMostNumArgs(S, A.getMaxArgs()))
-        return true;
-    }
+  if (A.getMinArgs() == A.getMaxArgs()) {
+    // If there are no optional arguments, then checking for the argument count
+    // is trivial.
+    if (!A.checkExactlyNumArgs(S, A.getMinArgs()))
+      return true;
+  } else {
+    // There are optional arguments, so checking is slightly more involved.
+    if (A.getMinArgs() && !A.checkAtLeastNumArgs(S, A.getMinArgs()))
+      return true;
+    else if (!A.hasVariadicArg() && A.getMaxArgs() &&
+             !A.checkAtMostNumArgs(S, A.getMaxArgs()))
+      return true;
   }
 
   return false;
 }
 
-bool Sema::checkCommonAttributeFeatures(const Decl *D, const ParsedAttr &A,
-                                        bool SkipArgCountCheck) {
-  return ::checkCommonAttributeFeatures(*this, D, A, SkipArgCountCheck);
+bool Sema::checkCommonAttributeFeatures(const Decl *D, const ParsedAttr &A) {
+  return ::checkCommonAttributeFeatures(*this, D, A);
 }
-bool Sema::checkCommonAttributeFeatures(const Stmt *S, const ParsedAttr &A,
-                                        bool SkipArgCountCheck) {
-  return ::checkCommonAttributeFeatures(*this, S, A, SkipArgCountCheck);
+bool Sema::checkCommonAttributeFeatures(const Stmt *S, const ParsedAttr &A) {
+  return ::checkCommonAttributeFeatures(*this, S, A);
 }

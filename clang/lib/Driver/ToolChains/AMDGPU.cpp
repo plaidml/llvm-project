@@ -91,7 +91,6 @@ void RocmInstallationDetector::scanLibDevicePath(llvm::StringRef Path) {
     else if (FileName.endswith(Suffix))
       BaseName = FileName.drop_back(Suffix.size());
 
-    const StringRef ABIVersionPrefix = "abi_version_";
     if (BaseName == "ocml") {
       OCML = FilePath;
     } else if (BaseName == "ockl") {
@@ -122,12 +121,6 @@ void RocmInstallationDetector::scanLibDevicePath(llvm::StringRef Path) {
       WavefrontSize64.On = FilePath;
     } else if (BaseName == "oclc_wavefrontsize64_off") {
       WavefrontSize64.Off = FilePath;
-    } else if (BaseName.startswith(ABIVersionPrefix)) {
-      unsigned ABIVersionNumber;
-      if (BaseName.drop_front(ABIVersionPrefix.size())
-              .getAsInteger(/*Redex=*/0, ABIVersionNumber))
-        continue;
-      ABIVersionMap[ABIVersionNumber] = FilePath.str();
     } else {
       // Process all bitcode filenames that look like
       // ocl_isa_version_XXX.amdgcn.bc
@@ -829,16 +822,20 @@ void ROCMToolChain::addClangTargetOptions(
   if (DriverArgs.hasArg(options::OPT_nogpulib))
     return;
 
+  if (!RocmInstallation.hasDeviceLibrary()) {
+    getDriver().Diag(diag::err_drv_no_rocm_device_lib) << 0;
+    return;
+  }
+
   // Get the device name and canonicalize it
   const StringRef GpuArch = getGPUArch(DriverArgs);
   auto Kind = llvm::AMDGPU::parseArchAMDGCN(GpuArch);
   const StringRef CanonArch = llvm::AMDGPU::getArchNameAMDGCN(Kind);
   std::string LibDeviceFile = RocmInstallation.getLibDeviceFile(CanonArch);
-  auto ABIVer = DeviceLibABIVersion::fromCodeObjectVersion(
-      getAMDGPUCodeObjectVersion(getDriver(), DriverArgs));
-  if (!RocmInstallation.checkCommonBitcodeLibs(CanonArch, LibDeviceFile,
-                                               ABIVer))
+  if (LibDeviceFile.empty()) {
+    getDriver().Diag(diag::err_drv_no_rocm_device_lib) << 1 << GpuArch;
     return;
+  }
 
   bool Wave64 = isWave64(DriverArgs, Kind);
 
@@ -861,7 +858,7 @@ void ROCMToolChain::addClangTargetOptions(
   // Add the generic set of libraries.
   BCLibs.append(RocmInstallation.getCommonBitcodeLibs(
       DriverArgs, LibDeviceFile, Wave64, DAZ, FiniteOnly, UnsafeMathOpt,
-      FastRelaxedMath, CorrectSqrt, ABIVer, false));
+      FastRelaxedMath, CorrectSqrt));
 
   llvm::for_each(BCLibs, [&](StringRef BCFile) {
     CC1Args.push_back("-mlink-builtin-bitcode");
@@ -869,29 +866,12 @@ void ROCMToolChain::addClangTargetOptions(
   });
 }
 
-bool RocmInstallationDetector::checkCommonBitcodeLibs(
-    StringRef GPUArch, StringRef LibDeviceFile,
-    DeviceLibABIVersion ABIVer) const {
-  if (!hasDeviceLibrary()) {
-    D.Diag(diag::err_drv_no_rocm_device_lib) << 0;
-    return false;
-  }
-  if (LibDeviceFile.empty()) {
-    D.Diag(diag::err_drv_no_rocm_device_lib) << 1 << GPUArch;
-    return false;
-  }
-  if (ABIVer.requiresLibrary() && getABIVersionPath(ABIVer).empty()) {
-    D.Diag(diag::err_drv_no_rocm_device_lib) << 2 << ABIVer.toString();
-    return false;
-  }
-  return true;
-}
-
 llvm::SmallVector<std::string, 12>
 RocmInstallationDetector::getCommonBitcodeLibs(
     const llvm::opt::ArgList &DriverArgs, StringRef LibDeviceFile, bool Wave64,
     bool DAZ, bool FiniteOnly, bool UnsafeMathOpt, bool FastRelaxedMath,
-    bool CorrectSqrt, DeviceLibABIVersion ABIVer, bool isOpenMP = false) const {
+    bool CorrectSqrt) const {
+
   llvm::SmallVector<std::string, 12> BCLibs;
 
   auto AddBCLib = [&](StringRef BCFile) { BCLibs.push_back(BCFile.str()); };
@@ -904,9 +884,6 @@ RocmInstallationDetector::getCommonBitcodeLibs(
   AddBCLib(getCorrectlyRoundedSqrtPath(CorrectSqrt));
   AddBCLib(getWavefrontSize64Path(Wave64));
   AddBCLib(LibDeviceFile);
-  auto ABIVerPath = getABIVersionPath(ABIVer);
-  if (!ABIVerPath.empty())
-    AddBCLib(ABIVerPath);
 
   return BCLibs;
 }
@@ -920,17 +897,15 @@ bool AMDGPUToolChain::shouldSkipArgument(const llvm::opt::Arg *A) const {
 
 llvm::SmallVector<std::string, 12>
 ROCMToolChain::getCommonDeviceLibNames(const llvm::opt::ArgList &DriverArgs,
-                                       const std::string &GPUArch,
-                                       bool isOpenMP) const {
+                                       const std::string &GPUArch) const {
   auto Kind = llvm::AMDGPU::parseArchAMDGCN(GPUArch);
   const StringRef CanonArch = llvm::AMDGPU::getArchNameAMDGCN(Kind);
 
   std::string LibDeviceFile = RocmInstallation.getLibDeviceFile(CanonArch);
-  auto ABIVer = DeviceLibABIVersion::fromCodeObjectVersion(
-      getAMDGPUCodeObjectVersion(getDriver(), DriverArgs));
-  if (!RocmInstallation.checkCommonBitcodeLibs(CanonArch, LibDeviceFile,
-                                               ABIVer))
+  if (LibDeviceFile.empty()) {
+    getDriver().Diag(diag::err_drv_no_rocm_device_lib) << 1 << GPUArch;
     return {};
+  }
 
   // If --hip-device-lib is not set, add the default bitcode libraries.
   // TODO: There are way too many flags that change this. Do we need to check
@@ -952,5 +927,5 @@ ROCMToolChain::getCommonDeviceLibNames(const llvm::opt::ArgList &DriverArgs,
 
   return RocmInstallation.getCommonBitcodeLibs(
       DriverArgs, LibDeviceFile, Wave64, DAZ, FiniteOnly, UnsafeMathOpt,
-      FastRelaxedMath, CorrectSqrt, ABIVer, isOpenMP);
+      FastRelaxedMath, CorrectSqrt);
 }

@@ -25,7 +25,6 @@
 #include "lldb/Target/Target.h"
 #include "lldb/Target/Thread.h"
 #include "lldb/Utility/ConstString.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/Scalar.h"
 #include "lldb/Utility/Status.h"
@@ -319,7 +318,7 @@ void AppleObjCRuntimeV1::UpdateISAToDescriptorMapIfNeeded() {
     // map, whether it was successful or not.
     m_isa_to_descriptor_stop_id = process->GetStopID();
 
-    Log *log = GetLog(LLDBLog::Process);
+    Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_PROCESS));
 
     ProcessSP process_sp = process->shared_from_this();
 

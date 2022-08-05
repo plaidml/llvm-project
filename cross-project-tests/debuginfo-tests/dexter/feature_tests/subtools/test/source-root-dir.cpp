@@ -1,10 +1,12 @@
-// This test started failing recently for unknown reasons.
 // XFAIL:*
+// This test started failing recently for unknown reasons.
+
+// REQUIRES: lldb
+// UNSUPPORTED: system-windows
+//
 // RUN: %dexter --fail-lt 1.0 -w \
-// RUN:     --builder %dexter_regression_test_builder \
-// RUN:     --debugger %dexter_regression_test_debugger \
-// RUN:     --cflags "%dexter_regression_test_cflags -fdebug-prefix-map=%S=/changed" \
-// RUN:     --ldflags "%dexter_regression_test_ldflags" \
+// RUN:     --builder 'clang' --debugger 'lldb' \
+// RUN:     --cflags "-O0 -glldb -fdebug-prefix-map=%S=/changed" \
 // RUN:     --source-root-dir=%S --debugger-use-relative-paths -- %s
 
 #include <stdio.h>

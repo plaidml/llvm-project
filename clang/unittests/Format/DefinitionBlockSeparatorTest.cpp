@@ -109,15 +109,6 @@ TEST_F(DefinitionBlockSeparatorTest, Basic) {
                "};",
                Style);
 
-  verifyFormat("union foo {\n"
-               "  int i, j;\n"
-               "};\n"
-               "\n"
-               "union bar {\n"
-               "  int j, k;\n"
-               "};",
-               Style);
-
   verifyFormat("class foo {\n"
                "  int i, j;\n"
                "};\n"
@@ -140,73 +131,6 @@ TEST_F(DefinitionBlockSeparatorTest, Basic) {
                "\n"
                "enum Bar { FOOBAR, BARFOO };\n",
                Style);
-
-  FormatStyle BreakAfterReturnTypeStyle = Style;
-  BreakAfterReturnTypeStyle.AlwaysBreakAfterReturnType = FormatStyle::RTBS_All;
-  // Test uppercased long typename
-  verifyFormat("class Foo {\n"
-               "  void\n"
-               "  Bar(int t, int p) {\n"
-               "    int r = t + p;\n"
-               "    return r;\n"
-               "  }\n"
-               "\n"
-               "  HRESULT\n"
-               "  Foobar(int t, int p) {\n"
-               "    int r = t * p;\n"
-               "    return r;\n"
-               "  }\n"
-               "}\n",
-               BreakAfterReturnTypeStyle);
-}
-
-TEST_F(DefinitionBlockSeparatorTest, FormatConflict) {
-  FormatStyle Style = getLLVMStyle();
-  Style.SeparateDefinitionBlocks = FormatStyle::SDS_Always;
-  llvm::StringRef Code = "class Test {\n"
-                         "public:\n"
-                         "  static void foo() {\n"
-                         "    int t;\n"
-                         "    return 1;\n"
-                         "  }\n"
-                         "};";
-  std::vector<tooling::Range> Ranges = {1, tooling::Range(0, Code.size())};
-  EXPECT_EQ(reformat(Style, Code, Ranges, "<stdin>").size(), 0u);
-}
-
-TEST_F(DefinitionBlockSeparatorTest, CommentBlock) {
-  FormatStyle Style = getLLVMStyle();
-  Style.SeparateDefinitionBlocks = FormatStyle::SDS_Always;
-  std::string Prefix = "enum Foo { FOO, BAR };\n"
-                       "\n"
-                       "/*\n"
-                       "test1\n"
-                       "test2\n"
-                       "*/\n"
-                       "int foo(int i, int j) {\n"
-                       "  int r = i + j;\n"
-                       "  return r;\n"
-                       "}\n";
-  std::string Suffix = "enum Bar { FOOBAR, BARFOO };\n"
-                       "\n"
-                       "/* Comment block in one line*/\n"
-                       "int bar3(int j, int k) {\n"
-                       "  // A comment\n"
-                       "  int r = j % k;\n"
-                       "  return r;\n"
-                       "}\n";
-  std::string CommentedCode = "/*\n"
-                              "int bar2(int j, int k) {\n"
-                              "  int r = j / k;\n"
-                              "  return r;\n"
-                              "}\n"
-                              "*/\n";
-  verifyFormat(removeEmptyLines(Prefix) + "\n" + CommentedCode + "\n" +
-                   removeEmptyLines(Suffix),
-               Style, Prefix + "\n" + CommentedCode + "\n" + Suffix);
-  verifyFormat(removeEmptyLines(Prefix) + "\n" + CommentedCode +
-                   removeEmptyLines(Suffix),
-               Style, Prefix + "\n" + CommentedCode + Suffix);
 }
 
 TEST_F(DefinitionBlockSeparatorTest, UntouchBlockStartStyle) {
@@ -251,15 +175,13 @@ TEST_F(DefinitionBlockSeparatorTest, UntouchBlockStartStyle) {
   FormatStyle NeverStyle = getLLVMStyle();
   NeverStyle.SeparateDefinitionBlocks = FormatStyle::SDS_Never;
 
-  auto TestKit = MakeUntouchTest("/* FOOBAR */\n"
-                                 "#ifdef FOO\n\n",
-                                 "\n#elifndef BAR\n\n", "\n#endif\n\n", false);
+  auto TestKit = MakeUntouchTest("#ifdef FOO\n\n", "\n#elifndef BAR\n\n",
+                                 "\n#endif\n\n", false);
   verifyFormat(TestKit.first, AlwaysStyle, TestKit.second);
   verifyFormat(TestKit.second, NeverStyle, removeEmptyLines(TestKit.second));
 
-  TestKit = MakeUntouchTest("/* FOOBAR */\n"
-                            "#ifdef FOO\n",
-                            "#elifndef BAR\n", "#endif\n", false);
+  TestKit =
+      MakeUntouchTest("#ifdef FOO\n", "#elifndef BAR\n", "#endif\n", false);
   verifyFormat(TestKit.first, AlwaysStyle, TestKit.second);
   verifyFormat(TestKit.second, NeverStyle, removeEmptyLines(TestKit.second));
 
@@ -291,7 +213,7 @@ TEST_F(DefinitionBlockSeparatorTest, Always) {
                       "test1\n"
                       "test2\n"
                       "*/\n"
-                      "/*const*/ int foo(int i, int j) {\n"
+                      "int foo(int i, int j) {\n"
                       "  int r = i + j;\n"
                       "  return r;\n"
                       "}\n"
@@ -303,10 +225,8 @@ TEST_F(DefinitionBlockSeparatorTest, Always) {
                       "// Comment line 2\n"
                       "// Comment line 3\n"
                       "int bar(int j, int k) {\n"
-                      "  {\n"
-                      "    int r = j * k;\n"
-                      "    return r;\n"
-                      "  }\n"
+                      "  int r = j * k;\n"
+                      "  return r;\n"
                       "}\n"
                       "\n"
                       "int bar2(int j, int k) {\n"
@@ -317,12 +237,9 @@ TEST_F(DefinitionBlockSeparatorTest, Always) {
                       "/* Comment block in one line*/\n"
                       "enum Bar { FOOBAR, BARFOO };\n"
                       "\n"
-                      "int bar3(int j, int k, const enum Bar b) {\n"
+                      "int bar3(int j, int k) {\n"
                       "  // A comment\n"
                       "  int r = j % k;\n"
-                      "  if (struct S = getS()) {\n"
-                      "    // if condition\n"
-                      "  }\n"
                       "  return r;\n"
                       "}\n";
   std::string Postfix = "\n"
@@ -347,7 +264,7 @@ TEST_F(DefinitionBlockSeparatorTest, Never) {
                         "test1\n"
                         "test2\n"
                         "*/\n"
-                        "/*const*/ int foo(int i, int j) {\n"
+                        "int foo(int i, int j) {\n"
                         "  int r = i + j;\n"
                         "  return r;\n"
                         "}\n"
@@ -359,10 +276,8 @@ TEST_F(DefinitionBlockSeparatorTest, Never) {
                         "// Comment line 2\n"
                         "// Comment line 3\n"
                         "int bar(int j, int k) {\n"
-                        "  {\n"
-                        "    int r = j * k;\n"
-                        "    return r;\n"
-                        "  }\n"
+                        "  int r = j * k;\n"
+                        "  return r;\n"
                         "}\n"
                         "\n"
                         "int bar2(int j, int k) {\n"
@@ -373,12 +288,9 @@ TEST_F(DefinitionBlockSeparatorTest, Never) {
                         "/* Comment block in one line*/\n"
                         "enum Bar { FOOBAR, BARFOO };\n"
                         "\n"
-                        "int bar3(int j, int k, const enum Bar b) {\n"
+                        "int bar3(int j, int k) {\n"
                         "  // A comment\n"
                         "  int r = j % k;\n"
-                        "  if (struct S = getS()) {\n"
-                        "    // if condition\n"
-                        "  }\n"
                         "  return r;\n"
                         "}\n"
                         "} // namespace";
@@ -404,7 +316,7 @@ TEST_F(DefinitionBlockSeparatorTest, OpeningBracketOwnsLine) {
                "test1\n"
                "test2\n"
                "*/\n"
-               "/*const*/ int foo(int i, int j)\n"
+               "int foo(int i, int j)\n"
                "{\n"
                "  int r = i + j;\n"
                "  return r;\n"
@@ -418,10 +330,8 @@ TEST_F(DefinitionBlockSeparatorTest, OpeningBracketOwnsLine) {
                "// Comment line 3\n"
                "int bar(int j, int k)\n"
                "{\n"
-               "  {\n"
-               "    int r = j * k;\n"
-               "    return r;\n"
-               "  }\n"
+               "  int r = j * k;\n"
+               "  return r;\n"
                "}\n"
                "\n"
                "int bar2(int j, int k)\n"
@@ -436,14 +346,10 @@ TEST_F(DefinitionBlockSeparatorTest, OpeningBracketOwnsLine) {
                "  BARFOO\n"
                "};\n"
                "\n"
-               "int bar3(int j, int k, const enum Bar b)\n"
+               "int bar3(int j, int k)\n"
                "{\n"
                "  // A comment\n"
                "  int r = j % k;\n"
-               "  if (struct S = getS())\n"
-               "  {\n"
-               "    // if condition\n"
-               "  }\n"
                "  return r;\n"
                "}\n"
                "} // namespace NS",
@@ -464,7 +370,7 @@ TEST_F(DefinitionBlockSeparatorTest, Leave) {
                         "test1\n"
                         "test2\n"
                         "*/\n"
-                        "/*const*/ int foo(int i, int j) {\n"
+                        "int foo(int i, int j) {\n"
                         "  int r = i + j;\n"
                         "  return r;\n"
                         "}\n"
@@ -476,10 +382,8 @@ TEST_F(DefinitionBlockSeparatorTest, Leave) {
                         "// Comment line 2\n"
                         "// Comment line 3\n"
                         "int bar(int j, int k) {\n"
-                        "  {\n"
-                        "    int r = j * k;\n"
-                        "    return r;\n"
-                        "  }\n"
+                        "  int r = j * k;\n"
+                        "  return r;\n"
                         "}\n"
                         "\n"
                         "int bar2(int j, int k) {\n"
@@ -489,12 +393,9 @@ TEST_F(DefinitionBlockSeparatorTest, Leave) {
                         "\n"
                         "// Comment for inline enum\n"
                         "enum Bar { FOOBAR, BARFOO };\n"
-                        "int bar3(int j, int k, const enum Bar b) {\n"
+                        "int bar3(int j, int k) {\n"
                         "  // A comment\n"
                         "  int r = j % k;\n"
-                        "  if (struct S = getS()) {\n"
-                        "    // if condition\n"
-                        "  }\n"
                         "  return r;\n"
                         "}\n"
                         "} // namespace";

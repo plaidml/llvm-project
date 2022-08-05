@@ -112,13 +112,11 @@ llvm::Error checkDataflow(
       StmtToAnnotations = buildStatementToAnnotationMapping(F, AnnotatedCode);
   if (!StmtToAnnotations)
     return StmtToAnnotations.takeError();
+
   auto &Annotations = *StmtToAnnotations;
 
-  llvm::Expected<std::vector<llvm::Optional<TypeErasedDataflowAnalysisState>>>
-      MaybeBlockStates = runTypeErasedDataflowAnalysis(*CFCtx, Analysis, Env);
-  if (!MaybeBlockStates)
-    return MaybeBlockStates.takeError();
-  auto &BlockStates = *MaybeBlockStates;
+  std::vector<llvm::Optional<TypeErasedDataflowAnalysisState>> BlockStates =
+      runTypeErasedDataflowAnalysis(*CFCtx, Analysis, Env);
 
   if (BlockStates.empty()) {
     Expectations({}, Context);
@@ -166,13 +164,6 @@ llvm::Error checkDataflow(
                        std::move(MakeAnalysis), std::move(Expectations), Args,
                        VirtualMappedFiles);
 }
-
-/// Returns the `ValueDecl` for the given identifier.
-///
-/// Requirements:
-///
-///  `Name` must be unique in `ASTCtx`.
-const ValueDecl *findValueDecl(ASTContext &ASTCtx, llvm::StringRef Name);
 
 } // namespace test
 } // namespace dataflow

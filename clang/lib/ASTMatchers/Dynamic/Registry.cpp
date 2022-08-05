@@ -406,7 +406,6 @@ RegistryMaps::RegistryMaps() {
   REGISTER_MATCHER(isConstQualified);
   REGISTER_MATCHER(isConsteval);
   REGISTER_MATCHER(isConstexpr);
-  REGISTER_MATCHER(isConstinit);
   REGISTER_MATCHER(isCopyAssignmentOperator);
   REGISTER_MATCHER(isCopyConstructor);
   REGISTER_MATCHER(isDefaultConstructor);

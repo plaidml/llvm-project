@@ -15,7 +15,6 @@
 #include "InstrEmitter.h"
 #include "SDNodeDbgValue.h"
 #include "llvm/ADT/Statistic.h"
-#include "llvm/BinaryFormat/Dwarf.h"
 #include "llvm/CodeGen/MachineConstantPool.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"

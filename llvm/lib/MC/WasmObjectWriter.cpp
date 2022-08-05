@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/BinaryFormat/Wasm.h"
 #include "llvm/BinaryFormat/WasmTraits.h"
 #include "llvm/Config/llvm-config.h"
@@ -30,6 +31,7 @@
 #include "llvm/Support/EndianStream.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/LEB128.h"
+#include "llvm/Support/StringSaver.h"
 #include <vector>
 
 using namespace llvm;
@@ -123,11 +125,12 @@ struct WasmCustomSection {
   StringRef Name;
   MCSectionWasm *Section;
 
-  uint32_t OutputContentsOffset = 0;
-  uint32_t OutputIndex = InvalidIndex;
+  uint32_t OutputContentsOffset;
+  uint32_t OutputIndex;
 
   WasmCustomSection(StringRef Name, MCSectionWasm *Section)
-      : Name(Name), Section(Section) {}
+      : Name(Name), Section(Section), OutputContentsOffset(0),
+        OutputIndex(InvalidIndex) {}
 };
 
 #if !defined(NDEBUG)

@@ -52,47 +52,47 @@ using ::testing::UnorderedElementsAre;
 using ContextKind = CodeCompletionContext::Kind;
 
 // GMock helpers for matching completion items.
-MATCHER_P(named, Name, "") { return arg.Name == Name; }
-MATCHER_P(mainFileRefs, Refs, "") { return arg.MainFileRefs == Refs; }
-MATCHER_P(scopeRefs, Refs, "") { return arg.ScopeRefsInFile == Refs; }
-MATCHER_P(nameStartsWith, Prefix, "") {
+MATCHER_P(Named, Name, "") { return arg.Name == Name; }
+MATCHER_P(MainFileRefs, Refs, "") { return arg.MainFileRefs == Refs; }
+MATCHER_P(ScopeRefs, Refs, "") { return arg.ScopeRefsInFile == Refs; }
+MATCHER_P(NameStartsWith, Prefix, "") {
   return llvm::StringRef(arg.Name).startswith(Prefix);
 }
-MATCHER_P(scope, S, "") { return arg.Scope == S; }
-MATCHER_P(qualifier, Q, "") { return arg.RequiredQualifier == Q; }
-MATCHER_P(labeled, Label, "") {
+MATCHER_P(Scope, S, "") { return arg.Scope == S; }
+MATCHER_P(Qualifier, Q, "") { return arg.RequiredQualifier == Q; }
+MATCHER_P(Labeled, Label, "") {
   return arg.RequiredQualifier + arg.Name + arg.Signature == Label;
 }
-MATCHER_P(sigHelpLabeled, Label, "") { return arg.label == Label; }
-MATCHER_P(kind, K, "") { return arg.Kind == K; }
-MATCHER_P(doc, D, "") {
+MATCHER_P(SigHelpLabeled, Label, "") { return arg.label == Label; }
+MATCHER_P(Kind, K, "") { return arg.Kind == K; }
+MATCHER_P(Doc, D, "") {
   return arg.Documentation && arg.Documentation->asPlainText() == D;
 }
-MATCHER_P(returnType, D, "") { return arg.ReturnType == D; }
-MATCHER_P(hasInclude, IncludeHeader, "") {
+MATCHER_P(ReturnType, D, "") { return arg.ReturnType == D; }
+MATCHER_P(HasInclude, IncludeHeader, "") {
   return !arg.Includes.empty() && arg.Includes[0].Header == IncludeHeader;
 }
-MATCHER_P(insertInclude, IncludeHeader, "") {
+MATCHER_P(InsertInclude, IncludeHeader, "") {
   return !arg.Includes.empty() && arg.Includes[0].Header == IncludeHeader &&
          bool(arg.Includes[0].Insertion);
 }
-MATCHER(insertInclude, "") {
+MATCHER(InsertInclude, "") {
   return !arg.Includes.empty() && bool(arg.Includes[0].Insertion);
 }
-MATCHER_P(snippetSuffix, Text, "") { return arg.SnippetSuffix == Text; }
-MATCHER_P(origin, OriginSet, "") { return arg.Origin == OriginSet; }
-MATCHER_P(signature, S, "") { return arg.Signature == S; }
+MATCHER_P(SnippetSuffix, Text, "") { return arg.SnippetSuffix == Text; }
+MATCHER_P(Origin, OriginSet, "") { return arg.Origin == OriginSet; }
+MATCHER_P(Signature, S, "") { return arg.Signature == S; }
 
-// Shorthand for Contains(named(Name)).
-Matcher<const std::vector<CodeCompletion> &> has(std::string Name) {
-  return Contains(named(std::move(Name)));
+// Shorthand for Contains(Named(Name)).
+Matcher<const std::vector<CodeCompletion> &> Has(std::string Name) {
+  return Contains(Named(std::move(Name)));
 }
-Matcher<const std::vector<CodeCompletion> &> has(std::string Name,
+Matcher<const std::vector<CodeCompletion> &> Has(std::string Name,
                                                  CompletionItemKind K) {
-  return Contains(AllOf(named(std::move(Name)), kind(K)));
+  return Contains(AllOf(Named(std::move(Name)), Kind(K)));
 }
-MATCHER(isDocumented, "") { return arg.Documentation.hasValue(); }
-MATCHER(deprecated, "") { return arg.Deprecated; }
+MATCHER(IsDocumented, "") { return arg.Documentation.hasValue(); }
+MATCHER(Deprecated, "") { return arg.Deprecated; }
 
 std::unique_ptr<SymbolIndex> memIndex(std::vector<Symbol> Symbols) {
   SymbolSlab::Builder Slab;
@@ -177,7 +177,7 @@ int func() { MemberAccess().ABG^ }
 )cpp",
       /*IndexSymbols=*/{}, Opts);
   EXPECT_THAT(Results.Completions,
-              ElementsAre(named("ABG"), named("AlphaBetaGamma")));
+              ElementsAre(Named("ABG"), Named("AlphaBetaGamma")));
 }
 
 TEST(DecisionForestRankingModel, ReferencesAffectRanking) {
@@ -189,13 +189,13 @@ TEST(DecisionForestRankingModel, ReferencesAffectRanking) {
                   {ns("clangA"), withReferences(NumReferences, func("clangD"))},
                   Opts)
           .Completions,
-      ElementsAre(named("clangD"), named("clangA")));
+      ElementsAre(Named("clangD"), Named("clangA")));
   EXPECT_THAT(
       completions("int main() { clang^ }",
                   {withReferences(NumReferences, ns("clangA")), func("clangD")},
                   Opts)
           .Completions,
-      ElementsAre(named("clangA"), named("clangD")));
+      ElementsAre(Named("clangA"), Named("clangD")));
 }
 
 TEST(DecisionForestRankingModel, DecisionForestScorerCallbackTest) {
@@ -240,7 +240,7 @@ int main() { ClassWithMembers().^ }
                              /*IndexSymbols=*/{}, Opts);
 
   EXPECT_TRUE(Results.HasMore);
-  EXPECT_THAT(Results.Completions, ElementsAre(named("AAA"), named("BBB")));
+  EXPECT_THAT(Results.Completions, ElementsAre(Named("AAA"), Named("BBB")));
 }
 
 TEST(CompletionTest, Filter) {
@@ -256,16 +256,16 @@ TEST(CompletionTest, Filter) {
 
   // Only items matching the fuzzy query are returned.
   EXPECT_THAT(completions(Body + "int main() { S().Foba^ }").Completions,
-              AllOf(has("FooBar"), has("FooBaz"), Not(has("Qux"))));
+              AllOf(Has("FooBar"), Has("FooBaz"), Not(Has("Qux"))));
 
   // Macros require prefix match, either from index or AST.
   Symbol Sym = var("MotorCarIndex");
   Sym.SymInfo.Kind = index::SymbolKind::Macro;
   EXPECT_THAT(
       completions(Body + "int main() { C^ }", {Sym}).Completions,
-      AllOf(has("Car"), Not(has("MotorCar")), Not(has("MotorCarIndex"))));
+      AllOf(Has("Car"), Not(Has("MotorCar")), Not(Has("MotorCarIndex"))));
   EXPECT_THAT(completions(Body + "int main() { M^ }", {Sym}).Completions,
-              AllOf(has("MotorCar"), has("MotorCarIndex")));
+              AllOf(Has("MotorCar"), Has("MotorCarIndex")));
 }
 
 void testAfterDotCompletion(clangd::CodeCompleteOptions Opts) {
@@ -281,7 +281,7 @@ void testAfterDotCompletion(clangd::CodeCompleteOptions Opts) {
       struct GlobalClass {};
 
       struct ClassWithMembers {
-        /// doc for method.
+        /// Doc for method.
         int method();
 
         int field;
@@ -292,7 +292,7 @@ void testAfterDotCompletion(clangd::CodeCompleteOptions Opts) {
       int test() {
         struct LocalClass {};
 
-        /// doc for local_var.
+        /// Doc for local_var.
         int local_var;
 
         ClassWithMembers().^
@@ -304,22 +304,22 @@ void testAfterDotCompletion(clangd::CodeCompleteOptions Opts) {
   // Class members. The only items that must be present in after-dot
   // completion.
   EXPECT_THAT(Results.Completions,
-              AllOf(has("method"), has("field"), Not(has("ClassWithMembers")),
-                    Not(has("operator=")), Not(has("~ClassWithMembers"))));
+              AllOf(Has("method"), Has("field"), Not(Has("ClassWithMembers")),
+                    Not(Has("operator=")), Not(Has("~ClassWithMembers"))));
   EXPECT_IFF(Opts.IncludeIneligibleResults, Results.Completions,
-             has("private_field"));
+             Has("private_field"));
   // Global items.
   EXPECT_THAT(
       Results.Completions,
-      Not(AnyOf(has("global_var"), has("index_var"), has("global_func"),
-                has("global_func()"), has("index_func"), has("GlobalClass"),
-                has("IndexClass"), has("MACRO"), has("LocalClass"))));
+      Not(AnyOf(Has("global_var"), Has("index_var"), Has("global_func"),
+                Has("global_func()"), Has("index_func"), Has("GlobalClass"),
+                Has("IndexClass"), Has("MACRO"), Has("LocalClass"))));
   // There should be no code patterns (aka snippets) in after-dot
   // completion. At least there aren't any we're aware of.
   EXPECT_THAT(Results.Completions,
-              Not(Contains(kind(CompletionItemKind::Snippet))));
+              Not(Contains(Kind(CompletionItemKind::Snippet))));
   // Check documentation.
-  EXPECT_THAT(Results.Completions, Contains(isDocumented()));
+  EXPECT_THAT(Results.Completions, Contains(IsDocumented()));
 }
 
 void testGlobalScopeCompletion(clangd::CodeCompleteOptions Opts) {
@@ -334,14 +334,14 @@ void testGlobalScopeCompletion(clangd::CodeCompleteOptions Opts) {
       struct GlobalClass {};
 
       struct ClassWithMembers {
-        /// doc for method.
+        /// Doc for method.
         int method();
       };
 
       int test() {
         struct LocalClass {};
 
-        /// doc for local_var.
+        /// Doc for local_var.
         int local_var;
 
         ^
@@ -352,20 +352,20 @@ void testGlobalScopeCompletion(clangd::CodeCompleteOptions Opts) {
   EXPECT_TRUE(Results.RanParser);
   // Class members. Should never be present in global completions.
   EXPECT_THAT(Results.Completions,
-              Not(AnyOf(has("method"), has("method()"), has("field"))));
+              Not(AnyOf(Has("method"), Has("method()"), Has("field"))));
   // Global items.
   EXPECT_THAT(Results.Completions,
-              AllOf(has("global_var"), has("index_var"), has("global_func"),
-                    has("index_func" /* our fake symbol doesn't include () */),
-                    has("GlobalClass"), has("IndexClass")));
+              AllOf(Has("global_var"), Has("index_var"), Has("global_func"),
+                    Has("index_func" /* our fake symbol doesn't include () */),
+                    Has("GlobalClass"), Has("IndexClass")));
   // A macro.
-  EXPECT_THAT(Results.Completions, has("MACRO"));
+  EXPECT_THAT(Results.Completions, Has("MACRO"));
   // Local items. Must be present always.
   EXPECT_THAT(Results.Completions,
-              AllOf(has("local_var"), has("LocalClass"),
-                    Contains(kind(CompletionItemKind::Snippet))));
+              AllOf(Has("local_var"), Has("LocalClass"),
+                    Contains(Kind(CompletionItemKind::Snippet))));
   // Check documentation.
-  EXPECT_THAT(Results.Completions, Contains(isDocumented()));
+  EXPECT_THAT(Results.Completions, Contains(IsDocumented()));
 }
 
 TEST(CompletionTest, CompletionOptions) {
@@ -397,7 +397,7 @@ TEST(CompletionTest, Accessible) {
       void Foo::pub() { this->^ }
   )cpp");
   EXPECT_THAT(Internal.Completions,
-              AllOf(has("priv"), has("prot"), has("pub")));
+              AllOf(Has("priv"), Has("prot"), Has("pub")));
 
   auto External = completions(R"cpp(
       class Foo {
@@ -411,7 +411,7 @@ TEST(CompletionTest, Accessible) {
       }
   )cpp");
   EXPECT_THAT(External.Completions,
-              AllOf(has("pub"), Not(has("prot")), Not(has("priv"))));
+              AllOf(Has("pub"), Not(Has("prot")), Not(Has("priv"))));
 }
 
 TEST(CompletionTest, Qualifiers) {
@@ -426,40 +426,40 @@ TEST(CompletionTest, Qualifiers) {
       void test() { Bar().^ }
   )cpp");
   EXPECT_THAT(Results.Completions,
-              Contains(AllOf(qualifier(""), named("bar"))));
+              Contains(AllOf(Qualifier(""), Named("bar"))));
   // Hidden members are not shown.
   EXPECT_THAT(Results.Completions,
-              Not(Contains(AllOf(qualifier("Foo::"), named("foo")))));
+              Not(Contains(AllOf(Qualifier("Foo::"), Named("foo")))));
   // Private members are not shown.
   EXPECT_THAT(Results.Completions,
-              Not(Contains(AllOf(qualifier(""), named("foo")))));
+              Not(Contains(AllOf(Qualifier(""), Named("foo")))));
 }
 
 TEST(CompletionTest, InjectedTypename) {
   // These are suppressed when accessed as a member...
   EXPECT_THAT(completions("struct X{}; void foo(){ X().^ }").Completions,
-              Not(has("X")));
+              Not(Has("X")));
   EXPECT_THAT(completions("struct X{ void foo(){ this->^ } };").Completions,
-              Not(has("X")));
+              Not(Has("X")));
   // ...but accessible in other, more useful cases.
   EXPECT_THAT(completions("struct X{ void foo(){ ^ } };").Completions,
-              has("X"));
+              Has("X"));
   EXPECT_THAT(
       completions("struct Y{}; struct X:Y{ void foo(){ ^ } };").Completions,
-      has("Y"));
+      Has("Y"));
   EXPECT_THAT(
       completions(
           "template<class> struct Y{}; struct X:Y<int>{ void foo(){ ^ } };")
           .Completions,
-      has("Y"));
+      Has("Y"));
   // This case is marginal (`using X::X` is useful), we allow it for now.
   EXPECT_THAT(completions("struct X{}; void foo(){ X::^ }").Completions,
-              has("X"));
+              Has("X"));
 }
 
 TEST(CompletionTest, SkipInjectedWhenUnqualified) {
   EXPECT_THAT(completions("struct X { void f() { X^ }};").Completions,
-              ElementsAre(named("X"), named("~X")));
+              ElementsAre(Named("X"), Named("~X")));
 }
 
 TEST(CompletionTest, Snippets) {
@@ -478,8 +478,8 @@ TEST(CompletionTest, Snippets) {
       /*IndexSymbols=*/{}, Opts);
   EXPECT_THAT(
       Results.Completions,
-      HasSubsequence(named("a"),
-                     snippetSuffix("(${1:int i}, ${2:const float f})")));
+      HasSubsequence(Named("a"),
+                     SnippetSuffix("(${1:int i}, ${2:const float f})")));
 }
 
 TEST(CompletionTest, NoSnippetsInUsings) {
@@ -495,8 +495,8 @@ TEST(CompletionTest, NoSnippetsInUsings) {
       )cpp",
       /*IndexSymbols=*/{}, Opts);
   EXPECT_THAT(Results.Completions,
-              ElementsAre(AllOf(named("func"), labeled("func(int a, int b)"),
-                                snippetSuffix(""))));
+              ElementsAre(AllOf(Named("func"), Labeled("func(int a, int b)"),
+                                SnippetSuffix(""))));
 
   // Check index completions too.
   auto Func = func("ns::func");
@@ -510,8 +510,8 @@ TEST(CompletionTest, NoSnippetsInUsings) {
   )cpp",
                         /*IndexSymbols=*/{Func}, Opts);
   EXPECT_THAT(Results.Completions,
-              ElementsAre(AllOf(named("func"), labeled("func(int a, int b)"),
-                                snippetSuffix(""))));
+              ElementsAre(AllOf(Named("func"), Labeled("func(int a, int b)"),
+                                SnippetSuffix(""))));
 
   // Check all-scopes completions too.
   Opts.AllScopes = true;
@@ -520,8 +520,8 @@ TEST(CompletionTest, NoSnippetsInUsings) {
   )cpp",
                         /*IndexSymbols=*/{Func}, Opts);
   EXPECT_THAT(Results.Completions,
-              Contains(AllOf(named("func"), labeled("ns::func(int a, int b)"),
-                             snippetSuffix(""))));
+              Contains(AllOf(Named("func"), Labeled("ns::func(int a, int b)"),
+                             SnippetSuffix(""))));
 }
 
 TEST(CompletionTest, Kinds) {
@@ -536,18 +536,18 @@ TEST(CompletionTest, Kinds) {
       )cpp",
       {func("indexFunction"), var("indexVariable"), cls("indexClass")});
   EXPECT_THAT(Results.Completions,
-              AllOf(has("function", CompletionItemKind::Function),
-                    has("variable", CompletionItemKind::Variable),
-                    has("int", CompletionItemKind::Keyword),
-                    has("Struct", CompletionItemKind::Struct),
-                    has("MACRO", CompletionItemKind::Text),
-                    has("indexFunction", CompletionItemKind::Function),
-                    has("indexVariable", CompletionItemKind::Variable),
-                    has("indexClass", CompletionItemKind::Class)));
+              AllOf(Has("function", CompletionItemKind::Function),
+                    Has("variable", CompletionItemKind::Variable),
+                    Has("int", CompletionItemKind::Keyword),
+                    Has("Struct", CompletionItemKind::Struct),
+                    Has("MACRO", CompletionItemKind::Text),
+                    Has("indexFunction", CompletionItemKind::Function),
+                    Has("indexVariable", CompletionItemKind::Variable),
+                    Has("indexClass", CompletionItemKind::Class)));
 
   Results = completions("nam^");
   EXPECT_THAT(Results.Completions,
-              has("namespace", CompletionItemKind::Snippet));
+              Has("namespace", CompletionItemKind::Snippet));
 
   // Members of anonymous unions are of kind 'field'.
   Results = completions(
@@ -561,7 +561,7 @@ TEST(CompletionTest, Kinds) {
       )cpp");
   EXPECT_THAT(
       Results.Completions,
-      UnorderedElementsAre(AllOf(named("a"), kind(CompletionItemKind::Field))));
+      UnorderedElementsAre(AllOf(Named("a"), Kind(CompletionItemKind::Field))));
 
   // Completion kinds for templates should not be unknown.
   Results = completions(
@@ -580,13 +580,13 @@ TEST(CompletionTest, Kinds) {
   EXPECT_THAT(
       Results.Completions,
       UnorderedElementsAre(
-          AllOf(named("complete_class"), kind(CompletionItemKind::Class)),
-          AllOf(named("complete_function"), kind(CompletionItemKind::Function)),
-          AllOf(named("complete_type_alias"),
-                kind(CompletionItemKind::Interface)),
-          AllOf(named("complete_variable"), kind(CompletionItemKind::Variable)),
-          AllOf(named("complete_static_member"),
-                kind(CompletionItemKind::Property))));
+          AllOf(Named("complete_class"), Kind(CompletionItemKind::Class)),
+          AllOf(Named("complete_function"), Kind(CompletionItemKind::Function)),
+          AllOf(Named("complete_type_alias"),
+                Kind(CompletionItemKind::Interface)),
+          AllOf(Named("complete_variable"), Kind(CompletionItemKind::Variable)),
+          AllOf(Named("complete_static_member"),
+                Kind(CompletionItemKind::Property))));
 
   Results = completions(
       R"cpp(
@@ -597,7 +597,7 @@ TEST(CompletionTest, Kinds) {
       )cpp");
   EXPECT_THAT(
       Results.Completions,
-      Contains(AllOf(named("Red"), kind(CompletionItemKind::EnumMember))));
+      Contains(AllOf(Named("Red"), Kind(CompletionItemKind::EnumMember))));
 }
 
 TEST(CompletionTest, NoDuplicates) {
@@ -613,7 +613,7 @@ TEST(CompletionTest, NoDuplicates) {
       {cls("Adapter")});
 
   // Make sure there are no duplicate entries of 'Adapter'.
-  EXPECT_THAT(Results.Completions, ElementsAre(named("Adapter")));
+  EXPECT_THAT(Results.Completions, ElementsAre(Named("Adapter")));
 }
 
 TEST(CompletionTest, ScopedNoIndex) {
@@ -624,7 +624,7 @@ TEST(CompletionTest, ScopedNoIndex) {
       ")cpp");
   // Babble is a better match than BigBang. Box doesn't match at all.
   EXPECT_THAT(Results.Completions,
-              ElementsAre(named("Babble"), named("BigBang")));
+              ElementsAre(Named("Babble"), Named("BigBang")));
 }
 
 TEST(CompletionTest, Scoped) {
@@ -635,7 +635,7 @@ TEST(CompletionTest, Scoped) {
       ")cpp",
       {var("fake::BigBang")});
   EXPECT_THAT(Results.Completions,
-              ElementsAre(named("Babble"), named("BigBang")));
+              ElementsAre(Named("Babble"), Named("BigBang")));
 }
 
 TEST(CompletionTest, ScopedWithFilter) {
@@ -644,17 +644,17 @@ TEST(CompletionTest, ScopedWithFilter) {
           void f() { ns::x^ }
       )cpp",
       {cls("ns::XYZ"), func("ns::foo")});
-  EXPECT_THAT(Results.Completions, UnorderedElementsAre(named("XYZ")));
+  EXPECT_THAT(Results.Completions, UnorderedElementsAre(Named("XYZ")));
 }
 
 TEST(CompletionTest, ReferencesAffectRanking) {
   EXPECT_THAT(completions("int main() { abs^ }", {func("absA"), func("absB")})
                   .Completions,
-              HasSubsequence(named("absA"), named("absB")));
+              HasSubsequence(Named("absA"), Named("absB")));
   EXPECT_THAT(completions("int main() { abs^ }",
                           {func("absA"), withReferences(1000, func("absB"))})
                   .Completions,
-              HasSubsequence(named("absB"), named("absA")));
+              HasSubsequence(Named("absB"), Named("absA")));
 }
 
 TEST(CompletionTest, ContextWords) {
@@ -669,7 +669,7 @@ TEST(CompletionTest, ContextWords) {
   // Yellow would normally sort last (alphabetic).
   // But the recent mention should bump it up.
   ASSERT_THAT(Results.Completions,
-              HasSubsequence(named("YELLOW"), named("BLUE")));
+              HasSubsequence(Named("YELLOW"), Named("BLUE")));
 }
 
 TEST(CompletionTest, GlobalQualified) {
@@ -679,8 +679,8 @@ TEST(CompletionTest, GlobalQualified) {
       )cpp",
       {cls("XYZ")});
   EXPECT_THAT(Results.Completions,
-              AllOf(has("XYZ", CompletionItemKind::Class),
-                    has("f", CompletionItemKind::Function)));
+              AllOf(Has("XYZ", CompletionItemKind::Class),
+                    Has("f", CompletionItemKind::Function)));
 }
 
 TEST(CompletionTest, FullyQualified) {
@@ -691,8 +691,8 @@ TEST(CompletionTest, FullyQualified) {
       )cpp",
       {cls("ns::XYZ")});
   EXPECT_THAT(Results.Completions,
-              AllOf(has("XYZ", CompletionItemKind::Class),
-                    has("bar", CompletionItemKind::Function)));
+              AllOf(Has("XYZ", CompletionItemKind::Class),
+                    Has("bar", CompletionItemKind::Function)));
 }
 
 TEST(CompletionTest, SemaIndexMerge) {
@@ -705,10 +705,10 @@ TEST(CompletionTest, SemaIndexMerge) {
   // We get results from both index and sema, with no duplicates.
   EXPECT_THAT(Results.Completions,
               UnorderedElementsAre(
-                  AllOf(named("local"), origin(SymbolOrigin::AST)),
-                  AllOf(named("Index"), origin(SymbolOrigin::Static)),
-                  AllOf(named("both"),
-                        origin(SymbolOrigin::AST | SymbolOrigin::Static))));
+                  AllOf(Named("local"), Origin(SymbolOrigin::AST)),
+                  AllOf(Named("Index"), Origin(SymbolOrigin::Static)),
+                  AllOf(Named("both"),
+                        Origin(SymbolOrigin::AST | SymbolOrigin::Static))));
 }
 
 TEST(CompletionTest, SemaIndexMergeWithLimit) {
@@ -738,13 +738,13 @@ TEST(CompletionTest, IncludeInsertionPreprocessorIntegrationTests) {
   TU.Code = Test.code().str();
   auto Results = completions(TU, Test.point(), {Sym});
   EXPECT_THAT(Results.Completions,
-              ElementsAre(AllOf(named("X"), insertInclude("\"bar.h\""))));
+              ElementsAre(AllOf(Named("X"), InsertInclude("\"bar.h\""))));
   // Can be disabled via option.
   CodeCompleteOptions NoInsertion;
   NoInsertion.InsertIncludes = CodeCompleteOptions::NeverInsert;
   Results = completions(TU, Test.point(), {Sym}, NoInsertion);
   EXPECT_THAT(Results.Completions,
-              ElementsAre(AllOf(named("X"), Not(insertInclude()))));
+              ElementsAre(AllOf(Named("X"), Not(InsertInclude()))));
   // Duplicate based on inclusions in preamble.
   Test = Annotations(R"cpp(
           #include "sub/bar.h"  // not shortest, so should only match resolved.
@@ -752,8 +752,8 @@ TEST(CompletionTest, IncludeInsertionPreprocessorIntegrationTests) {
       )cpp");
   TU.Code = Test.code().str();
   Results = completions(TU, Test.point(), {Sym});
-  EXPECT_THAT(Results.Completions, ElementsAre(AllOf(named("X"), labeled("X"),
-                                                     Not(insertInclude()))));
+  EXPECT_THAT(Results.Completions, ElementsAre(AllOf(Named("X"), Labeled("X"),
+                                                     Not(InsertInclude()))));
 }
 
 TEST(CompletionTest, NoIncludeInsertionWhenDeclFoundInFile) {
@@ -775,8 +775,8 @@ TEST(CompletionTest, NoIncludeInsertionWhenDeclFoundInFile) {
       )cpp",
                              {SymX, SymY});
   EXPECT_THAT(Results.Completions,
-              ElementsAre(AllOf(named("X"), Not(insertInclude())),
-                          AllOf(named("Y"), Not(insertInclude()))));
+              ElementsAre(AllOf(Named("X"), Not(InsertInclude())),
+                          AllOf(Named("Y"), Not(InsertInclude()))));
 }
 
 TEST(CompletionTest, IndexSuppressesPreambleCompletions) {
@@ -795,14 +795,14 @@ TEST(CompletionTest, IndexSuppressesPreambleCompletions) {
   Opts.Index = I.get();
   auto WithIndex = completions(TU, Test.point(), {}, Opts);
   EXPECT_THAT(WithIndex.Completions,
-              UnorderedElementsAre(named("local"), named("index")));
+              UnorderedElementsAre(Named("local"), Named("index")));
   auto ClassFromPreamble = completions(TU, Test.point("2"), {}, Opts);
-  EXPECT_THAT(ClassFromPreamble.Completions, Contains(named("member")));
+  EXPECT_THAT(ClassFromPreamble.Completions, Contains(Named("member")));
 
   Opts.Index = nullptr;
   auto WithoutIndex = completions(TU, Test.point(), {}, Opts);
   EXPECT_THAT(WithoutIndex.Completions,
-              UnorderedElementsAre(named("local"), named("preamble")));
+              UnorderedElementsAre(Named("local"), Named("preamble")));
 }
 
 // This verifies that we get normal preprocessor completions in the preamble.
@@ -818,7 +818,7 @@ TEST(CompletionTest, CompletionInPreamble) {
     #endif
     )cpp")
                      .Completions;
-  EXPECT_THAT(Results, ElementsAre(named("ifndef")));
+  EXPECT_THAT(Results, ElementsAre(Named("ifndef")));
 }
 
 TEST(CompletionTest, CompletionRecoveryASTType) {
@@ -830,7 +830,7 @@ TEST(CompletionTest, CompletionRecoveryASTType) {
       overloaded().^
     })cpp")
                      .Completions;
-  EXPECT_THAT(Results, ElementsAre(named("member")));
+  EXPECT_THAT(Results, ElementsAre(Named("member")));
 }
 
 TEST(CompletionTest, DynamicIndexIncludeInsertion) {
@@ -864,8 +864,8 @@ TEST(CompletionTest, DynamicIndexIncludeInsertion) {
       llvm::cantFail(runCodeComplete(Server, File, Test.point(), {}));
 
   EXPECT_THAT(CompletionList.Completions,
-              ElementsAre(AllOf(named("Foo"), hasInclude("\"foo_header.h\""),
-                                insertInclude())));
+              ElementsAre(AllOf(Named("Foo"), HasInclude("\"foo_header.h\""),
+                                InsertInclude())));
 }
 
 TEST(CompletionTest, DynamicIndexMultiFile) {
@@ -896,12 +896,12 @@ TEST(CompletionTest, DynamicIndexMultiFile) {
   auto Results = cantFail(runCodeComplete(Server, File, Test.point(), {}));
   // "XYZ" and "foo" are not included in the file being completed but are still
   // visible through the index.
-  EXPECT_THAT(Results.Completions, has("XYZ", CompletionItemKind::Class));
-  EXPECT_THAT(Results.Completions, has("foo", CompletionItemKind::Function));
-  EXPECT_THAT(Results.Completions, has("XXX", CompletionItemKind::Class));
+  EXPECT_THAT(Results.Completions, Has("XYZ", CompletionItemKind::Class));
+  EXPECT_THAT(Results.Completions, Has("foo", CompletionItemKind::Function));
+  EXPECT_THAT(Results.Completions, Has("XXX", CompletionItemKind::Class));
   EXPECT_THAT(Results.Completions,
-              Contains((named("fooooo"), kind(CompletionItemKind::Function),
-                        doc("Doooc"), returnType("void"))));
+              Contains((Named("fooooo"), Kind(CompletionItemKind::Function),
+                        Doc("Doooc"), ReturnType("void"))));
 }
 
 TEST(CompletionTest, Documentation) {
@@ -920,14 +920,13 @@ TEST(CompletionTest, Documentation) {
       int x = ^
      )cpp");
   EXPECT_THAT(Results.Completions,
-              Contains(AllOf(
-                  named("foo"),
-                  doc("Annotation: custom_annotation\nNon-doxygen comment."))));
+              Contains(AllOf(Named("foo"),
+              Doc("Annotation: custom_annotation\nNon-doxygen comment."))));
   EXPECT_THAT(
       Results.Completions,
-      Contains(AllOf(named("bar"), doc("Doxygen comment.\n\\param int a"))));
+      Contains(AllOf(Named("bar"), Doc("Doxygen comment.\n\\param int a"))));
   EXPECT_THAT(Results.Completions,
-              Contains(AllOf(named("baz"), doc("Multi-line block comment"))));
+              Contains(AllOf(Named("baz"), Doc("Multi-line block comment"))));
 }
 
 TEST(CompletionTest, CommentsFromSystemHeaders) {
@@ -957,7 +956,7 @@ int x = foo^
 
   EXPECT_THAT(
       CompletionList.Completions,
-      Contains(AllOf(named("foo"), doc("This comment should be retained!"))));
+      Contains(AllOf(Named("foo"), Doc("This comment should be retained!"))));
 }
 
 TEST(CompletionTest, GlobalCompletionFiltering) {
@@ -992,8 +991,8 @@ TEST(CodeCompleteTest, NoColonColonAtTheEnd) {
     }
   )cpp");
 
-  EXPECT_THAT(Results.Completions, Contains(labeled("clang")));
-  EXPECT_THAT(Results.Completions, Not(Contains(labeled("clang::"))));
+  EXPECT_THAT(Results.Completions, Contains(Labeled("clang")));
+  EXPECT_THAT(Results.Completions, Not(Contains(Labeled("clang::"))));
 }
 
 TEST(CompletionTest, BacktrackCrashes) {
@@ -1006,7 +1005,7 @@ TEST(CompletionTest, BacktrackCrashes) {
      int foo(ns::FooBar^
   )cpp");
 
-  EXPECT_THAT(Results.Completions, ElementsAre(labeled("FooBarBaz")));
+  EXPECT_THAT(Results.Completions, ElementsAre(Labeled("FooBarBaz")));
 
   // Check we don't crash in that case too.
   completions(R"cpp(
@@ -1033,7 +1032,7 @@ int f(int input_num) {
 )cpp");
 
   EXPECT_THAT(Results.Completions,
-              UnorderedElementsAre(named("X"), named("Y")));
+              UnorderedElementsAre(Named("X"), Named("Y")));
 }
 
 TEST(CompletionTest, CompleteInMacroAndNamespaceWithStringification) {
@@ -1050,7 +1049,7 @@ int f(int input_num) {
 }  // namespace ns
 )cpp");
 
-  EXPECT_THAT(Results.Completions, Contains(named("X")));
+  EXPECT_THAT(Results.Completions, Contains(Named("X")));
 }
 
 TEST(CompletionTest, IgnoreCompleteInExcludedPPBranchWithRecoveryContext) {
@@ -1081,14 +1080,14 @@ TEST(CompletionTest, DefaultArgs) {
     int Z(int A, int B = 0, int C = 0, int D = 0);
   )cpp";
   EXPECT_THAT(completions(Context + "int y = X^", {}, Opts).Completions,
-              UnorderedElementsAre(labeled("X(int A = 0)")));
+              UnorderedElementsAre(Labeled("X(int A = 0)")));
   EXPECT_THAT(completions(Context + "int y = Y^", {}, Opts).Completions,
-              UnorderedElementsAre(AllOf(labeled("Y(int A, int B = 0)"),
-                                         snippetSuffix("(${1:int A})"))));
+              UnorderedElementsAre(AllOf(Labeled("Y(int A, int B = 0)"),
+                                         SnippetSuffix("(${1:int A})"))));
   EXPECT_THAT(completions(Context + "int y = Z^", {}, Opts).Completions,
               UnorderedElementsAre(
-                  AllOf(labeled("Z(int A, int B = 0, int C = 0, int D = 0)"),
-                        snippetSuffix("(${1:int A})"))));
+                  AllOf(Labeled("Z(int A, int B = 0, int C = 0, int D = 0)"),
+                        SnippetSuffix("(${1:int A})"))));
 }
 
 TEST(CompletionTest, NoCrashWithTemplateParamsAndPreferredTypes) {
@@ -1098,7 +1097,7 @@ template <template <class> class TT> int foo() {
 }
 )cpp")
                          .Completions;
-  EXPECT_THAT(Completions, Contains(named("TT")));
+  EXPECT_THAT(Completions, Contains(Named("TT")));
 }
 
 TEST(CompletionTest, NestedTemplateHeuristics) {
@@ -1112,7 +1111,7 @@ template <typename T> void foo(Templ<T> &t) {
 }
 )cpp")
                          .Completions;
-  EXPECT_THAT(Completions, Contains(named("xxx")));
+  EXPECT_THAT(Completions, Contains(Named("xxx")));
 }
 
 TEST(CompletionTest, RecordCCResultCallback) {
@@ -1127,7 +1126,7 @@ TEST(CompletionTest, RecordCCResultCallback) {
 
   completions("int xy1, xy2; int a = xy^", /*IndexSymbols=*/{}, Opts);
   EXPECT_THAT(RecordedCompletions,
-              UnorderedElementsAre(named("xy1"), named("xy2")));
+              UnorderedElementsAre(Named("xy1"), Named("xy2")));
 }
 
 TEST(CompletionTest, ASTSignals) {
@@ -1165,12 +1164,12 @@ TEST(CompletionTest, ASTSignals) {
       Opts);
   EXPECT_THAT(RecordedCompletions,
               UnorderedElementsAre(
-                  AllOf(named("xy1"), mainFileRefs(3u), scopeRefs(0u)),
-                  AllOf(named("xy2"), mainFileRefs(1u), scopeRefs(0u)),
-                  AllOf(named("xyindex"), mainFileRefs(10u), scopeRefs(0u)),
-                  AllOf(named("xytar"), mainFileRefs(0u), scopeRefs(5u)),
-                  AllOf(/*both from sema and index*/ named("xybar"),
-                        mainFileRefs(0u), scopeRefs(3u))));
+                  AllOf(Named("xy1"), MainFileRefs(3u), ScopeRefs(0u)),
+                  AllOf(Named("xy2"), MainFileRefs(1u), ScopeRefs(0u)),
+                  AllOf(Named("xyindex"), MainFileRefs(10u), ScopeRefs(0u)),
+                  AllOf(Named("xytar"), MainFileRefs(0u), ScopeRefs(5u)),
+                  AllOf(/*both from sema and index*/ Named("xybar"),
+                        MainFileRefs(0u), ScopeRefs(3u))));
 }
 
 SignatureHelp
@@ -1217,7 +1216,7 @@ llvm::raw_ostream &operator<<(llvm::raw_ostream &OS,
                               const ExpectedParameter &P) {
   return OS << P.Text;
 }
-MATCHER_P(paramsAre, P, "") {
+MATCHER_P(ParamsAre, P, "") {
   if (P.size() != arg.parameters.size())
     return false;
   for (unsigned I = 0; I < P.size(); ++I) {
@@ -1227,11 +1226,11 @@ MATCHER_P(paramsAre, P, "") {
   }
   return true;
 }
-MATCHER_P(sigDoc, doc, "") { return arg.documentation.value == doc; }
+MATCHER_P(SigDoc, Doc, "") { return arg.documentation.value == Doc; }
 
 /// \p AnnotatedLabel is a signature label with ranges marking parameters, e.g.
 ///    foo([[int p1]], [[double p2]]) -> void
-Matcher<SignatureInformation> sig(llvm::StringRef AnnotatedLabel) {
+Matcher<SignatureInformation> Sig(llvm::StringRef AnnotatedLabel) {
   llvm::Annotations A(AnnotatedLabel);
   std::string Label = std::string(A.code());
   std::vector<ExpectedParameter> Parameters;
@@ -1243,7 +1242,7 @@ Matcher<SignatureInformation> sig(llvm::StringRef AnnotatedLabel) {
     P.Offsets.first = lspLength(llvm::StringRef(Label).substr(0, Range.Begin));
     P.Offsets.second = lspLength(llvm::StringRef(Label).substr(1, Range.End));
   }
-  return AllOf(sigHelpLabeled(Label), paramsAre(Parameters));
+  return AllOf(SigHelpLabeled(Label), ParamsAre(Parameters));
 }
 
 TEST(SignatureHelpTest, Overloads) {
@@ -1256,10 +1255,10 @@ TEST(SignatureHelpTest, Overloads) {
     int main() { foo(^); }
   )cpp");
   EXPECT_THAT(Results.signatures,
-              UnorderedElementsAre(sig("foo([[float x]], [[float y]]) -> void"),
-                                   sig("foo([[float x]], [[int y]]) -> void"),
-                                   sig("foo([[int x]], [[float y]]) -> void"),
-                                   sig("foo([[int x]], [[int y]]) -> void")));
+              UnorderedElementsAre(Sig("foo([[float x]], [[float y]]) -> void"),
+                                   Sig("foo([[float x]], [[int y]]) -> void"),
+                                   Sig("foo([[int x]], [[float y]]) -> void"),
+                                   Sig("foo([[int x]], [[int y]]) -> void")));
   // We always prefer the first signature.
   EXPECT_EQ(0, Results.activeSignature);
   EXPECT_EQ(0, Results.activeParameter);
@@ -1275,7 +1274,7 @@ TEST(SignatureHelpTest, Constructors) {
 
   auto CheckParenInit = [&](std::string Init) {
     EXPECT_THAT(signatures(Top + Init).signatures,
-                UnorderedElementsAre(sig("S([[int]])")))
+                UnorderedElementsAre(Sig("S([[int]])")))
         << Init;
   };
   CheckParenInit("S s(^);");
@@ -1284,7 +1283,7 @@ TEST(SignatureHelpTest, Constructors) {
 
   auto CheckBracedInit = [&](std::string Init) {
     EXPECT_THAT(signatures(Top + Init).signatures,
-                UnorderedElementsAre(sig("S{[[int]]}")))
+                UnorderedElementsAre(Sig("S{[[int]]}")))
         << Init;
   };
   CheckBracedInit("S s{^};");
@@ -1301,11 +1300,11 @@ TEST(SignatureHelpTest, Aggregates) {
       int a, b, c, d;
     };
   )cpp";
-  auto AggregateSig = sig("S{[[int a]], [[int b]], [[int c]], [[int d]]}");
+  auto AggregateSig = Sig("S{[[int a]], [[int b]], [[int c]], [[int d]]}");
   EXPECT_THAT(signatures(Top + "S s{^}").signatures,
-              UnorderedElementsAre(AggregateSig, sig("S{}"),
-                                   sig("S{[[const S &]]}"),
-                                   sig("S{[[S &&]]}")));
+              UnorderedElementsAre(AggregateSig, Sig("S{}"),
+                                   Sig("S{[[const S &]]}"),
+                                   Sig("S{[[S &&]]}")));
   EXPECT_THAT(signatures(Top + "S s{1,^}").signatures,
               ElementsAre(AggregateSig));
   EXPECT_EQ(signatures(Top + "S s{1,^}").activeParameter, 1);
@@ -1324,7 +1323,7 @@ TEST(SignatureHelpTest, OverloadInitListRegression) {
       f(^);
     }
   )cpp");
-  EXPECT_THAT(Results.signatures, UnorderedElementsAre(sig("f() -> void")));
+  EXPECT_THAT(Results.signatures, UnorderedElementsAre(Sig("f() -> void")));
 }
 
 TEST(SignatureHelpTest, DefaultArgs) {
@@ -1335,8 +1334,8 @@ TEST(SignatureHelpTest, DefaultArgs) {
   )cpp");
   EXPECT_THAT(Results.signatures,
               UnorderedElementsAre(
-                  sig("bar([[int x]], [[int y = 0]]) -> void"),
-                  sig("bar([[float x = 0]], [[int y = 42]]) -> void")));
+                  Sig("bar([[int x]], [[int y = 0]]) -> void"),
+                  Sig("bar([[float x = 0]], [[int y = 42]]) -> void")));
   EXPECT_EQ(0, Results.activeSignature);
   EXPECT_EQ(0, Results.activeParameter);
 }
@@ -1347,7 +1346,7 @@ TEST(SignatureHelpTest, ActiveArg) {
     int main() { baz(baz(1,2,3), ^); }
   )cpp");
   EXPECT_THAT(Results.signatures,
-              ElementsAre(sig("baz([[int a]], [[int b]], [[int c]]) -> int")));
+              ElementsAre(Sig("baz([[int a]], [[int b]], [[int c]]) -> int")));
   EXPECT_EQ(0, Results.activeSignature);
   EXPECT_EQ(1, Results.activeParameter);
 }
@@ -1451,7 +1450,7 @@ TEST(SignatureHelpTest, StalePreamble) {
   auto Results =
       signatureHelp(testPath(TU.Filename), Test.point(), *EmptyPreamble,
                     TU.inputs(FS), MarkupKind::PlainText);
-  EXPECT_THAT(Results.signatures, ElementsAre(sig("foo([[int x]]) -> int")));
+  EXPECT_THAT(Results.signatures, ElementsAre(Sig("foo([[int x]]) -> int")));
   EXPECT_EQ(0, Results.activeSignature);
   EXPECT_EQ(0, Results.activeParameter);
 }
@@ -1663,9 +1662,9 @@ TEST(CompletionTest, NoIndexCompletionsInsideClasses) {
       {func("::SomeNameInTheIndex"), func("::Foo::SomeNameInTheIndex")});
 
   EXPECT_THAT(Completions.Completions,
-              AllOf(Contains(labeled("SomeNameOfField")),
-                    Contains(labeled("SomeNameOfTypedefField")),
-                    Not(Contains(labeled("SomeNameInTheIndex")))));
+              AllOf(Contains(Labeled("SomeNameOfField")),
+                    Contains(Labeled("SomeNameOfTypedefField")),
+                    Not(Contains(Labeled("SomeNameInTheIndex")))));
 }
 
 TEST(CompletionTest, NoIndexCompletionsInsideDependentCode) {
@@ -1680,7 +1679,7 @@ TEST(CompletionTest, NoIndexCompletionsInsideDependentCode) {
         {func("::SomeNameInTheIndex")});
 
     EXPECT_THAT(Completions.Completions,
-                Not(Contains(labeled("SomeNameInTheIndex"))));
+                Not(Contains(Labeled("SomeNameInTheIndex"))));
   }
 
   {
@@ -1694,7 +1693,7 @@ TEST(CompletionTest, NoIndexCompletionsInsideDependentCode) {
         {func("::SomeNameInTheIndex")});
 
     EXPECT_THAT(Completions.Completions,
-                Not(Contains(labeled("SomeNameInTheIndex"))));
+                Not(Contains(Labeled("SomeNameInTheIndex"))));
   }
 
   {
@@ -1708,7 +1707,7 @@ TEST(CompletionTest, NoIndexCompletionsInsideDependentCode) {
         {func("::SomeNameInTheIndex")});
 
     EXPECT_THAT(Completions.Completions,
-                Not(Contains(labeled("SomeNameInTheIndex"))));
+                Not(Contains(Labeled("SomeNameInTheIndex"))));
   }
 }
 
@@ -1733,17 +1732,17 @@ TEST(CompletionTest, OverloadBundling) {
 
   // Member completions are bundled.
   EXPECT_THAT(completions(Context + "int y = X().^", {}, Opts).Completions,
-              UnorderedElementsAre(labeled("a(…)"), labeled("b(float)")));
+              UnorderedElementsAre(Labeled("a(…)"), Labeled("b(float)")));
 
   // Constructor completions are bundled.
   EXPECT_THAT(completions(Context + "X z = X^", {}, Opts).Completions,
-              UnorderedElementsAre(labeled("X"), labeled("X(…)")));
+              UnorderedElementsAre(Labeled("X"), Labeled("X(…)")));
 
   // Non-member completions are bundled, including index+sema.
   Symbol NoArgsGFunc = func("GFuncC");
   EXPECT_THAT(
       completions(Context + "int y = GFunc^", {NoArgsGFunc}, Opts).Completions,
-      UnorderedElementsAre(labeled("GFuncC(…)"), labeled("GFuncD(int)")));
+      UnorderedElementsAre(Labeled("GFuncC(…)"), Labeled("GFuncD(int)")));
 
   // Differences in header-to-insert suppress bundling.
   std::string DeclFile = URI::create(testPath("foo")).toString();
@@ -1751,8 +1750,8 @@ TEST(CompletionTest, OverloadBundling) {
   NoArgsGFunc.IncludeHeaders.emplace_back("<foo>", 1);
   EXPECT_THAT(
       completions(Context + "int y = GFunc^", {NoArgsGFunc}, Opts).Completions,
-      UnorderedElementsAre(AllOf(named("GFuncC"), insertInclude("<foo>")),
-                           labeled("GFuncC(int)"), labeled("GFuncD(int)")));
+      UnorderedElementsAre(AllOf(Named("GFuncC"), InsertInclude("<foo>")),
+                           Labeled("GFuncC(int)"), Labeled("GFuncD(int)")));
 
   // Examine a bundled completion in detail.
   auto A =
@@ -1829,7 +1828,7 @@ TEST(CompletionTest, DocumentationFromChangedFileCrash) {
   // We shouldn't crash. Unfortunately, current workaround is to not produce
   // comments for symbols from headers.
   EXPECT_THAT(Completions.Completions,
-              Contains(AllOf(Not(isDocumented()), named("func"))));
+              Contains(AllOf(Not(IsDocumented()), Named("func"))));
 }
 
 TEST(CompletionTest, NonDocComments) {
@@ -1873,16 +1872,16 @@ TEST(CompletionTest, NonDocComments) {
   // We should not get any of those comments in completion.
   EXPECT_THAT(
       completions(Text).Completions,
-      UnorderedElementsAre(AllOf(Not(isDocumented()), named("comments_foo")),
-                           AllOf(isDocumented(), named("comments_baz")),
-                           AllOf(isDocumented(), named("comments_quux")),
-                           AllOf(Not(isDocumented()), named("comments_ns")),
+      UnorderedElementsAre(AllOf(Not(IsDocumented()), Named("comments_foo")),
+                           AllOf(IsDocumented(), Named("comments_baz")),
+                           AllOf(IsDocumented(), Named("comments_quux")),
+                           AllOf(Not(IsDocumented()), Named("comments_ns")),
                            // FIXME(ibiryukov): the following items should have
                            // empty documentation, since they are separated from
                            // a comment with an empty line. Unfortunately, I
                            // couldn't make Sema tests pass if we ignore those.
-                           AllOf(isDocumented(), named("comments_bar")),
-                           AllOf(isDocumented(), named("comments_qux"))));
+                           AllOf(IsDocumented(), Named("comments_bar")),
+                           AllOf(IsDocumented(), Named("comments_qux"))));
 }
 
 TEST(CompletionTest, CompleteOnInvalidLine) {
@@ -1912,7 +1911,7 @@ TEST(CompletionTest, QualifiedNames) {
   // We get results from both index and sema, with no duplicates.
   EXPECT_THAT(
       Results.Completions,
-      UnorderedElementsAre(scope("ns::"), scope("ns::"), scope("ns::")));
+      UnorderedElementsAre(Scope("ns::"), Scope("ns::"), Scope("ns::")));
 }
 
 TEST(CompletionTest, Render) {
@@ -1992,7 +1991,7 @@ TEST(CompletionTest, IgnoreRecoveryResults) {
             if (auto x = ns::NotRecover^)
           }
       )cpp");
-  EXPECT_THAT(Results.Completions, UnorderedElementsAre(named("NotRecovered")));
+  EXPECT_THAT(Results.Completions, UnorderedElementsAre(Named("NotRecovered")));
 }
 
 TEST(CompletionTest, ScopeOfClassFieldInConstructorInitializer) {
@@ -2004,7 +2003,7 @@ TEST(CompletionTest, ScopeOfClassFieldInConstructorInitializer) {
         }
       )cpp");
   EXPECT_THAT(Results.Completions,
-              UnorderedElementsAre(AllOf(scope("ns::X::"), named("x_"))));
+              UnorderedElementsAre(AllOf(Scope("ns::X::"), Named("x_"))));
 }
 
 // Like other class members, constructor init lists have to parse what's below,
@@ -2021,7 +2020,7 @@ TEST(CompletionTest, ConstructorInitListIncomplete) {
           };
         }
       )cpp");
-  EXPECT_THAT(Results.Completions, ElementsAre(named("xyz_")));
+  EXPECT_THAT(Results.Completions, ElementsAre(Named("xyz_")));
 
   Results = completions(
       R"cpp(
@@ -2034,7 +2033,7 @@ TEST(CompletionTest, ConstructorInitListIncomplete) {
           };
         }
       )cpp");
-  EXPECT_THAT(Results.Completions, ElementsAre(named("foo")));
+  EXPECT_THAT(Results.Completions, ElementsAre(Named("foo")));
 }
 
 TEST(CompletionTest, CodeCompletionContext) {
@@ -2220,11 +2219,11 @@ TEST(SignatureHelpTest, OverloadsOrdering) {
     int main() { foo(^); }
   )cpp");
   EXPECT_THAT(Results.signatures,
-              ElementsAre(sig("foo([[int x]]) -> void"),
-                          sig("foo([[int x]], [[int y = 0]]) -> void"),
-                          sig("foo([[float x]], [[int y]]) -> void"),
-                          sig("foo([[int x]], [[float y]]) -> void"),
-                          sig("foo([[float x]], [[float y]]) -> void")));
+              ElementsAre(Sig("foo([[int x]]) -> void"),
+                          Sig("foo([[int x]], [[int y = 0]]) -> void"),
+                          Sig("foo([[float x]], [[int y]]) -> void"),
+                          Sig("foo([[int x]], [[float y]]) -> void"),
+                          Sig("foo([[float x]], [[float y]]) -> void")));
   // We always prefer the first signature.
   EXPECT_EQ(0, Results.activeSignature);
   EXPECT_EQ(0, Results.activeParameter);
@@ -2241,7 +2240,7 @@ TEST(SignatureHelpTest, InstantiatedSignatures) {
   )cpp";
 
   EXPECT_THAT(signatures(Sig0).signatures,
-              ElementsAre(sig("foo([[T]], [[T]], [[T]]) -> void")));
+              ElementsAre(Sig("foo([[T]], [[T]], [[T]]) -> void")));
 
   StringRef Sig1 = R"cpp(
     template <class T>
@@ -2252,7 +2251,7 @@ TEST(SignatureHelpTest, InstantiatedSignatures) {
     })cpp";
 
   EXPECT_THAT(signatures(Sig1).signatures,
-              ElementsAre(sig("foo([[T]], [[T]], [[T]]) -> void")));
+              ElementsAre(Sig("foo([[T]], [[T]], [[T]]) -> void")));
 
   StringRef Sig2 = R"cpp(
     template <class ...T>
@@ -2264,7 +2263,7 @@ TEST(SignatureHelpTest, InstantiatedSignatures) {
   )cpp";
 
   EXPECT_THAT(signatures(Sig2).signatures,
-              ElementsAre(sig("foo([[T...]]) -> void")));
+              ElementsAre(Sig("foo([[T...]]) -> void")));
 
   // It is debatable whether we should substitute the outer template parameter
   // ('T') in that case. Currently we don't substitute it in signature help, but
@@ -2284,14 +2283,14 @@ TEST(SignatureHelpTest, InstantiatedSignatures) {
   )cpp";
 
   EXPECT_THAT(signatures(Sig3).signatures,
-              ElementsAre(sig("foo([[T]], [[U]]) -> void")));
+              ElementsAre(Sig("foo([[T]], [[U]]) -> void")));
 }
 
 TEST(SignatureHelpTest, IndexDocumentation) {
   Symbol Foo0 = sym("foo", index::SymbolKind::Function, "@F@\\0#");
-  Foo0.Documentation = "doc from the index";
+  Foo0.Documentation = "Doc from the index";
   Symbol Foo1 = sym("foo", index::SymbolKind::Function, "@F@\\0#I#");
-  Foo1.Documentation = "doc from the index";
+  Foo1.Documentation = "Doc from the index";
   Symbol Foo2 = sym("foo", index::SymbolKind::Function, "@F@\\0#I#I#");
 
   StringRef Sig0 = R"cpp(
@@ -2305,14 +2304,14 @@ TEST(SignatureHelpTest, IndexDocumentation) {
 
   EXPECT_THAT(
       signatures(Sig0, {Foo0}).signatures,
-      ElementsAre(AllOf(sig("foo() -> int"), sigDoc("doc from the index")),
-                  AllOf(sig("foo([[double]]) -> int"), sigDoc(""))));
+      ElementsAre(AllOf(Sig("foo() -> int"), SigDoc("Doc from the index")),
+                  AllOf(Sig("foo([[double]]) -> int"), SigDoc(""))));
 
   StringRef Sig1 = R"cpp(
     int foo();
     // Overriden doc from sema
     int foo(int);
-    // doc from sema
+    // Doc from sema
     int foo(int, int);
 
     void test() {
@@ -2323,9 +2322,9 @@ TEST(SignatureHelpTest, IndexDocumentation) {
   EXPECT_THAT(
       signatures(Sig1, {Foo0, Foo1, Foo2}).signatures,
       ElementsAre(
-          AllOf(sig("foo() -> int"), sigDoc("doc from the index")),
-          AllOf(sig("foo([[int]]) -> int"), sigDoc("Overriden doc from sema")),
-          AllOf(sig("foo([[int]], [[int]]) -> int"), sigDoc("doc from sema"))));
+          AllOf(Sig("foo() -> int"), SigDoc("Doc from the index")),
+          AllOf(Sig("foo([[int]]) -> int"), SigDoc("Overriden doc from sema")),
+          AllOf(Sig("foo([[int]], [[int]]) -> int"), SigDoc("Doc from sema"))));
 }
 
 TEST(SignatureHelpTest, DynamicIndexDocumentation) {
@@ -2355,7 +2354,7 @@ TEST(SignatureHelpTest, DynamicIndexDocumentation) {
   EXPECT_THAT(llvm::cantFail(runSignatureHelp(Server, File, FileContent.point(),
                                               MarkupKind::PlainText))
                   .signatures,
-              ElementsAre(AllOf(sig("foo() -> int"), sigDoc("Member doc"))));
+              ElementsAre(AllOf(Sig("foo() -> int"), SigDoc("Member doc"))));
 }
 
 TEST(CompletionTest, CompletionFunctionArgsDisabled) {
@@ -2372,8 +2371,8 @@ TEST(CompletionTest, CompletionFunctionArgsDisabled) {
         {}, Opts);
     EXPECT_THAT(
         Results.Completions,
-        UnorderedElementsAre(AllOf(named("xfoo"), snippetSuffix("()")),
-                             AllOf(named("xfoo"), snippetSuffix("($0)"))));
+        UnorderedElementsAre(AllOf(Named("xfoo"), SnippetSuffix("()")),
+                             AllOf(Named("xfoo"), SnippetSuffix("($0)"))));
   }
   {
     auto Results = completions(
@@ -2382,7 +2381,7 @@ TEST(CompletionTest, CompletionFunctionArgsDisabled) {
       void f() { xba^ })cpp",
         {}, Opts);
     EXPECT_THAT(Results.Completions, UnorderedElementsAre(AllOf(
-                                         named("xbar"), snippetSuffix("()"))));
+                                         Named("xbar"), SnippetSuffix("()"))));
   }
   {
     Opts.BundleOverloads = true;
@@ -2394,7 +2393,7 @@ TEST(CompletionTest, CompletionFunctionArgsDisabled) {
         {}, Opts);
     EXPECT_THAT(
         Results.Completions,
-        UnorderedElementsAre(AllOf(named("xfoo"), snippetSuffix("($0)"))));
+        UnorderedElementsAre(AllOf(Named("xfoo"), SnippetSuffix("($0)"))));
   }
   {
     auto Results = completions(
@@ -2405,7 +2404,7 @@ TEST(CompletionTest, CompletionFunctionArgsDisabled) {
         {}, Opts);
     EXPECT_THAT(
         Results.Completions,
-        UnorderedElementsAre(AllOf(named("xfoo"), snippetSuffix("<$1>($0)"))));
+        UnorderedElementsAre(AllOf(Named("xfoo"), SnippetSuffix("<$1>($0)"))));
   }
   {
     auto Results = completions(
@@ -2418,8 +2417,8 @@ TEST(CompletionTest, CompletionFunctionArgsDisabled) {
         {}, Opts);
     EXPECT_THAT(
         Results.Completions,
-        UnorderedElementsAre(AllOf(named("foo_class"), snippetSuffix("<$0>")),
-                             AllOf(named("foo_alias"), snippetSuffix("<$0>"))));
+        UnorderedElementsAre(AllOf(Named("foo_class"), SnippetSuffix("<$0>")),
+                             AllOf(Named("foo_alias"), SnippetSuffix("<$0>"))));
   }
   {
     auto Results = completions(
@@ -2428,7 +2427,7 @@ TEST(CompletionTest, CompletionFunctionArgsDisabled) {
       FO^ )cpp",
         {}, Opts);
     EXPECT_THAT(Results.Completions, UnorderedElementsAre(AllOf(
-                                         named("FOO"), snippetSuffix("($0)"))));
+                                         Named("FOO"), SnippetSuffix("($0)"))));
   }
 }
 
@@ -2453,11 +2452,11 @@ TEST(CompletionTest, SuggestOverrides) {
   const auto Results = completions(Text);
   EXPECT_THAT(
       Results.Completions,
-      AllOf(Contains(AllOf(labeled("void vfunc(bool param, int p) override"),
-                           nameStartsWith("vfunc"))),
-            Contains(AllOf(labeled("void ttt(bool param) const override"),
-                           nameStartsWith("ttt"))),
-            Not(Contains(labeled("void vfunc(bool param) override")))));
+      AllOf(Contains(AllOf(Labeled("void vfunc(bool param, int p) override"),
+                           NameStartsWith("vfunc"))),
+            Contains(AllOf(Labeled("void ttt(bool param) const override"),
+                           NameStartsWith("ttt"))),
+            Not(Contains(Labeled("void vfunc(bool param) override")))));
 }
 
 TEST(CompletionTest, OverridesNonIdentName) {
@@ -2578,7 +2577,7 @@ TEST(CompletionTest, InsertTheMostPopularHeader) {
 
   auto Results = completions("Fun^", {Sym}).Completions;
   assert(!Results.empty());
-  EXPECT_THAT(Results[0], AllOf(named("Func"), insertInclude("\"bar.h\"")));
+  EXPECT_THAT(Results[0], AllOf(Named("Func"), InsertInclude("\"bar.h\"")));
   EXPECT_EQ(Results[0].Includes.size(), 2u);
 }
 
@@ -2597,8 +2596,8 @@ TEST(CompletionTest, NoInsertIncludeIfOnePresent) {
   Sym.IncludeHeaders.emplace_back("\"bar.h\"", 1000);
 
   EXPECT_THAT(completions(TU, Test.point(), {Sym}).Completions,
-              UnorderedElementsAre(AllOf(named("Func"), hasInclude("\"foo.h\""),
-                                         Not(insertInclude()))));
+              UnorderedElementsAre(AllOf(Named("Func"), HasInclude("\"foo.h\""),
+                                         Not(InsertInclude()))));
 }
 
 TEST(CompletionTest, MergeMacrosFromIndexAndSema) {
@@ -2609,7 +2608,7 @@ TEST(CompletionTest, MergeMacrosFromIndexAndSema) {
   Sym.Flags |= Symbol::IndexedForCodeCompletion;
   EXPECT_THAT(completions("#define Clangd_Macro_Test\nClangd_Macro_T^", {Sym})
                   .Completions,
-              UnorderedElementsAre(named("Clangd_Macro_Test")));
+              UnorderedElementsAre(Named("Clangd_Macro_Test")));
 }
 
 TEST(CompletionTest, MacroFromPreamble) {
@@ -2625,9 +2624,9 @@ TEST(CompletionTest, MacroFromPreamble) {
   // We should get results from the main file, including the preamble section.
   // However no results from included files (the index should cover them).
   EXPECT_THAT(Results.Completions,
-              UnorderedElementsAre(named("CLANGD_PREAMBLE_MAIN"),
-                                   named("CLANGD_MAIN"),
-                                   named("CLANGD_INDEX")));
+              UnorderedElementsAre(Named("CLANGD_PREAMBLE_MAIN"),
+                                   Named("CLANGD_MAIN"),
+                                   Named("CLANGD_INDEX")));
 }
 
 TEST(CompletionTest, DeprecatedResults) {
@@ -2638,8 +2637,8 @@ TEST(CompletionTest, DeprecatedResults) {
 
   EXPECT_THAT(
       completions(Body + "int main() { TestClang^ }").Completions,
-      UnorderedElementsAre(AllOf(named("TestClangd"), Not(deprecated())),
-                           AllOf(named("TestClangc"), deprecated())));
+      UnorderedElementsAre(AllOf(Named("TestClangd"), Not(Deprecated())),
+                           AllOf(Named("TestClangc"), Deprecated())));
 }
 
 TEST(SignatureHelpTest, PartialSpec) {
@@ -2647,7 +2646,7 @@ TEST(SignatureHelpTest, PartialSpec) {
       template <typename T> struct Foo {};
       template <typename T> struct Foo<T*> { Foo(T); };
       Foo<int*> F(^);)cpp");
-  EXPECT_THAT(Results.signatures, Contains(sig("Foo([[T]])")));
+  EXPECT_THAT(Results.signatures, Contains(Sig("Foo([[T]])")));
   EXPECT_EQ(0, Results.activeParameter);
 }
 
@@ -2659,8 +2658,8 @@ TEST(SignatureHelpTest, InsideArgument) {
       int main() { foo(1+^); }
     )cpp");
     EXPECT_THAT(Results.signatures,
-                ElementsAre(sig("foo([[int x]]) -> void"),
-                            sig("foo([[int x]], [[int y]]) -> void")));
+                ElementsAre(Sig("foo([[int x]]) -> void"),
+                            Sig("foo([[int x]], [[int y]]) -> void")));
     EXPECT_EQ(0, Results.activeParameter);
   }
   {
@@ -2670,8 +2669,8 @@ TEST(SignatureHelpTest, InsideArgument) {
       int main() { foo(1^); }
     )cpp");
     EXPECT_THAT(Results.signatures,
-                ElementsAre(sig("foo([[int x]]) -> void"),
-                            sig("foo([[int x]], [[int y]]) -> void")));
+                ElementsAre(Sig("foo([[int x]]) -> void"),
+                            Sig("foo([[int x]], [[int y]]) -> void")));
     EXPECT_EQ(0, Results.activeParameter);
   }
   {
@@ -2681,8 +2680,8 @@ TEST(SignatureHelpTest, InsideArgument) {
       int main() { foo(1^0); }
     )cpp");
     EXPECT_THAT(Results.signatures,
-                ElementsAre(sig("foo([[int x]]) -> void"),
-                            sig("foo([[int x]], [[int y]]) -> void")));
+                ElementsAre(Sig("foo([[int x]]) -> void"),
+                            Sig("foo([[int x]], [[int y]]) -> void")));
     EXPECT_EQ(0, Results.activeParameter);
   }
   {
@@ -2693,7 +2692,7 @@ TEST(SignatureHelpTest, InsideArgument) {
       int main() { bar(foo(2, 3^)); }
     )cpp");
     EXPECT_THAT(Results.signatures,
-                ElementsAre(sig("foo([[int x]], [[int y]]) -> void")));
+                ElementsAre(Sig("foo([[int x]], [[int y]]) -> void")));
     EXPECT_EQ(1, Results.activeParameter);
   }
 }
@@ -2708,8 +2707,8 @@ TEST(SignatureHelpTest, ConstructorInitializeFields) {
       };
     )cpp");
     EXPECT_THAT(Results.signatures,
-                UnorderedElementsAre(sig("A([[int]])"), sig("A([[A &&]])"),
-                                     sig("A([[const A &]])")));
+                UnorderedElementsAre(Sig("A([[int]])"), Sig("A([[A &&]])"),
+                                     Sig("A([[const A &]])")));
   }
   {
     const auto Results = signatures(R"cpp(
@@ -2733,8 +2732,8 @@ TEST(SignatureHelpTest, ConstructorInitializeFields) {
       };
     )cpp");
     EXPECT_THAT(Results.signatures,
-                UnorderedElementsAre(sig("A([[int]])"), sig("A([[A &&]])"),
-                                     sig("A([[const A &]])")));
+                UnorderedElementsAre(Sig("A([[int]])"), Sig("A([[A &&]])"),
+                                     Sig("A([[const A &]])")));
   }
   {
     const auto Results = signatures(R"cpp(
@@ -2751,8 +2750,8 @@ TEST(SignatureHelpTest, ConstructorInitializeFields) {
       };
     )cpp");
     EXPECT_THAT(Results.signatures,
-                UnorderedElementsAre(sig("A([[int]])"), sig("A([[A &&]])"),
-                                     sig("A([[const A &]])")));
+                UnorderedElementsAre(Sig("A([[int]])"), Sig("A([[A &&]])"),
+                                     Sig("A([[const A &]])")));
   }
 }
 
@@ -2765,17 +2764,17 @@ TEST(SignatureHelpTest, Variadic) {
   {
     const auto Result = signatures(Header + "fun(^);}");
     EXPECT_EQ(0, Result.activeParameter);
-    EXPECT_THAT(Result.signatures, UnorderedElementsAre(sig(ExpectedSig)));
+    EXPECT_THAT(Result.signatures, UnorderedElementsAre(Sig(ExpectedSig)));
   }
   {
     const auto Result = signatures(Header + "fun(1, ^);}");
     EXPECT_EQ(1, Result.activeParameter);
-    EXPECT_THAT(Result.signatures, UnorderedElementsAre(sig(ExpectedSig)));
+    EXPECT_THAT(Result.signatures, UnorderedElementsAre(Sig(ExpectedSig)));
   }
   {
     const auto Result = signatures(Header + "fun(1, 2, ^);}");
     EXPECT_EQ(1, Result.activeParameter);
-    EXPECT_THAT(Result.signatures, UnorderedElementsAre(sig(ExpectedSig)));
+    EXPECT_THAT(Result.signatures, UnorderedElementsAre(Sig(ExpectedSig)));
   }
 }
 
@@ -2789,17 +2788,17 @@ TEST(SignatureHelpTest, VariadicTemplate) {
   {
     const auto Result = signatures(Header + "fun(^);}");
     EXPECT_EQ(0, Result.activeParameter);
-    EXPECT_THAT(Result.signatures, UnorderedElementsAre(sig(ExpectedSig)));
+    EXPECT_THAT(Result.signatures, UnorderedElementsAre(Sig(ExpectedSig)));
   }
   {
     const auto Result = signatures(Header + "fun(1, ^);}");
     EXPECT_EQ(1, Result.activeParameter);
-    EXPECT_THAT(Result.signatures, UnorderedElementsAre(sig(ExpectedSig)));
+    EXPECT_THAT(Result.signatures, UnorderedElementsAre(Sig(ExpectedSig)));
   }
   {
     const auto Result = signatures(Header + "fun(1, 2, ^);}");
     EXPECT_EQ(1, Result.activeParameter);
-    EXPECT_THAT(Result.signatures, UnorderedElementsAre(sig(ExpectedSig)));
+    EXPECT_THAT(Result.signatures, UnorderedElementsAre(Sig(ExpectedSig)));
   }
 }
 
@@ -2815,17 +2814,17 @@ TEST(SignatureHelpTest, VariadicMethod) {
   {
     const auto Result = signatures(Header + "c.fun(^);}");
     EXPECT_EQ(0, Result.activeParameter);
-    EXPECT_THAT(Result.signatures, UnorderedElementsAre(sig(ExpectedSig)));
+    EXPECT_THAT(Result.signatures, UnorderedElementsAre(Sig(ExpectedSig)));
   }
   {
     const auto Result = signatures(Header + "c.fun(1, ^);}");
     EXPECT_EQ(1, Result.activeParameter);
-    EXPECT_THAT(Result.signatures, UnorderedElementsAre(sig(ExpectedSig)));
+    EXPECT_THAT(Result.signatures, UnorderedElementsAre(Sig(ExpectedSig)));
   }
   {
     const auto Result = signatures(Header + "c.fun(1, 2, ^);}");
     EXPECT_EQ(1, Result.activeParameter);
-    EXPECT_THAT(Result.signatures, UnorderedElementsAre(sig(ExpectedSig)));
+    EXPECT_THAT(Result.signatures, UnorderedElementsAre(Sig(ExpectedSig)));
   }
 }
 
@@ -2840,17 +2839,17 @@ TEST(SignatureHelpTest, VariadicType) {
   {
     const auto Result = signatures(Header + "get_fun()(^);}");
     EXPECT_EQ(0, Result.activeParameter);
-    EXPECT_THAT(Result.signatures, UnorderedElementsAre(sig(ExpectedSig)));
+    EXPECT_THAT(Result.signatures, UnorderedElementsAre(Sig(ExpectedSig)));
   }
   {
     const auto Result = signatures(Header + "get_fun()(1, ^);}");
     EXPECT_EQ(1, Result.activeParameter);
-    EXPECT_THAT(Result.signatures, UnorderedElementsAre(sig(ExpectedSig)));
+    EXPECT_THAT(Result.signatures, UnorderedElementsAre(Sig(ExpectedSig)));
   }
   {
     const auto Result = signatures(Header + "get_fun()(1, 2, ^);}");
     EXPECT_EQ(1, Result.activeParameter);
-    EXPECT_THAT(Result.signatures, UnorderedElementsAre(sig(ExpectedSig)));
+    EXPECT_THAT(Result.signatures, UnorderedElementsAre(Sig(ExpectedSig)));
   }
 }
 
@@ -2862,8 +2861,8 @@ TEST(CompletionTest, IncludedCompletionKinds) {
 
   auto Results = completions(TU, Test.point());
   EXPECT_THAT(Results.Completions,
-              AllOf(has("sub/", CompletionItemKind::Folder),
-                    has("bar.h\"", CompletionItemKind::File)));
+              AllOf(Has("sub/", CompletionItemKind::Folder),
+                    Has("bar.h\"", CompletionItemKind::File)));
 }
 
 TEST(CompletionTest, NoCrashAtNonAlphaIncludeHeader) {
@@ -2884,7 +2883,7 @@ TEST(CompletionTest, NoAllScopesCompletionWhenQualified) {
       {cls("na::ClangdA"), cls("nx::ClangdX"), cls("Clangd3")}, Opts);
   EXPECT_THAT(Results.Completions,
               UnorderedElementsAre(
-                  AllOf(qualifier(""), scope("na::"), named("ClangdA"))));
+                  AllOf(Qualifier(""), Scope("na::"), Named("ClangdA"))));
 }
 
 TEST(CompletionTest, AllScopesCompletion) {
@@ -2902,10 +2901,10 @@ TEST(CompletionTest, AllScopesCompletion) {
       Opts);
   EXPECT_THAT(
       Results.Completions,
-      UnorderedElementsAre(AllOf(qualifier("nx::"), named("Clangd1")),
-                           AllOf(qualifier("ny::"), named("Clangd2")),
-                           AllOf(qualifier(""), scope(""), named("Clangd3")),
-                           AllOf(qualifier("nb::"), named("Clangd4"))));
+      UnorderedElementsAre(AllOf(Qualifier("nx::"), Named("Clangd1")),
+                           AllOf(Qualifier("ny::"), Named("Clangd2")),
+                           AllOf(Qualifier(""), Scope(""), Named("Clangd3")),
+                           AllOf(Qualifier("nb::"), Named("Clangd4"))));
 }
 
 TEST(CompletionTest, NoQualifierIfShadowed) {
@@ -2921,8 +2920,8 @@ TEST(CompletionTest, NoQualifierIfShadowed) {
   // Although Clangd1 is from another namespace, Sema tells us it's in-scope and
   // needs no qualifier.
   EXPECT_THAT(Results.Completions,
-              UnorderedElementsAre(AllOf(qualifier(""), named("Clangd1")),
-                                   AllOf(qualifier("nx::"), named("Clangd2"))));
+              UnorderedElementsAre(AllOf(Qualifier(""), Named("Clangd1")),
+                                   AllOf(Qualifier("nx::"), Named("Clangd2"))));
 }
 
 TEST(CompletionTest, NoCompletionsForNewNames) {
@@ -2989,11 +2988,11 @@ TEST(CompletionTest, ObjectiveCMethodNoArguments) {
                              /*Opts=*/{}, "Foo.m");
 
   auto C = Results.Completions;
-  EXPECT_THAT(C, ElementsAre(named("value")));
-  EXPECT_THAT(C, ElementsAre(kind(CompletionItemKind::Method)));
-  EXPECT_THAT(C, ElementsAre(returnType("int")));
-  EXPECT_THAT(C, ElementsAre(signature("")));
-  EXPECT_THAT(C, ElementsAre(snippetSuffix("")));
+  EXPECT_THAT(C, ElementsAre(Named("value")));
+  EXPECT_THAT(C, ElementsAre(Kind(CompletionItemKind::Method)));
+  EXPECT_THAT(C, ElementsAre(ReturnType("int")));
+  EXPECT_THAT(C, ElementsAre(Signature("")));
+  EXPECT_THAT(C, ElementsAre(SnippetSuffix("")));
 }
 
 TEST(CompletionTest, ObjectiveCMethodOneArgument) {
@@ -3007,11 +3006,11 @@ TEST(CompletionTest, ObjectiveCMethodOneArgument) {
                              /*Opts=*/{}, "Foo.m");
 
   auto C = Results.Completions;
-  EXPECT_THAT(C, ElementsAre(named("valueForCharacter:")));
-  EXPECT_THAT(C, ElementsAre(kind(CompletionItemKind::Method)));
-  EXPECT_THAT(C, ElementsAre(returnType("int")));
-  EXPECT_THAT(C, ElementsAre(signature("(char)")));
-  EXPECT_THAT(C, ElementsAre(snippetSuffix("${1:(char)}")));
+  EXPECT_THAT(C, ElementsAre(Named("valueForCharacter:")));
+  EXPECT_THAT(C, ElementsAre(Kind(CompletionItemKind::Method)));
+  EXPECT_THAT(C, ElementsAre(ReturnType("int")));
+  EXPECT_THAT(C, ElementsAre(Signature("(char)")));
+  EXPECT_THAT(C, ElementsAre(SnippetSuffix("${1:(char)}")));
 }
 
 TEST(CompletionTest, ObjectiveCMethodTwoArgumentsFromBeginning) {
@@ -3025,12 +3024,12 @@ TEST(CompletionTest, ObjectiveCMethodTwoArgumentsFromBeginning) {
                              /*Opts=*/{}, "Foo.m");
 
   auto C = Results.Completions;
-  EXPECT_THAT(C, ElementsAre(named("fooWithValue:")));
-  EXPECT_THAT(C, ElementsAre(kind(CompletionItemKind::Method)));
-  EXPECT_THAT(C, ElementsAre(returnType("id")));
-  EXPECT_THAT(C, ElementsAre(signature("(int) fooey:(unsigned int)")));
+  EXPECT_THAT(C, ElementsAre(Named("fooWithValue:")));
+  EXPECT_THAT(C, ElementsAre(Kind(CompletionItemKind::Method)));
+  EXPECT_THAT(C, ElementsAre(ReturnType("id")));
+  EXPECT_THAT(C, ElementsAre(Signature("(int) fooey:(unsigned int)")));
   EXPECT_THAT(
-      C, ElementsAre(snippetSuffix("${1:(int)} fooey:${2:(unsigned int)}")));
+      C, ElementsAre(SnippetSuffix("${1:(int)} fooey:${2:(unsigned int)}")));
 }
 
 TEST(CompletionTest, ObjectiveCMethodTwoArgumentsFromMiddle) {
@@ -3044,11 +3043,11 @@ TEST(CompletionTest, ObjectiveCMethodTwoArgumentsFromMiddle) {
                              /*Opts=*/{}, "Foo.m");
 
   auto C = Results.Completions;
-  EXPECT_THAT(C, ElementsAre(named("fooey:")));
-  EXPECT_THAT(C, ElementsAre(kind(CompletionItemKind::Method)));
-  EXPECT_THAT(C, ElementsAre(returnType("id")));
-  EXPECT_THAT(C, ElementsAre(signature("(unsigned int)")));
-  EXPECT_THAT(C, ElementsAre(snippetSuffix("${1:(unsigned int)}")));
+  EXPECT_THAT(C, ElementsAre(Named("fooey:")));
+  EXPECT_THAT(C, ElementsAre(Kind(CompletionItemKind::Method)));
+  EXPECT_THAT(C, ElementsAre(ReturnType("id")));
+  EXPECT_THAT(C, ElementsAre(Signature("(unsigned int)")));
+  EXPECT_THAT(C, ElementsAre(SnippetSuffix("${1:(unsigned int)}")));
 }
 
 TEST(CompletionTest, ObjectiveCSimpleMethodDeclaration) {
@@ -3064,9 +3063,9 @@ TEST(CompletionTest, ObjectiveCSimpleMethodDeclaration) {
                              /*Opts=*/{}, "Foo.m");
 
   auto C = Results.Completions;
-  EXPECT_THAT(C, ElementsAre(named("foo")));
-  EXPECT_THAT(C, ElementsAre(kind(CompletionItemKind::Method)));
-  EXPECT_THAT(C, ElementsAre(qualifier("- (void)")));
+  EXPECT_THAT(C, ElementsAre(Named("foo")));
+  EXPECT_THAT(C, ElementsAre(Kind(CompletionItemKind::Method)));
+  EXPECT_THAT(C, ElementsAre(Qualifier("- (void)")));
 }
 
 TEST(CompletionTest, ObjectiveCMethodDeclaration) {
@@ -3082,10 +3081,10 @@ TEST(CompletionTest, ObjectiveCMethodDeclaration) {
                              /*Opts=*/{}, "Foo.m");
 
   auto C = Results.Completions;
-  EXPECT_THAT(C, ElementsAre(named("valueForCharacter:")));
-  EXPECT_THAT(C, ElementsAre(kind(CompletionItemKind::Method)));
-  EXPECT_THAT(C, ElementsAre(qualifier("- (int)")));
-  EXPECT_THAT(C, ElementsAre(signature("(char)c secondArgument:(id)object")));
+  EXPECT_THAT(C, ElementsAre(Named("valueForCharacter:")));
+  EXPECT_THAT(C, ElementsAre(Kind(CompletionItemKind::Method)));
+  EXPECT_THAT(C, ElementsAre(Qualifier("- (int)")));
+  EXPECT_THAT(C, ElementsAre(Signature("(char)c secondArgument:(id)object")));
 }
 
 TEST(CompletionTest, ObjectiveCMethodDeclarationPrefixTyped) {
@@ -3101,9 +3100,9 @@ TEST(CompletionTest, ObjectiveCMethodDeclarationPrefixTyped) {
                              /*Opts=*/{}, "Foo.m");
 
   auto C = Results.Completions;
-  EXPECT_THAT(C, ElementsAre(named("valueForCharacter:")));
-  EXPECT_THAT(C, ElementsAre(kind(CompletionItemKind::Method)));
-  EXPECT_THAT(C, ElementsAre(signature("(char)c")));
+  EXPECT_THAT(C, ElementsAre(Named("valueForCharacter:")));
+  EXPECT_THAT(C, ElementsAre(Kind(CompletionItemKind::Method)));
+  EXPECT_THAT(C, ElementsAre(Signature("(char)c")));
 }
 
 TEST(CompletionTest, ObjectiveCMethodDeclarationFromMiddle) {
@@ -3119,9 +3118,9 @@ TEST(CompletionTest, ObjectiveCMethodDeclarationFromMiddle) {
                              /*Opts=*/{}, "Foo.m");
 
   auto C = Results.Completions;
-  EXPECT_THAT(C, ElementsAre(named("secondArgument:")));
-  EXPECT_THAT(C, ElementsAre(kind(CompletionItemKind::Method)));
-  EXPECT_THAT(C, ElementsAre(signature("(id)object")));
+  EXPECT_THAT(C, ElementsAre(Named("secondArgument:")));
+  EXPECT_THAT(C, ElementsAre(Kind(CompletionItemKind::Method)));
+  EXPECT_THAT(C, ElementsAre(Signature("(id)object")));
 }
 
 TEST(CompletionTest, CursorInSnippets) {
@@ -3138,12 +3137,12 @@ TEST(CompletionTest, CursorInSnippets) {
   // Last placeholder in code patterns should be $0 to put the cursor there.
   EXPECT_THAT(Results.Completions,
               Contains(AllOf(
-                  named("while"),
-                  snippetSuffix(" (${1:condition}) {\n${0:statements}\n}"))));
+                  Named("while"),
+                  SnippetSuffix(" (${1:condition}) {\n${0:statements}\n}"))));
   // However, snippets for functions must *not* end with $0.
   EXPECT_THAT(Results.Completions,
-              Contains(AllOf(named("while_foo"),
-                             snippetSuffix("(${1:int a}, ${2:int b})"))));
+              Contains(AllOf(Named("while_foo"),
+                             SnippetSuffix("(${1:int a}, ${2:int b})"))));
 }
 
 TEST(CompletionTest, WorksWithNullType) {
@@ -3154,7 +3153,7 @@ TEST(CompletionTest, WorksWithNullType) {
       }
     }
   )cpp");
-  EXPECT_THAT(R.Completions, ElementsAre(named("loopVar")));
+  EXPECT_THAT(R.Completions, ElementsAre(Named("loopVar")));
 }
 
 TEST(CompletionTest, UsingDecl) {
@@ -3173,8 +3172,8 @@ TEST(CompletionTest, UsingDecl) {
   Opts.AllScopes = true;
   auto R = completions(Source, {}, Opts);
   EXPECT_THAT(R.Completions,
-              ElementsAre(AllOf(scope("std::"), named("foo"),
-                                kind(CompletionItemKind::Reference))));
+              ElementsAre(AllOf(Scope("std::"), Named("foo"),
+                                Kind(CompletionItemKind::Reference))));
 }
 
 TEST(CompletionTest, ScopeIsUnresolved) {
@@ -3188,7 +3187,7 @@ TEST(CompletionTest, ScopeIsUnresolved) {
   )cpp",
                              {cls("a::b::XYZ")}, Opts);
   EXPECT_THAT(Results.Completions,
-              UnorderedElementsAre(AllOf(qualifier(""), named("XYZ"))));
+              UnorderedElementsAre(AllOf(Qualifier(""), Named("XYZ"))));
 }
 
 TEST(CompletionTest, NestedScopeIsUnresolved) {
@@ -3203,7 +3202,7 @@ TEST(CompletionTest, NestedScopeIsUnresolved) {
   )cpp",
                              {cls("a::b::c::XYZ")}, Opts);
   EXPECT_THAT(Results.Completions,
-              UnorderedElementsAre(AllOf(qualifier(""), named("XYZ"))));
+              UnorderedElementsAre(AllOf(Qualifier(""), Named("XYZ"))));
 }
 
 // Clang parser gets confused here and doesn't report the ns:: prefix.
@@ -3220,7 +3219,7 @@ TEST(CompletionTest, NamespaceDoubleInsertion) {
   )cpp",
                              {cls("foo::ns::ABCDE")}, Opts);
   EXPECT_THAT(Results.Completions,
-              UnorderedElementsAre(AllOf(qualifier(""), named("ABCDE"))));
+              UnorderedElementsAre(AllOf(Qualifier(""), Named("ABCDE"))));
 }
 
 TEST(CompletionTest, DerivedMethodsAreAlwaysVisible) {
@@ -3239,7 +3238,7 @@ TEST(CompletionTest, DerivedMethodsAreAlwaysVisible) {
   )cpp")
                          .Completions;
   EXPECT_THAT(Completions,
-              ElementsAre(AllOf(returnType("int"), named("size"))));
+              ElementsAre(AllOf(ReturnType("int"), Named("size"))));
 }
 
 TEST(CompletionTest, NoCrashWithIncompleteLambda) {
@@ -3247,10 +3246,10 @@ TEST(CompletionTest, NoCrashWithIncompleteLambda) {
   // The completion of x itself can cause a problem: in the code completion
   // callback, its type is not known, which affects the linkage calculation.
   // A bad linkage value gets cached, and subsequently updated.
-  EXPECT_THAT(Completions, Contains(named("x")));
+  EXPECT_THAT(Completions, Contains(Named("x")));
 
   auto Signatures = signatures("auto x() { x(^").signatures;
-  EXPECT_THAT(Signatures, Contains(sig("x() -> auto")));
+  EXPECT_THAT(Signatures, Contains(Sig("x() -> auto")));
 }
 
 TEST(CompletionTest, DelayedTemplateParsing) {
@@ -3264,7 +3263,7 @@ TEST(CompletionTest, DelayedTemplateParsing) {
   TU.ExtraArgs.push_back("-fdelayed-template-parsing");
 
   EXPECT_THAT(completions(TU, Test.point()).Completions,
-              Contains(named("xxx")));
+              Contains(Named("xxx")));
 }
 
 TEST(CompletionTest, CompletionRange) {
@@ -3299,8 +3298,8 @@ TEST(NoCompileCompletionTest, Basic) {
   )cpp");
   EXPECT_FALSE(Results.RanParser);
   EXPECT_THAT(Results.Completions,
-              UnorderedElementsAre(named("void"), named("func"), named("int"),
-                                   named("xyz"), named("abc")));
+              UnorderedElementsAre(Named("void"), Named("func"), Named("int"),
+                                   Named("xyz"), Named("abc")));
 }
 
 TEST(NoCompileCompletionTest, WithFilter) {
@@ -3314,7 +3313,7 @@ TEST(NoCompileCompletionTest, WithFilter) {
     }
   )cpp");
   EXPECT_THAT(Results.Completions,
-              UnorderedElementsAre(named("sym1"), named("sym2")));
+              UnorderedElementsAre(Named("sym1"), Named("sym2")));
 }
 
 TEST(NoCompileCompletionTest, WithIndex) {
@@ -3333,9 +3332,9 @@ TEST(NoCompileCompletionTest, WithIndex) {
       )cpp",
       Syms);
   EXPECT_THAT(Results.Completions,
-              UnorderedElementsAre(AllOf(qualifier(""), scope("")),
-                                   AllOf(qualifier(""), scope("a::")),
-                                   AllOf(qualifier(""), scope("ns::b::"))));
+              UnorderedElementsAre(AllOf(Qualifier(""), Scope("")),
+                                   AllOf(Qualifier(""), Scope("a::")),
+                                   AllOf(Qualifier(""), Scope("ns::b::"))));
   CodeCompleteOptions Opts;
   Opts.AllScopes = true;
   Results = completionsNoCompile(
@@ -3351,11 +3350,11 @@ TEST(NoCompileCompletionTest, WithIndex) {
       )cpp",
       Syms, Opts);
   EXPECT_THAT(Results.Completions,
-              UnorderedElementsAre(AllOf(qualifier(""), scope("")),
-                                   AllOf(qualifier(""), scope("a::")),
-                                   AllOf(qualifier(""), scope("ns::b::")),
-                                   AllOf(qualifier("c::"), scope("c::")),
-                                   AllOf(qualifier("d::"), scope("ns::d::"))));
+              UnorderedElementsAre(AllOf(Qualifier(""), Scope("")),
+                                   AllOf(Qualifier(""), Scope("a::")),
+                                   AllOf(Qualifier(""), Scope("ns::b::")),
+                                   AllOf(Qualifier("c::"), Scope("c::")),
+                                   AllOf(Qualifier("d::"), Scope("ns::d::"))));
   Results = completionsNoCompile(
       R"cpp(
         // Qualified completion.
@@ -3369,7 +3368,7 @@ TEST(NoCompileCompletionTest, WithIndex) {
       )cpp",
       Syms, Opts);
   EXPECT_THAT(Results.Completions,
-              ElementsAre(AllOf(qualifier(""), scope("ns::b::"))));
+              ElementsAre(AllOf(Qualifier(""), Scope("ns::b::"))));
   Results = completionsNoCompile(
       R"cpp(
         // Absolutely qualified completion.
@@ -3383,7 +3382,7 @@ TEST(NoCompileCompletionTest, WithIndex) {
       )cpp",
       Syms, Opts);
   EXPECT_THAT(Results.Completions,
-              ElementsAre(AllOf(qualifier(""), scope("a::"))));
+              ElementsAre(AllOf(Qualifier(""), Scope("a::"))));
 }
 
 TEST(AllowImplicitCompletion, All) {
@@ -3431,44 +3430,44 @@ TEST(CompletionTest, FunctionArgsExist) {
   )cpp";
   EXPECT_THAT(completions(Context + "int y = fo^", {}, Opts).Completions,
               UnorderedElementsAre(
-                  AllOf(labeled("foo(int A)"), snippetSuffix("(${1:int A})"))));
+                  AllOf(Labeled("foo(int A)"), SnippetSuffix("(${1:int A})"))));
   EXPECT_THAT(
       completions(Context + "int y = fo^(42)", {}, Opts).Completions,
-      UnorderedElementsAre(AllOf(labeled("foo(int A)"), snippetSuffix(""))));
+      UnorderedElementsAre(AllOf(Labeled("foo(int A)"), SnippetSuffix(""))));
   // FIXME(kirillbobyrev): No snippet should be produced here.
   EXPECT_THAT(completions(Context + "int y = fo^o(42)", {}, Opts).Completions,
               UnorderedElementsAre(
-                  AllOf(labeled("foo(int A)"), snippetSuffix("(${1:int A})"))));
+                  AllOf(Labeled("foo(int A)"), SnippetSuffix("(${1:int A})"))));
   EXPECT_THAT(
       completions(Context + "int y = ba^", {}, Opts).Completions,
-      UnorderedElementsAre(AllOf(labeled("bar()"), snippetSuffix("()"))));
+      UnorderedElementsAre(AllOf(Labeled("bar()"), SnippetSuffix("()"))));
   EXPECT_THAT(completions(Context + "int y = ba^()", {}, Opts).Completions,
-              UnorderedElementsAre(AllOf(labeled("bar()"), snippetSuffix(""))));
+              UnorderedElementsAre(AllOf(Labeled("bar()"), SnippetSuffix(""))));
   EXPECT_THAT(
       completions(Context + "Object o = Obj^", {}, Opts).Completions,
-      Contains(AllOf(labeled("Object(int B)"), snippetSuffix("(${1:int B})"),
-                     kind(CompletionItemKind::Constructor))));
+      Contains(AllOf(Labeled("Object(int B)"), SnippetSuffix("(${1:int B})"),
+                     Kind(CompletionItemKind::Constructor))));
   EXPECT_THAT(completions(Context + "Object o = Obj^()", {}, Opts).Completions,
-              Contains(AllOf(labeled("Object(int B)"), snippetSuffix(""),
-                             kind(CompletionItemKind::Constructor))));
+              Contains(AllOf(Labeled("Object(int B)"), SnippetSuffix(""),
+                             Kind(CompletionItemKind::Constructor))));
   EXPECT_THAT(
       completions(Context + "Container c = Cont^", {}, Opts).Completions,
-      Contains(AllOf(labeled("Container<typename T>(int Size)"),
-                     snippetSuffix("<${1:typename T}>(${2:int Size})"),
-                     kind(CompletionItemKind::Constructor))));
+      Contains(AllOf(Labeled("Container<typename T>(int Size)"),
+                     SnippetSuffix("<${1:typename T}>(${2:int Size})"),
+                     Kind(CompletionItemKind::Constructor))));
   EXPECT_THAT(
       completions(Context + "Container c = Cont^()", {}, Opts).Completions,
-      Contains(AllOf(labeled("Container<typename T>(int Size)"),
-                     snippetSuffix("<${1:typename T}>"),
-                     kind(CompletionItemKind::Constructor))));
+      Contains(AllOf(Labeled("Container<typename T>(int Size)"),
+                     SnippetSuffix("<${1:typename T}>"),
+                     Kind(CompletionItemKind::Constructor))));
   EXPECT_THAT(
       completions(Context + "Container c = Cont^<int>()", {}, Opts).Completions,
-      Contains(AllOf(labeled("Container<typename T>(int Size)"),
-                     snippetSuffix(""),
-                     kind(CompletionItemKind::Constructor))));
+      Contains(AllOf(Labeled("Container<typename T>(int Size)"),
+                     SnippetSuffix(""),
+                     Kind(CompletionItemKind::Constructor))));
   EXPECT_THAT(completions(Context + "MAC^(2)", {}, Opts).Completions,
-              Contains(AllOf(labeled("MACRO(x)"), snippetSuffix(""),
-                             kind(CompletionItemKind::Text))));
+              Contains(AllOf(Labeled("MACRO(x)"), SnippetSuffix(""),
+                             Kind(CompletionItemKind::Text))));
 }
 
 TEST(CompletionTest, NoCrashDueToMacroOrdering) {
@@ -3477,7 +3476,7 @@ TEST(CompletionTest, NoCrashDueToMacroOrdering) {
     #define ECHO2(X) ECHO(X)
     int finish_preamble = EC^HO(2);)cpp")
                   .Completions,
-              UnorderedElementsAre(labeled("ECHO(X)"), labeled("ECHO2(X)")));
+              UnorderedElementsAre(Labeled("ECHO(X)"), Labeled("ECHO2(X)")));
 }
 
 TEST(CompletionTest, ObjCCategoryDecls) {
@@ -3507,7 +3506,7 @@ TEST(CompletionTest, ObjCCategoryDecls) {
     TU.Code = Test.code().str();
     auto Results = completions(TU, Test.point());
     EXPECT_THAT(Results.Completions,
-                UnorderedElementsAre(labeled("FooExt1"), labeled("FooExt2")));
+                UnorderedElementsAre(Labeled("FooExt1"), Labeled("FooExt2")));
   }
   {
     Annotations Test(R"objc(
@@ -3516,7 +3515,7 @@ TEST(CompletionTest, ObjCCategoryDecls) {
   )objc");
     TU.Code = Test.code().str();
     auto Results = completions(TU, Test.point());
-    EXPECT_THAT(Results.Completions, UnorderedElementsAre(labeled("BarExt")));
+    EXPECT_THAT(Results.Completions, UnorderedElementsAre(Labeled("BarExt")));
   }
 }
 
@@ -3547,19 +3546,19 @@ TEST(CompletionTest, CommentParamName) {
   )cpp";
 
   EXPECT_THAT(completions(Code + "fun(/*^", {}, Opts).Completions,
-              UnorderedElementsAre(labeled("foo=")));
+              UnorderedElementsAre(Labeled("foo=")));
   EXPECT_THAT(completions(Code + "fun(1, /*^", {}, Opts).Completions,
-              UnorderedElementsAre(labeled("bar=")));
+              UnorderedElementsAre(Labeled("bar=")));
   EXPECT_THAT(completions(Code + "/*^", {}, Opts).Completions, IsEmpty());
   // Test de-duplication.
   EXPECT_THAT(
       completions(Code + "overloaded(/*^", {}, Opts).Completions,
-      UnorderedElementsAre(labeled("param_int="), labeled("param_char=")));
+      UnorderedElementsAre(Labeled("param_int="), Labeled("param_char=")));
   // Comment already has some text in it.
   EXPECT_THAT(completions(Code + "fun(/*  ^", {}, Opts).Completions,
-              UnorderedElementsAre(labeled("foo=")));
+              UnorderedElementsAre(Labeled("foo=")));
   EXPECT_THAT(completions(Code + "fun(/* f^", {}, Opts).Completions,
-              UnorderedElementsAre(labeled("foo=")));
+              UnorderedElementsAre(Labeled("foo=")));
   EXPECT_THAT(completions(Code + "fun(/* x^", {}, Opts).Completions, IsEmpty());
   EXPECT_THAT(completions(Code + "fun(/* f ^", {}, Opts).Completions,
               IsEmpty());
@@ -3589,13 +3588,13 @@ TEST(SignatureHelp, TemplateArguments) {
   auto First = signatures(Top + "bool x = foo<^");
   EXPECT_THAT(
       First.signatures,
-      UnorderedElementsAre(sig("foo<[[typename T]], [[int]]>() -> bool"),
-                           sig("foo<[[int I]], [[int]]>() -> bool")));
+      UnorderedElementsAre(Sig("foo<[[typename T]], [[int]]>() -> bool"),
+                           Sig("foo<[[int I]], [[int]]>() -> bool")));
   EXPECT_EQ(First.activeParameter, 0);
 
   auto Second = signatures(Top + "bool x = foo<1, ^");
   EXPECT_THAT(Second.signatures,
-              ElementsAre(sig("foo<[[int I]], [[int]]>() -> bool")));
+              ElementsAre(Sig("foo<[[int I]], [[int]]>() -> bool")));
   EXPECT_EQ(Second.activeParameter, 1);
 }
 

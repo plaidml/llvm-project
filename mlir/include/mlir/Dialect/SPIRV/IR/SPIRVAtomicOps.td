@@ -14,8 +14,12 @@
 #ifndef MLIR_DIALECT_SPIRV_IR_ATOMIC_OPS
 #define MLIR_DIALECT_SPIRV_IR_ATOMIC_OPS
 
-class SPV_AtomicUpdateOp<string mnemonic, list<Trait> traits = []> :
+class SPV_AtomicUpdateOp<string mnemonic, list<OpTrait> traits = []> :
   SPV_Op<mnemonic, traits> {
+  let parser = [{ return ::parseAtomicUpdateOp(parser, result, false); }];
+  let printer = [{ return ::printAtomicUpdateOp(getOperation(), p); }];
+  let verifier = [{ return ::verifyAtomicUpdateOp<IntegerType>(getOperation()); }];
+
   let arguments = (ins
     SPV_AnyPtr:$pointer,
     SPV_ScopeAttr:$memory_scope,
@@ -27,8 +31,12 @@ class SPV_AtomicUpdateOp<string mnemonic, list<Trait> traits = []> :
   );
 }
 
-class SPV_AtomicUpdateWithValueOp<string mnemonic, list<Trait> traits = []> :
+class SPV_AtomicUpdateWithValueOp<string mnemonic, list<OpTrait> traits = []> :
   SPV_Op<mnemonic, traits> {
+  let parser = [{ return ::parseAtomicUpdateOp(parser, result, true); }];
+  let printer = [{ return ::printAtomicUpdateOp(getOperation(), p); }];
+  let verifier = [{ return ::verifyAtomicUpdateOp<IntegerType>(getOperation()); }];
+
   let arguments = (ins
     SPV_AnyPtr:$pointer,
     SPV_ScopeAttr:$memory_scope,
@@ -157,6 +165,10 @@ def SPV_AtomicCompareExchangeOp : SPV_Op<"AtomicCompareExchange", []> {
   let results = (outs
     SPV_Integer:$result
   );
+
+  let parser = [{ return ::parseAtomicCompareExchangeImpl(parser, result); }];
+  let printer = [{ return ::printAtomicCompareExchangeImpl(*this, p); }];
+  let verifier = [{ return ::verifyAtomicCompareExchangeImpl(*this); }];
 }
 
 // -----
@@ -206,6 +218,10 @@ def SPV_AtomicCompareExchangeWeakOp : SPV_Op<"AtomicCompareExchangeWeak", []> {
   let results = (outs
     SPV_Integer:$result
   );
+
+  let parser = [{ return ::parseAtomicCompareExchangeImpl(parser, result); }];
+  let printer = [{ return ::printAtomicCompareExchangeImpl(*this, p); }];
+  let verifier = [{ return ::verifyAtomicCompareExchangeImpl(*this); }];
 }
 
 // -----
@@ -319,6 +335,10 @@ def SPV_AtomicFAddEXTOp : SPV_Op<"AtomicFAddEXT", []> {
   let results = (outs
     SPV_Float:$result
   );
+
+  let parser = [{ return ::parseAtomicUpdateOp(parser, result, true); }];
+  let printer = [{ return ::printAtomicUpdateOp(getOperation(), p); }];
+  let verifier = [{ return ::verifyAtomicUpdateOp<FloatType>(getOperation()); }];
 }
 
 // -----

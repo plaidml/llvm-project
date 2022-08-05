@@ -499,18 +499,7 @@ bool FileExists(const char *filename) {
   return S_ISREG(st.st_mode);
 }
 
-bool DirExists(const char *path) {
-  struct stat st;
-#  if SANITIZER_USES_CANONICAL_LINUX_SYSCALLS
-  if (internal_syscall(SYSCALL(newfstatat), AT_FDCWD, path, &st, 0))
-#  else
-  if (internal_stat(path, &st))
-#  endif
-    return false;
-  return S_ISDIR(st.st_mode);
-}
-
-#  if !SANITIZER_NETBSD
+#if !SANITIZER_NETBSD
 tid_t GetTid() {
 #if SANITIZER_FREEBSD
   long Tid;
@@ -1836,7 +1825,7 @@ SignalContext::WriteFlag SignalContext::GetWriteFlag() const {
 #else
   uptr err = ucontext->uc_mcontext.gregs[REG_ERR];
 #endif // SANITIZER_FREEBSD
-  return err & PF_WRITE ? Write : Read;
+  return err & PF_WRITE ? WRITE : READ;
 #elif defined(__mips__)
   uint32_t *exception_source;
   uint32_t faulty_instruction;
@@ -1859,7 +1848,7 @@ SignalContext::WriteFlag SignalContext::GetWriteFlag() const {
     case 0x2a:  // swl
     case 0x2e:  // swr
 #endif
-      return SignalContext::Write;
+      return SignalContext::WRITE;
 
     case 0x20:  // lb
     case 0x24:  // lbu
@@ -1874,27 +1863,27 @@ SignalContext::WriteFlag SignalContext::GetWriteFlag() const {
     case 0x22:  // lwl
     case 0x26:  // lwr
 #endif
-      return SignalContext::Read;
+      return SignalContext::READ;
 #if __mips_isa_rev == 6
     case 0x3b:  // pcrel
       op_code = (faulty_instruction >> 19) & 0x3;
       switch (op_code) {
         case 0x1:  // lwpc
         case 0x2:  // lwupc
-          return SignalContext::Read;
+          return SignalContext::READ;
       }
 #endif
   }
-  return SignalContext::Unknown;
+  return SignalContext::UNKNOWN;
 #elif defined(__arm__)
   static const uptr FSR_WRITE = 1U << 11;
   uptr fsr = ucontext->uc_mcontext.error_code;
-  return fsr & FSR_WRITE ? Write : Read;
+  return fsr & FSR_WRITE ? WRITE : READ;
 #elif defined(__aarch64__)
   static const u64 ESR_ELx_WNR = 1U << 6;
   u64 esr;
-  if (!Aarch64GetESR(ucontext, &esr)) return Unknown;
-  return esr & ESR_ELx_WNR ? Write : Read;
+  if (!Aarch64GetESR(ucontext, &esr)) return UNKNOWN;
+  return esr & ESR_ELx_WNR ? WRITE : READ;
 #elif defined(__sparc__)
   // Decode the instruction to determine the access type.
   // From OpenSolaris $SRC/uts/sun4/os/trap.c (get_accesstype).
@@ -1910,7 +1899,7 @@ SignalContext::WriteFlag SignalContext::GetWriteFlag() const {
 #endif
 #endif
   u32 instr = *(u32 *)pc;
-  return (instr >> 21) & 1 ? Write: Read;
+  return (instr >> 21) & 1 ? WRITE: READ;
 #elif defined(__riscv)
 #if SANITIZER_FREEBSD
   unsigned long pc = ucontext->uc_mcontext.mc_gpregs.gp_sepc;
@@ -1930,7 +1919,7 @@ SignalContext::WriteFlag SignalContext::GetWriteFlag() const {
 #if __riscv_xlen == 64
       case 0b10'011:  // c.ldsp (rd != x0)
 #endif
-        return rd ? SignalContext::Read : SignalContext::Unknown;
+        return rd ? SignalContext::READ : SignalContext::UNKNOWN;
       case 0b00'010:  // c.lw
 #if __riscv_flen >= 32 && __riscv_xlen == 32
       case 0b10'011:  // c.flwsp
@@ -1942,7 +1931,7 @@ SignalContext::WriteFlag SignalContext::GetWriteFlag() const {
       case 0b00'001:  // c.fld
       case 0b10'001:  // c.fldsp
 #endif
-        return SignalContext::Read;
+        return SignalContext::READ;
       case 0b00'110:  // c.sw
       case 0b10'110:  // c.swsp
 #if __riscv_flen >= 32 || __riscv_xlen == 64
@@ -1953,9 +1942,9 @@ SignalContext::WriteFlag SignalContext::GetWriteFlag() const {
       case 0b00'101:  // c.fsd
       case 0b10'101:  // c.fsdsp
 #endif
-        return SignalContext::Write;
+        return SignalContext::WRITE;
       default:
-        return SignalContext::Unknown;
+        return SignalContext::UNKNOWN;
     }
   }
 #endif
@@ -1973,9 +1962,9 @@ SignalContext::WriteFlag SignalContext::GetWriteFlag() const {
 #endif
         case 0b100:  // lbu
         case 0b101:  // lhu
-          return SignalContext::Read;
+          return SignalContext::READ;
         default:
-          return SignalContext::Unknown;
+          return SignalContext::UNKNOWN;
       }
     case 0b0100011:  // stores
       switch (funct3) {
@@ -1985,9 +1974,9 @@ SignalContext::WriteFlag SignalContext::GetWriteFlag() const {
 #if __riscv_xlen == 64
         case 0b011:  // sd
 #endif
-          return SignalContext::Write;
+          return SignalContext::WRITE;
         default:
-          return SignalContext::Unknown;
+          return SignalContext::UNKNOWN;
       }
 #if __riscv_flen >= 32
     case 0b0000111:  // floating-point loads
@@ -1996,9 +1985,9 @@ SignalContext::WriteFlag SignalContext::GetWriteFlag() const {
 #if __riscv_flen == 64
         case 0b011:  // fld
 #endif
-          return SignalContext::Read;
+          return SignalContext::READ;
         default:
-          return SignalContext::Unknown;
+          return SignalContext::UNKNOWN;
       }
     case 0b0100111:  // floating-point stores
       switch (funct3) {
@@ -2006,17 +1995,17 @@ SignalContext::WriteFlag SignalContext::GetWriteFlag() const {
 #if __riscv_flen == 64
         case 0b011:  // fsd
 #endif
-          return SignalContext::Write;
+          return SignalContext::WRITE;
         default:
-          return SignalContext::Unknown;
+          return SignalContext::UNKNOWN;
       }
 #endif
     default:
-      return SignalContext::Unknown;
+      return SignalContext::UNKNOWN;
   }
 #else
   (void)ucontext;
-  return Unknown;  // FIXME: Implement.
+  return UNKNOWN;  // FIXME: Implement.
 #endif
 }
 

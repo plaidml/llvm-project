@@ -59,7 +59,7 @@ static cl::opt<unsigned> MaxDeoptOrUnreachableSuccessorCheckDepth(
              "is followed by a block that either has a terminating "
              "deoptimizing call or is terminated with an unreachable"));
 
-void llvm::detachDeadBlocks(
+void llvm::DetatchDeadBlocks(
     ArrayRef<BasicBlock *> BBs,
     SmallVectorImpl<DominatorTree::UpdateType> *Updates,
     bool KeepOneInputPHIs) {
@@ -110,7 +110,7 @@ void llvm::DeleteDeadBlocks(ArrayRef <BasicBlock *> BBs, DomTreeUpdater *DTU,
 #endif
 
   SmallVector<DominatorTree::UpdateType, 4> Updates;
-  detachDeadBlocks(BBs, DTU ? &Updates : nullptr, KeepOneInputPHIs);
+  DetatchDeadBlocks(BBs, DTU ? &Updates : nullptr, KeepOneInputPHIs);
 
   if (DTU)
     DTU->applyUpdates(Updates);

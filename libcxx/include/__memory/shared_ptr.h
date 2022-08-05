@@ -15,6 +15,7 @@
 #include <__functional/binary_function.h>
 #include <__functional/operations.h>
 #include <__functional/reference_wrapper.h>
+#include <__functional_base>
 #include <__memory/addressof.h>
 #include <__memory/allocation_guard.h>
 #include <__memory/allocator.h>
@@ -23,13 +24,13 @@
 #include <__memory/pointer_traits.h>
 #include <__memory/unique_ptr.h>
 #include <__utility/forward.h>
-#include <__utility/move.h>
 #include <cstddef>
 #include <cstdlib> // abort
 #include <iosfwd>
 #include <stdexcept>
 #include <type_traits>
 #include <typeinfo>
+#include <utility>
 #if !defined(_LIBCPP_HAS_NO_ATOMIC_HEADER)
 #  include <atomic>
 #endif
@@ -39,7 +40,7 @@
 #endif
 
 #if !defined(_LIBCPP_HAS_NO_PRAGMA_SYSTEM_HEADER)
-#  pragma GCC system_header
+#pragma GCC system_header
 #endif
 
 _LIBCPP_BEGIN_NAMESPACE_STD

@@ -520,10 +520,10 @@ mlir::linalg::fuseProducerOfTensor(OpBuilder &b, OpResult producerOpResult,
 /// Prune all dimensions that are of reduction iterator type from `map`.
 static AffineMap pruneReductionDimsFromMap(ArrayRef<Attribute> iteratorTypes,
                                            AffineMap map) {
-  llvm::SmallBitVector projectedDims(iteratorTypes.size());
+  llvm::SmallDenseSet<unsigned> projectedDims;
   for (const auto &attr : llvm::enumerate(iteratorTypes)) {
     if (!isParallelIterator(attr.value()))
-      projectedDims.set(attr.index());
+      projectedDims.insert(attr.index());
   }
   return getProjectedMap(map, projectedDims);
 }
@@ -637,7 +637,7 @@ static bool doesTransposeAccess(AffineMap map,
 ///     Fused dimensions : i, j
 ///
 /// Example 3:
-///   memref.copy(%s, %b)
+///   linalg.copy(%s, %b)
 ///   linalg.matmul ins(%a, %b) outs(%c)
 ///
 ///   Number of parallel loops = 2

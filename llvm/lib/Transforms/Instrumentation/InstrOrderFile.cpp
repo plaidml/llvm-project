@@ -61,7 +61,7 @@ private:
   ArrayType *MapTy;
 
 public:
-  InstrOrderFile() = default;
+  InstrOrderFile() {}
 
   void createOrderFileData(Module &M) {
     LLVMContext &Ctx = M.getContext();

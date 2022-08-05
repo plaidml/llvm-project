@@ -80,7 +80,7 @@ void ThreeVersionsSameAttr(void){}
 // CHECK: define {{.*}}void @ThreeVersionsSameAttr.S() #[[S]]
 // CHECK: define {{.*}}void @ThreeVersionsSameAttr.Z() #[[K]]
 
-void usages(void) {
+void usages() {
   SingleVersion();
   // LINUX: @SingleVersion.ifunc()
   // WINDOWS: @SingleVersion()

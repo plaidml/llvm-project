@@ -10,7 +10,7 @@
 // UNSUPPORTED: libcpp-no-concepts
 
 // template<class I1, class I2, class R, class P1, class P2>
-// concept indirectly_comparable;
+// concept indirectly_­comparable;
 
 #include <functional>
 #include <iterator>

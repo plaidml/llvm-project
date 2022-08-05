@@ -130,7 +130,6 @@ struct Config {
     // Whether specific categories of hints are enabled.
     bool Parameters = true;
     bool DeducedTypes = true;
-    bool Designators = false;
   } InlayHints;
 };
 

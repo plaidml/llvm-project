@@ -10,7 +10,6 @@
 #define MLIR_LIB_PARSER_TOKEN_H
 
 #include "mlir/Support/LLVM.h"
-#include "llvm/ADT/Optional.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/SMLoc.h"
 
@@ -102,9 +101,9 @@ public:
   std::string getSymbolReference() const;
 
   // Location processing.
-  SMLoc getLoc() const;
-  SMLoc getEndLoc() const;
-  SMRange getLocRange() const;
+  llvm::SMLoc getLoc() const;
+  llvm::SMLoc getEndLoc() const;
+  llvm::SMRange getLocRange() const;
 
   /// Given a punctuation or keyword token kind, return the spelling of the
   /// token as a string.  Warning: This will abort on markers, identifiers and

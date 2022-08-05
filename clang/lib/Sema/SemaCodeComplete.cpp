@@ -1896,7 +1896,6 @@ static PrintingPolicy getCompletionPrintingPolicy(const ASTContext &Context,
   Policy.SuppressStrongLifetime = true;
   Policy.SuppressUnwrittenScope = true;
   Policy.SuppressScope = true;
-  Policy.CleanUglifiedParameters = true;
   return Policy;
 }
 
@@ -2838,7 +2837,7 @@ FormatFunctionParameter(const PrintingPolicy &Policy,
     std::string Result;
 
     if (Param->getIdentifier() && !ObjCMethodParam && !SuppressName)
-      Result = std::string(Param->getIdentifier()->deuglifiedName());
+      Result = std::string(Param->getIdentifier()->getName());
 
     QualType Type = Param->getType();
     if (ObjCSubsts)
@@ -2848,7 +2847,7 @@ FormatFunctionParameter(const PrintingPolicy &Policy,
       Result = "(" + formatObjCParamQualifiers(ObjCQual, Type);
       Result += Type.getAsString(Policy) + ")";
       if (Param->getIdentifier() && !SuppressName)
-        Result += Param->getIdentifier()->deuglifiedName();
+        Result += Param->getIdentifier()->getName();
     } else {
       Type.getAsStringInternal(Result, Policy);
     }
@@ -2876,7 +2875,7 @@ FormatFunctionParameter(const PrintingPolicy &Policy,
     // for the block; just use the parameter type as a placeholder.
     std::string Result;
     if (!ObjCMethodParam && Param->getIdentifier())
-      Result = std::string(Param->getIdentifier()->deuglifiedName());
+      Result = std::string(Param->getIdentifier()->getName());
 
     QualType Type = Param->getType().getUnqualifiedType();
 
@@ -2888,7 +2887,7 @@ FormatFunctionParameter(const PrintingPolicy &Policy,
       if (Result.back() != ')')
         Result += " ";
       if (Param->getIdentifier())
-        Result += Param->getIdentifier()->deuglifiedName();
+        Result += Param->getIdentifier()->getName();
     } else {
       Type.getAsStringInternal(Result, Policy);
     }
@@ -3083,14 +3082,14 @@ static void AddTemplateParameterChunks(
 
       if (TTP->getIdentifier()) {
         PlaceholderStr += ' ';
-        PlaceholderStr += TTP->getIdentifier()->deuglifiedName();
+        PlaceholderStr += TTP->getIdentifier()->getName();
       }
 
       HasDefaultArg = TTP->hasDefaultArgument();
     } else if (NonTypeTemplateParmDecl *NTTP =
                    dyn_cast<NonTypeTemplateParmDecl>(*P)) {
       if (NTTP->getIdentifier())
-        PlaceholderStr = std::string(NTTP->getIdentifier()->deuglifiedName());
+        PlaceholderStr = std::string(NTTP->getIdentifier()->getName());
       NTTP->getType().getAsStringInternal(PlaceholderStr, Policy);
       HasDefaultArg = NTTP->hasDefaultArgument();
     } else {
@@ -3102,7 +3101,7 @@ static void AddTemplateParameterChunks(
       PlaceholderStr = "template<...> class";
       if (TTP->getIdentifier()) {
         PlaceholderStr += ' ';
-        PlaceholderStr += TTP->getIdentifier()->deuglifiedName();
+        PlaceholderStr += TTP->getIdentifier()->getName();
       }
 
       HasDefaultArg = TTP->hasDefaultArgument();
@@ -5520,10 +5519,9 @@ QualType getApproximateType(const Expr *E) {
                         : getApproximateType(CDSME->getBase());
     if (CDSME->isArrow() && !Base.isNull())
       Base = Base->getPointeeType(); // could handle unique_ptr etc here?
-    auto *RD =
-        Base.isNull()
-            ? nullptr
-            : llvm::dyn_cast_or_null<CXXRecordDecl>(getAsRecordDecl(Base));
+    auto *RD = Base.isNull()
+                   ? nullptr
+                   : llvm::dyn_cast<CXXRecordDecl>(getAsRecordDecl(Base));
     if (RD && RD->isCompleteDefinition()) {
       // Look up member heuristically, including in bases.
       for (const auto *Member : RD->lookupDependentName(
@@ -9787,7 +9785,7 @@ void Sema::CodeCompletePreprocessorMacroName(bool IsDefinition) {
                         CodeCompleter->getCodeCompletionTUInfo(),
                         IsDefinition ? CodeCompletionContext::CCC_MacroName
                                      : CodeCompletionContext::CCC_MacroNameUse);
-  if (!IsDefinition && CodeCompleter->includeMacros()) {
+  if (!IsDefinition && (!CodeCompleter || CodeCompleter->includeMacros())) {
     // Add just the names of macros, not their arguments.
     CodeCompletionBuilder Builder(Results.getAllocator(),
                                   Results.getCodeCompletionTUInfo());
@@ -9814,8 +9812,9 @@ void Sema::CodeCompletePreprocessorExpression() {
                         CodeCompleter->getCodeCompletionTUInfo(),
                         CodeCompletionContext::CCC_PreprocessorExpression);
 
-  if (CodeCompleter->includeMacros())
-    AddMacroResults(PP, Results, CodeCompleter->loadExternal(), true);
+  if (!CodeCompleter || CodeCompleter->includeMacros())
+    AddMacroResults(PP, Results,
+                    !CodeCompleter || CodeCompleter->loadExternal(), true);
 
   // defined (<macro>)
   Results.EnterNewScope();

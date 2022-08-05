@@ -19,7 +19,6 @@
 #include "lldb/Host/linux/Ptrace.h"
 #include "lldb/Host/linux/Support.h"
 #include "lldb/Utility/LLDBAssert.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/State.h"
 #include "lldb/lldb-enumerations.h"
@@ -111,7 +110,7 @@ lldb::StateType NativeThreadLinux::GetState() { return m_state; }
 
 bool NativeThreadLinux::GetStopReason(ThreadStopInfo &stop_info,
                                       std::string &description) {
-  Log *log = GetLog(LLDBLog::Thread);
+  Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_THREAD));
 
   description.clear();
 
@@ -278,7 +277,7 @@ Status NativeThreadLinux::SingleStep(uint32_t signo) {
 
 void NativeThreadLinux::SetStoppedBySignal(uint32_t signo,
                                            const siginfo_t *info) {
-  Log *log = GetLog(LLDBLog::Thread);
+  Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_THREAD));
   LLDB_LOGF(log, "NativeThreadLinux::%s called with signal 0x%02" PRIx32,
             __FUNCTION__, signo);
 
@@ -392,7 +391,7 @@ void NativeThreadLinux::SetStopped() {
 }
 
 void NativeThreadLinux::SetStoppedByExec() {
-  Log *log = GetLog(LLDBLog::Thread);
+  Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_THREAD));
   LLDB_LOGF(log, "NativeThreadLinux::%s()", __FUNCTION__);
 
   SetStopped();
@@ -494,7 +493,7 @@ void NativeThreadLinux::SetExited() {
 }
 
 Status NativeThreadLinux::RequestStop() {
-  Log *log = GetLog(LLDBLog::Thread);
+  Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_THREAD));
 
   NativeProcessLinux &process = GetProcess();
 
@@ -520,7 +519,7 @@ Status NativeThreadLinux::RequestStop() {
 }
 
 void NativeThreadLinux::MaybeLogStateChange(lldb::StateType new_state) {
-  Log *log = GetLog(LLDBLog::Thread);
+  Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_THREAD));
   // If we're not logging, we're done.
   if (!log)
     return;

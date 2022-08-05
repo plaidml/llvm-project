@@ -189,8 +189,7 @@ public:
   bool MoveToLine(const Token &Tok, bool RequireStartOfLine) {
     PresumedLoc PLoc = SM.getPresumedLoc(Tok.getLocation());
     unsigned TargetLine = PLoc.isValid() ? PLoc.getLine() : CurLine;
-    bool IsFirstInFile =
-        Tok.isAtStartOfLine() && PLoc.isValid() && PLoc.getLine() == 1;
+    bool IsFirstInFile = Tok.isAtStartOfLine() && PLoc.getLine() == 1;
     return MoveToLine(TargetLine, RequireStartOfLine) || IsFirstInFile;
   }
 

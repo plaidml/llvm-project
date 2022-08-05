@@ -19,7 +19,7 @@ def Complex_Dialect : Dialect {
     arithmetic ops.
   }];
 
-  let dependentDialects = ["arith::ArithmeticDialect"];
+  let dependentDialects = ["arith::ArithmeticDialect", "StandardOpsDialect"];
   let hasConstantMaterializer = 1;
   let emitAccessorPrefix = kEmitAccessorPrefix_Prefixed;
 }

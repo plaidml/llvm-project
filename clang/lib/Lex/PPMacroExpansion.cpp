@@ -1157,9 +1157,9 @@ static bool HasExtension(const Preprocessor &PP, StringRef Extension) {
 /// EvaluateHasIncludeCommon - Process a '__has_include("path")'
 /// or '__has_include_next("path")' expression.
 /// Returns true if successful.
-static bool EvaluateHasIncludeCommon(Token &Tok, IdentifierInfo *II,
-                                     Preprocessor &PP,
-                                     ConstSearchDirIterator LookupFrom,
+static bool EvaluateHasIncludeCommon(Token &Tok,
+                                     IdentifierInfo *II, Preprocessor &PP,
+                                     const DirectoryLookup *LookupFrom,
                                      const FileEntry *LookupFromFile) {
   // Save the location of the current token.  If a '(' is later found, use
   // that location.  If not, use the end of this location instead.
@@ -1244,16 +1244,45 @@ static bool EvaluateHasIncludeCommon(Token &Tok, IdentifierInfo *II,
   return File.hasValue();
 }
 
-bool Preprocessor::EvaluateHasInclude(Token &Tok, IdentifierInfo *II) {
-  return EvaluateHasIncludeCommon(Tok, II, *this, nullptr, nullptr);
+/// EvaluateHasInclude - Process a '__has_include("path")' expression.
+/// Returns true if successful.
+static bool EvaluateHasInclude(Token &Tok, IdentifierInfo *II,
+                               Preprocessor &PP) {
+  return EvaluateHasIncludeCommon(Tok, II, PP, nullptr, nullptr);
 }
 
-bool Preprocessor::EvaluateHasIncludeNext(Token &Tok, IdentifierInfo *II) {
-  ConstSearchDirIterator Lookup = nullptr;
-  const FileEntry *LookupFromFile;
-  std::tie(Lookup, LookupFromFile) = getIncludeNextStart(Tok);
+/// EvaluateHasIncludeNext - Process '__has_include_next("path")' expression.
+/// Returns true if successful.
+static bool EvaluateHasIncludeNext(Token &Tok,
+                                   IdentifierInfo *II, Preprocessor &PP) {
+  // __has_include_next is like __has_include, except that we start
+  // searching after the current found directory.  If we can't do this,
+  // issue a diagnostic.
+  // FIXME: Factor out duplication with
+  // Preprocessor::HandleIncludeNextDirective.
+  const DirectoryLookup *Lookup = PP.GetCurDirLookup();
+  const FileEntry *LookupFromFile = nullptr;
+  if (PP.isInPrimaryFile() && PP.getLangOpts().IsHeaderFile) {
+    // If the main file is a header, then it's either for PCH/AST generation,
+    // or libclang opened it. Either way, handle it as a normal include below
+    // and do not complain about __has_include_next.
+  } else if (PP.isInPrimaryFile()) {
+    Lookup = nullptr;
+    PP.Diag(Tok, diag::pp_include_next_in_primary);
+  } else if (PP.getCurrentLexerSubmodule()) {
+    // Start looking up in the directory *after* the one in which the current
+    // file would be found, if any.
+    assert(PP.getCurrentLexer() && "#include_next directive in macro?");
+    LookupFromFile = PP.getCurrentLexer()->getFileEntry();
+    Lookup = nullptr;
+  } else if (!Lookup) {
+    PP.Diag(Tok, diag::pp_include_next_absolute_path);
+  } else {
+    // Start looking up in the next directory.
+    ++Lookup;
+  }
 
-  return EvaluateHasIncludeCommon(Tok, II, *this, Lookup, LookupFromFile);
+  return EvaluateHasIncludeCommon(Tok, II, PP, Lookup, LookupFromFile);
 }
 
 /// Process single-argument builtin feature-like macros that return
@@ -1707,9 +1736,9 @@ void Preprocessor::ExpandBuiltinMacro(Token &Tok) {
     // double-quotes ("").
     bool Value;
     if (II == Ident__has_include)
-      Value = EvaluateHasInclude(Tok, II);
+      Value = EvaluateHasInclude(Tok, II, *this);
     else
-      Value = EvaluateHasIncludeNext(Tok, II);
+      Value = EvaluateHasIncludeNext(Tok, II, *this);
 
     if (Tok.isNot(tok::r_paren))
       return;

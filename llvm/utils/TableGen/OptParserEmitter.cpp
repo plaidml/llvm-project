@@ -13,6 +13,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/TableGen/Record.h"
 #include "llvm/TableGen/TableGenBackend.h"
+#include <cctype>
 #include <cstring>
 #include <map>
 #include <memory>

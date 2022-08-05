@@ -4,5 +4,4 @@ add_mlir_unittest(MLIRTransformsTests
 )
 target_link_libraries(MLIRTransformsTests
   PRIVATE
-  MLIRParser
   MLIRTransforms)

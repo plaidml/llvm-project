@@ -293,8 +293,6 @@ struct Fragment {
     llvm::Optional<Located<bool>> ParameterNames;
     /// Show deduced types for `auto`.
     llvm::Optional<Located<bool>> DeducedTypes;
-    /// Show designators in aggregate initialization.
-    llvm::Optional<Located<bool>> Designators;
   };
   InlayHintsBlock InlayHints;
 };

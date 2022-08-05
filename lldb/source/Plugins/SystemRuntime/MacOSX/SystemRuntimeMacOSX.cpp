@@ -24,7 +24,6 @@
 #include "lldb/Utility/DataBufferHeap.h"
 #include "lldb/Utility/DataExtractor.h"
 #include "lldb/Utility/FileSpec.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/StreamString.h"
 
@@ -881,7 +880,7 @@ void SystemRuntimeMacOSX::PopulateQueuesUsingLibBTR(
     lldb_private::QueueList &queue_list) {
   Status error;
   DataBufferHeap data(queues_buffer_size, 0);
-  Log *log = GetLog(LLDBLog::SystemRuntime);
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_SYSTEM_RUNTIME));
   if (m_process->ReadMemory(queues_buffer, data.GetBytes(), queues_buffer_size,
                             error) == queues_buffer_size &&
       error.Success()) {

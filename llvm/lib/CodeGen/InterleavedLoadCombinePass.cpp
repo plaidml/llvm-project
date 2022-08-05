@@ -656,10 +656,10 @@ public:
   };
 
   /// Basic-block the load instructions are within
-  BasicBlock *BB = nullptr;
+  BasicBlock *BB;
 
   /// Pointer value of all participation load instructions
-  Value *PV = nullptr;
+  Value *PV;
 
   /// Participating load instructions
   std::set<LoadInst *> LIs;
@@ -668,7 +668,7 @@ public:
   std::set<Instruction *> Is;
 
   /// Final shuffle-vector instruction
-  ShuffleVectorInst *SVI = nullptr;
+  ShuffleVectorInst *SVI;
 
   /// Information of the offset for each vector element
   ElementInfo *EI;
@@ -676,7 +676,8 @@ public:
   /// Vector Type
   FixedVectorType *const VTy;
 
-  VectorInfo(FixedVectorType *VTy) : VTy(VTy) {
+  VectorInfo(FixedVectorType *VTy)
+      : BB(nullptr), PV(nullptr), SVI(nullptr), VTy(VTy) {
     EI = new ElementInfo[VTy->getNumElements()];
   }
 
@@ -1206,7 +1207,9 @@ bool InterleavedLoadCombineImpl::combine(std::list<VectorInfo> &InterleavedLoad,
           ->getNumElements();
   FixedVectorType *ILTy = FixedVectorType::get(ETy, Factor * ElementsPerSVI);
 
-  auto Indices = llvm::to_vector<4>(llvm::seq<unsigned>(0, Factor));
+  SmallVector<unsigned, 4> Indices;
+  for (unsigned i = 0; i < Factor; i++)
+    Indices.push_back(i);
   InterleavedCost = TTI.getInterleavedMemoryOpCost(
       Instruction::Load, ILTy, Factor, Indices, InsertionPoint->getAlign(),
       InsertionPoint->getPointerAddressSpace(), CostKind);

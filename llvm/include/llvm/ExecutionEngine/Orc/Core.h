@@ -686,7 +686,7 @@ public:
   MaterializationUnit(Interface I)
       : SymbolFlags(std::move(I.SymbolFlags)),
         InitSymbol(std::move(I.InitSymbol)) {}
-  virtual ~MaterializationUnit() = default;
+  virtual ~MaterializationUnit() {}
 
   /// Return the name of this materialization unit. Useful for debugging
   /// output.

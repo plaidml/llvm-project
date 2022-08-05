@@ -19,7 +19,9 @@
 #include <cstdlib>
 #include <cstring>
 #include <functional>
+#include <numeric>
 #include <utility>
+#include <vector>
 
 using namespace llvm;
 using namespace llvm::itanium_demangle;
@@ -404,6 +406,9 @@ char *ItaniumPartialDemangler::getFunctionBaseName(char *Buf, size_t *N) const {
     case Node::KAbiTagAttr:
       Name = static_cast<const AbiTagAttr *>(Name)->Base;
       continue;
+    case Node::KStdQualifiedName:
+      Name = static_cast<const StdQualifiedName *>(Name)->Child;
+      continue;
     case Node::KNestedName:
       Name = static_cast<const NestedName *>(Name)->Name;
       continue;
@@ -443,6 +448,9 @@ char *ItaniumPartialDemangler::getFunctionDeclContextName(char *Buf,
   }
 
   switch (Name->getKind()) {
+  case Node::KStdQualifiedName:
+    OB += "std";
+    break;
   case Node::KNestedName:
     static_cast<const NestedName *>(Name)->Qual->print(OB);
     break;
@@ -543,6 +551,9 @@ bool ItaniumPartialDemangler::isCtorOrDtor() const {
       break;
     case Node::KNestedName:
       N = static_cast<const NestedName *>(N)->Name;
+      break;
+    case Node::KStdQualifiedName:
+      N = static_cast<const StdQualifiedName *>(N)->Child;
       break;
     }
   }

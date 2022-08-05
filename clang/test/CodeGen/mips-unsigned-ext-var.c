@@ -12,7 +12,7 @@ unsigned foo(int x, ...) {
   return a;
 }
 
-void foo1(void) {
+void foo1() {
   unsigned f = 0xffffffe0;
   foo(1,f);
 }

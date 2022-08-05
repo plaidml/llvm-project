@@ -798,13 +798,6 @@ public:
     createShortJmp(Seq, Target, Ctx, /*IsTailCall*/ true);
   }
 
-  bool createTrap(MCInst &Inst) const override {
-    Inst.clear();
-    Inst.setOpcode(AArch64::BRK);
-    Inst.addOperand(MCOperand::createImm(1));
-    return true;
-  }
-
   bool convertJmpToTailCall(MCInst &Inst) override {
     setTailCall(Inst);
     return true;

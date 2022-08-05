@@ -139,7 +139,7 @@ TEST(QualityTests, SymbolRelevanceSignalExtraction) {
   EXPECT_FLOAT_EQ(Relevance.SemaFileProximityScore, 1.0f)
       << "Current file and header";
 
-  auto ConstructShadowDeclCompletionResult = [&](const std::string DeclName) {
+  auto constructShadowDeclCompletionResult = [&](const std::string DeclName) {
     auto *Shadow =
         *dyn_cast<UsingDecl>(&findDecl(AST, [&](const NamedDecl &ND) {
            if (const UsingDecl *Using = dyn_cast<UsingDecl>(&ND))
@@ -154,10 +154,10 @@ TEST(QualityTests, SymbolRelevanceSignalExtraction) {
   };
 
   Relevance = {};
-  Relevance.merge(ConstructShadowDeclCompletionResult("Bar"));
+  Relevance.merge(constructShadowDeclCompletionResult("Bar"));
   EXPECT_FLOAT_EQ(Relevance.SemaFileProximityScore, 1.0f)
       << "Using declaration in main file";
-  Relevance.merge(ConstructShadowDeclCompletionResult("FLAGS_FOO"));
+  Relevance.merge(constructShadowDeclCompletionResult("FLAGS_FOO"));
   EXPECT_FLOAT_EQ(Relevance.SemaFileProximityScore, 1.0f)
       << "Using declaration in main file";
 

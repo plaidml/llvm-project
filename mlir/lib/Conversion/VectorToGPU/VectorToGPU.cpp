@@ -21,8 +21,8 @@
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/SCF/SCF.h"
 #include "mlir/Dialect/Utils/StructuredOpsUtils.h"
-#include "mlir/Dialect/Vector/IR/VectorOps.h"
-#include "mlir/Dialect/Vector/Utils/VectorUtils.h"
+#include "mlir/Dialect/Vector/VectorOps.h"
+#include "mlir/Dialect/Vector/VectorUtils.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
@@ -60,17 +60,13 @@ getMemrefConstantHorizontalStride(ShapedType type) {
   auto memrefType = type.dyn_cast<MemRefType>();
   if (!memrefType)
     return false;
-  // If the memref is 0 or 1D the horizontal stride is 0.
-  if(memrefType.getRank() < 2)
-    return 0;
   int64_t offset = 0;
   SmallVector<int64_t, 2> strides;
   if (failed(getStridesAndOffset(memrefType, strides, offset)))
     return llvm::None;
-  int64_t stride = strides[strides.size() - 2];
-  if (stride == ShapedType::kDynamicStrideOrOffset)
+  if (strides[0] == ShapedType::kDynamicStrideOrOffset)
     return llvm::None;
-  return stride;
+  return strides[0];
 }
 
 // Return true if the transfer op can be converted to a MMA matrix load.

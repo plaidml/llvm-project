@@ -188,11 +188,11 @@ public:
                              ArrayRef<Optional<Value>> valArgs = {})
       : FlatAffineConstraints(numReservedInequalities, numReservedEqualities,
                               numReservedCols, numDims, numSymbols, numLocals) {
-    assert(numReservedCols >= getNumIds() + 1);
-    assert(valArgs.empty() || valArgs.size() == getNumIds());
+    assert(numReservedCols >= numIds + 1);
+    assert(valArgs.empty() || valArgs.size() == numIds);
     values.reserve(numReservedCols);
     if (valArgs.empty())
-      values.resize(getNumIds(), None);
+      values.resize(numIds, None);
     else
       values.append(valArgs.begin(), valArgs.end());
   }
@@ -211,9 +211,9 @@ public:
   FlatAffineValueConstraints(const FlatAffineConstraints &fac,
                              ArrayRef<Optional<Value>> valArgs = {})
       : FlatAffineConstraints(fac) {
-    assert(valArgs.empty() || valArgs.size() == getNumIds());
+    assert(valArgs.empty() || valArgs.size() == numIds);
     if (valArgs.empty())
-      values.resize(getNumIds(), None);
+      values.resize(numIds, None);
     else
       values.append(valArgs.begin(), valArgs.end());
   }
@@ -463,15 +463,15 @@ public:
   /// Asserts if no Value was associated with one of these identifiers.
   inline void getValues(unsigned start, unsigned end,
                         SmallVectorImpl<Value> *values) const {
-    assert((start < getNumIds() || start == end) && "invalid start position");
-    assert(end <= getNumIds() && "invalid end position");
+    assert((start < numIds || start == end) && "invalid start position");
+    assert(end <= numIds && "invalid end position");
     values->clear();
     values->reserve(end - start);
     for (unsigned i = start; i < end; i++)
       values->push_back(getValue(i));
   }
   inline void getAllValues(SmallVectorImpl<Value> *values) const {
-    getValues(0, getNumIds(), values);
+    getValues(0, numIds, values);
   }
 
   inline ArrayRef<Optional<Value>> getMaybeValues() const {
@@ -492,14 +492,14 @@ public:
 
   /// Sets the Value associated with the pos^th identifier.
   inline void setValue(unsigned pos, Value val) {
-    assert(pos < getNumIds() && "invalid id position");
+    assert(pos < numIds && "invalid id position");
     values[pos] = val;
   }
 
   /// Sets the Values associated with the identifiers in the range [start, end).
   void setValues(unsigned start, unsigned end, ArrayRef<Value> values) {
-    assert((start < getNumIds() || end == start) && "invalid start position");
-    assert(end <= getNumIds() && "invalid end position");
+    assert((start < numIds || end == start) && "invalid start position");
+    assert(end <= numIds && "invalid end position");
     assert(values.size() == end - start);
     for (unsigned i = start; i < end; ++i)
       setValue(i, values[i - start]);

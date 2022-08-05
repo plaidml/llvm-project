@@ -8,7 +8,7 @@ def Test_Dialect : Dialect {
   let name = "test";
   let cppNamespace = "foobar";
 }
-class NS_Op<string mnemonic, list<Trait> traits> :
+class NS_Op<string mnemonic, list<OpTrait> traits> :
     Op<Test_Dialect, mnemonic, traits>;
 
 def SomeAttr : Attr<CPred<"some-condition">, "some attribute kind"> {

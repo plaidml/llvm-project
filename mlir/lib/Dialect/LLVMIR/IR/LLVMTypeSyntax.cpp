@@ -177,7 +177,7 @@ static ParseResult dispatchParse(AsmParser &parser, Type &type);
 /// Parses an LLVM dialect function type.
 ///   llvm-type :: = `func<` llvm-type `(` llvm-type-list `...`? `)>`
 static LLVMFunctionType parseFunctionType(AsmParser &parser) {
-  SMLoc loc = parser.getCurrentLocation();
+  llvm::SMLoc loc = parser.getCurrentLocation();
   Type returnType;
   if (parser.parseLess() || dispatchParse(parser, returnType) ||
       parser.parseLParen())
@@ -216,7 +216,7 @@ static LLVMFunctionType parseFunctionType(AsmParser &parser) {
 /// Parses an LLVM dialect pointer type.
 ///   llvm-type ::= `ptr<` llvm-type (`,` integer)? `>`
 static LLVMPointerType parsePointerType(AsmParser &parser) {
-  SMLoc loc = parser.getCurrentLocation();
+  llvm::SMLoc loc = parser.getCurrentLocation();
   Type elementType;
   if (parser.parseLess() || dispatchParse(parser, elementType))
     return LLVMPointerType();
@@ -235,9 +235,9 @@ static LLVMPointerType parsePointerType(AsmParser &parser) {
 /// Supports both fixed and scalable vectors.
 static Type parseVectorType(AsmParser &parser) {
   SmallVector<int64_t, 2> dims;
-  SMLoc dimPos, typePos;
+  llvm::SMLoc dimPos, typePos;
   Type elementType;
-  SMLoc loc = parser.getCurrentLocation();
+  llvm::SMLoc loc = parser.getCurrentLocation();
   if (parser.parseLess() || parser.getCurrentLocation(&dimPos) ||
       parser.parseDimensionList(dims, /*allowDynamic=*/true) ||
       parser.getCurrentLocation(&typePos) ||
@@ -271,9 +271,9 @@ static Type parseVectorType(AsmParser &parser) {
 ///   llvm-type ::= `array<` integer `x` llvm-type `>`
 static LLVMArrayType parseArrayType(AsmParser &parser) {
   SmallVector<int64_t, 1> dims;
-  SMLoc sizePos;
+  llvm::SMLoc sizePos;
   Type elementType;
-  SMLoc loc = parser.getCurrentLocation();
+  llvm::SMLoc loc = parser.getCurrentLocation();
   if (parser.parseLess() || parser.getCurrentLocation(&sizePos) ||
       parser.parseDimensionList(dims, /*allowDynamic=*/false) ||
       dispatchParse(parser, elementType) || parser.parseGreater())
@@ -292,7 +292,7 @@ static LLVMArrayType parseArrayType(AsmParser &parser) {
 static LLVMStructType trySetStructBody(LLVMStructType type,
                                        ArrayRef<Type> subtypes, bool isPacked,
                                        AsmParser &parser,
-                                       SMLoc subtypesLoc) {
+                                       llvm::SMLoc subtypesLoc) {
   for (Type t : subtypes) {
     if (!LLVMStructType::isValidElementType(t)) {
       parser.emitError(subtypesLoc)
@@ -352,7 +352,7 @@ static LLVMStructType parseStructType(AsmParser &parser) {
   }
 
   // Handle intentionally opaque structs.
-  SMLoc kwLoc = parser.getCurrentLocation();
+  llvm::SMLoc kwLoc = parser.getCurrentLocation();
   if (succeeded(parser.parseOptionalKeyword("opaque"))) {
     if (!isIdentified)
       return parser.emitError(kwLoc, "only identified structs can be opaque"),
@@ -388,7 +388,7 @@ static LLVMStructType parseStructType(AsmParser &parser) {
   // Parse subtypes. For identified structs, put the identifier of the struct on
   // the stack to support self-references in the recursive calls.
   SmallVector<Type, 4> subtypes;
-  SMLoc subtypesLoc = parser.getCurrentLocation();
+  llvm::SMLoc subtypesLoc = parser.getCurrentLocation();
   do {
     if (isIdentified)
       knownStructNames.insert(name);
@@ -417,7 +417,7 @@ static LLVMStructType parseStructType(AsmParser &parser) {
 /// prefix), and on failure fall back to parsing the short-hand version of the
 /// LLVM dialect types without the `!llvm` prefix.
 static Type dispatchParse(AsmParser &parser, bool allowAny = true) {
-  SMLoc keyLoc = parser.getCurrentLocation();
+  llvm::SMLoc keyLoc = parser.getCurrentLocation();
 
   // Try parsing any MLIR type.
   Type type;
@@ -464,7 +464,7 @@ static ParseResult dispatchParse(AsmParser &parser, Type &type) {
 
 /// Parses one of the LLVM dialect types.
 Type mlir::LLVM::detail::parseType(DialectAsmParser &parser) {
-  SMLoc loc = parser.getCurrentLocation();
+  llvm::SMLoc loc = parser.getCurrentLocation();
   Type type = dispatchParse(parser, /*allowAny=*/false);
   if (!type)
     return type;

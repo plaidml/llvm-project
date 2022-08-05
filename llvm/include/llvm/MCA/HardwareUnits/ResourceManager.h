@@ -49,7 +49,7 @@ class ResourceStrategy {
   ResourceStrategy &operator=(const ResourceStrategy &) = delete;
 
 public:
-  ResourceStrategy() = default;
+  ResourceStrategy() {}
   virtual ~ResourceStrategy();
 
   /// Selects a processor resource unit from a ReadyMask.

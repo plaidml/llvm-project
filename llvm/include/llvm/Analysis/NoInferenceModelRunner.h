@@ -40,4 +40,4 @@ private:
 };
 } // namespace llvm
 #endif // defined(LLVM_HAVE_TF_API)
-#endif // LLVM_ANALYSIS_NOINFERENCEMODELRUNNER_H
+#endif // defined(LLVM_ANALYSIS_NOINFERENCEMODELRUNNER_H)

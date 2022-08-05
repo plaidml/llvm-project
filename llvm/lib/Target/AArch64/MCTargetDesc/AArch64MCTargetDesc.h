@@ -33,6 +33,7 @@ class MCTargetStreamer;
 class Target;
 
 MCCodeEmitter *createAArch64MCCodeEmitter(const MCInstrInfo &MCII,
+                                          const MCRegisterInfo &MRI,
                                           MCContext &Ctx);
 MCAsmBackend *createAArch64leAsmBackend(const Target &T,
                                         const MCSubtargetInfo &STI,

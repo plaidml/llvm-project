@@ -149,16 +149,7 @@ namespace {
       return LVal.getExtVectorPointer();
     }
     Address getAtomicAddress() const {
-      llvm::Type *ElTy;
-      if (LVal.isSimple())
-        ElTy = LVal.getAddress(CGF).getElementType();
-      else if (LVal.isBitField())
-        ElTy = LVal.getBitFieldAddress().getElementType();
-      else if (LVal.isVectorElt())
-        ElTy = LVal.getVectorAddress().getElementType();
-      else
-        ElTy = LVal.getExtVectorAddress().getElementType();
-      return Address(getAtomicPointer(), ElTy, getAtomicAlignment());
+      return Address(getAtomicPointer(), getAtomicAlignment());
     }
 
     Address getAtomicAddressAsAtomicIntPointer() const {
@@ -360,12 +351,12 @@ bool AtomicInfo::requiresMemSetZero(llvm::Type *type) const {
 
 bool AtomicInfo::emitMemSetZeroIfNecessary() const {
   assert(LVal.isSimple());
-  Address addr = LVal.getAddress(CGF);
-  if (!requiresMemSetZero(addr.getElementType()))
+  llvm::Value *addr = LVal.getPointer(CGF);
+  if (!requiresMemSetZero(addr->getType()->getPointerElementType()))
     return false;
 
   CGF.Builder.CreateMemSet(
-      addr.getPointer(), llvm::ConstantInt::get(CGF.Int8Ty, 0),
+      addr, llvm::ConstantInt::get(CGF.Int8Ty, 0),
       CGF.getContext().toCharUnitsFromBits(AtomicSizeInBits).getQuantity(),
       LVal.getAlignment().getAsAlign());
   return true;
@@ -1531,7 +1522,7 @@ RValue AtomicInfo::ConvertIntToValueOrAtomic(llvm::Value *IntVal,
        !AsValue)) {
     auto *ValTy = AsValue
                       ? CGF.ConvertTypeForMem(ValueTy)
-                      : getAtomicAddress().getElementType();
+                      : getAtomicAddress().getType()->getPointerElementType();
     if (ValTy->isIntegerTy()) {
       assert(IntVal->getType() == ValTy && "Different integer types.");
       return RValue::get(CGF.EmitFromMemory(IntVal, ValueTy));

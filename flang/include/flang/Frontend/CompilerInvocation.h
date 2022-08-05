@@ -191,18 +191,18 @@ public:
   void SetDefaultFortranOpts();
 
   /// Set the default predefinitions.
-  void SetDefaultPredefinitions();
+  void setDefaultPredefinitions();
 
   /// Collect the macro definitions from preprocessorOpts_ and prepare them for
   /// the parser (i.e. copy into parserOpts_)
-  void CollectMacroDefinitions();
+  void collectMacroDefinitions();
 
   /// Set the Fortran options to user-specified values.
   /// These values are found in the preprocessor options.
-  void SetFortranOpts();
+  void setFortranOpts();
 
   /// Set the Semantic Options
-  void SetSemanticsOpts(Fortran::parser::AllCookedSources &);
+  void setSemanticsOpts(Fortran::parser::AllCookedSources &);
 };
 
 } // end namespace Fortran::frontend

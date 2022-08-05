@@ -25,7 +25,7 @@ NativeFunctionSymbol::NativeFunctionSymbol(NativeSession &Session,
     : NativeRawSymbol(Session, PDB_SymType::Function, Id), Sym(Sym),
       RecordOffset(Offset) {}
 
-NativeFunctionSymbol::~NativeFunctionSymbol() = default;
+NativeFunctionSymbol::~NativeFunctionSymbol() {}
 
 void NativeFunctionSymbol::dump(raw_ostream &OS, int Indent,
                                 PdbSymbolIdField ShowIdFields,

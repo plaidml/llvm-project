@@ -20,7 +20,8 @@
 
 #if !defined(LIBCXXABI_SILENT_TERMINATE)
 
-static constinit const char* cause = "uncaught";
+_LIBCPP_SAFE_STATIC
+static const char* cause = "uncaught";
 
 __attribute__((noreturn))
 static void demangling_terminate_handler()
@@ -99,13 +100,13 @@ static constexpr std::terminate_handler default_unexpected_handler = std::termin
 // Global variables that hold the pointers to the current handler
 //
 _LIBCXXABI_DATA_VIS
-constinit std::terminate_handler __cxa_terminate_handler = default_terminate_handler;
+_LIBCPP_SAFE_STATIC std::terminate_handler __cxa_terminate_handler = default_terminate_handler;
 
 _LIBCXXABI_DATA_VIS
-constinit std::unexpected_handler __cxa_unexpected_handler = default_unexpected_handler;
+_LIBCPP_SAFE_STATIC std::unexpected_handler __cxa_unexpected_handler = default_unexpected_handler;
 
 _LIBCXXABI_DATA_VIS
-constinit std::new_handler __cxa_new_handler = nullptr;
+_LIBCPP_SAFE_STATIC std::new_handler __cxa_new_handler = 0;
 
 namespace std
 {

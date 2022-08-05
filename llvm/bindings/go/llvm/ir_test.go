@@ -83,6 +83,7 @@ func TestAttributes(t *testing.T) {
 		"sspstrong",
 		"sanitize_thread",
 		"sanitize_memory",
+		"uwtable",
 		"zeroext",
 		"cold",
 		"nocf_check",

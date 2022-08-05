@@ -8,6 +8,7 @@
 
 #include "lldb/Host/Config.h"
 #include "lldb/Utility/Log.h"
+#include "lldb/Utility/Logging.h"
 #include "lldb/lldb-enumerations.h"
 
 #if LLDB_ENABLE_PYTHON
@@ -30,8 +31,9 @@ ScriptedThreadPythonInterface::ScriptedThreadPythonInterface(
 
 StructuredData::GenericSP ScriptedThreadPythonInterface::CreatePluginObject(
     const llvm::StringRef class_name, ExecutionContext &exe_ctx,
-    StructuredData::DictionarySP args_sp, StructuredData::Generic *script_obj) {
-  if (class_name.empty() && !script_obj)
+    StructuredData::DictionarySP args_sp) {
+
+  if (class_name.empty())
     return {};
 
   ProcessSP process_sp = exe_ctx.GetProcessSP();
@@ -41,15 +43,9 @@ StructuredData::GenericSP ScriptedThreadPythonInterface::CreatePluginObject(
   Locker py_lock(&m_interpreter, Locker::AcquireLock | Locker::NoSTDIN,
                  Locker::FreeLock);
 
-  PythonObject ret_val;
-
-  if (!script_obj)
-    ret_val = LLDBSwigPythonCreateScriptedThread(
-        class_name.str().c_str(), m_interpreter.GetDictionaryName(), process_sp,
-        args_impl, error_string);
-  else
-    ret_val = PythonObject(PyRefType::Borrowed,
-                           static_cast<PyObject *>(script_obj->GetValue()));
+  PythonObject ret_val = LLDBSwigPythonCreateScriptedThread(
+      class_name.str().c_str(), m_interpreter.GetDictionaryName(), process_sp,
+      args_impl, error_string);
 
   if (!ret_val)
     return {};
@@ -112,14 +108,7 @@ StructuredData::DictionarySP ScriptedThreadPythonInterface::GetStopReason() {
 }
 
 StructuredData::ArraySP ScriptedThreadPythonInterface::GetStackFrames() {
-  Status error;
-  StructuredData::ArraySP arr =
-      Dispatch<StructuredData::ArraySP>("get_stackframes", error);
-
-  if (!CheckStructuredDataObject(LLVM_PRETTY_FUNCTION, arr, error))
-    return {};
-
-  return arr;
+  return nullptr;
 }
 
 StructuredData::DictionarySP ScriptedThreadPythonInterface::GetRegisterInfo() {

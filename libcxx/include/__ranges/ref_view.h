@@ -18,7 +18,6 @@
 #include <__ranges/concepts.h>
 #include <__ranges/data.h>
 #include <__ranges/empty.h>
-#include <__ranges/enable_borrowed_range.h>
 #include <__ranges/size.h>
 #include <__ranges/view_interface.h>
 #include <__utility/forward.h>
@@ -26,12 +25,12 @@
 #include <type_traits>
 
 #if !defined(_LIBCPP_HAS_NO_PRAGMA_SYSTEM_HEADER)
-#  pragma GCC system_header
+#pragma GCC system_header
 #endif
 
 _LIBCPP_BEGIN_NAMESPACE_STD
 
-#if !defined(_LIBCPP_HAS_NO_CONCEPTS) && !defined(_LIBCPP_HAS_NO_INCOMPLETE_RANGES)
+#if !defined(_LIBCPP_HAS_NO_RANGES)
 
 namespace ranges {
   template<range _Range>
@@ -48,7 +47,7 @@ public:
         convertible_to<_Tp, _Range&> && requires { __fun(declval<_Tp>()); }
     _LIBCPP_HIDE_FROM_ABI
     constexpr ref_view(_Tp&& __t)
-      : __range_(std::addressof(static_cast<_Range&>(std::forward<_Tp>(__t))))
+      : __range_(_VSTD::addressof(static_cast<_Range&>(_VSTD::forward<_Tp>(__t))))
     {}
 
     _LIBCPP_HIDE_FROM_ABI constexpr _Range& base() const { return *__range_; }
@@ -75,11 +74,9 @@ public:
   template<class _Range>
   ref_view(_Range&) -> ref_view<_Range>;
 
-  template<class _Tp>
-  inline constexpr bool enable_borrowed_range<ref_view<_Tp>> = true;
 } // namespace ranges
 
-#endif // !defined(_LIBCPP_HAS_NO_CONCEPTS) && !defined(_LIBCPP_HAS_NO_INCOMPLETE_RANGES)
+#endif // !defined(_LIBCPP_HAS_NO_RANGES)
 
 _LIBCPP_END_NAMESPACE_STD
 

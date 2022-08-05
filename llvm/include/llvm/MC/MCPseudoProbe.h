@@ -82,6 +82,7 @@ struct MCPseudoProbeFuncDesc {
   void print(raw_ostream &OS);
 };
 
+class MCPseudoProbe;
 class MCDecodedPseudoProbe;
 
 // An inline frame has the form <Guid, ProbeID>
@@ -94,6 +95,7 @@ using GUIDProbeFunctionMap =
 using AddressProbesMap =
     std::unordered_map<uint64_t, std::list<MCDecodedPseudoProbe>>;
 
+class MCPseudoProbeInlineTree;
 class MCDecodedPseudoProbeInlineTree;
 
 class MCPseudoProbeBase {
@@ -266,7 +268,7 @@ public:
   // Used for decoding
   uint32_t ChildrenToProcess = 0;
 
-  MCDecodedPseudoProbeInlineTree() = default;
+  MCDecodedPseudoProbeInlineTree(){};
   MCDecodedPseudoProbeInlineTree(const InlineSite &Site) : ISite(Site){};
 
   // Return false if it's a dummy inline site

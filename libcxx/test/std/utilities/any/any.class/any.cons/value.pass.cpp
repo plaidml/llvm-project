@@ -29,18 +29,21 @@
 #include "count_new.h"
 #include "test_macros.h"
 
+using std::any;
+using std::any_cast;
+
 template <class Type>
 void test_copy_value_throws()
 {
 #if !defined(TEST_HAS_NO_EXCEPTIONS)
     assert(Type::count == 0);
     {
-        const Type t(42);
+        Type const t(42);
         assert(Type::count == 1);
         try {
-            std::any a2 = t;
+            any const a2(t);
             assert(false);
-        } catch (const my_any_exception&) {
+        } catch (my_any_exception const &) {
             // do nothing
         } catch (...) {
             assert(false);
@@ -60,9 +63,9 @@ void test_move_value_throws()
         throws_on_move v;
         assert(throws_on_move::count == 1);
         try {
-            std::any a = std::move(v);
+            any const a(std::move(v));
             assert(false);
-        } catch (const my_any_exception&) {
+        } catch (my_any_exception const &) {
             // do nothing
         } catch (...) {
             assert(false);
@@ -83,7 +86,7 @@ void test_copy_move_value() {
         Type t(42);
         assert(Type::count == 1);
 
-        std::any a = t;
+        any a(t);
 
         assert(Type::count == 2);
         assert(Type::copied == 1);
@@ -96,7 +99,7 @@ void test_copy_move_value() {
         Type t(42);
         assert(Type::count == 1);
 
-        std::any a = std::move(t);
+        any a(std::move(t));
 
         assert(Type::count == 2);
         assert(Type::copied == 0);

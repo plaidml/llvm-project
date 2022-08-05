@@ -276,7 +276,6 @@ class FunctionSpecializer {
   std::function<TargetLibraryInfo &(Function &)> GetTLI;
 
   SmallPtrSet<Function *, 2> SpecializedFuncs;
-  SmallVector<Instruction *> ReplacedWithConstant;
 
 public:
   FunctionSpecializer(SCCPSolver &Solver,
@@ -321,15 +320,6 @@ public:
     return Changed;
   }
 
-  void removeDeadInstructions() {
-    for (auto *I : ReplacedWithConstant) {
-      LLVM_DEBUG(dbgs() << "FnSpecialization: Removing dead instruction "
-                        << *I << "\n");
-      I->eraseFromParent();
-    }
-    ReplacedWithConstant.clear();
-  }
-
   bool tryToReplaceWithConstant(Value *V) {
     if (!V->getType()->isSingleValueType() || isa<CallBase>(V) ||
         V->user_empty())
@@ -340,26 +330,17 @@ public:
       return false;
     auto *Const =
         isConstant(IV) ? Solver.getConstant(IV) : UndefValue::get(V->getType());
-
-    LLVM_DEBUG(dbgs() << "FnSpecialization: Replacing " << *V
-                      << "\nFnSpecialization: with " << *Const << "\n");
-
-    // Record uses of V to avoid visiting irrelevant uses of const later.
-    SmallVector<Instruction *> UseInsts;
-    for (auto *U : V->users())
-      if (auto *I = dyn_cast<Instruction>(U))
-        if (Solver.isBlockExecutable(I->getParent()))
-          UseInsts.push_back(I);
-
     V->replaceAllUsesWith(Const);
 
-    for (auto *I : UseInsts)
-      Solver.visit(I);
+    for (auto *U : Const->users())
+      if (auto *I = dyn_cast<Instruction>(U))
+        if (Solver.isBlockExecutable(I->getParent()))
+          Solver.visit(I);
 
     // Remove the instruction from Block and Solver.
     if (auto *I = dyn_cast<Instruction>(V)) {
       if (I->isSafeToRemove()) {
-        ReplacedWithConstant.push_back(I);
+        I->eraseFromParent();
         Solver.removeLatticeValueFor(I);
       }
     }
@@ -905,8 +886,7 @@ bool llvm::runFunctionSpecialization(
     Changed = true;
   }
 
-  // Clean up the IR by removing dead instructions and ssa_copy intrinsics.
-  FS.removeDeadInstructions();
+  // Clean up the IR by removing ssa_copy intrinsics.
   removeSSACopy(M);
   return Changed;
 }

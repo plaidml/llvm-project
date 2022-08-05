@@ -101,7 +101,7 @@ func @sink_constant_step(%arg0: memref<?x10xf32>, %lb: index, %ub: index) {
 // CHECK-SAME:   %[[MEMREF:arg[0-9]+]]: memref<?x10xf32>
 // CHECK-SAME: ) {
 // CHECK:        scf.for %[[I:arg[0-9]+]]
-// CHECK:          arith.select
+// CHECK:          select
 // CHECK:          scf.for %[[J:arg[0-9]+]]
 // CHECK:          memref.store
 
@@ -122,5 +122,5 @@ func @sink_constant_step(%arg0: memref<?x10xf32>, %lb: index, %ub: index) {
 // CHECK:        %[[C1:.*]] = arith.constant 1 : index
 // CHECK:        %[[C10:.*]] = arith.constant 10 : index
 // CHECK:        scf.for %[[I:arg[0-9]+]]
-// CHECK-NOT:      arith.select
+// CHECK-NOT:      select
 // CHECK:          scf.for %[[J:arg[0-9]+]] = %c0 to %c10 step %c1

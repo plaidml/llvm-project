@@ -78,6 +78,7 @@ inline unsigned getRegAsVR128(unsigned Reg) {
 } // end namespace SystemZMC
 
 MCCodeEmitter *createSystemZMCCodeEmitter(const MCInstrInfo &MCII,
+                                          const MCRegisterInfo &MRI,
                                           MCContext &Ctx);
 
 MCAsmBackend *createSystemZMCAsmBackend(const Target &T,

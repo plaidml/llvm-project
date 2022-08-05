@@ -5,19 +5,18 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-///
-/// \file
-/// This template implementation resides in a separate file so that it
-/// does not get injected into every .cpp file that includes the
-/// generic header.
-///
-/// DO NOT INCLUDE THIS FILE WHEN MERELY USING CYCLEINFO.
-///
-/// This file should only be included by files that implement a
-/// specialization of the relevant templates. Currently these are:
-/// - CycleAnalysis.cpp
-/// - MachineCycleAnalysis.cpp
-///
+//
+// This template implementation resides in a separate file so that it
+// does not get injected into every .cpp file that includes the
+// generic header.
+//
+// DO NOT INCLUDE THIS FILE WHEN MERELY USING CYCLEINFO.
+//
+// This file should only be included by files that implement a
+// specialization of the relevant templates. Currently these are:
+// - CycleAnalysis.cpp
+// - MachineCycleAnalysis.cpp
+//
 //===----------------------------------------------------------------------===//
 
 #ifndef LLVM_ADT_GENERICCYCLEIMPL_H
@@ -78,7 +77,7 @@ template <typename ContextT> class GenericCycleInfoCompute {
     unsigned Start = 0; // DFS start; positive if block is found
     unsigned End = 0;   // DFS end
 
-    DFSInfo() = default;
+    DFSInfo() {}
     explicit DFSInfo(unsigned Start) : Start(Start) {}
 
     /// Whether this node is an ancestor (or equal to) the node \p Other
@@ -267,8 +266,8 @@ void GenericCycleInfoCompute<ContextT>::dfs(BlockT *EntryBlock) {
       DFSTreeStack.emplace_back(TraverseStack.size());
       llvm::append_range(TraverseStack, successors(Block));
 
+      LLVM_ATTRIBUTE_UNUSED
       bool Added = BlockDFSInfo.try_emplace(Block, ++Counter).second;
-      (void)Added;
       assert(Added);
       BlockPreorder.push_back(Block);
       LLVM_DEBUG(errs() << "  preorder number: " << Counter << "\n");

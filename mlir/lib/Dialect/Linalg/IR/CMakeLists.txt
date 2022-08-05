@@ -14,13 +14,14 @@ add_mlir_dialect_library(MLIRLinalg
   LINK_LIBS PUBLIC
   MLIRAffine
   MLIRArithmetic
-  MLIRBufferization
+  MLIRBufferizableOpInterface
   MLIRDialectUtils
   MLIRInferTypeOpInterface
   MLIRIR
   MLIRParser
   MLIRSideEffectInterfaces
   MLIRSCF
+  MLIRStandard
   MLIRMath
   MLIRMemRef
   MLIRTensor

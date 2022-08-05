@@ -247,15 +247,6 @@ def testCustomAttribute():
     else:
       raise
 
-    # The following must trigger a TypeError from our adaptors and must not
-    # crash.
-    try:
-      test.TestAttr(42)
-    except TypeError as e:
-      assert "Expected an MLIR object" in str(e)
-    else:
-      raise
-
     # The following must trigger a TypeError from pybind (therefore, not
     # checking its message) and must not crash.
     try:
@@ -282,15 +273,6 @@ def testCustomType():
       test.TestType(i8)
     except ValueError as e:
       assert "Cannot cast type to TestType" in str(e)
-    else:
-      raise
-
-    # The following must trigger a TypeError from our adaptors and must not
-    # crash.
-    try:
-      test.TestType(42)
-    except TypeError as e:
-      assert "Expected an MLIR object" in str(e)
     else:
       raise
 

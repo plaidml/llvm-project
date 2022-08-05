@@ -17,6 +17,7 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/raw_ostream.h"
 #include <cassert>
+#include <limits>
 
 using namespace llvm;
 

@@ -3,8 +3,8 @@
 
 // Check the generation of pseudoprobe intrinsic call
 
-void bar(void);
-void go(void);
+void bar();
+void go();
 
 void foo(int x) {
   // CHECK: call void @llvm.pseudoprobe(i64 [[#GUID:]], i64 1, i32 0, i64 -1)

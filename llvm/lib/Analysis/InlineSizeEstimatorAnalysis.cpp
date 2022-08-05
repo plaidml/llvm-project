@@ -261,10 +261,10 @@ InlineSizeEstimatorAnalysis::InlineSizeEstimatorAnalysis(
 namespace llvm {
 class TFModelEvaluator {};
 } // namespace llvm
-InlineSizeEstimatorAnalysis::InlineSizeEstimatorAnalysis() = default;
+InlineSizeEstimatorAnalysis::InlineSizeEstimatorAnalysis() {}
 InlineSizeEstimatorAnalysis ::InlineSizeEstimatorAnalysis(
     InlineSizeEstimatorAnalysis &&) {}
-InlineSizeEstimatorAnalysis::~InlineSizeEstimatorAnalysis() = default;
+InlineSizeEstimatorAnalysis::~InlineSizeEstimatorAnalysis() {}
 InlineSizeEstimatorAnalysis::Result
 InlineSizeEstimatorAnalysis::run(const Function &F,
                                  FunctionAnalysisManager &FAM) {

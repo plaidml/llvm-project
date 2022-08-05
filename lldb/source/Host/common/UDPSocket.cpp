@@ -9,7 +9,6 @@
 #include "lldb/Host/common/UDPSocket.h"
 
 #include "lldb/Host/Config.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
 
 #if LLDB_ENABLE_POSIX
@@ -55,7 +54,7 @@ llvm::Expected<std::unique_ptr<UDPSocket>>
 UDPSocket::Connect(llvm::StringRef name, bool child_processes_inherit) {
   std::unique_ptr<UDPSocket> socket;
 
-  Log *log = GetLog(LLDBLog::Connection);
+  Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_CONNECTION));
   LLDB_LOG(log, "host/port = {0}", name);
 
   Status error;

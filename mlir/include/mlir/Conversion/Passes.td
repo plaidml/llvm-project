@@ -182,28 +182,6 @@ def ConvertComplexToStandard : Pass<"convert-complex-to-standard", "FuncOp"> {
 }
 
 //===----------------------------------------------------------------------===//
-// ControlFlowToLLVM
-//===----------------------------------------------------------------------===//
-
-def ConvertControlFlowToLLVM : Pass<"convert-cf-to-llvm", "ModuleOp"> {
-  let summary = "Convert ControlFlow operations to the LLVM dialect";
-  let description = [{
-    Convert ControlFlow operations into LLVM IR dialect operations.
-
-    If other operations are present and their results are required by the LLVM
-    IR dialect operations, the pass will fail.  Any LLVM IR operations or types
-    already present in the IR will be kept as is.
-  }];
-  let constructor = "mlir::cf::createConvertControlFlowToLLVMPass()";
-  let dependentDialects = ["LLVM::LLVMDialect"];
-  let options = [
-    Option<"indexBitwidth", "index-bitwidth", "unsigned",
-           /*default=kDeriveIndexBitwidthFromDataLayout*/"0",
-           "Bitwidth of the index type, 0 to use size of machine word">,
-  ];
-}
-
-//===----------------------------------------------------------------------===//
 // GPUCommon
 //===----------------------------------------------------------------------===//
 
@@ -483,17 +461,6 @@ def ReconcileUnrealizedCasts : Pass<"reconcile-unrealized-casts"> {
 }
 
 //===----------------------------------------------------------------------===//
-// SCFToControlFlow
-//===----------------------------------------------------------------------===//
-
-def SCFToControlFlow : Pass<"convert-scf-to-cf"> {
-  let summary = "Convert SCF dialect to ControlFlow dialect, replacing structured"
-                " control flow with a CFG";
-  let constructor = "mlir::createConvertSCFToCFPass()";
-  let dependentDialects = ["cf::ControlFlowDialect"];
-}
-
-//===----------------------------------------------------------------------===//
 // SCFToOpenMP
 //===----------------------------------------------------------------------===//
 
@@ -519,6 +486,17 @@ def SCFToSPIRV : Pass<"convert-scf-to-spirv", "ModuleOp"> {
   }];
   let constructor = "mlir::createConvertSCFToSPIRVPass()";
   let dependentDialects = ["spirv::SPIRVDialect"];
+}
+
+//===----------------------------------------------------------------------===//
+// SCFToStandard
+//===----------------------------------------------------------------------===//
+
+def SCFToStandard : Pass<"convert-scf-to-std"> {
+  let summary = "Convert SCF dialect to Standard dialect, replacing structured"
+                " control flow with a CFG";
+  let constructor = "mlir::createLowerToCFGPass()";
+  let dependentDialects = ["StandardOpsDialect"];
 }
 
 //===----------------------------------------------------------------------===//
@@ -569,7 +547,7 @@ def ConvertShapeConstraints: Pass<"convert-shape-constraints", "FuncOp"> {
     computation lowering.
   }];
   let constructor = "mlir::createConvertShapeConstraintsPass()";
-  let dependentDialects = ["cf::ControlFlowDialect", "scf::SCFDialect"];
+  let dependentDialects = ["StandardOpsDialect", "scf::SCFDialect"];
 }
 
 //===----------------------------------------------------------------------===//

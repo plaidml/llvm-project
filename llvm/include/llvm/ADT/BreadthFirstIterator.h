@@ -5,14 +5,13 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-///
-/// \file
-/// This file builds on the ADT/GraphTraits.h file to build a generic breadth
-/// first graph iterator.  This file exposes the following functions/types:
-///
-/// bf_begin/bf_end/bf_iterator
-///   * Normal breadth-first iteration - visit a graph level-by-level.
-///
+//
+// This file builds on the ADT/GraphTraits.h file to build a generic breadth
+// first graph iterator.  This file exposes the following functions/types:
+//
+// bf_begin/bf_end/bf_iterator
+//   * Normal breadth-first iteration - visit a graph level-by-level.
+//
 //===----------------------------------------------------------------------===//
 
 #ifndef LLVM_ADT_BREADTHFIRSTITERATOR_H

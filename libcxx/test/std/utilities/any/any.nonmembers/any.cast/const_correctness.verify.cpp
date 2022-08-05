@@ -32,19 +32,22 @@ struct TestType2 {};
 
 int main(int, char**)
 {
-    std::any a;
+    using std::any;
+    using std::any_cast;
+
+    any a;
 
     // expected-error-re@any:* {{static_assert failed{{.*}} "ValueType is required to be a const lvalue reference or a CopyConstructible type"}}
-    std::any_cast<TestType &>(static_cast<std::any const&>(a)); // expected-note {{requested here}}
+    any_cast<TestType &>(static_cast<any const&>(a)); // expected-note {{requested here}}
 
     // expected-error-re@any:* {{static_assert failed{{.*}} "ValueType is required to be a const lvalue reference or a CopyConstructible type"}}
-    std::any_cast<TestType &&>(static_cast<std::any const&>(a)); // expected-note {{requested here}}
+    any_cast<TestType &&>(static_cast<any const&>(a)); // expected-note {{requested here}}
 
     // expected-error-re@any:* {{static_assert failed{{.*}} "ValueType is required to be a const lvalue reference or a CopyConstructible type"}}
-    std::any_cast<TestType2 &>(static_cast<std::any const&&>(a)); // expected-note {{requested here}}
+    any_cast<TestType2 &>(static_cast<any const&&>(a)); // expected-note {{requested here}}
 
     // expected-error-re@any:* {{static_assert failed{{.*}} "ValueType is required to be a const lvalue reference or a CopyConstructible type"}}
-    std::any_cast<TestType2 &&>(static_cast<std::any const&&>(a)); // expected-note {{requested here}}
+    any_cast<TestType2 &&>(static_cast<any const&&>(a)); // expected-note {{requested here}}
 
   return 0;
 }

@@ -1,5 +1,5 @@
 include(CMakePushCheckState)
-include(LLVMCheckCompilerLinkerFlag)
+include(LLVMCheckLinkerFlag) # Compat until CMake 3.18
 include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
 include(CheckIncludeFiles)
@@ -165,12 +165,12 @@ check_library_exists(c++ __cxa_throw "" COMPILER_RT_HAS_LIBCXX)
 check_library_exists(stdc++ __cxa_throw "" COMPILER_RT_HAS_LIBSTDCXX)
 
 # Linker flags.
-llvm_check_compiler_linker_flag(CXX "-Wl,-z,text" COMPILER_RT_HAS_Z_TEXT)
-llvm_check_compiler_linker_flag(CXX "-fuse-ld=lld" COMPILER_RT_HAS_FUSE_LD_LLD_FLAG)
+llvm_check_linker_flag(CXX "-Wl,-z,text" COMPILER_RT_HAS_Z_TEXT)
+llvm_check_linker_flag(CXX "-fuse-ld=lld" COMPILER_RT_HAS_FUSE_LD_LLD_FLAG)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
   set(VERS_COMPAT_OPTION "-Wl,-z,gnu-version-script-compat")
-  llvm_check_compiler_linker_flag(CXX "${VERS_COMPAT_OPTION}" COMPILER_RT_HAS_GNU_VERSION_SCRIPT_COMPAT)
+  llvm_check_linker_flag(CXX "${VERS_COMPAT_OPTION}" COMPILER_RT_HAS_GNU_VERSION_SCRIPT_COMPAT)
 endif()
 
 set(DUMMY_VERS ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/dummy.vers)
@@ -181,10 +181,10 @@ if(COMPILER_RT_HAS_GNU_VERSION_SCRIPT_COMPAT)
   # -z gnu-version-script-compat.
   string(APPEND VERS_OPTION " ${VERS_COMPAT_OPTION}")
 endif()
-llvm_check_compiler_linker_flag(CXX "${VERS_OPTION}" COMPILER_RT_HAS_VERSION_SCRIPT)
+llvm_check_linker_flag(CXX "${VERS_OPTION}" COMPILER_RT_HAS_VERSION_SCRIPT)
 
 if(ANDROID)
-  llvm_check_compiler_linker_flag(CXX "-Wl,-z,global" COMPILER_RT_HAS_Z_GLOBAL)
+  llvm_check_linker_flag(CXX "-Wl,-z,global" COMPILER_RT_HAS_Z_GLOBAL)
   check_library_exists(log __android_log_write "" COMPILER_RT_HAS_LIBLOG)
 endif()
 
@@ -199,11 +199,6 @@ set(COMPILER_RT_SUPPORTED_ARCH)
 # abilities.
 set(SIMPLE_SOURCE ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/simple.cc)
 file(WRITE ${SIMPLE_SOURCE} "#include <stdlib.h>\n#include <stdio.h>\nint main() { printf(\"hello, world\"); }\n")
-
-# Check if we have SMP support for particular ARM architecture
-# If not use stubs instead of real atomic operations - see sync-ops.h
-set(ARM_SMP_CHECK_SRC ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/arm-barrier.cc)
-file(WRITE ${ARM_SMP_CHECK_SRC} "int main() { asm(\"dmb\"); return 0; }")
 
 # Detect whether the current target platform is 32-bit or 64-bit, and setup
 # the correct commandline flags needed to attempt to target 32-bit and 64-bit.
@@ -435,7 +430,7 @@ if(APPLE)
     -lc++
     -lc++abi)
 
-  llvm_check_compiler_linker_flag(CXX "-fapplication-extension" COMPILER_RT_HAS_APP_EXTENSION)
+  llvm_check_linker_flag(CXX "-fapplication-extension" COMPILER_RT_HAS_APP_EXTENSION)
   if(COMPILER_RT_HAS_APP_EXTENSION)
     list(APPEND DARWIN_COMMON_LINK_FLAGS "-fapplication-extension")
   endif()

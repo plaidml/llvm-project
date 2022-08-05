@@ -352,10 +352,14 @@ static bool collectSRATypes(DenseMap<uint64_t, Type *> &Types, GlobalValue *GV,
   while (!Worklist.empty()) {
     Use *U = Worklist.pop_back_val();
     User *V = U->getUser();
+    if (isa<BitCastOperator>(V) || isa<AddrSpaceCastOperator>(V)) {
+      AppendUses(V);
+      continue;
+    }
 
-    auto *GEP = dyn_cast<GEPOperator>(V);
-    if (isa<BitCastOperator>(V) || isa<AddrSpaceCastOperator>(V) ||
-        (GEP && GEP->hasAllConstantIndices())) {
+    if (auto *GEP = dyn_cast<GEPOperator>(V)) {
+      if (!GEP->hasAllConstantIndices())
+        return false;
       AppendUses(V);
       continue;
     }
@@ -2225,13 +2229,6 @@ OptimizeGlobalAliases(Module &M,
   for (GlobalValue *GV : Used.used())
     Used.compilerUsedErase(GV);
 
-  // Return whether GV is explicitly or implicitly dso_local and not replaceable
-  // by another definition in the current linkage unit.
-  auto IsModuleLocal = [](GlobalValue &GV) {
-    return !GlobalValue::isInterposableLinkage(GV.getLinkage()) &&
-           (GV.isDSOLocal() || GV.isImplicitDSOLocal());
-  };
-
   for (GlobalAlias &J : llvm::make_early_inc_range(M.aliases())) {
     // Aliases without names cannot be referenced outside this module.
     if (!J.hasName() && !J.isDeclaration() && !J.hasLocalLinkage())
@@ -2243,20 +2240,18 @@ OptimizeGlobalAliases(Module &M,
     }
 
     // If the alias can change at link time, nothing can be done - bail out.
-    if (!IsModuleLocal(J))
+    if (J.isInterposable())
       continue;
 
     Constant *Aliasee = J.getAliasee();
     GlobalValue *Target = dyn_cast<GlobalValue>(Aliasee->stripPointerCasts());
     // We can't trivially replace the alias with the aliasee if the aliasee is
     // non-trivial in some way. We also can't replace the alias with the aliasee
-    // if the aliasee may be preemptible at runtime. On ELF, a non-preemptible
-    // alias can be used to access the definition as if preemption did not
-    // happen.
+    // if the aliasee is interposable because aliases point to the local
+    // definition.
     // TODO: Try to handle non-zero GEPs of local aliasees.
-    if (!Target || !IsModuleLocal(*Target))
+    if (!Target || Target->isInterposable())
       continue;
-
     Target->removeDeadConstantUsers();
 
     // Make all users of the alias use the aliasee instead.

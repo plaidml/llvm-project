@@ -196,7 +196,7 @@ char *nullptr_var(unsigned long offset) {
   return base + offset;
 }
 
-char *nullptr_zero(void) {
+char *nullptr_zero() {
   // CHECK:                             define{{.*}} i8* @nullptr_zero()
   // CHECK-NEXT:                        [[ENTRY:.*]]:
   // CHECK-SANITIZE-C-NEXT:               br i1 false, label %[[CONT:.*]], label %[[HANDLER_POINTER_OVERFLOW:[^,]+]],{{.*}} !nosanitize
@@ -213,7 +213,7 @@ char *nullptr_zero(void) {
   return base + offset;
 }
 
-char *nullptr_one_BAD(void) {
+char *nullptr_one_BAD() {
   // CHECK:                           define{{.*}} i8* @nullptr_one_BAD()
   // CHECK-NEXT:                      [[ENTRY:.*]]:
   // CHECK-SANITIZE-C-NEXT:             br i1 false, label %[[CONT:.*]], label %[[HANDLER_POINTER_OVERFLOW:[^,]+]],{{.*}} !nosanitize
@@ -231,7 +231,7 @@ char *nullptr_one_BAD(void) {
   return base + offset;
 }
 
-char *nullptr_allones_BAD(void) {
+char *nullptr_allones_BAD() {
   // CHECK:                           define{{.*}} i8* @nullptr_allones_BAD()
   // CHECK-NEXT:                      [[ENTRY:.*]]:
   // CHECK-SANITIZE-C-NEXT:             br i1 false, label %[[CONT:.*]], label %[[HANDLER_POINTER_OVERFLOW:[^,]+]],{{.*}} !nosanitize
@@ -283,7 +283,7 @@ char *one_var(unsigned long offset) {
   return base + offset;
 }
 
-char *one_zero(void) {
+char *one_zero() {
   // CHECK:                             define{{.*}} i8* @one_zero()
   // CHECK-NEXT:                        [[ENTRY:.*]]:
   // CHECK-SANITIZE-C-NEXT:               br i1 icmp ne (i8* inttoptr (i64 1 to i8*), i8* null), label %[[CONT:.*]], label %[[HANDLER_POINTER_OVERFLOW:[^,]+]],{{.*}} !nosanitize
@@ -300,7 +300,7 @@ char *one_zero(void) {
   return base + offset;
 }
 
-char *one_one_OK(void) {
+char *one_one_OK() {
   // CHECK:                           define{{.*}} i8* @one_one_OK()
   // CHECK-NEXT:                      [[ENTRY:.*]]:
   // CHECK-SANITIZE-C-NEXT:             br i1 and (i1 icmp ne (i8* inttoptr (i64 1 to i8*), i8* null), i1 icmp ne (i64 add (i64 sub (i64 ptrtoint (i8* getelementptr inbounds (i8, i8* inttoptr (i64 1 to i8*), i64 1) to i64), i64 1), i64 1), i64 0)), label %[[CONT:.*]], label %[[HANDLER_POINTER_OVERFLOW:[^,]+]],{{.*}} !nosanitize
@@ -318,7 +318,7 @@ char *one_one_OK(void) {
   return base + offset;
 }
 
-char *one_allones_BAD(void) {
+char *one_allones_BAD() {
   // CHECK:                           define{{.*}} i8* @one_allones_BAD()
   // CHECK-NEXT:                      [[ENTRY:.*]]:
   // CHECK-SANITIZE-C-NEXT:             br i1 and (i1 icmp ne (i8* inttoptr (i64 1 to i8*), i8* null), i1 icmp ne (i64 add (i64 sub (i64 ptrtoint (i8* getelementptr inbounds (i8, i8* inttoptr (i64 1 to i8*), i64 -1) to i64), i64 1), i64 1), i64 0)), label %[[CONT:.*]], label %[[HANDLER_POINTER_OVERFLOW:[^,]+]],{{.*}} !nosanitize
@@ -370,7 +370,7 @@ char *allones_var(unsigned long offset) {
   return base + offset;
 }
 
-char *allones_zero_OK(void) {
+char *allones_zero_OK() {
   // CHECK:                             define{{.*}} i8* @allones_zero_OK()
   // CHECK-NEXT:                        [[ENTRY:.*]]:
   // CHECK-SANITIZE-C-NEXT:               br i1 icmp ne (i8* inttoptr (i64 -1 to i8*), i8* null), label %[[CONT:.*]], label %[[HANDLER_POINTER_OVERFLOW:[^,]+]],{{.*}} !nosanitize
@@ -387,7 +387,7 @@ char *allones_zero_OK(void) {
   return base + offset;
 }
 
-char *allones_one_BAD(void) {
+char *allones_one_BAD() {
   // CHECK: define{{.*}} i8* @allones_one_BAD()
   // CHECK-NEXT: [[ENTRY:.*]]:
   // CHECK-SANITIZE-C-NEXT:             br i1 and (i1 icmp ne (i8* inttoptr (i64 -1 to i8*), i8* null), i1 icmp ne (i64 add (i64 sub (i64 ptrtoint (i8* getelementptr inbounds (i8, i8* inttoptr (i64 -1 to i8*), i64 1) to i64), i64 -1), i64 -1), i64 0)), label %[[CONT:.*]], label %[[HANDLER_POINTER_OVERFLOW:[^,]+]],{{.*}} !nosanitize
@@ -405,7 +405,7 @@ char *allones_one_BAD(void) {
   return base + offset;
 }
 
-char *allones_allones_OK(void) {
+char *allones_allones_OK() {
   // CHECK: define{{.*}} i8* @allones_allones_OK()
   // CHECK-NEXT: [[ENTRY:.*]]:
   // CHECK-SANITIZE-C-NEXT:             br i1 and (i1 icmp ne (i8* inttoptr (i64 -1 to i8*), i8* null), i1 icmp ne (i64 add (i64 sub (i64 ptrtoint (i8* getelementptr inbounds (i8, i8* inttoptr (i64 -1 to i8*), i64 -1) to i64), i64 -1), i64 -1), i64 0)), label %[[CONT:.*]], label %[[HANDLER_POINTER_OVERFLOW:[^,]+]],{{.*}} !nosanitize

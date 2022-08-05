@@ -22,7 +22,6 @@
 #include "llvm/ADT/Triple.h"
 #include "llvm/ADT/iterator_range.h"
 #include "llvm/BinaryFormat/MachO.h"
-#include "llvm/BinaryFormat/Swift.h"
 #include "llvm/MC/SubtargetFeature.h"
 #include "llvm/Object/Binary.h"
 #include "llvm/Object/ObjectFile.h"
@@ -563,7 +562,6 @@ public:
   ArrayRef<uint8_t> getDyldInfoWeakBindOpcodes() const;
   ArrayRef<uint8_t> getDyldInfoLazyBindOpcodes() const;
   ArrayRef<uint8_t> getDyldInfoExportsTrie() const;
-  SmallVector<uint64_t> getFunctionStarts() const;
   ArrayRef<uint8_t> getUuid() const;
 
   StringRef getStringTableData() const;
@@ -584,9 +582,6 @@ public:
   bool isRelocatableObject() const override;
 
   StringRef mapDebugSectionName(StringRef Name) const override;
-
-  llvm::binaryformat::Swift5ReflectionSectionKind
-  mapReflectionSectionNameToEnumValue(StringRef SectionName) const override;
 
   bool hasPageZeroSegment() const { return HasPageZeroSegment; }
 
@@ -690,7 +685,6 @@ private:
   const char *DataInCodeLoadCmd = nullptr;
   const char *LinkOptHintsLoadCmd = nullptr;
   const char *DyldInfoLoadCmd = nullptr;
-  const char *FuncStartsLoadCmd = nullptr;
   const char *UuidLoadCmd = nullptr;
   bool HasPageZeroSegment = false;
 };

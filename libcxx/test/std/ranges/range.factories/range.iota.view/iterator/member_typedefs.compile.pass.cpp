@@ -12,9 +12,8 @@
 
 // Test iterator category and iterator concepts.
 
-#include <cassert>
-#include <cstdint>
 #include <ranges>
+#include <cassert>
 
 #include "test_macros.h"
 #include "../types.h"

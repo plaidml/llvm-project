@@ -28,7 +28,7 @@ using namespace llvm;
 
 ARMException::ARMException(AsmPrinter *A) : DwarfCFIExceptionBase(A) {}
 
-ARMException::~ARMException() = default;
+ARMException::~ARMException() {}
 
 ARMTargetStreamer &ARMException::getTargetStreamer() {
   MCTargetStreamer &TS = *Asm->OutStreamer->getTargetStreamer();

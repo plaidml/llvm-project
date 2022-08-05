@@ -91,6 +91,8 @@ public:
                    FileID PrevFID = FileID()) override;
   void FileSkipped(const FileEntryRef &SkippedFile, const Token &FilenameTok,
                    SrcMgr::CharacteristicKind FileType) override;
+  bool FileNotFound(llvm::StringRef FileName,
+                    llvm::SmallVectorImpl<char> &RecoveryPath) override;
   void InclusionDirective(SourceLocation HashLoc, const Token &IncludeTok,
                           llvm::StringRef FileName, bool IsAngled,
                           CharSourceRange FilenameRange, const FileEntry *File,

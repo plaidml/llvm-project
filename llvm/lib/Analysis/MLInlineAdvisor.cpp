@@ -36,7 +36,11 @@
 
 using namespace llvm;
 
-#if defined(LLVM_HAVE_TF_AOT_INLINERSIZEMODEL)
+#ifdef LLVM_HAVE_TF_AOT_INLINERSIZEMODEL
+#define LLVM_HAVE_TF_AOT
+#endif
+
+#if defined(LLVM_HAVE_TF_AOT)
 // codegen-ed file
 #include "InlinerSizeModel.h" // NOLINT
 
@@ -50,6 +54,8 @@ llvm::getReleaseModeAdvisor(Module &M, ModuleAnalysisManager &MAM) {
 #endif
 
 #define DEBUG_TYPE "inline-ml"
+
+#if defined(LLVM_HAVE_TF_AOT) || defined(LLVM_HAVE_TF_API)
 
 static cl::opt<float> SizeIncreaseThreshold(
     "ml-advisor-size-increase-threshold", cl::Hidden,
@@ -411,3 +417,4 @@ void MLInlineAdvice::recordUnattemptedInliningImpl() {
     return R;
   });
 }
+#endif // defined(LLVM_HAVE_TF_AOT) || defined(LLVM_HAVE_TF_API)

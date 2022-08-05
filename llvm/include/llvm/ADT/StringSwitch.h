@@ -4,16 +4,14 @@
 // See https://llvm.org/LICENSE.txt for license information.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //===----------------------------------------------------------------------===/
-///
-/// \file
-///  This file implements the StringSwitch template, which mimics a switch()
-///  statement whose cases are string literals.
-///
+//
+//  This file implements the StringSwitch template, which mimics a switch()
+//  statement whose cases are string literals.
+//
 //===----------------------------------------------------------------------===/
 #ifndef LLVM_ADT_STRINGSWITCH_H
 #define LLVM_ADT_STRINGSWITCH_H
 
-#include "llvm/ADT/Optional.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Compiler.h"
 #include <cassert>

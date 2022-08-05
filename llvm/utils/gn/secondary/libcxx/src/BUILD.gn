@@ -197,10 +197,7 @@ if (target_os == "zos") {
   ]
 }
 if (libcxx_enable_debug_mode) {
-  cxx_sources += [
-    "assert.cpp",
-    "debug.cpp",
-  ]
+  cxx_sources += [ "debug.cpp" ]
 }
 if (libcxx_enable_filesystem) {
   cxx_sources += [

@@ -27,7 +27,6 @@
 #include "lldb/Host/Socket.h"
 #include "lldb/Host/common/NativeProcessProtocol.h"
 #include "lldb/Target/Process.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Status.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Option/ArgList.h"
@@ -95,7 +94,7 @@ static int g_sighup_received_count = 0;
 static void sighup_handler(MainLoopBase &mainloop) {
   ++g_sighup_received_count;
 
-  Log *log = GetLog(LLDBLog::Process);
+  Log *log(GetLogIfAnyCategoriesSet(LIBLLDB_LOG_PROCESS));
   LLDB_LOGF(log, "lldb-server:%s swallowing SIGHUP (receive count=%d)",
             __FUNCTION__, g_sighup_received_count);
 

@@ -2,6 +2,7 @@ llvm_canonicalize_cmake_booleans(
   BUILD_SHARED_LIBS
   LLVM_HAVE_LIBXAR
   HAVE_OCAMLOPT
+  HAVE_OCAML_OUNIT
   LLVM_ENABLE_DIA_SDK
   LLVM_ENABLE_FFI
   LLVM_ENABLE_THREADS
@@ -53,7 +54,6 @@ set(LLVM_TEST_DEPENDS
           BugpointPasses
           FileCheck
           LLVMHello
-          LLVMWindowsDriver
           UnitTests
           bugpoint
           count
@@ -113,7 +113,6 @@ set(LLVM_TEST_DEPENDS
           llvm-readobj
           llvm-readelf
           llvm-reduce
-          llvm-remark-size-diff
           llvm-rtdyld
           llvm-sim
           llvm-size

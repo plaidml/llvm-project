@@ -97,13 +97,6 @@ static cl::opt<bool>
   ReduceCRLogical("ppc-reduce-cr-logicals",
                   cl::desc("Expand eligible cr-logical binary ops to branches"),
                   cl::init(true), cl::Hidden);
-
-static cl::opt<bool> EnablePPCGenScalarMASSEntries(
-    "enable-ppc-gen-scalar-mass", cl::init(false),
-    cl::desc("Enable lowering math functions to their corresponding MASS "
-             "(scalar) entries"),
-    cl::Hidden);
-
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializePowerPCTarget() {
   // Register the targets
   RegisterTargetMachine<PPCTargetMachine> A(getThePPC32Target());
@@ -130,7 +123,6 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializePowerPCTarget() {
   initializePPCTLSDynamicCallPass(PR);
   initializePPCMIPeepholePass(PR);
   initializePPCLowerMASSVEntriesPass(PR);
-  initializePPCGenScalarMASSEntriesPass(PR);
   initializePPCExpandAtomicPseudoPass(PR);
   initializeGlobalISel(PR);
 }
@@ -436,14 +428,6 @@ void PPCPassConfig::addIRPasses() {
 
   // Lower generic MASSV routines to PowerPC subtarget-specific entries.
   addPass(createPPCLowerMASSVEntriesPass());
-
-  // Generate PowerPC target-specific entries for scalar math functions
-  // that are available in IBM MASS (scalar) library.
-  if (TM->getOptLevel() == CodeGenOpt::Aggressive &&
-      EnablePPCGenScalarMASSEntries) {
-    TM->Options.PPCGenScalarMASSEntries = EnablePPCGenScalarMASSEntries;
-    addPass(createPPCGenScalarMASSEntriesPass());
-  }
 
   // If explicitly requested, add explicit data prefetch intrinsics.
   if (EnablePrefetch.getNumOccurrences() > 0)

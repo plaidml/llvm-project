@@ -82,6 +82,8 @@ def SPV_ImageDrefGatherOp : SPV_Op<"ImageDrefGather", [NoSideEffect]> {
                          ( `(` $operand_arguments^ `:` type($operand_arguments) `)`)?
                          attr-dict
                          `->` type($result)}];
+
+  let verifier = [{ return ::verify(*this); }];
 }
 
 // -----
@@ -139,6 +141,8 @@ def SPV_ImageQuerySizeOp : SPV_Op<"ImageQuerySize", [NoSideEffect]> {
   );
 
   let assemblyFormat = "attr-dict $image `:` type($image) `->` type($result)";
+
+  let verifier = [{return ::verify(*this);}];
 }
 
 // -----
@@ -175,7 +179,8 @@ def SPV_ImageOp : SPV_Op<"Image",
 
   let assemblyFormat = "attr-dict $sampledimage `:` type($sampledimage)";
 
-  let hasVerifier = 0;
+  let verifier = ?;
+
 }
 
 #endif // MLIR_DIALECT_SPIRV_IR_GLSL_OPS

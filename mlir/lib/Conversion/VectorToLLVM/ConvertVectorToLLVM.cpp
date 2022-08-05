@@ -14,7 +14,7 @@
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
-#include "mlir/Dialect/Vector/Transforms/VectorTransforms.h"
+#include "mlir/Dialect/Vector/VectorTransforms.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Support/MathExtras.h"
 #include "mlir/Target/LLVMIR/TypeToLLVM.h"
@@ -380,31 +380,31 @@ public:
     Value operand = adaptor.getOperands()[0];
     if (eltType.isIntOrIndex()) {
       // Integer reductions: add/mul/min/max/and/or/xor.
-      if (kind == vector::CombiningKind::ADD)
+      if (kind == "add")
         rewriter.replaceOpWithNewOp<LLVM::vector_reduce_add>(reductionOp,
                                                              llvmType, operand);
-      else if (kind == vector::CombiningKind::MUL)
+      else if (kind == "mul")
         rewriter.replaceOpWithNewOp<LLVM::vector_reduce_mul>(reductionOp,
                                                              llvmType, operand);
-      else if (kind == vector::CombiningKind::MINUI)
+      else if (kind == "minui")
         rewriter.replaceOpWithNewOp<LLVM::vector_reduce_umin>(
             reductionOp, llvmType, operand);
-      else if (kind == vector::CombiningKind::MINSI)
+      else if (kind == "minsi")
         rewriter.replaceOpWithNewOp<LLVM::vector_reduce_smin>(
             reductionOp, llvmType, operand);
-      else if (kind == vector::CombiningKind::MAXUI)
+      else if (kind == "maxui")
         rewriter.replaceOpWithNewOp<LLVM::vector_reduce_umax>(
             reductionOp, llvmType, operand);
-      else if (kind == vector::CombiningKind::MAXSI)
+      else if (kind == "maxsi")
         rewriter.replaceOpWithNewOp<LLVM::vector_reduce_smax>(
             reductionOp, llvmType, operand);
-      else if (kind == vector::CombiningKind::AND)
+      else if (kind == "and")
         rewriter.replaceOpWithNewOp<LLVM::vector_reduce_and>(reductionOp,
                                                              llvmType, operand);
-      else if (kind == vector::CombiningKind::OR)
+      else if (kind == "or")
         rewriter.replaceOpWithNewOp<LLVM::vector_reduce_or>(reductionOp,
                                                             llvmType, operand);
-      else if (kind == vector::CombiningKind::XOR)
+      else if (kind == "xor")
         rewriter.replaceOpWithNewOp<LLVM::vector_reduce_xor>(reductionOp,
                                                              llvmType, operand);
       else
@@ -416,7 +416,7 @@ public:
       return failure();
 
     // Floating-point reductions: add/mul/min/max
-    if (kind == vector::CombiningKind::ADD) {
+    if (kind == "add") {
       // Optional accumulator (or zero).
       Value acc = adaptor.getOperands().size() > 1
                       ? adaptor.getOperands()[1]
@@ -426,7 +426,7 @@ public:
       rewriter.replaceOpWithNewOp<LLVM::vector_reduce_fadd>(
           reductionOp, llvmType, acc, operand,
           rewriter.getBoolAttr(reassociateFPReductions));
-    } else if (kind == vector::CombiningKind::MUL) {
+    } else if (kind == "mul") {
       // Optional accumulator (or one).
       Value acc = adaptor.getOperands().size() > 1
                       ? adaptor.getOperands()[1]
@@ -436,12 +436,12 @@ public:
       rewriter.replaceOpWithNewOp<LLVM::vector_reduce_fmul>(
           reductionOp, llvmType, acc, operand,
           rewriter.getBoolAttr(reassociateFPReductions));
-    } else if (kind == vector::CombiningKind::MINF)
+    } else if (kind == "minf")
       // FIXME: MLIR's 'minf' and LLVM's 'vector_reduce_fmin' do not handle
       // NaNs/-0.0/+0.0 in the same way.
       rewriter.replaceOpWithNewOp<LLVM::vector_reduce_fmin>(reductionOp,
                                                             llvmType, operand);
-    else if (kind == vector::CombiningKind::MAXF)
+    else if (kind == "maxf")
       // FIXME: MLIR's 'maxf' and LLVM's 'vector_reduce_fmax' do not handle
       // NaNs/-0.0/+0.0 in the same way.
       rewriter.replaceOpWithNewOp<LLVM::vector_reduce_fmax>(reductionOp,
@@ -778,7 +778,7 @@ public:
     auto elemType = vType.getElementType();
     Value zero = rewriter.create<arith::ConstantOp>(
         loc, elemType, rewriter.getZeroAttr(elemType));
-    Value desc = rewriter.create<vector::SplatOp>(loc, vType, zero);
+    Value desc = rewriter.create<SplatOp>(loc, vType, zero);
     for (int64_t i = 0, e = vType.getShape().front(); i != e; ++i) {
       Value extrLHS = rewriter.create<ExtractOp>(loc, op.lhs(), i);
       Value extrRHS = rewriter.create<ExtractOp>(loc, op.rhs(), i);
@@ -1003,11 +1003,11 @@ private:
       switch (conversion) {
       case PrintConversion::ZeroExt64:
         value = rewriter.create<arith::ExtUIOp>(
-            loc, IntegerType::get(rewriter.getContext(), 64), value);
+            loc, value, IntegerType::get(rewriter.getContext(), 64));
         break;
       case PrintConversion::SignExt64:
         value = rewriter.create<arith::ExtSIOp>(
-            loc, IntegerType::get(rewriter.getContext(), 64), value);
+            loc, value, IntegerType::get(rewriter.getContext(), 64));
         break;
       case PrintConversion::None:
         break;
@@ -1062,99 +1062,6 @@ private:
   }
 };
 
-/// The Splat operation is lowered to an insertelement + a shufflevector
-/// operation. Splat to only 0-d and 1-d vector result types are lowered.
-struct VectorSplatOpLowering : public ConvertOpToLLVMPattern<vector::SplatOp> {
-  using ConvertOpToLLVMPattern<vector::SplatOp>::ConvertOpToLLVMPattern;
-
-  LogicalResult
-  matchAndRewrite(vector::SplatOp splatOp, OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
-    VectorType resultType = splatOp.getType().cast<VectorType>();
-    if (resultType.getRank() > 1)
-      return failure();
-
-    // First insert it into an undef vector so we can shuffle it.
-    auto vectorType = typeConverter->convertType(splatOp.getType());
-    Value undef = rewriter.create<LLVM::UndefOp>(splatOp.getLoc(), vectorType);
-    auto zero = rewriter.create<LLVM::ConstantOp>(
-        splatOp.getLoc(),
-        typeConverter->convertType(rewriter.getIntegerType(32)),
-        rewriter.getZeroAttr(rewriter.getIntegerType(32)));
-
-    // For 0-d vector, we simply do `insertelement`.
-    if (resultType.getRank() == 0) {
-      rewriter.replaceOpWithNewOp<LLVM::InsertElementOp>(
-          splatOp, vectorType, undef, adaptor.input(), zero);
-      return success();
-    }
-
-    // For 1-d vector, we additionally do a `vectorshuffle`.
-    auto v = rewriter.create<LLVM::InsertElementOp>(
-        splatOp.getLoc(), vectorType, undef, adaptor.input(), zero);
-
-    int64_t width = splatOp.getType().cast<VectorType>().getDimSize(0);
-    SmallVector<int32_t, 4> zeroValues(width, 0);
-
-    // Shuffle the value across the desired number of elements.
-    ArrayAttr zeroAttrs = rewriter.getI32ArrayAttr(zeroValues);
-    rewriter.replaceOpWithNewOp<LLVM::ShuffleVectorOp>(splatOp, v, undef,
-                                                       zeroAttrs);
-    return success();
-  }
-};
-
-/// The Splat operation is lowered to an insertelement + a shufflevector
-/// operation. Splat to only 2+-d vector result types are lowered by the
-/// SplatNdOpLowering, the 1-d case is handled by SplatOpLowering.
-struct VectorSplatNdOpLowering : public ConvertOpToLLVMPattern<SplatOp> {
-  using ConvertOpToLLVMPattern<SplatOp>::ConvertOpToLLVMPattern;
-
-  LogicalResult
-  matchAndRewrite(SplatOp splatOp, OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
-    VectorType resultType = splatOp.getType();
-    if (resultType.getRank() <= 1)
-      return failure();
-
-    // First insert it into an undef vector so we can shuffle it.
-    auto loc = splatOp.getLoc();
-    auto vectorTypeInfo =
-        LLVM::detail::extractNDVectorTypeInfo(resultType, *getTypeConverter());
-    auto llvmNDVectorTy = vectorTypeInfo.llvmNDVectorTy;
-    auto llvm1DVectorTy = vectorTypeInfo.llvm1DVectorTy;
-    if (!llvmNDVectorTy || !llvm1DVectorTy)
-      return failure();
-
-    // Construct returned value.
-    Value desc = rewriter.create<LLVM::UndefOp>(loc, llvmNDVectorTy);
-
-    // Construct a 1-D vector with the splatted value that we insert in all the
-    // places within the returned descriptor.
-    Value vdesc = rewriter.create<LLVM::UndefOp>(loc, llvm1DVectorTy);
-    auto zero = rewriter.create<LLVM::ConstantOp>(
-        loc, typeConverter->convertType(rewriter.getIntegerType(32)),
-        rewriter.getZeroAttr(rewriter.getIntegerType(32)));
-    Value v = rewriter.create<LLVM::InsertElementOp>(loc, llvm1DVectorTy, vdesc,
-                                                     adaptor.input(), zero);
-
-    // Shuffle the value across the desired number of elements.
-    int64_t width = resultType.getDimSize(resultType.getRank() - 1);
-    SmallVector<int32_t, 4> zeroValues(width, 0);
-    ArrayAttr zeroAttrs = rewriter.getI32ArrayAttr(zeroValues);
-    v = rewriter.create<LLVM::ShuffleVectorOp>(loc, v, v, zeroAttrs);
-
-    // Iterate of linear index, convert to coords space and insert splatted 1-D
-    // vector in each position.
-    nDVectorIterate(vectorTypeInfo, rewriter, [&](ArrayAttr position) {
-      desc = rewriter.create<LLVM::InsertValueOp>(loc, llvmNDVectorTy, desc, v,
-                                                  position);
-    });
-    rewriter.replaceOp(splatOp, desc);
-    return success();
-  }
-};
-
 } // namespace
 
 /// Populate the given list with patterns that convert from Vector to LLVM.
@@ -1178,8 +1085,8 @@ void mlir::populateVectorToLLVMConversionPatterns(
            VectorLoadStoreConversion<vector::MaskedStoreOp,
                                      vector::MaskedStoreOpAdaptor>,
            VectorGatherOpConversion, VectorScatterOpConversion,
-           VectorExpandLoadOpConversion, VectorCompressStoreOpConversion,
-           VectorSplatOpLowering, VectorSplatNdOpLowering>(converter);
+           VectorExpandLoadOpConversion, VectorCompressStoreOpConversion>(
+          converter);
   // Transfer ops with rank > 1 are handled by VectorToSCF.
   populateVectorTransferLoweringPatterns(patterns, /*maxTransferRank=*/1);
 }

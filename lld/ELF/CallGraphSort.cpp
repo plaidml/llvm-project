@@ -41,9 +41,9 @@
 //===----------------------------------------------------------------------===//
 
 #include "CallGraphSort.h"
-#include "InputSection.h"
+#include "OutputSections.h"
+#include "SymbolTable.h"
 #include "Symbols.h"
-#include "llvm/Support/FileSystem.h"
 
 #include <numeric>
 

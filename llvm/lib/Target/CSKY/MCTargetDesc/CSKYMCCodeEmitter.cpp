@@ -16,9 +16,6 @@
 #include "llvm/ADT/Statistic.h"
 #include "llvm/MC/MCInstBuilder.h"
 #include "llvm/MC/MCInstrInfo.h"
-#include "llvm/MC/MCRegisterInfo.h"
-#include "llvm/MC/MCSubtargetInfo.h"
-#include "llvm/Support/Casting.h"
 #include "llvm/Support/EndianStream.h"
 
 using namespace llvm;
@@ -173,6 +170,7 @@ MCFixupKind CSKYMCCodeEmitter::getTargetFixup(const MCExpr *Expr) const {
 }
 
 MCCodeEmitter *llvm::createCSKYMCCodeEmitter(const MCInstrInfo &MCII,
+                                             const MCRegisterInfo &MRI,
                                              MCContext &Ctx) {
   return new CSKYMCCodeEmitter(Ctx, MCII);
 }

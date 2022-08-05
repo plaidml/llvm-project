@@ -24,7 +24,7 @@
 #include "lld/Common/Filesystem.h"
 #include "lld/Common/Strings.h"
 #include "llvm/ADT/StringMap.h"
-#include "llvm/Support/MD5.h"
+#include "llvm/ADT/StringSwitch.h"
 #include "llvm/Support/Parallel.h"
 #include "llvm/Support/RandomNumberGenerator.h"
 #include "llvm/Support/SHA1.h"
@@ -168,7 +168,8 @@ static Defined *addOptionalRegular(StringRef name, SectionBase *sec,
   if (!s || s->isDefined())
     return nullptr;
 
-  s->resolve(Defined{nullptr, StringRef(), STB_GLOBAL, stOther, STT_NOTYPE, val,
+  s->resolve(Defined{/*file=*/nullptr, name, STB_GLOBAL, stOther, STT_NOTYPE,
+                     val,
                      /*size=*/0, sec});
   return cast<Defined>(s);
 }
@@ -231,7 +232,7 @@ void elf::addReservedSymbols() {
     if (config->emachine == EM_PPC64)
       gotOff = 0x8000;
 
-    s->resolve(Defined{/*file=*/nullptr, StringRef(), STB_GLOBAL, STV_HIDDEN,
+    s->resolve(Defined{/*file=*/nullptr, gotSymName, STB_GLOBAL, STV_HIDDEN,
                        STT_NOTYPE, gotOff, /*size=*/0, Out::elfHeader});
     ElfSym::globalOffsetTable = cast<Defined>(s);
   }
@@ -314,7 +315,8 @@ template <class ELFT> void elf::createSyntheticSections() {
   // If there is a SECTIONS command and a .data.rel.ro section name use name
   // .data.rel.ro.bss so that we match in the .data.rel.ro output section.
   // This makes sure our relro is contiguous.
-  bool hasDataRelRo = script->hasSectionsCommand && findSection(".data.rel.ro");
+  bool hasDataRelRo =
+      script->hasSectionsCommand && findSection(".data.rel.ro", 0);
   in.bssRelRo = std::make_unique<BssSection>(
       hasDataRelRo ? ".data.rel.ro.bss" : ".bss.rel.ro", 0, 1);
   add(*in.bssRelRo);
@@ -325,12 +327,12 @@ template <class ELFT> void elf::createSyntheticSections() {
       in.mipsRldMap = std::make_unique<MipsRldMapSection>();
       add(*in.mipsRldMap);
     }
-    if ((in.mipsAbiFlags = MipsAbiFlagsSection<ELFT>::create()))
-      add(*in.mipsAbiFlags);
-    if ((in.mipsOptions = MipsOptionsSection<ELFT>::create()))
-      add(*in.mipsOptions);
-    if ((in.mipsReginfo = MipsReginfoSection<ELFT>::create()))
-      add(*in.mipsReginfo);
+    if (auto *sec = MipsAbiFlagsSection<ELFT>::create())
+      add(*sec);
+    if (auto *sec = MipsOptionsSection<ELFT>::create())
+      add(*sec);
+    if (auto *sec = MipsReginfoSection<ELFT>::create())
+      add(*sec);
   }
 
   StringRef relaDynName = config->isRela ? ".rela.dyn" : ".rel.dyn";
@@ -618,8 +620,12 @@ template <class ELFT> static void markUsedLocalSymbols() {
   // See MarkLive<ELFT>::resolveReloc().
   if (config->gcSections)
     return;
+  // Without --gc-sections, the field is initialized with "true".
+  // Drop the flag first and then rise for symbols referenced in relocations.
   for (ELFFileBase *file : objectFiles) {
     ObjFile<ELFT> *f = cast<ObjFile<ELFT>>(file);
+    for (Symbol *b : f->getLocalSymbols())
+      b->used = false;
     for (InputSectionBase *s : f->getSections()) {
       InputSection *isec = dyn_cast_or_null<InputSection>(s);
       if (!isec)
@@ -638,7 +644,7 @@ static bool shouldKeepInSymtab(const Defined &sym) {
 
   // If --emit-reloc or -r is given, preserve symbols referenced by relocations
   // from live sections.
-  if (sym.used)
+  if (config->copyRelocs && sym.used)
     return true;
 
   // Exclude local symbols pointing to .ARM.exidx sections.
@@ -674,11 +680,16 @@ static bool includeInSymtab(const Symbol &b) {
     if (!sec)
       return true;
 
+    // Exclude symbols pointing to garbage-collected sections.
+    if (isa<InputSectionBase>(sec) && !sec->isLive())
+      return false;
+
     if (auto *s = dyn_cast<MergeInputSection>(sec))
-      return s->getSectionPiece(d->value)->live;
-    return sec->isLive();
+      if (!s->getSectionPiece(d->value)->live)
+        return false;
+    return true;
   }
-  return b.used || !config->gcSections;
+  return b.used;
 }
 
 // Local symbols are not in the linker's symbol table. This function scans
@@ -1419,19 +1430,22 @@ template <class ELFT> void Writer<ELFT>::sortInputSections() {
 
 template <class ELFT> void Writer<ELFT>::sortSections() {
   llvm::TimeTraceScope timeScope("Sort sections");
+  script->adjustSectionsBeforeSorting();
 
   // Don't sort if using -r. It is not necessary and we want to preserve the
   // relative order for SHF_LINK_ORDER sections.
-  if (config->relocatable) {
-    script->adjustOutputSections();
+  if (config->relocatable)
     return;
-  }
 
   sortInputSections();
 
-  for (SectionCommand *cmd : script->sectionCommands)
-    if (auto *osec = dyn_cast_or_null<OutputSection>(cmd))
-      osec->sortRank = getSectionRank(osec);
+  for (SectionCommand *cmd : script->sectionCommands) {
+    auto *os = dyn_cast<OutputSection>(cmd);
+    if (!os)
+      continue;
+    os->sortRank = getSectionRank(os);
+  }
+
   if (!script->hasSectionsCommand) {
     // We know that all the OutputSections are contiguous in this case.
     auto isSection = [](SectionCommand *cmd) {
@@ -1441,15 +1455,14 @@ template <class ELFT> void Writer<ELFT>::sortSections() {
         llvm::find_if(script->sectionCommands, isSection),
         llvm::find_if(llvm::reverse(script->sectionCommands), isSection).base(),
         compareSections);
+
+    // Process INSERT commands. From this point onwards the order of
+    // script->sectionCommands is fixed.
+    script->processInsertCommands();
+    return;
   }
 
-  // Process INSERT commands and update output section attributes. From this
-  // point onwards the order of script->sectionCommands is fixed.
   script->processInsertCommands();
-  script->adjustOutputSections();
-
-  if (!script->hasSectionsCommand)
-    return;
 
   // Orphan sections are sections present in the input files which are
   // not explicitly placed into the output file by the linker script.
@@ -1558,8 +1571,8 @@ template <class ELFT> void Writer<ELFT>::resolveShfLinkOrder() {
 
     // Link order may be distributed across several InputSectionDescriptions.
     // Sorting is performed separately.
-    SmallVector<InputSection **, 0> scriptSections;
-    SmallVector<InputSection *, 0> sections;
+    std::vector<InputSection **> scriptSections;
+    std::vector<InputSection *> sections;
     for (SectionCommand *cmd : sec->commands) {
       auto *isd = dyn_cast<InputSectionDescription>(cmd);
       if (!isd)
@@ -1737,15 +1750,16 @@ template <class ELFT> void Writer<ELFT>::optimizeBasicBlockJumps() {
     if (!(osec->flags & SHF_EXECINSTR))
       continue;
     SmallVector<InputSection *, 0> sections = getInputSections(*osec);
-    size_t numDeleted = 0;
+    std::vector<unsigned> result(sections.size());
     // Delete all fall through jump instructions.  Also, check if two
     // consecutive jump instructions can be flipped so that a fall
     // through jmp instruction can be deleted.
     for (size_t i = 0, e = sections.size(); i != e; ++i) {
       InputSection *next = i + 1 < sections.size() ? sections[i + 1] : nullptr;
       InputSection &sec = *sections[i];
-      numDeleted += target->deleteFallThruJmpInsn(sec, sec.file, next);
+      result[i] = target->deleteFallThruJmpInsn(sec, sec.file, next) ? 1 : 0;
     }
+    size_t numDeleted = std::count(result.begin(), result.end(), 1);
     if (numDeleted > 0) {
       script->assignAddresses();
       LLVM_DEBUG(llvm::dbgs()
@@ -1861,7 +1875,7 @@ template <class ELFT> void Writer<ELFT>::finalizeSections() {
     // define _TLS_MODULE_BASE_ relative to the first TLS section.
     Symbol *s = symtab->find("_TLS_MODULE_BASE_");
     if (s && s->isUndefined()) {
-      s->resolve(Defined{/*file=*/nullptr, StringRef(), STB_GLOBAL, STV_HIDDEN,
+      s->resolve(Defined{/*file=*/nullptr, s->getName(), STB_GLOBAL, STV_HIDDEN,
                          STT_TLS, /*value=*/0, 0,
                          /*section=*/nullptr});
       ElfSym::tlsModuleBase = cast<Defined>(s);
@@ -1877,11 +1891,9 @@ template <class ELFT> void Writer<ELFT>::finalizeSections() {
       finalizeSynthetic(part.ehFrame.get());
   }
 
-  if (config->hasDynSymTab) {
-    parallelForEach(symtab->symbols(), [](Symbol *sym) {
+  if (config->hasDynSymTab)
+    for (Symbol *sym : symtab->symbols())
       sym->isPreemptible = computeIsPreemptible(*sym);
-    });
-  }
 
   // Change values of linker-script-defined symbols from placeholders (assigned
   // by declareSymbols) to actual definitions.
@@ -1910,7 +1922,7 @@ template <class ELFT> void Writer<ELFT>::finalizeSections() {
             scanRelocations<ELFT>(*sec);
       }
 
-      reportUndefinedSymbols();
+      reportUndefinedSymbols<ELFT>();
       postScanRelocations();
     }
   }
@@ -2073,16 +2085,11 @@ template <class ELFT> void Writer<ELFT>::finalizeSections() {
     // Dynamic section must be the last one in this list and dynamic
     // symbol table section (dynSymTab) must be the first one.
     for (Partition &part : partitions) {
-      if (part.relaDyn) {
-        // Compute DT_RELACOUNT to be used by part.dynamic.
-        part.relaDyn->partitionRels();
-        finalizeSynthetic(part.relaDyn.get());
-      }
-
       finalizeSynthetic(part.dynSymTab.get());
       finalizeSynthetic(part.gnuHashTab.get());
       finalizeSynthetic(part.hashTab.get());
       finalizeSynthetic(part.verDef.get());
+      finalizeSynthetic(part.relaDyn.get());
       finalizeSynthetic(part.relrDyn.get());
       finalizeSynthetic(part.ehFrameHdr.get());
       finalizeSynthetic(part.verSym.get());
@@ -2895,16 +2902,15 @@ computeHash(llvm::MutableArrayRef<uint8_t> hashBuf,
             llvm::ArrayRef<uint8_t> data,
             std::function<void(uint8_t *dest, ArrayRef<uint8_t> arr)> hashFn) {
   std::vector<ArrayRef<uint8_t>> chunks = split(data, 1024 * 1024);
-  const size_t hashesSize = chunks.size() * hashBuf.size();
-  std::unique_ptr<uint8_t[]> hashes(new uint8_t[hashesSize]);
+  std::vector<uint8_t> hashes(chunks.size() * hashBuf.size());
 
   // Compute hash values.
   parallelForEachN(0, chunks.size(), [&](size_t i) {
-    hashFn(hashes.get() + i * hashBuf.size(), chunks[i]);
+    hashFn(hashes.data() + i * hashBuf.size(), chunks[i]);
   });
 
   // Write to the final output buffer.
-  hashFn(hashBuf.data(), makeArrayRef(hashes.get(), hashesSize));
+  hashFn(hashBuf.data(), hashes);
 }
 
 template <class ELFT> void Writer<ELFT>::writeBuildId() {
@@ -2919,35 +2925,34 @@ template <class ELFT> void Writer<ELFT>::writeBuildId() {
 
   // Compute a hash of all sections of the output file.
   size_t hashSize = mainPart->buildId->hashSize;
-  std::unique_ptr<uint8_t[]> buildId(new uint8_t[hashSize]);
-  MutableArrayRef<uint8_t> output(buildId.get(), hashSize);
-  llvm::ArrayRef<uint8_t> input{Out::bufferStart, size_t(fileSize)};
+  std::vector<uint8_t> buildId(hashSize);
+  llvm::ArrayRef<uint8_t> buf{Out::bufferStart, size_t(fileSize)};
 
   switch (config->buildId) {
   case BuildIdKind::Fast:
-    computeHash(output, input, [](uint8_t *dest, ArrayRef<uint8_t> arr) {
+    computeHash(buildId, buf, [](uint8_t *dest, ArrayRef<uint8_t> arr) {
       write64le(dest, xxHash64(arr));
     });
     break;
   case BuildIdKind::Md5:
-    computeHash(output, input, [&](uint8_t *dest, ArrayRef<uint8_t> arr) {
+    computeHash(buildId, buf, [&](uint8_t *dest, ArrayRef<uint8_t> arr) {
       memcpy(dest, MD5::hash(arr).data(), hashSize);
     });
     break;
   case BuildIdKind::Sha1:
-    computeHash(output, input, [&](uint8_t *dest, ArrayRef<uint8_t> arr) {
+    computeHash(buildId, buf, [&](uint8_t *dest, ArrayRef<uint8_t> arr) {
       memcpy(dest, SHA1::hash(arr).data(), hashSize);
     });
     break;
   case BuildIdKind::Uuid:
-    if (auto ec = llvm::getRandomBytes(buildId.get(), hashSize))
+    if (auto ec = llvm::getRandomBytes(buildId.data(), hashSize))
       error("entropy source failure: " + ec.message());
     break;
   default:
     llvm_unreachable("unknown BuildIdKind");
   }
   for (Partition &part : partitions)
-    part.buildId->writeBuildId(output);
+    part.buildId->writeBuildId(buildId);
 }
 
 template void elf::createSyntheticSections<ELF32LE>();

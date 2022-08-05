@@ -53,7 +53,8 @@ MachineBasicBlock::MachineBasicBlock(MachineFunction &MF, const BasicBlock *B)
     IrrLoopHeaderWeight = B->getIrrLoopHeaderWeight();
 }
 
-MachineBasicBlock::~MachineBasicBlock() = default;
+MachineBasicBlock::~MachineBasicBlock() {
+}
 
 /// Return the MCSymbol for this basic block.
 MCSymbol *MachineBasicBlock::getSymbol() const {

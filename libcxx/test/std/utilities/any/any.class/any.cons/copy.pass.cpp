@@ -22,15 +22,18 @@
 #include "count_new.h"
 #include "test_macros.h"
 
+using std::any;
+using std::any_cast;
+
 template <class Type>
 void test_copy_throws() {
 #if !defined(TEST_HAS_NO_EXCEPTIONS)
     assert(Type::count == 0);
     {
-        const std::any a = Type(42);
+        any const a((Type(42)));
         assert(Type::count == 1);
         try {
-            const std::any a2(a);
+            any const a2(a);
             assert(false);
         } catch (my_any_exception const &) {
             // do nothing
@@ -46,8 +49,8 @@ void test_copy_throws() {
 
 void test_copy_empty() {
     DisableAllocationGuard g; ((void)g); // No allocations should occur.
-    std::any a1;
-    std::any a2(a1);
+    any a1;
+    any a2(a1);
 
     assertEmpty(a1);
     assertEmpty(a2);
@@ -61,11 +64,11 @@ void test_copy()
     assert(Type::count == 0);
     Type::reset();
     {
-        std::any a = Type(42);
+        any a((Type(42)));
         assert(Type::count == 1);
         assert(Type::copied == 0);
 
-        std::any a2(a);
+        any a2(a);
 
         assert(Type::copied == 1);
         assert(Type::count == 2);

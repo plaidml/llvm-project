@@ -57,7 +57,6 @@
 #include "lldb/Host/ProcessLaunchInfo.h"
 #include "lldb/Host/ThreadLauncher.h"
 #include "lldb/Utility/ArchSpec.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/DataBufferHeap.h"
 #include "lldb/Utility/DataExtractor.h"
 #include "lldb/Utility/Endian.h"
@@ -323,7 +322,7 @@ bool Host::OpenFileInExternalEditor(const FileSpec &file_spec,
     uint32_t reserved2; // must be zero
   } BabelAESelInfo;
 
-  Log *log = GetLog(LLDBLog::Host);
+  Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_HOST));
   char file_path[PATH_MAX];
   file_spec.GetPath(file_path, PATH_MAX);
   CFCString file_cfstr(file_path, kCFStringEncodingUTF8);
@@ -722,7 +721,8 @@ static void PackageXPCEnvironment(xpc_object_t message, llvm::StringRef prefix,
 static AuthorizationRef authorizationRef = NULL;
 static Status getXPCAuthorization(ProcessLaunchInfo &launch_info) {
   Status error;
-  Log *log(GetLog(LLDBLog::Host | LLDBLog::Process));
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_HOST |
+                                                  LIBLLDB_LOG_PROCESS));
 
   if ((launch_info.GetUserID() == 0) && !authorizationRef) {
     OSStatus createStatus =
@@ -843,7 +843,8 @@ static Status LaunchProcessXPC(const char *exe_path,
   if (error.Fail())
     return error;
 
-  Log *log(GetLog(LLDBLog::Host | LLDBLog::Process));
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_HOST |
+                                                  LIBLLDB_LOG_PROCESS));
 
   uid_t requested_uid = launch_info.GetUserID();
   const char *xpc_service = nil;
@@ -1052,7 +1053,8 @@ static Status LaunchProcessPosixSpawn(const char *exe_path,
                                       const ProcessLaunchInfo &launch_info,
                                       lldb::pid_t &pid) {
   Status error;
-  Log *log(GetLog(LLDBLog::Host | LLDBLog::Process));
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_HOST |
+                                                  LIBLLDB_LOG_PROCESS));
 
   posix_spawnattr_t attr;
   error.SetError(::posix_spawnattr_init(&attr), eErrorTypePOSIX);
@@ -1434,7 +1436,8 @@ llvm::Expected<HostThread> Host::StartMonitoringChildProcess(
   if (monitor_signals)
     mask |= DISPATCH_PROC_SIGNAL;
 
-  Log *log(GetLog(LLDBLog::Host | LLDBLog::Process));
+  Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_HOST |
+                                                  LIBLLDB_LOG_PROCESS));
 
   dispatch_source_t source = ::dispatch_source_create(
       DISPATCH_SOURCE_TYPE_PROC, pid, mask,

@@ -47,7 +47,8 @@ static cl::opt<int> HighLatencyCycles(
            "instructions take for targets with no itinerary"));
 
 ScheduleDAGSDNodes::ScheduleDAGSDNodes(MachineFunction &mf)
-    : ScheduleDAG(mf), InstrItins(mf.getSubtarget().getInstrItineraryData()) {}
+    : ScheduleDAG(mf), BB(nullptr), DAG(nullptr),
+      InstrItins(mf.getSubtarget().getInstrItineraryData()) {}
 
 /// Run - perform scheduling.
 ///
@@ -576,7 +577,7 @@ void ScheduleDAGSDNodes::RegDefIter::InitNodeNumDefs() {
 // Construct a RegDefIter for this SUnit and find the first valid value.
 ScheduleDAGSDNodes::RegDefIter::RegDefIter(const SUnit *SU,
                                            const ScheduleDAGSDNodes *SD)
-    : SchedDAG(SD), Node(SU->getNode()) {
+  : SchedDAG(SD), Node(SU->getNode()), DefIdx(0), NodeNumDefs(0) {
   InitNodeNumDefs();
   Advance();
 }
@@ -1056,12 +1057,11 @@ EmitSchedule(MachineBasicBlock::iterator &InsertPos) {
            "first terminator cannot be a debug value");
     for (MachineInstr &MI : make_early_inc_range(
              make_range(std::next(FirstTerm), InsertBB->end()))) {
-      // Only scan up to insertion point.
-      if (&MI == InsertPos)
-        break;
-
       if (!MI.isDebugValue())
         continue;
+
+      if (&MI == InsertPos)
+        InsertPos = std::prev(InsertPos->getIterator());
 
       // The DBG_VALUE was referencing a value produced by a terminator. By
       // moving the DBG_VALUE, the referenced value also needs invalidating.

@@ -24,8 +24,7 @@ public:
 
   StructuredData::GenericSP
   CreatePluginObject(llvm::StringRef class_name, ExecutionContext &exe_ctx,
-                     StructuredData::DictionarySP args_sp,
-                     StructuredData::Generic *script_obj = nullptr) override;
+                     StructuredData::DictionarySP args_sp) override;
 
   lldb::tid_t GetThreadID() override;
 

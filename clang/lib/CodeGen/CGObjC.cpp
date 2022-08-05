@@ -92,9 +92,8 @@ CodeGenFunction::EmitObjCBoxedExpr(const ObjCBoxedExpr *E) {
     // and cast value to correct type
     Address Temporary = CreateMemTemp(SubExpr->getType());
     EmitAnyExprToMem(SubExpr, Temporary, Qualifiers(), /*isInit*/ true);
-    llvm::Value *BitCast =
-        Builder.CreateBitCast(Temporary.getPointer(), ConvertType(ArgQT));
-    Args.add(RValue::get(BitCast), ArgQT);
+    Address BitCast = Builder.CreateBitCast(Temporary, ConvertType(ArgQT));
+    Args.add(RValue::get(BitCast.getPointer()), ArgQT);
 
     // Create char array to store type encoding
     std::string Str;
@@ -817,20 +816,19 @@ static void emitStructGetterCall(CodeGenFunction &CGF, ObjCIvarDecl *ivar,
                                  bool isAtomic, bool hasStrong) {
   ASTContext &Context = CGF.getContext();
 
-  llvm::Value *src =
+  Address src =
       CGF.EmitLValueForIvar(CGF.TypeOfSelfObject(), CGF.LoadObjCSelf(), ivar, 0)
-          .getPointer(CGF);
+          .getAddress(CGF);
 
   // objc_copyStruct (ReturnValue, &structIvar,
   //                  sizeof (Type of Ivar), isAtomic, false);
   CallArgList args;
 
-  llvm::Value *dest =
-      CGF.Builder.CreateBitCast(CGF.ReturnValue.getPointer(), CGF.VoidPtrTy);
-  args.add(RValue::get(dest), Context.VoidPtrTy);
+  Address dest = CGF.Builder.CreateBitCast(CGF.ReturnValue, CGF.VoidPtrTy);
+  args.add(RValue::get(dest.getPointer()), Context.VoidPtrTy);
 
   src = CGF.Builder.CreateBitCast(src, CGF.VoidPtrTy);
-  args.add(RValue::get(src), Context.VoidPtrTy);
+  args.add(RValue::get(src.getPointer()), Context.VoidPtrTy);
 
   CharUnits size = CGF.getContext().getTypeSizeInChars(ivar->getType());
   args.add(RValue::get(CGF.CGM.getSize(size)), Context.getSizeType());
@@ -1151,10 +1149,11 @@ CodeGenFunction::generateObjCGetterBody(const ObjCImplementationDecl *classImpl,
     // types, so there's no point in trying to pick a prettier type.
     uint64_t ivarSize = getContext().toBits(strategy.getIvarSize());
     llvm::Type *bitcastType = llvm::Type::getIntNTy(getLLVMContext(), ivarSize);
+    bitcastType = bitcastType->getPointerTo(); // addrspace 0 okay
 
     // Perform an atomic load.  This does not impose ordering constraints.
     Address ivarAddr = LV.getAddress(*this);
-    ivarAddr = Builder.CreateElementBitCast(ivarAddr, bitcastType);
+    ivarAddr = Builder.CreateBitCast(ivarAddr, bitcastType);
     llvm::LoadInst *load = Builder.CreateLoad(ivarAddr, "load");
     load->setAtomic(llvm::AtomicOrdering::Unordered);
 
@@ -1165,11 +1164,12 @@ CodeGenFunction::generateObjCGetterBody(const ObjCImplementationDecl *classImpl,
     uint64_t retTySize = CGM.getDataLayout().getTypeSizeInBits(retTy);
     llvm::Value *ivarVal = load;
     if (ivarSize > retTySize) {
-      bitcastType = llvm::Type::getIntNTy(getLLVMContext(), retTySize);
-      ivarVal = Builder.CreateTrunc(load, bitcastType);
+      llvm::Type *newTy = llvm::Type::getIntNTy(getLLVMContext(), retTySize);
+      ivarVal = Builder.CreateTrunc(load, newTy);
+      bitcastType = newTy->getPointerTo();
     }
     Builder.CreateStore(ivarVal,
-                        Builder.CreateElementBitCast(ReturnValue, bitcastType));
+                        Builder.CreateBitCast(ReturnValue, bitcastType));
 
     // Make sure we don't do an autorelease.
     AutoreleaseResult = false;
@@ -2156,7 +2156,7 @@ static llvm::Value *emitARCLoadOperation(CodeGenFunction &CGF, Address addr,
 
   // Cast the argument to 'id*'.
   llvm::Type *origType = addr.getElementType();
-  addr = CGF.Builder.CreateElementBitCast(addr, CGF.Int8PtrTy);
+  addr = CGF.Builder.CreateBitCast(addr, CGF.Int8PtrPtrTy);
 
   // Call the function.
   llvm::Value *result = CGF.EmitNounwindRuntimeCall(fn, addr.getPointer());
@@ -2610,7 +2610,7 @@ void CodeGenFunction::EmitARCDestroyWeak(Address addr) {
     fn = getARCIntrinsic(llvm::Intrinsic::objc_destroyWeak, CGM);
 
   // Cast the argument to 'id*'.
-  addr = Builder.CreateElementBitCast(addr, Int8PtrTy);
+  addr = Builder.CreateBitCast(addr, Int8PtrPtrTy);
 
   EmitNounwindRuntimeCall(fn, addr.getPointer());
 }

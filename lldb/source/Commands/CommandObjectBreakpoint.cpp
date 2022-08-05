@@ -49,7 +49,7 @@ static void AddBreakpointDescription(Stream *s, Breakpoint *bp,
 
 class lldb_private::BreakpointOptionGroup : public OptionGroup {
 public:
-  BreakpointOptionGroup() : m_bp_opts(false) {}
+  BreakpointOptionGroup() : OptionGroup(), m_bp_opts(false) {}
 
   ~BreakpointOptionGroup() override = default;
 
@@ -179,7 +179,7 @@ public:
 
 class BreakpointDummyOptionGroup : public OptionGroup {
 public:
-  BreakpointDummyOptionGroup() {}
+  BreakpointDummyOptionGroup() : OptionGroup() {}
 
   ~BreakpointDummyOptionGroup() override = default;
 
@@ -234,7 +234,8 @@ public:
             interpreter, "breakpoint set",
             "Sets a breakpoint or set of breakpoints in the executable.",
             "breakpoint set <cmd-options>"),
-        m_python_class_options("scripted breakpoint", true, 'P') {
+        m_bp_opts(), m_python_class_options("scripted breakpoint", true, 'P'),
+        m_options() {
     // We're picking up all the normal options, commands and disable.
     m_all_options.Append(&m_python_class_options,
                          LLDB_OPT_SET_1 | LLDB_OPT_SET_2, LLDB_OPT_SET_11);
@@ -252,7 +253,9 @@ public:
 
   class CommandOptions : public OptionGroup {
   public:
-    CommandOptions() {}
+    CommandOptions()
+        : OptionGroup(), m_condition(), m_filenames(), m_func_names(),
+          m_func_regexp(), m_source_text_regexp(), m_modules() {}
 
     ~CommandOptions() override = default;
 
@@ -806,7 +809,8 @@ public:
                             "created breakpoint.  "
                             "With the exception of -e, -d and -i, passing an "
                             "empty argument clears the modification.",
-                            nullptr) {
+                            nullptr),
+        m_options() {
     CommandArgumentEntry arg;
     CommandObject::AddIDsArgumentData(arg, eArgTypeBreakpointID,
                                       eArgTypeBreakpointIDRange);
@@ -1096,7 +1100,8 @@ public:
       : CommandObjectParsed(
             interpreter, "breakpoint list",
             "List some or all breakpoints at configurable levels of detail.",
-            nullptr) {
+            nullptr),
+        m_options() {
     CommandArgumentEntry arg;
     CommandArgumentData bp_id_arg;
 
@@ -1118,7 +1123,7 @@ public:
 
   class CommandOptions : public Options {
   public:
-    CommandOptions() {}
+    CommandOptions() : Options() {}
 
     ~CommandOptions() override = default;
 
@@ -1241,7 +1246,8 @@ public:
       : CommandObjectParsed(interpreter, "breakpoint clear",
                             "Delete or disable breakpoints matching the "
                             "specified source file and line.",
-                            "breakpoint clear <cmd-options>") {}
+                            "breakpoint clear <cmd-options>"),
+        m_options() {}
 
   ~CommandObjectBreakpointClear() override = default;
 
@@ -1249,7 +1255,7 @@ public:
 
   class CommandOptions : public Options {
   public:
-    CommandOptions() {}
+    CommandOptions() : Options(), m_filename() {}
 
     ~CommandOptions() override = default;
 
@@ -1378,7 +1384,8 @@ public:
       : CommandObjectParsed(interpreter, "breakpoint delete",
                             "Delete the specified breakpoint(s).  If no "
                             "breakpoints are specified, delete them all.",
-                            nullptr) {
+                            nullptr),
+        m_options() {
     CommandArgumentEntry arg;
     CommandObject::AddIDsArgumentData(arg, eArgTypeBreakpointID,
                                       eArgTypeBreakpointIDRange);
@@ -1401,7 +1408,7 @@ public:
 
   class CommandOptions : public Options {
   public:
-    CommandOptions() {}
+    CommandOptions() : Options() {}
 
     ~CommandOptions() override = default;
 
@@ -1558,7 +1565,8 @@ private:
 class BreakpointNameOptionGroup : public OptionGroup {
 public:
   BreakpointNameOptionGroup()
-      : m_breakpoint(LLDB_INVALID_BREAK_ID), m_use_dummy(false) {}
+      : OptionGroup(), m_breakpoint(LLDB_INVALID_BREAK_ID), m_use_dummy(false) {
+  }
 
   ~BreakpointNameOptionGroup() override = default;
 
@@ -1618,7 +1626,7 @@ public:
 
 class BreakpointAccessOptionGroup : public OptionGroup {
 public:
-  BreakpointAccessOptionGroup() {}
+  BreakpointAccessOptionGroup() : OptionGroup() {}
 
   ~BreakpointAccessOptionGroup() override = default;
 
@@ -1688,7 +1696,8 @@ public:
             "the breakpoint, otherwise only the options specified will be set "
             "on the name.",
             "breakpoint name configure <command-options> "
-            "<breakpoint-name-list>") {
+            "<breakpoint-name-list>"),
+        m_bp_opts(), m_option_group() {
     // Create the first variant for the first (and only) argument for this
     // command.
     CommandArgumentEntry arg1;
@@ -1778,7 +1787,8 @@ public:
   CommandObjectBreakpointNameAdd(CommandInterpreter &interpreter)
       : CommandObjectParsed(
             interpreter, "add", "Add a name to the breakpoints provided.",
-            "breakpoint name add <command-options> <breakpoint-id-list>") {
+            "breakpoint name add <command-options> <breakpoint-id-list>"),
+        m_name_options(), m_option_group() {
     // Create the first variant for the first (and only) argument for this
     // command.
     CommandArgumentEntry arg1;
@@ -1862,7 +1872,8 @@ public:
       : CommandObjectParsed(
             interpreter, "delete",
             "Delete a name from the breakpoints provided.",
-            "breakpoint name delete <command-options> <breakpoint-id-list>") {
+            "breakpoint name delete <command-options> <breakpoint-id-list>"),
+        m_name_options(), m_option_group() {
     // Create the first variant for the first (and only) argument for this
     // command.
     CommandArgumentEntry arg1;
@@ -1945,7 +1956,8 @@ public:
                             "List either the names for a breakpoint or info "
                             "about a given name.  With no arguments, lists all "
                             "names",
-                            "breakpoint name list <command-options>") {
+                            "breakpoint name list <command-options>"),
+        m_name_options(), m_option_group() {
     m_option_group.Append(&m_name_options, LLDB_OPT_SET_3, LLDB_OPT_SET_ALL);
     m_option_group.Finalize();
   }
@@ -2051,7 +2063,8 @@ public:
       : CommandObjectParsed(interpreter, "breakpoint read",
                             "Read and set the breakpoints previously saved to "
                             "a file with \"breakpoint write\".  ",
-                            nullptr) {}
+                            nullptr),
+        m_options() {}
 
   ~CommandObjectBreakpointRead() override = default;
 
@@ -2059,7 +2072,7 @@ public:
 
   class CommandOptions : public Options {
   public:
-    CommandOptions() {}
+    CommandOptions() : Options() {}
 
     ~CommandOptions() override = default;
 
@@ -2232,7 +2245,8 @@ public:
                             "Write the breakpoints listed to a file that can "
                             "be read in with \"breakpoint read\".  "
                             "If given no arguments, writes all breakpoints.",
-                            nullptr) {
+                            nullptr),
+        m_options() {
     CommandArgumentEntry arg;
     CommandObject::AddIDsArgumentData(arg, eArgTypeBreakpointID,
                                       eArgTypeBreakpointIDRange);
@@ -2255,7 +2269,7 @@ public:
 
   class CommandOptions : public Options {
   public:
-    CommandOptions() {}
+    CommandOptions() : Options() {}
 
     ~CommandOptions() override = default;
 

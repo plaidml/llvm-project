@@ -37,12 +37,10 @@
 
 using namespace llvm;
 
-extern cl::OptionCategory LLVMReduceOptions;
 static cl::opt<std::string>
     DeltaPasses("delta-passes",
                 cl::desc("Delta passes to run, separated by commas. By "
-                         "default, run all delta passes."),
-                cl::cat(LLVMReduceOptions));
+                         "default, run all delta passes."));
 
 #define DELTA_PASSES                                                           \
   DELTA_PASS("special-globals", reduceSpecialGlobalsDeltaPass)                 \

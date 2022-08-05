@@ -5,10 +5,10 @@
 int i = 0;
 int j = 0;
 
-void foo(void);
+void foo();
 
 // PR4806
-void pr4806(void) {
+void pr4806() {
   1,foo();          // expected-warning {{left operand of comma operator has no effect}}
 
   // other
@@ -58,10 +58,10 @@ void pr4806(void) {
 }
 
 // Don't warn about unused '||', '&&' expressions that contain assignments.
-int test_logical_foo1(void);
-int test_logical_foo2(void);
-int test_logical_foo3(void);
-int test_logical_bar(void) {
+int test_logical_foo1();
+int test_logical_foo2();
+int test_logical_foo3();
+int test_logical_bar() {
   int x = 0;
   (x = test_logical_foo1()) ||  // no-warning
   (x = test_logical_foo2()) ||  // no-warning

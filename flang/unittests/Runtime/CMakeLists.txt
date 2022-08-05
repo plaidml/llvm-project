@@ -5,7 +5,6 @@ add_flang_unittest(FlangRuntimeTests
   CrashHandlerFixture.cpp
   ExternalIOTest.cpp
   Format.cpp
-  Inquiry.cpp
   ListInputTest.cpp
   Matmul.cpp
   MiscIntrinsic.cpp

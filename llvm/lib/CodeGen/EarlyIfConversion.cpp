@@ -111,11 +111,12 @@ public:
   /// Information about each phi in the Tail block.
   struct PHIInfo {
     MachineInstr *PHI;
-    unsigned TReg = 0, FReg = 0;
+    unsigned TReg, FReg;
     // Latencies from Cond+Branch, TReg, and FReg to DstReg.
-    int CondCycles = 0, TCycles = 0, FCycles = 0;
+    int CondCycles, TCycles, FCycles;
 
-    PHIInfo(MachineInstr *phi) : PHI(phi) {}
+    PHIInfo(MachineInstr *phi)
+      : PHI(phi), TReg(0), FReg(0), CondCycles(0), TCycles(0), FCycles(0) {}
   };
 
   SmallVector<PHIInfo, 8> PHIs;

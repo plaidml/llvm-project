@@ -5356,15 +5356,16 @@ Stmt *RewriteModernObjC::SynthBlockInitExpr(BlockExpr *Exp,
       Exp = new (Context) DeclRefExpr(*Context, FD, false, FD->getType(),
                                       VK_LValue, SourceLocation());
       bool isNestedCapturedVar = false;
-      for (const auto &CI : block->captures()) {
-        const VarDecl *variable = CI.getVariable();
-        if (variable == ND && CI.isNested()) {
-          assert(CI.isByRef() &&
-                 "SynthBlockInitExpr - captured block variable is not byref");
-          isNestedCapturedVar = true;
-          break;
+      if (block)
+        for (const auto &CI : block->captures()) {
+          const VarDecl *variable = CI.getVariable();
+          if (variable == ND && CI.isNested()) {
+            assert (CI.isByRef() &&
+                    "SynthBlockInitExpr - captured block variable is not byref");
+            isNestedCapturedVar = true;
+            break;
+          }
         }
-      }
       // captured nested byref variable has its address passed. Do not take
       // its address again.
       if (!isNestedCapturedVar)

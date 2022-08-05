@@ -16,7 +16,6 @@
 #include "lldb/Target/SectionLoadList.h"
 #include "lldb/Target/Target.h"
 #include "lldb/Utility/ArchSpec.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
 
 using namespace lldb_private;
@@ -72,7 +71,7 @@ addr_t ArchitectureMips::GetOpcodeLoadAddress(addr_t opcode_addr,
 lldb::addr_t ArchitectureMips::GetBreakableLoadAddress(lldb::addr_t addr,
                                                        Target &target) const {
 
-  Log *log = GetLog(LLDBLog::Breakpoints);
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_BREAKPOINTS));
 
   Address resolved_addr;
 

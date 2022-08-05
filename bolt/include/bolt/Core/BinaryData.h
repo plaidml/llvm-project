@@ -16,6 +16,7 @@
 #define BOLT_CORE_BINARY_DATA_H
 
 #include "llvm/ADT/Twine.h"
+#include "llvm/MC/MCStreamer.h"
 #include "llvm/MC/MCSymbol.h"
 #include "llvm/Support/raw_ostream.h"
 #include <algorithm>

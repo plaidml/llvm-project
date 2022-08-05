@@ -5,13 +5,12 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-///
-/// \file
-/// This file contains library features backported from future STL versions.
-///
-/// These should be replaced with their STL counterparts as the C++ version LLVM
-/// is compiled with is updated.
-///
+//
+// This file contains library features backported from future STL versions.
+//
+// These should be replaced with their STL counterparts as the C++ version LLVM
+// is compiled with is updated.
+//
 //===----------------------------------------------------------------------===//
 
 #ifndef LLVM_ADT_STLFORWARDCOMPAT_H

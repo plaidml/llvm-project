@@ -54,7 +54,6 @@ struct Section {
   void setOwnedContents(std::vector<uint8_t> &&Data) {
     ContentsRef = ArrayRef<uint8_t>();
     OwnedContents = std::move(Data);
-    Header.SizeOfRawData = OwnedContents.size();
   }
 
   void clearContents() {

@@ -30,7 +30,7 @@ DbiStreamBuilder::DbiStreamBuilder(msf::MSFBuilder &Msf)
       PdbDllVersion(0), PdbDllRbld(0), Flags(0), MachineType(PDB_Machine::x86),
       Header(nullptr) {}
 
-DbiStreamBuilder::~DbiStreamBuilder() = default;
+DbiStreamBuilder::~DbiStreamBuilder() {}
 
 void DbiStreamBuilder::setVersionHeader(PdbRaw_DbiVer V) { VerHeader = V; }
 

@@ -43,6 +43,7 @@
 namespace clang {
 namespace clangd {
 class HeuristicResolver;
+class SymbolIndex;
 
 /// Stores and provides access to parsed AST.
 class ParsedAST {

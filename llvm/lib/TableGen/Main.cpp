@@ -16,6 +16,7 @@
 
 #include "llvm/TableGen/Main.h"
 #include "TGParser.h"
+#include "llvm/ADT/StringExtras.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/MemoryBuffer.h"
@@ -23,6 +24,7 @@
 #include "llvm/TableGen/Error.h"
 #include "llvm/TableGen/Record.h"
 #include <algorithm>
+#include <cstdio>
 #include <system_error>
 using namespace llvm;
 

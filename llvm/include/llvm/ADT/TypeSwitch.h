@@ -5,11 +5,10 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-///
-/// \file
-///  This file implements the TypeSwitch template, which mimics a switch()
-///  statement whose cases are type names.
-///
+//
+//  This file implements the TypeSwitch template, which mimics a switch()
+//  statement whose cases are type names.
+//
 //===-----------------------------------------------------------------------===/
 
 #ifndef LLVM_ADT_TYPESWITCH_H

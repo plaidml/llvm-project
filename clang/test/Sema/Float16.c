@@ -11,7 +11,7 @@ _Float16 f;
 
 #ifdef HAVE
 _Complex _Float16 a;
-void builtin_complex(void) {
+void builtin_complex() {
   _Float16 a = 0;
   (void)__builtin_complex(a, a); // expected-error {{'_Complex _Float16' is invalid}}
 }

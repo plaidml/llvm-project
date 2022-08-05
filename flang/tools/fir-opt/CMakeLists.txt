@@ -18,7 +18,7 @@ target_link_libraries(fir-opt PRIVATE
   MLIRTransforms
   MLIRAffineToStandard
   MLIRAnalysis
-  MLIRSCFToControlFlow
+  MLIRSCFToStandard
   MLIRParser
   MLIRStandardToLLVM
   MLIRSupport

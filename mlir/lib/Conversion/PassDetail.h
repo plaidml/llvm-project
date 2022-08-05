@@ -29,10 +29,6 @@ namespace arith {
 class ArithmeticDialect;
 } // namespace arith
 
-namespace cf {
-class ControlFlowDialect;
-} // namespace cf
-
 namespace complex {
 class ComplexDialect;
 } // namespace complex

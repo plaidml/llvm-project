@@ -285,7 +285,7 @@ void Scope::add_importName(const SourceName &name) {
 
 // true if name can be imported or host-associated from parent scope.
 bool Scope::CanImport(const SourceName &name) const {
-  if (IsTopLevel() || parent_.IsTopLevel()) {
+  if (IsGlobal() || parent_.IsGlobal()) {
     return false;
   }
   switch (GetImportKind()) {
@@ -306,7 +306,7 @@ const Scope *Scope::FindScope(parser::CharBlock source) const {
 
 Scope *Scope::FindScope(parser::CharBlock source) {
   bool isContained{sourceRange_.Contains(source)};
-  if (!isContained && !IsTopLevel() && !IsModuleFile()) {
+  if (!isContained && !IsGlobal() && !IsModuleFile()) {
     return nullptr;
   }
   for (auto &child : children_) {
@@ -314,7 +314,7 @@ Scope *Scope::FindScope(parser::CharBlock source) {
       return scope;
     }
   }
-  return isContained && !IsTopLevel() ? this : nullptr;
+  return isContained ? this : nullptr;
 }
 
 void Scope::AddSourceRange(const parser::CharBlock &source) {

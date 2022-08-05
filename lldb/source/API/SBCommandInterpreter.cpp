@@ -52,15 +52,15 @@ public:
   bool IsRemovable() const override { return true; }
 
   /// More documentation is available in lldb::CommandObject::GetRepeatCommand,
-  /// but in short, if llvm::None is returned, the previous command will be
+  /// but in short, if nullptr is returned, the previous command will be
   /// repeated, and if an empty string is returned, no commands will be
   /// executed.
-  llvm::Optional<std::string> GetRepeatCommand(Args &current_command_args,
-                                               uint32_t index) override {
+  const char *GetRepeatCommand(Args &current_command_args,
+                               uint32_t index) override {
     if (!m_auto_repeat_command)
-      return llvm::None;
+      return nullptr;
     else
-      return m_auto_repeat_command;
+      return m_auto_repeat_command->c_str();
   }
 
 protected:
@@ -329,12 +329,6 @@ bool SBCommandInterpreter::HasAliasOptions() {
   return (IsValid() ? m_opaque_ptr->HasAliasOptions() : false);
 }
 
-bool SBCommandInterpreter::IsInteractive() {
-  LLDB_INSTRUMENT_VA(this);
-
-  return (IsValid() ? m_opaque_ptr->IsInteractive() : false);
-}
-
 SBProcess SBCommandInterpreter::GetProcess() {
   LLDB_INSTRUMENT_VA(this);
 
@@ -427,7 +421,16 @@ void SBCommandInterpreter::SourceInitFileInHomeDirectory(
     SBCommandReturnObject &result) {
   LLDB_INSTRUMENT_VA(this, result);
 
-  SourceInitFileInHomeDirectory(result, /*is_repl=*/false);
+  result.Clear();
+  if (IsValid()) {
+    TargetSP target_sp(m_opaque_ptr->GetDebugger().GetSelectedTarget());
+    std::unique_lock<std::recursive_mutex> lock;
+    if (target_sp)
+      lock = std::unique_lock<std::recursive_mutex>(target_sp->GetAPIMutex());
+    m_opaque_ptr->SourceInitFileHome(result.ref());
+  } else {
+    result->AppendError("SBCommandInterpreter is not valid");
+  }
 }
 
 void SBCommandInterpreter::SourceInitFileInHomeDirectory(

@@ -15,7 +15,6 @@
 //===----------------------------------------------------------------------===//
 
 #include "CodegenUtils.h"
-
 #include "mlir/Dialect/Bufferization/IR/Bufferization.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/Linalg/Utils/Utils.h"
@@ -190,8 +189,8 @@ static Value genBuffer(ConversionPatternRewriter &rewriter, Location loc,
 /// computation.
 static void newParams(ConversionPatternRewriter &rewriter,
                       SmallVector<Value, 8> &params, Operation *op,
-                      ShapedType stp, SparseTensorEncodingAttr &enc,
-                      Action action, ValueRange szs, Value ptr = Value()) {
+                      SparseTensorEncodingAttr &enc, Action action,
+                      ValueRange szs, Value ptr = Value()) {
   Location loc = op->getLoc();
   ArrayRef<SparseTensorEncodingAttr::DimLevelType> dlt = enc.getDimLevelType();
   unsigned sz = dlt.size();
@@ -219,7 +218,7 @@ static void newParams(ConversionPatternRewriter &rewriter,
   }
   params.push_back(genBuffer(rewriter, loc, rev));
   // Secondary and primary types encoding.
-  Type elemTp = stp.getElementType();
+  Type elemTp = op->getResult(0).getType().cast<ShapedType>().getElementType();
   params.push_back(constantPointerTypeEncoding(rewriter, loc, enc));
   params.push_back(constantIndexTypeEncoding(rewriter, loc, enc));
   params.push_back(constantPrimaryTypeEncoding(rewriter, loc, elemTp));
@@ -309,7 +308,7 @@ static Value genIndexAndValueForSparse(ConversionPatternRewriter &rewriter,
     Value val = rewriter.create<tensor::ExtractOp>(loc, indices,
                                                    ValueRange{ivs[0], idx});
     val =
-        rewriter.create<arith::IndexCastOp>(loc, rewriter.getIndexType(), val);
+        rewriter.create<arith::IndexCastOp>(loc, val, rewriter.getIndexType());
     rewriter.create<memref::StoreOp>(loc, val, ind, idx);
   }
   return rewriter.create<tensor::ExtractOp>(loc, values, ivs[0]);
@@ -421,10 +420,9 @@ class SparseTensorNewConverter : public OpConversionPattern<NewOp> {
     // inferred from the result type of the new operator.
     SmallVector<Value, 4> sizes;
     SmallVector<Value, 8> params;
-    ShapedType stp = resType.cast<ShapedType>();
-    sizesFromType(rewriter, sizes, op.getLoc(), stp);
+    sizesFromType(rewriter, sizes, op.getLoc(), resType.cast<ShapedType>());
     Value ptr = adaptor.getOperands()[0];
-    newParams(rewriter, params, op, stp, enc, Action::kFromFile, sizes, ptr);
+    newParams(rewriter, params, op, enc, Action::kFromFile, sizes, ptr);
     rewriter.replaceOp(op, genNewCall(rewriter, op, params));
     return success();
   }
@@ -443,9 +441,7 @@ class SparseTensorInitConverter : public OpConversionPattern<InitOp> {
     // Generate the call to construct empty tensor. The sizes are
     // explicitly defined by the arguments to the init operator.
     SmallVector<Value, 8> params;
-    ShapedType stp = resType.cast<ShapedType>();
-    newParams(rewriter, params, op, stp, enc, Action::kEmpty,
-              adaptor.getOperands());
+    newParams(rewriter, params, op, enc, Action::kEmpty, adaptor.getOperands());
     rewriter.replaceOp(op, genNewCall(rewriter, op, params));
     return success();
   }
@@ -476,15 +472,15 @@ class SparseTensorConvertConverter : public OpConversionPattern<ConvertOp> {
       }
       SmallVector<Value, 4> sizes;
       SmallVector<Value, 8> params;
-      ShapedType stp = srcType.cast<ShapedType>();
-      sizesFromPtr(rewriter, sizes, op, encSrc, stp, src);
+      sizesFromPtr(rewriter, sizes, op, encSrc, srcType.cast<ShapedType>(),
+                   src);
       // Set up encoding with right mix of src and dst so that the two
       // method calls can share most parameters, while still providing
       // the correct sparsity information to either of them.
       auto enc = SparseTensorEncodingAttr::get(
           op->getContext(), encDst.getDimLevelType(), encDst.getDimOrdering(),
           encSrc.getPointerBitWidth(), encSrc.getIndexBitWidth());
-      newParams(rewriter, params, op, stp, enc, Action::kToCOO, sizes, src);
+      newParams(rewriter, params, op, enc, Action::kToCOO, sizes, src);
       Value coo = genNewCall(rewriter, op, params);
       params[3] = constantPointerTypeEncoding(rewriter, loc, encDst);
       params[4] = constantIndexTypeEncoding(rewriter, loc, encDst);
@@ -516,8 +512,7 @@ class SparseTensorConvertConverter : public OpConversionPattern<ConvertOp> {
       SmallVector<Value, 4> sizes;
       SmallVector<Value, 8> params;
       sizesFromPtr(rewriter, sizes, op, encSrc, srcTensorTp, src);
-      newParams(rewriter, params, op, dstTensorTp, encDst, Action::kToIterator,
-                sizes, src);
+      newParams(rewriter, params, op, encDst, Action::kToIterator, sizes, src);
       Value iter = genNewCall(rewriter, op, params);
       Value ind = genAlloca(rewriter, loc, rank, rewriter.getIndexType());
       Value elemPtr = genAllocaScalar(rewriter, loc, elemTp);
@@ -572,7 +567,7 @@ class SparseTensorConvertConverter : public OpConversionPattern<ConvertOp> {
     SmallVector<Value, 4> sizes;
     SmallVector<Value, 8> params;
     sizesFromSrc(rewriter, sizes, loc, src);
-    newParams(rewriter, params, op, stp, encDst, Action::kEmptyCOO, sizes);
+    newParams(rewriter, params, op, encDst, Action::kEmptyCOO, sizes);
     Value ptr = genNewCall(rewriter, op, params);
     Value ind = genAlloca(rewriter, loc, rank, rewriter.getIndexType());
     Value perm = params[2];
@@ -776,45 +771,6 @@ public:
   }
 };
 
-class SparseTensorOutConverter : public OpConversionPattern<OutOp> {
-public:
-  using OpConversionPattern::OpConversionPattern;
-  LogicalResult
-  matchAndRewrite(OutOp op, OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
-    Location loc = op->getLoc();
-    ShapedType srcType = op.tensor().getType().cast<ShapedType>();
-    // Convert to default permuted COO.
-    Value src = adaptor.getOperands()[0];
-    auto encSrc = getSparseTensorEncoding(srcType);
-    SmallVector<Value, 4> sizes;
-    SmallVector<Value, 8> params;
-    sizesFromPtr(rewriter, sizes, op, encSrc, srcType, src);
-    auto enc = SparseTensorEncodingAttr::get(
-        op->getContext(), encSrc.getDimLevelType(), AffineMap(),
-        encSrc.getPointerBitWidth(), encSrc.getIndexBitWidth());
-    newParams(rewriter, params, op, srcType, enc, Action::kToCOO, sizes, src);
-    Value coo = genNewCall(rewriter, op, params);
-    // Then output the tensor to external file with indices in the externally
-    // visible lexicographic index order. A sort is required if the source was
-    // not in that order yet (note that the sort can be dropped altogether if
-    // external format does not care about the order at all, but here we assume
-    // it does).
-    bool sort =
-        encSrc.getDimOrdering() && !encSrc.getDimOrdering().isIdentity();
-    params.clear();
-    params.push_back(coo);
-    params.push_back(adaptor.getOperands()[1]);
-    params.push_back(constantI1(rewriter, loc, sort));
-    Type eltType = srcType.getElementType();
-    SmallString<18> name{"outSparseTensor", primaryTypeFunctionSuffix(eltType)};
-    TypeRange noTp;
-    replaceOpWithFuncCall(rewriter, op, name, noTp, params,
-                          EmitCInterface::Off);
-    return success();
-  }
-};
-
 } // namespace
 
 //===----------------------------------------------------------------------===//
@@ -831,6 +787,6 @@ void mlir::populateSparseTensorConversionPatterns(TypeConverter &typeConverter,
                SparseTensorReleaseConverter, SparseTensorToPointersConverter,
                SparseTensorToIndicesConverter, SparseTensorToValuesConverter,
                SparseTensorLoadConverter, SparseTensorLexInsertConverter,
-               SparseTensorExpandConverter, SparseTensorCompressConverter,
-               SparseTensorOutConverter>(typeConverter, patterns.getContext());
+               SparseTensorExpandConverter, SparseTensorCompressConverter>(
+      typeConverter, patterns.getContext());
 }

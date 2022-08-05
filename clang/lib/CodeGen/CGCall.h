@@ -112,8 +112,7 @@ public:
     assert(functionPtr && "configuring callee without function pointer");
     assert(functionPtr->getType()->isPointerTy());
     assert(functionPtr->getType()->isOpaquePointerTy() ||
-           functionPtr->getType()->getNonOpaquePointerElementType()
-               ->isFunctionTy());
+           functionPtr->getType()->getPointerElementType()->isFunctionTy());
   }
 
   static CGCallee forBuiltin(unsigned builtinID,

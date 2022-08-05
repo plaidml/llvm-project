@@ -16,7 +16,6 @@
 #include "llvm/Support/FormattedStream.h"
 #include "llvm/Support/ScopedPrinter.h"
 
-#include <ctime>
 #include <stddef.h>
 
 using namespace llvm;

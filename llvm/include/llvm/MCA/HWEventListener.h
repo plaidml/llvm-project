@@ -176,7 +176,7 @@ public:
   virtual void onReleasedBuffers(const InstRef &Inst,
                                  ArrayRef<unsigned> Buffers) {}
 
-  virtual ~HWEventListener() = default;
+  virtual ~HWEventListener() {}
 
 private:
   virtual void anchor();

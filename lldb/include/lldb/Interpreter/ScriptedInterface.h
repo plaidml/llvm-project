@@ -11,8 +11,8 @@
 
 #include "lldb/Core/StructuredDataImpl.h"
 #include "lldb/Target/ExecutionContext.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
+#include "lldb/Utility/Logging.h"
 #include "lldb/lldb-private.h"
 
 #include "llvm/Support/Compiler.h"
@@ -27,15 +27,14 @@ public:
 
   virtual StructuredData::GenericSP
   CreatePluginObject(llvm::StringRef class_name, ExecutionContext &exe_ctx,
-                     StructuredData::DictionarySP args_sp,
-                     StructuredData::Generic *script_obj = nullptr) = 0;
+                     StructuredData::DictionarySP args_sp) = 0;
 
   template <typename Ret>
-  static Ret ErrorWithMessage(llvm::StringRef caller_name,
-                              llvm::StringRef error_msg, Status &error,
-                              LLDBLog log_caterogy = LLDBLog::Process) {
-    LLDB_LOGF(GetLog(log_caterogy), "%s ERROR = %s", caller_name.data(),
-              error_msg.data());
+  Ret ErrorWithMessage(llvm::StringRef caller_name, llvm::StringRef error_msg,
+                       Status &error,
+                       uint32_t log_caterogy = LIBLLDB_LOG_PROCESS) {
+    LLDB_LOGF(GetLogIfAllCategoriesSet(log_caterogy), "%s ERROR = %s",
+              caller_name.data(), error_msg.data());
     error.SetErrorString(llvm::Twine(caller_name + llvm::Twine(" ERROR = ") +
                                      llvm::Twine(error_msg))
                              .str());

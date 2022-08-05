@@ -132,9 +132,9 @@ static bool isTypeTag(uint16_t Tag) {
   return false;
 }
 
-AddressesMap::~AddressesMap() = default;
+AddressesMap::~AddressesMap() {}
 
-DwarfEmitter::~DwarfEmitter() = default;
+DwarfEmitter::~DwarfEmitter() {}
 
 static Optional<StringRef> StripTemplateParameters(StringRef Name) {
   // We are looking for template parameters to strip from Name. e.g.
@@ -2362,10 +2362,6 @@ bool DWARFLinker::link() {
 
     if (!OptContext.File.Dwarf)
       continue;
-
-    if (Options.VerifyInputDWARF)
-      verify(OptContext.File);
-
     // Look for relocations that correspond to address map entries.
 
     // there was findvalidrelocations previously ... probably we need to gather
@@ -2632,17 +2628,6 @@ bool DWARFLinker::link() {
               "---------------\n\n";
   }
 
-  return true;
-}
-
-bool DWARFLinker::verify(const DWARFFile &File) {
-  assert(File.Dwarf);
-
-  DIDumpOptions DumpOpts;
-  if (!File.Dwarf->verify(llvm::outs(), DumpOpts.noImplicitRecursion())) {
-    reportWarning("input verification failed", File);
-    return false;
-  }
   return true;
 }
 

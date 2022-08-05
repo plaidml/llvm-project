@@ -14,7 +14,6 @@
 #include "lldb/Core/Section.h"
 #include "lldb/Target/Process.h"
 #include "lldb/Target/Target.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
 
 using namespace lldb;
@@ -52,7 +51,7 @@ DynamicLoader *DynamicLoaderWasmDYLD::CreateInstance(Process *process,
 }
 
 void DynamicLoaderWasmDYLD::DidAttach() {
-  Log *log = GetLog(LLDBLog::DynamicLoader);
+  Log *log(GetLogIfAnyCategoriesSet(LIBLLDB_LOG_DYNAMIC_LOADER));
   LLDB_LOGF(log, "DynamicLoaderWasmDYLD::%s()", __FUNCTION__);
 
   // Ask the process for the list of loaded WebAssembly modules.

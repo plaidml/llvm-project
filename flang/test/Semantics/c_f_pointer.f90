@@ -29,6 +29,4 @@ program test
   call c_f_pointer(scalarC, charDeferredF)
   !ERROR: FPTR= argument to C_F_POINTER() may not be a coindexed object
   call c_f_pointer(scalarC, coindexed[0]%p)
-  !ERROR: FPTR= argument to C_F_POINTER() must have a type
-  call c_f_pointer(scalarC, null())
 end program

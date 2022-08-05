@@ -11,7 +11,6 @@ add_mlir_conversion_library(MLIRArithmeticToSPIRV
   Core
 
   LINK_LIBS PUBLIC
-  MLIRArithmetic
   MLIRSPIRVConversion
   MLIRSPIRV
   )

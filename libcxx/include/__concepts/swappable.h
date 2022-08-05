@@ -20,21 +20,21 @@
 #include <type_traits>
 
 #if !defined(_LIBCPP_HAS_NO_PRAGMA_SYSTEM_HEADER)
-#  pragma GCC system_header
+#pragma GCC system_header
 #endif
 
 _LIBCPP_BEGIN_NAMESPACE_STD
 
-#if !defined(_LIBCPP_HAS_NO_CONCEPTS)
+#if _LIBCPP_STD_VER > 17 && !defined(_LIBCPP_HAS_NO_CONCEPTS)
 
 // [concept.swappable]
-
-namespace ranges {
-namespace __swap {
-
+namespace ranges::__swap {
+  // Deleted to inhibit ADL
   template<class _Tp>
   void swap(_Tp&, _Tp&) = delete;
 
+
+  // [1]
   template<class _Tp, class _Up>
   concept __unqualified_swappable_with =
     (__class_or_enum<remove_cvref_t<_Tp>> || __class_or_enum<remove_cvref_t<_Up>>) &&
@@ -89,12 +89,11 @@ namespace __swap {
       __y = _VSTD::exchange(__x, _VSTD::move(__y));
     }
   };
-} // namespace __swap
+} // namespace ranges::__swap
 
-inline namespace __cpo {
+namespace ranges::inline __cpo {
   inline constexpr auto swap = __swap::__fn{};
-} // namespace __cpo
-} // namespace ranges
+} // namespace ranges::__cpo
 
 template<class _Tp>
 concept swappable = requires(_Tp& __a, _Tp& __b) { ranges::swap(__a, __b); };
@@ -109,7 +108,7 @@ concept swappable_with =
     ranges::swap(_VSTD::forward<_Up>(__u), _VSTD::forward<_Tp>(__t));
   };
 
-#endif // !defined(_LIBCPP_HAS_NO_CONCEPTS)
+#endif // _LIBCPP_STD_VER > 17 && !defined(_LIBCPP_HAS_NO_CONCEPTS)
 
 _LIBCPP_END_NAMESPACE_STD
 

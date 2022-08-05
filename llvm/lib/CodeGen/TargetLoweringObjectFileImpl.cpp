@@ -2547,7 +2547,7 @@ MCSection *TargetLoweringObjectFileXCOFF::getSectionForTOCEntry(
 //===----------------------------------------------------------------------===//
 //                                  GOFF
 //===----------------------------------------------------------------------===//
-TargetLoweringObjectFileGOFF::TargetLoweringObjectFileGOFF() = default;
+TargetLoweringObjectFileGOFF::TargetLoweringObjectFileGOFF() {}
 
 MCSection *TargetLoweringObjectFileGOFF::getExplicitSectionGlobal(
     const GlobalObject *GO, SectionKind Kind, const TargetMachine &TM) const {

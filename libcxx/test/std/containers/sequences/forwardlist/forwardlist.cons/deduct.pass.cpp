@@ -14,7 +14,6 @@
 //    -> forward_list<typename iterator_traits<InputIterator>::value_type, Allocator>;
 //
 
-#include <algorithm>
 #include <forward_list>
 #include <iterator>
 #include <cassert>

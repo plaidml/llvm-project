@@ -93,11 +93,6 @@ bool FileExists(const char *filename) {
   return ::GetFileAttributesA(filename) != INVALID_FILE_ATTRIBUTES;
 }
 
-bool DirExists(const char *path) {
-  auto attr = ::GetFileAttributesA(path);
-  return (attr != INVALID_FILE_ATTRIBUTES) && (attr & FILE_ATTRIBUTE_DIRECTORY);
-}
-
 uptr internal_getpid() {
   return GetProcessId(GetCurrentProcess());
 }
@@ -522,7 +517,7 @@ void ReExec() {
   UNIMPLEMENTED();
 }
 
-void PlatformPrepareForSandboxing(void *args) {}
+void PlatformPrepareForSandboxing(__sanitizer_sandbox_arguments *args) {}
 
 bool StackSizeIsUnlimited() {
   UNIMPLEMENTED();
@@ -988,7 +983,7 @@ SignalContext::WriteFlag SignalContext::GetWriteFlag() const {
 
   // The write flag is only available for access violation exceptions.
   if (exception_record->ExceptionCode != EXCEPTION_ACCESS_VIOLATION)
-    return SignalContext::Unknown;
+    return SignalContext::UNKNOWN;
 
   // The contents of this array are documented at
   // https://docs.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-exception_record
@@ -996,13 +991,13 @@ SignalContext::WriteFlag SignalContext::GetWriteFlag() const {
   // second element is the faulting address.
   switch (exception_record->ExceptionInformation[0]) {
     case 0:
-      return SignalContext::Read;
+      return SignalContext::READ;
     case 1:
-      return SignalContext::Write;
+      return SignalContext::WRITE;
     case 8:
-      return SignalContext::Unknown;
+      return SignalContext::UNKNOWN;
   }
-  return SignalContext::Unknown;
+  return SignalContext::UNKNOWN;
 }
 
 void SignalContext::DumpAllRegisters(void *context) {

@@ -159,15 +159,16 @@ public:
     return nullptr;
   }
 
-  ConstString::MemoryStats GetMemoryStats() const {
-    ConstString::MemoryStats stats;
+  // Return the size in bytes that this object and any items in its collection
+  // of uniqued strings + data count values takes in memory.
+  size_t MemorySize() const {
+    size_t mem_size = sizeof(Pool);
     for (const auto &pool : m_string_pools) {
       llvm::sys::SmartScopedReader<false> rlock(pool.m_mutex);
-      const Allocator &alloc = pool.m_string_map.getAllocator();
-      stats.bytes_total += alloc.getTotalMemory();
-      stats.bytes_used += alloc.getBytesAllocated();
+      for (const auto &entry : pool.m_string_map)
+        mem_size += sizeof(StringPoolEntryType) + entry.getKey().size();
     }
-    return stats;
+    return mem_size;
   }
 
 protected:
@@ -326,8 +327,9 @@ void ConstString::SetTrimmedCStringWithLength(const char *cstr,
   m_string = StringPool().GetConstTrimmedCStringWithLength(cstr, cstr_len);
 }
 
-ConstString::MemoryStats ConstString::GetMemoryStats() {
-  return StringPool().GetMemoryStats();
+size_t ConstString::StaticMemorySize() {
+  // Get the size of the static string pool
+  return StringPool().MemorySize();
 }
 
 void llvm::format_provider<ConstString>::format(const ConstString &CS,

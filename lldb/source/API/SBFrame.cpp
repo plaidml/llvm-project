@@ -38,7 +38,6 @@
 #include "lldb/Target/Thread.h"
 #include "lldb/Utility/ConstString.h"
 #include "lldb/Utility/Instrumentation.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Stream.h"
 
 #include "lldb/API/SBAddress.h"
@@ -1034,7 +1033,7 @@ lldb::SBValue SBFrame::EvaluateExpression(const char *expr,
                                           const SBExpressionOptions &options) {
   LLDB_INSTRUMENT_VA(this, expr, options);
 
-  Log *expr_log = GetLog(LLDBLog::Expressions);
+  Log *expr_log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
 
   SBValue expr_result;
 

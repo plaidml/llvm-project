@@ -1925,14 +1925,21 @@ bool isNotCapturedBeforeOrInLoop(const Value *V, const Loop *L,
 
 /// Return true if we can prove that a caller cannot inspect the object if an
 /// unwind occurs inside the loop.
-bool isNotVisibleOnUnwindInLoop(const Value *Object, const Loop *L,
-                                DominatorTree *DT) {
-  bool RequiresNoCaptureBeforeUnwind;
-  if (!isNotVisibleOnUnwind(Object, RequiresNoCaptureBeforeUnwind))
-    return false;
+bool isNotVisibleOnUnwind(Value *Object, const Loop *L, DominatorTree *DT) {
+  if (isa<AllocaInst>(Object))
+    // Since the alloca goes out of scope, we know the caller can't retain a
+    // reference to it and be well defined.  Thus, we don't need to check for
+    // capture.
+    return true;
 
-  return !RequiresNoCaptureBeforeUnwind ||
-         isNotCapturedBeforeOrInLoop(Object, L, DT);
+  // For all other objects we need to know that the caller can't possibly
+  // have gotten a reference to the object prior to an unwind in the loop.
+  // There are two components of that:
+  //   1) Object can't have been captured prior to the definition site.
+  //      For this, we need to know the return value is noalias.
+  //   1) Object can't be captured before or inside the loop.  This is what
+  //      isNotCapturedBeforeOrInLoop() checks.
+  return isNoAliasCall(Object) && isNotCapturedBeforeOrInLoop(Object, L, DT);
 }
 
 } // namespace
@@ -2019,7 +2026,7 @@ bool llvm::promoteLoopAccessesToScalars(
     // this by proving that the caller can't have a reference to the object
     // after return and thus can't possibly load from the object.
     Value *Object = getUnderlyingObject(SomePtr);
-    if (!isNotVisibleOnUnwindInLoop(Object, CurLoop, DT))
+    if (!isNotVisibleOnUnwind(Object, CurLoop, DT))
       return false;
     // Subtlety: Alloca's aren't visible to callers, but *are* potentially
     // visible to other threads if captured and used during their lifetimes.

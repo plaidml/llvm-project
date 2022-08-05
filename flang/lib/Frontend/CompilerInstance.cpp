@@ -142,11 +142,11 @@ bool CompilerInstance::ExecuteAction(FrontendAction &act) {
   // Set some sane defaults for the frontend.
   invoc.SetDefaultFortranOpts();
   // Update the fortran options based on user-based input.
-  invoc.SetFortranOpts();
+  invoc.setFortranOpts();
   // Set the encoding to read all input files in based on user input.
   allSources_->set_encoding(invoc.fortranOpts().encoding);
   // Create the semantics context and set semantic options.
-  invoc.SetSemanticsOpts(*this->allCookedSources_);
+  invoc.setSemanticsOpts(*this->allCookedSources_);
 
   // Run the frontend action `act` for every input file.
   for (const FrontendInputFile &fif : frontendOpts().inputs) {

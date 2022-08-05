@@ -22,7 +22,6 @@ struct AttributeTypeStorage;
 struct ConstraintTypeStorage;
 struct OperationTypeStorage;
 struct RangeTypeStorage;
-struct RewriteTypeStorage;
 struct TupleTypeStorage;
 struct TypeTypeStorage;
 struct ValueTypeStorage;
@@ -202,20 +201,6 @@ public:
 
   /// Return an instance of the ValueRange type.
   static ValueRangeType get(Context &context);
-};
-
-//===----------------------------------------------------------------------===//
-// RewriteType
-//===----------------------------------------------------------------------===//
-
-/// This class represents a PDLL type that corresponds to a rewrite reference.
-/// This type has no MLIR C++ API correspondance.
-class RewriteType : public Type::TypeBase<detail::RewriteTypeStorage> {
-public:
-  using Base::Base;
-
-  /// Return an instance of the Rewrite type.
-  static RewriteType get(Context &context);
 };
 
 //===----------------------------------------------------------------------===//

@@ -18,7 +18,6 @@
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/MC/MCInstrDesc.h"
 #include "llvm/MC/SubtargetFeature.h"
-#include "llvm/Support/RISCVISAInfo.h"
 
 namespace llvm {
 
@@ -192,8 +191,7 @@ enum OperandType : unsigned {
   OPERAND_SIMM12,
   OPERAND_UIMM20,
   OPERAND_UIMMLOG2XLEN,
-  OPERAND_RVKRNUM,
-  OPERAND_LAST_RISCV_IMM = OPERAND_RVKRNUM,
+  OPERAND_LAST_RISCV_IMM = OPERAND_UIMMLOG2XLEN,
   // Operand is either a register or uimm5, this is used by V extension pseudo
   // instructions to represent a value that be passed as AVL to either vsetvli
   // or vsetivli.
@@ -345,8 +343,9 @@ namespace RISCVFeatures {
 // triple. Exits with report_fatal_error if not.
 void validate(const Triple &TT, const FeatureBitset &FeatureBits);
 
-llvm::Expected<std::unique_ptr<RISCVISAInfo>>
-parseFeatureBits(bool IsRV64, const FeatureBitset &FeatureBits);
+// Convert FeatureBitset to FeatureVector.
+void toFeatureVector(std::vector<std::string> &FeatureVector,
+                     const FeatureBitset &FeatureBits);
 
 } // namespace RISCVFeatures
 

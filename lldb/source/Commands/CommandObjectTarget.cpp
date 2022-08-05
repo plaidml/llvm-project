@@ -47,7 +47,6 @@
 #include "lldb/Target/Thread.h"
 #include "lldb/Target/ThreadSpec.h"
 #include "lldb/Utility/Args.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/State.h"
 #include "lldb/Utility/Timer.h"
 
@@ -217,6 +216,7 @@ public:
             interpreter, "target create",
             "Create a target using the argument as the main executable.",
             nullptr),
+        m_option_group(), m_arch_option(),
         m_platform_options(true), // Include the --platform option.
         m_core_file(LLDB_OPT_SET_1, false, "core", 'c', 0, eArgTypeFilename,
                     "Fullpath to a core file to use for this target."),
@@ -227,7 +227,8 @@ public:
                       "are not in the executable."),
         m_remote_file(
             LLDB_OPT_SET_1, false, "remote-file", 'r', 0, eArgTypeFilename,
-            "Fullpath to the file on the remote host if debugging remotely.") {
+            "Fullpath to the file on the remote host if debugging remotely."),
+        m_add_dependents() {
     CommandArgumentEntry arg;
     CommandArgumentData file_arg;
 
@@ -533,8 +534,8 @@ public:
       : CommandObjectParsed(interpreter, "target delete",
                             "Delete one or more targets by target index.",
                             nullptr),
-        m_all_option(LLDB_OPT_SET_1, false, "all", 'a', "Delete all targets.",
-                     false, true),
+        m_option_group(), m_all_option(LLDB_OPT_SET_1, false, "all", 'a',
+                                       "Delete all targets.", false, true),
         m_cleanup_option(
             LLDB_OPT_SET_1, false, "clean", 'c',
             "Perform extra cleanup to minimize memory consumption after "
@@ -677,6 +678,7 @@ public:
                             "Read global variables for the current target, "
                             "before or while running a process.",
                             nullptr, eCommandRequiresTarget),
+        m_option_group(),
         m_option_variable(false), // Don't include frame options
         m_option_format(eFormatDefault),
         m_option_compile_units(LLDB_OPT_SET_1, false, "file", SHORT_OPTION_FILE,
@@ -689,7 +691,8 @@ public:
             eArgTypeFilename,
             "A basename or fullpath to a shared library to use in the search "
             "for global "
-            "variables. This option can be specified multiple times.") {
+            "variables. This option can be specified multiple times."),
+        m_varobj_options() {
     CommandArgumentEntry arg;
     CommandArgumentData var_name_arg;
 
@@ -1035,7 +1038,7 @@ protected:
         const char *to = command.GetArgumentAtIndex(i + 1);
 
         if (from[0] && to[0]) {
-          Log *log = GetLog(LLDBLog::Host);
+          Log *log = lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_HOST);
           if (log) {
             LLDB_LOGF(log,
                       "target modules search path adding ImageSearchPath "
@@ -1925,7 +1928,8 @@ public:
       : CommandObjectTargetModulesModuleAutoComplete(
             interpreter, "target modules dump symtab",
             "Dump the symbol table from one or more target modules.", nullptr,
-            eCommandRequiresTarget) {}
+            eCommandRequiresTarget),
+        m_options() {}
 
   ~CommandObjectTargetModulesDumpSymtab() override = default;
 
@@ -1933,7 +1937,7 @@ public:
 
   class CommandOptions : public Options {
   public:
-    CommandOptions() {}
+    CommandOptions() : Options() {}
 
     ~CommandOptions() override = default;
 
@@ -2350,7 +2354,7 @@ protected:
 
   class CommandOptions : public Options {
   public:
-    CommandOptions() { OptionParsingStarting(nullptr); }
+    CommandOptions() : Options() { OptionParsingStarting(nullptr); }
 
     Status SetOptionValue(uint32_t option_idx, llvm::StringRef option_arg,
                           ExecutionContext *execution_context) override {
@@ -2419,11 +2423,11 @@ public:
                             "Add a new module to the current target's modules.",
                             "target modules add [<module>]",
                             eCommandRequiresTarget),
-        m_symbol_file(LLDB_OPT_SET_1, false, "symfile", 's', 0,
-                      eArgTypeFilename,
-                      "Fullpath to a stand alone debug "
-                      "symbols file for when debug symbols "
-                      "are not in the executable.") {
+        m_option_group(), m_symbol_file(LLDB_OPT_SET_1, false, "symfile", 's',
+                                        0, eArgTypeFilename,
+                                        "Fullpath to a stand alone debug "
+                                        "symbols file for when debug symbols "
+                                        "are not in the executable.") {
     m_option_group.Append(&m_uuid_option_group, LLDB_OPT_SET_ALL,
                           LLDB_OPT_SET_1);
     m_option_group.Append(&m_symbol_file, LLDB_OPT_SET_ALL, LLDB_OPT_SET_1);
@@ -2571,6 +2575,7 @@ public:
             "target modules load [--file <module> --uuid <uuid>] <sect-name> "
             "<address> [<sect-name> <address> ....]",
             eCommandRequiresTarget),
+        m_option_group(),
         m_file_option(LLDB_OPT_SET_1, false, "file", 'f', 0, eArgTypeName,
                       "Fullpath or basename for module to load.", ""),
         m_load_option(LLDB_OPT_SET_1, false, "load", 'l',
@@ -2838,7 +2843,7 @@ class CommandObjectTargetModulesList : public CommandObjectParsed {
 public:
   class CommandOptions : public Options {
   public:
-    CommandOptions() {}
+    CommandOptions() : Options(), m_format_array() {}
 
     ~CommandOptions() override = default;
 
@@ -2881,7 +2886,8 @@ public:
       : CommandObjectParsed(
             interpreter, "target modules list",
             "List current executable and dependent shared library images.",
-            "target modules list [<cmd-options>]") {}
+            "target modules list [<cmd-options>]"),
+        m_options() {}
 
   ~CommandObjectTargetModulesList() override = default;
 
@@ -3180,7 +3186,7 @@ public:
 
   class CommandOptions : public Options {
   public:
-    CommandOptions() {}
+    CommandOptions() : Options(), m_str() {}
 
     ~CommandOptions() override = default;
 
@@ -3237,7 +3243,8 @@ public:
             interpreter, "target modules show-unwind",
             "Show synthesized unwind instructions for a function.", nullptr,
             eCommandRequiresTarget | eCommandRequiresProcess |
-                eCommandProcessMustBeLaunched | eCommandProcessMustBePaused) {}
+                eCommandProcessMustBeLaunched | eCommandProcessMustBePaused),
+        m_options() {}
 
   ~CommandObjectTargetModulesShowUnwind() override = default;
 
@@ -3526,7 +3533,7 @@ public:
 
   class CommandOptions : public Options {
   public:
-    CommandOptions() { OptionParsingStarting(nullptr); }
+    CommandOptions() : Options() { OptionParsingStarting(nullptr); }
 
     ~CommandOptions() override = default;
 
@@ -3641,7 +3648,8 @@ public:
       : CommandObjectParsed(interpreter, "target modules lookup",
                             "Look up information within executable and "
                             "dependent shared library images.",
-                            nullptr, eCommandRequiresTarget) {
+                            nullptr, eCommandRequiresTarget),
+        m_options() {
     CommandArgumentEntry arg;
     CommandArgumentData file_arg;
 
@@ -3947,6 +3955,7 @@ public:
             "to specify a module.",
             "target symbols add <cmd-options> [<symfile>]",
             eCommandRequiresTarget),
+        m_option_group(),
         m_file_option(
             LLDB_OPT_SET_1, false, "shlib", 's',
             CommandCompletions::eModuleCompletion, eArgTypeShlibName,
@@ -4433,7 +4442,7 @@ class CommandObjectTargetStopHookAdd : public CommandObjectParsed,
 public:
   class CommandOptions : public OptionGroup {
   public:
-    CommandOptions() : m_line_end(UINT_MAX) {}
+    CommandOptions() : OptionGroup(), m_line_end(UINT_MAX), m_one_liner() {}
 
     ~CommandOptions() override = default;
 
@@ -4590,7 +4599,7 @@ public:
                             "target stop-hook add"),
         IOHandlerDelegateMultiline("DONE",
                                    IOHandlerDelegate::Completion::LLDBCommand),
-        m_python_class_options("scripted stop-hook", true, 'P') {
+        m_options(), m_python_class_options("scripted stop-hook", true, 'P') {
     SetHelpLong(
         R"(
 Command Based stop-hooks:

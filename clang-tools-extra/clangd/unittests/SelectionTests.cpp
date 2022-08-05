@@ -523,10 +523,6 @@ TEST(SelectionTest, CommonAncestor) {
           auto l = [^[[foo = bar]]] { };
         })cpp",
        "VarDecl"},
-      {R"cpp(
-        /*error-ok*/
-        void func() [[{^]])cpp",
-       "CompoundStmt"},
   };
 
   for (const Case &C : Cases) {

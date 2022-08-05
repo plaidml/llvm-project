@@ -33,7 +33,7 @@ public:
 
 private:
   void separateBlocks(SmallVectorImpl<AnnotatedLine *> &Lines,
-                      tooling::Replacements &Result, FormatTokenLexer &Tokens);
+                      tooling::Replacements &Result);
 };
 } // namespace format
 } // namespace clang

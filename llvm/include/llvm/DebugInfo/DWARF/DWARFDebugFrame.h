@@ -13,6 +13,7 @@
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/Triple.h"
 #include "llvm/ADT/iterator.h"
+#include "llvm/DebugInfo/DWARF/DWARFDataExtractor.h"
 #include "llvm/DebugInfo/DWARF/DWARFExpression.h"
 #include "llvm/Support/Error.h"
 #include <map>
@@ -22,9 +23,6 @@
 namespace llvm {
 
 class raw_ostream;
-class DWARFDataExtractor;
-class MCRegisterInfo;
-struct DIDumpOptions;
 
 namespace dwarf {
 
@@ -537,7 +535,7 @@ public:
       : Kind(K), IsDWARF64(IsDWARF64), Offset(Offset), Length(Length),
         CFIs(CodeAlign, DataAlign, Arch) {}
 
-  virtual ~FrameEntry() = default;
+  virtual ~FrameEntry() {}
 
   FrameKind getKind() const { return Kind; }
   uint64_t getOffset() const { return Offset; }

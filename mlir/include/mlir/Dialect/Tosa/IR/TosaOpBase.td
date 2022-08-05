@@ -196,7 +196,7 @@ def Tosa_ExplicitValuePadOpQuantInfoBuilder : OpBuilder<
 // TOSA Operator.
 //===----------------------------------------------------------------------===//
 
-class Tosa_Op<string mnemonic, list<Trait> traits = []> :
+class Tosa_Op<string mnemonic, list<OpTrait> traits = []> :
     Op<Tosa_Dialect, mnemonic, !listconcat(traits, [TosaOpInterface])> {
 }
 

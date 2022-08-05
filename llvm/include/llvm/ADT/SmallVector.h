@@ -5,16 +5,18 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-///
-/// /file
-/// This file defines the SmallVector class.
-///
+//
+// This file defines the SmallVector class.
+//
 //===----------------------------------------------------------------------===//
 
 #ifndef LLVM_ADT_SMALLVECTOR_H
 #define LLVM_ADT_SMALLVECTOR_H
 
+#include "llvm/ADT/iterator_range.h"
 #include "llvm/Support/Compiler.h"
+#include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/MemAlloc.h"
 #include "llvm/Support/type_traits.h"
 #include <algorithm>
 #include <cassert>
@@ -31,8 +33,6 @@
 #include <utility>
 
 namespace llvm {
-
-template <typename IteratorT> class iterator_range;
 
 /// This is all the stuff common to all SmallVectors.
 ///
@@ -568,16 +568,6 @@ protected:
   explicit SmallVectorImpl(unsigned N)
       : SmallVectorTemplateBase<T>(N) {}
 
-  void assignRemote(SmallVectorImpl &&RHS) {
-    this->destroy_range(this->begin(), this->end());
-    if (!this->isSmall())
-      free(this->begin());
-    this->BeginX = RHS.BeginX;
-    this->Size = RHS.Size;
-    this->Capacity = RHS.Capacity;
-    RHS.resetToSmall();
-  }
-
 public:
   SmallVectorImpl(const SmallVectorImpl &) = delete;
 
@@ -1042,7 +1032,12 @@ SmallVectorImpl<T> &SmallVectorImpl<T>::operator=(SmallVectorImpl<T> &&RHS) {
 
   // If the RHS isn't small, clear this vector and then steal its buffer.
   if (!RHS.isSmall()) {
-    this->assignRemote(std::move(RHS));
+    this->destroy_range(this->begin(), this->end());
+    if (!this->isSmall()) free(this->begin());
+    this->BeginX = RHS.BeginX;
+    this->Size = RHS.Size;
+    this->Capacity = RHS.Capacity;
+    RHS.resetToSmall();
     return *this;
   }
 
@@ -1233,20 +1228,7 @@ public:
   }
 
   SmallVector &operator=(SmallVector &&RHS) {
-    if (N) {
-      SmallVectorImpl<T>::operator=(::std::move(RHS));
-      return *this;
-    }
-    // SmallVectorImpl<T>::operator= does not leverage N==0. Optimize the
-    // case.
-    if (this == &RHS)
-      return *this;
-    if (RHS.empty()) {
-      this->destroy_range(this->begin(), this->end());
-      this->Size = 0;
-    } else {
-      this->assignRemote(std::move(RHS));
-    }
+    SmallVectorImpl<T>::operator=(::std::move(RHS));
     return *this;
   }
 

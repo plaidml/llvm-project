@@ -25,6 +25,8 @@
 #include "llvm/IR/Value.h"
 #include "llvm/Support/AtomicOrdering.h"
 #include "llvm/Support/Casting.h"
+#include <algorithm>
+#include <cassert>
 #include <cstdint>
 #include <utility>
 

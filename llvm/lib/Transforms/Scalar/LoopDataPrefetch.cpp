@@ -236,14 +236,15 @@ struct Prefetch {
   /// The address formula for this prefetch as returned by ScalarEvolution.
   const SCEVAddRecExpr *LSCEVAddRec;
   /// The point of insertion for the prefetch instruction.
-  Instruction *InsertPt = nullptr;
+  Instruction *InsertPt;
   /// True if targeting a write memory access.
-  bool Writes = false;
+  bool Writes;
   /// The (first seen) prefetched instruction.
-  Instruction *MemI = nullptr;
+  Instruction *MemI;
 
   /// Constructor to create a new Prefetch for \p I.
-  Prefetch(const SCEVAddRecExpr *L, Instruction *I) : LSCEVAddRec(L) {
+  Prefetch(const SCEVAddRecExpr *L, Instruction *I)
+      : LSCEVAddRec(L), InsertPt(nullptr), Writes(false), MemI(nullptr) {
     addInstruction(I);
   };
 

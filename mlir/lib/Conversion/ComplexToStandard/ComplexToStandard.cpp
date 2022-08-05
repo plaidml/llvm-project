@@ -227,10 +227,10 @@ struct DivOpConversion : public OpConversionPattern<complex::DivOp> {
     Value one = rewriter.create<arith::ConstantOp>(
         loc, elementType, rewriter.getFloatAttr(elementType, 1));
     Value lhsRealIsInfWithSign = rewriter.create<math::CopySignOp>(
-        loc, rewriter.create<arith::SelectOp>(loc, lhsRealInfinite, one, zero),
+        loc, rewriter.create<SelectOp>(loc, lhsRealInfinite, one, zero),
         lhsReal);
     Value lhsImagIsInfWithSign = rewriter.create<math::CopySignOp>(
-        loc, rewriter.create<arith::SelectOp>(loc, lhsImagInfinite, one, zero),
+        loc, rewriter.create<SelectOp>(loc, lhsImagInfinite, one, zero),
         lhsImag);
     Value lhsRealIsInfWithSignTimesRhsReal =
         rewriter.create<arith::MulFOp>(loc, lhsRealIsInfWithSign, rhsReal);
@@ -265,10 +265,10 @@ struct DivOpConversion : public OpConversionPattern<complex::DivOp> {
     Value finiteNumInfiniteDenom =
         rewriter.create<arith::AndIOp>(loc, lhsFinite, rhsInfinite);
     Value rhsRealIsInfWithSign = rewriter.create<math::CopySignOp>(
-        loc, rewriter.create<arith::SelectOp>(loc, rhsRealInfinite, one, zero),
+        loc, rewriter.create<SelectOp>(loc, rhsRealInfinite, one, zero),
         rhsReal);
     Value rhsImagIsInfWithSign = rewriter.create<math::CopySignOp>(
-        loc, rewriter.create<arith::SelectOp>(loc, rhsImagInfinite, one, zero),
+        loc, rewriter.create<SelectOp>(loc, rhsImagInfinite, one, zero),
         rhsImag);
     Value rhsRealIsInfWithSignTimesLhsReal =
         rewriter.create<arith::MulFOp>(loc, lhsReal, rhsRealIsInfWithSign);
@@ -289,21 +289,21 @@ struct DivOpConversion : public OpConversionPattern<complex::DivOp> {
 
     Value realAbsSmallerThanImagAbs = rewriter.create<arith::CmpFOp>(
         loc, arith::CmpFPredicate::OLT, rhsRealAbs, rhsImagAbs);
-    Value resultReal = rewriter.create<arith::SelectOp>(
-        loc, realAbsSmallerThanImagAbs, resultReal1, resultReal2);
-    Value resultImag = rewriter.create<arith::SelectOp>(
-        loc, realAbsSmallerThanImagAbs, resultImag1, resultImag2);
-    Value resultRealSpecialCase3 = rewriter.create<arith::SelectOp>(
+    Value resultReal = rewriter.create<SelectOp>(loc, realAbsSmallerThanImagAbs,
+                                                 resultReal1, resultReal2);
+    Value resultImag = rewriter.create<SelectOp>(loc, realAbsSmallerThanImagAbs,
+                                                 resultImag1, resultImag2);
+    Value resultRealSpecialCase3 = rewriter.create<SelectOp>(
         loc, finiteNumInfiniteDenom, resultReal4, resultReal);
-    Value resultImagSpecialCase3 = rewriter.create<arith::SelectOp>(
+    Value resultImagSpecialCase3 = rewriter.create<SelectOp>(
         loc, finiteNumInfiniteDenom, resultImag4, resultImag);
-    Value resultRealSpecialCase2 = rewriter.create<arith::SelectOp>(
+    Value resultRealSpecialCase2 = rewriter.create<SelectOp>(
         loc, infNumFiniteDenom, resultReal3, resultRealSpecialCase3);
-    Value resultImagSpecialCase2 = rewriter.create<arith::SelectOp>(
+    Value resultImagSpecialCase2 = rewriter.create<SelectOp>(
         loc, infNumFiniteDenom, resultImag3, resultImagSpecialCase3);
-    Value resultRealSpecialCase1 = rewriter.create<arith::SelectOp>(
+    Value resultRealSpecialCase1 = rewriter.create<SelectOp>(
         loc, resultIsInfinity, infinityResultReal, resultRealSpecialCase2);
-    Value resultImagSpecialCase1 = rewriter.create<arith::SelectOp>(
+    Value resultImagSpecialCase1 = rewriter.create<SelectOp>(
         loc, resultIsInfinity, infinityResultImag, resultImagSpecialCase2);
 
     Value resultRealIsNaN = rewriter.create<arith::CmpFOp>(
@@ -312,9 +312,9 @@ struct DivOpConversion : public OpConversionPattern<complex::DivOp> {
         loc, arith::CmpFPredicate::UNO, resultImag, zero);
     Value resultIsNaN =
         rewriter.create<arith::AndIOp>(loc, resultRealIsNaN, resultImagIsNaN);
-    Value resultRealWithSpecialCases = rewriter.create<arith::SelectOp>(
+    Value resultRealWithSpecialCases = rewriter.create<SelectOp>(
         loc, resultIsNaN, resultRealSpecialCase1, resultReal);
-    Value resultImagWithSpecialCases = rewriter.create<arith::SelectOp>(
+    Value resultImagWithSpecialCases = rewriter.create<SelectOp>(
         loc, resultIsNaN, resultImagSpecialCase1, resultImag);
 
     rewriter.replaceOpWithNewOp<complex::CreateOp>(
@@ -450,26 +450,24 @@ struct MulOpConversion : public OpConversionPattern<complex::MulOp> {
         b.create<arith::ConstantOp>(elementType, b.getZeroAttr(elementType));
     Value one = b.create<arith::ConstantOp>(elementType,
                                             b.getFloatAttr(elementType, 1));
-    Value lhsRealIsInfFloat =
-        b.create<arith::SelectOp>(lhsRealIsInf, one, zero);
-    lhsReal = b.create<arith::SelectOp>(
+    Value lhsRealIsInfFloat = b.create<SelectOp>(lhsRealIsInf, one, zero);
+    lhsReal = b.create<SelectOp>(
         lhsIsInf, b.create<math::CopySignOp>(lhsRealIsInfFloat, lhsReal),
         lhsReal);
-    Value lhsImagIsInfFloat =
-        b.create<arith::SelectOp>(lhsImagIsInf, one, zero);
-    lhsImag = b.create<arith::SelectOp>(
+    Value lhsImagIsInfFloat = b.create<SelectOp>(lhsImagIsInf, one, zero);
+    lhsImag = b.create<SelectOp>(
         lhsIsInf, b.create<math::CopySignOp>(lhsImagIsInfFloat, lhsImag),
         lhsImag);
     Value lhsIsInfAndRhsRealIsNan =
         b.create<arith::AndIOp>(lhsIsInf, rhsRealIsNan);
-    rhsReal = b.create<arith::SelectOp>(
-        lhsIsInfAndRhsRealIsNan, b.create<math::CopySignOp>(zero, rhsReal),
-        rhsReal);
+    rhsReal =
+        b.create<SelectOp>(lhsIsInfAndRhsRealIsNan,
+                           b.create<math::CopySignOp>(zero, rhsReal), rhsReal);
     Value lhsIsInfAndRhsImagIsNan =
         b.create<arith::AndIOp>(lhsIsInf, rhsImagIsNan);
-    rhsImag = b.create<arith::SelectOp>(
-        lhsIsInfAndRhsImagIsNan, b.create<math::CopySignOp>(zero, rhsImag),
-        rhsImag);
+    rhsImag =
+        b.create<SelectOp>(lhsIsInfAndRhsImagIsNan,
+                           b.create<math::CopySignOp>(zero, rhsImag), rhsImag);
 
     // Case 2. `rhsReal` or `rhsImag` are infinite.
     Value rhsRealIsInf =
@@ -481,26 +479,24 @@ struct MulOpConversion : public OpConversionPattern<complex::MulOp> {
         b.create<arith::CmpFOp>(arith::CmpFPredicate::UNO, lhsReal, lhsReal);
     Value lhsImagIsNan =
         b.create<arith::CmpFOp>(arith::CmpFPredicate::UNO, lhsImag, lhsImag);
-    Value rhsRealIsInfFloat =
-        b.create<arith::SelectOp>(rhsRealIsInf, one, zero);
-    rhsReal = b.create<arith::SelectOp>(
+    Value rhsRealIsInfFloat = b.create<SelectOp>(rhsRealIsInf, one, zero);
+    rhsReal = b.create<SelectOp>(
         rhsIsInf, b.create<math::CopySignOp>(rhsRealIsInfFloat, rhsReal),
         rhsReal);
-    Value rhsImagIsInfFloat =
-        b.create<arith::SelectOp>(rhsImagIsInf, one, zero);
-    rhsImag = b.create<arith::SelectOp>(
+    Value rhsImagIsInfFloat = b.create<SelectOp>(rhsImagIsInf, one, zero);
+    rhsImag = b.create<SelectOp>(
         rhsIsInf, b.create<math::CopySignOp>(rhsImagIsInfFloat, rhsImag),
         rhsImag);
     Value rhsIsInfAndLhsRealIsNan =
         b.create<arith::AndIOp>(rhsIsInf, lhsRealIsNan);
-    lhsReal = b.create<arith::SelectOp>(
-        rhsIsInfAndLhsRealIsNan, b.create<math::CopySignOp>(zero, lhsReal),
-        lhsReal);
+    lhsReal =
+        b.create<SelectOp>(rhsIsInfAndLhsRealIsNan,
+                           b.create<math::CopySignOp>(zero, lhsReal), lhsReal);
     Value rhsIsInfAndLhsImagIsNan =
         b.create<arith::AndIOp>(rhsIsInf, lhsImagIsNan);
-    lhsImag = b.create<arith::SelectOp>(
-        rhsIsInfAndLhsImagIsNan, b.create<math::CopySignOp>(zero, lhsImag),
-        lhsImag);
+    lhsImag =
+        b.create<SelectOp>(rhsIsInfAndLhsImagIsNan,
+                           b.create<math::CopySignOp>(zero, lhsImag), lhsImag);
     Value recalc = b.create<arith::OrIOp>(lhsIsInf, rhsIsInf);
 
     // Case 3. One of the pairwise products of left hand side with right hand
@@ -526,24 +522,24 @@ struct MulOpConversion : public OpConversionPattern<complex::MulOp> {
     isSpecialCase = b.create<arith::AndIOp>(isSpecialCase, notRecalc);
     Value isSpecialCaseAndLhsRealIsNan =
         b.create<arith::AndIOp>(isSpecialCase, lhsRealIsNan);
-    lhsReal = b.create<arith::SelectOp>(
-        isSpecialCaseAndLhsRealIsNan, b.create<math::CopySignOp>(zero, lhsReal),
-        lhsReal);
+    lhsReal =
+        b.create<SelectOp>(isSpecialCaseAndLhsRealIsNan,
+                           b.create<math::CopySignOp>(zero, lhsReal), lhsReal);
     Value isSpecialCaseAndLhsImagIsNan =
         b.create<arith::AndIOp>(isSpecialCase, lhsImagIsNan);
-    lhsImag = b.create<arith::SelectOp>(
-        isSpecialCaseAndLhsImagIsNan, b.create<math::CopySignOp>(zero, lhsImag),
-        lhsImag);
+    lhsImag =
+        b.create<SelectOp>(isSpecialCaseAndLhsImagIsNan,
+                           b.create<math::CopySignOp>(zero, lhsImag), lhsImag);
     Value isSpecialCaseAndRhsRealIsNan =
         b.create<arith::AndIOp>(isSpecialCase, rhsRealIsNan);
-    rhsReal = b.create<arith::SelectOp>(
-        isSpecialCaseAndRhsRealIsNan, b.create<math::CopySignOp>(zero, rhsReal),
-        rhsReal);
+    rhsReal =
+        b.create<SelectOp>(isSpecialCaseAndRhsRealIsNan,
+                           b.create<math::CopySignOp>(zero, rhsReal), rhsReal);
     Value isSpecialCaseAndRhsImagIsNan =
         b.create<arith::AndIOp>(isSpecialCase, rhsImagIsNan);
-    rhsImag = b.create<arith::SelectOp>(
-        isSpecialCaseAndRhsImagIsNan, b.create<math::CopySignOp>(zero, rhsImag),
-        rhsImag);
+    rhsImag =
+        b.create<SelectOp>(isSpecialCaseAndRhsImagIsNan,
+                           b.create<math::CopySignOp>(zero, rhsImag), rhsImag);
     recalc = b.create<arith::OrIOp>(recalc, isSpecialCase);
     recalc = b.create<arith::AndIOp>(isNan, recalc);
 
@@ -552,16 +548,16 @@ struct MulOpConversion : public OpConversionPattern<complex::MulOp> {
     lhsImagTimesRhsImag = b.create<arith::MulFOp>(lhsImag, rhsImag);
     Value newReal =
         b.create<arith::SubFOp>(lhsRealTimesRhsReal, lhsImagTimesRhsImag);
-    real = b.create<arith::SelectOp>(
-        recalc, b.create<arith::MulFOp>(inf, newReal), real);
+    real =
+        b.create<SelectOp>(recalc, b.create<arith::MulFOp>(inf, newReal), real);
 
     // Recalculate imag part.
     lhsImagTimesRhsReal = b.create<arith::MulFOp>(lhsImag, rhsReal);
     lhsRealTimesRhsImag = b.create<arith::MulFOp>(lhsReal, rhsImag);
     Value newImag =
         b.create<arith::AddFOp>(lhsImagTimesRhsReal, lhsRealTimesRhsImag);
-    imag = b.create<arith::SelectOp>(
-        recalc, b.create<arith::MulFOp>(inf, newImag), imag);
+    imag =
+        b.create<SelectOp>(recalc, b.create<arith::MulFOp>(inf, newImag), imag);
 
     rewriter.replaceOpWithNewOp<complex::CreateOp>(op, type, real, imag);
     return success();
@@ -612,8 +608,8 @@ struct SignOpConversion : public OpConversionPattern<complex::SignOp> {
     Value realSign = b.create<arith::DivFOp>(real, abs);
     Value imagSign = b.create<arith::DivFOp>(imag, abs);
     Value sign = b.create<complex::CreateOp>(type, realSign, imagSign);
-    rewriter.replaceOpWithNewOp<arith::SelectOp>(op, isZero,
-                                                 adaptor.getComplex(), sign);
+    rewriter.replaceOpWithNewOp<SelectOp>(op, isZero, adaptor.getComplex(),
+                                          sign);
     return success();
   }
 };

@@ -9,7 +9,6 @@
 #include "lldb/Expression/ExpressionVariable.h"
 #include "lldb/Expression/IRExecutionUnit.h"
 #include "lldb/Target/Target.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
 
 using namespace lldb_private;
@@ -42,7 +41,7 @@ lldb::addr_t PersistentExpressionState::LookupSymbol(ConstString name) {
 
 void PersistentExpressionState::RegisterExecutionUnit(
     lldb::IRExecutionUnitSP &execution_unit_sp) {
-  Log *log = GetLog(LLDBLog::Expressions);
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_EXPRESSIONS));
 
   m_execution_units.insert(execution_unit_sp);
 

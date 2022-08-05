@@ -55,7 +55,7 @@ void f_8403108(unsigned x) {
 // pr7827
 void function(short width, int data[][width]) {} // expected-note {{passing argument to parameter 'data' here}}
 
-void test(void) {
+void test() {
      int bork[4][13];
      // CHECK: call void @function(i16 noundef signext 1, i32* noundef null)
      function(1, 0);
@@ -66,7 +66,7 @@ void test(void) {
 }
 
 void function1(short width, int data[][width][width]) {}
-void test1(void) {
+void test1() {
      int bork[4][13][15];
      // CHECK: call void @function1(i16 noundef signext 1, i32* noundef {{.*}})
      function1(1, bork);
@@ -213,7 +213,7 @@ void test10(int a[static 0]) {}
 
 const int constant = 32;
 // CHECK: define {{.*}}pr44406(
-int pr44406(void) {
+int pr44406() {
   int n = 0;
   // Do not fold this VLA to an array of constant bound; that would miscompile
   // this testcase.

@@ -64,7 +64,8 @@ class UnwindSignalTestCase(TestBase):
                 for i in range(31):
                   name = 'x{}'.format(i)
                   value = regs.GetChildMemberWithName(name).GetValueAsUnsigned(err)
-                  self.assertSuccess(err, "Failed to get register {}".format(name))
+                  self.assertTrue(err.Success(), "Failed to get register {}: {}".format(
+                                      name, err))
                   self.assertEqual(value, i, "Unexpected value for register {}".format(
                                       name))
 

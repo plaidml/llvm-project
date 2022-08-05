@@ -15,7 +15,6 @@
 #include "mlir/Analysis/Liveness.h"
 #include "mlir/Dialect/Async/IR/Async.h"
 #include "mlir/Dialect/Async/Passes.h"
-#include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/IR/ImplicitLocOpBuilder.h"
 #include "mlir/IR/PatternMatch.h"
@@ -170,11 +169,11 @@ private:
   ///
   ///   ^entry:
   ///     %token = async.runtime.create : !async.token
-  ///     cf.cond_br %cond, ^bb1, ^bb2
+  ///     cond_br %cond, ^bb1, ^bb2
   ///   ^bb1:
   ///     async.runtime.await %token
   ///     async.runtime.drop_ref %token
-  ///     cf.br ^bb2
+  ///     br ^bb2
   ///   ^bb2:
   ///     return
   ///
@@ -186,14 +185,14 @@ private:
   ///
   ///   ^entry:
   ///     %token = async.runtime.create : !async.token
-  ///     cf.cond_br %cond, ^bb1, ^reference_counting
+  ///     cond_br %cond, ^bb1, ^reference_counting
   ///   ^bb1:
   ///     async.runtime.await %token
   ///     async.runtime.drop_ref %token
-  ///     cf.br ^bb2
+  ///     br ^bb2
   ///   ^reference_counting:
   ///     async.runtime.drop_ref %token
-  ///     cf.br ^bb2
+  ///     br ^bb2
   ///   ^bb2:
   ///     return
   ///
@@ -209,7 +208,7 @@ private:
   ///     async.coro.suspend %ret, ^suspend, ^resume, ^cleanup
   ///   ^resume:
   ///     %0 = async.runtime.load %value
-  ///     cf.br ^cleanup
+  ///     br ^cleanup
   ///   ^cleanup:
   ///     ...
   ///   ^suspend:
@@ -407,7 +406,7 @@ AsyncRuntimeRefCountingPass::addDropRefInDivergentLivenessSuccessor(
         refCountingBlock = &successor->getParent()->emplaceBlock();
         refCountingBlock->moveBefore(successor);
         OpBuilder builder = OpBuilder::atBlockEnd(refCountingBlock);
-        builder.create<cf::BranchOp>(value.getLoc(), successor);
+        builder.create<BranchOp>(value.getLoc(), successor);
       }
 
       OpBuilder builder = OpBuilder::atBlockBegin(refCountingBlock);

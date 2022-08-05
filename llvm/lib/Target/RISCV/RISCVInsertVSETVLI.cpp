@@ -334,10 +334,6 @@ public:
     return false;
   }
 
-  bool operator!=(const VSETVLIInfo &Other) const {
-    return !(*this == Other);
-  }
-
   // Calculate the VSETVLIInfo visible to a block assuming this and Other are
   // both predecessors.
   VSETVLIInfo intersect(const VSETVLIInfo &Other) const {
@@ -404,7 +400,7 @@ struct BlockData {
   // Keeps track of whether the block is already in the queue.
   bool InQueue = false;
 
-  BlockData() = default;
+  BlockData() {}
 };
 
 class RISCVInsertVSETVLI : public MachineFunctionPass {
@@ -1099,17 +1095,6 @@ void RISCVInsertVSETVLI::emitVSETVLIs(MachineBasicBlock &MBB) {
         MI.modifiesRegister(RISCV::VTYPE)) {
       CurInfo = VSETVLIInfo::getUnknown();
       PrevVSETVLIMI = nullptr;
-    }
-
-    // If we reach the end of the block and our current info doesn't match the
-    // expected info, insert a vsetvli to correct.
-    if (MI.isTerminator()) {
-      const VSETVLIInfo &ExitInfo = BlockInfo[MBB.getNumber()].Exit;
-      if (CurInfo.isValid() && ExitInfo.isValid() && !ExitInfo.isUnknown() &&
-          CurInfo != ExitInfo) {
-        insertVSETVLI(MBB, MI, ExitInfo, CurInfo);
-        CurInfo = ExitInfo;
-      }
     }
   }
 }

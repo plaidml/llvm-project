@@ -25,7 +25,6 @@
 #include "lldb/Utility/DataBufferHeap.h"
 #include "lldb/Utility/DataExtractor.h"
 #include "lldb/Utility/Endian.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/NameMatches.h"
 #include "lldb/Utility/ProcessInfo.h"
@@ -102,7 +101,7 @@ static bool GetNetBSDProcessArgs(const ProcessInstanceInfoMatch *match_info_ptr,
 }
 
 static bool GetNetBSDProcessCPUType(ProcessInstanceInfo &process_info) {
-  Log *log = GetLog(LLDBLog::Host);
+  Log *log = GetLogIfAllCategoriesSet(LIBLLDB_LOG_HOST);
 
   if (process_info.ProcessIDIsValid()) {
     auto buffer_sp = FileSystem::Instance().CreateDataBuffer(

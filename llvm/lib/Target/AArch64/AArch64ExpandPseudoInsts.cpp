@@ -709,24 +709,20 @@ bool AArch64ExpandPseudo::expandSVESpillFill(MachineBasicBlock &MBB,
 
 bool AArch64ExpandPseudo::expandCALL_RVMARKER(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI) {
-  // Expand CALL_RVMARKER pseudo to:
-  // - a branch to the call target, followed by
-  // - the special `mov x29, x29` marker, and
-  // - another branch, to the runtime function
-  // Mark the sequence as bundle, to avoid passes moving other code in between.
+  // Expand CALL_RVMARKER pseudo to a branch, followed by the special `mov x29,
+  // x29` marker. Mark the sequence as bundle, to avoid passes moving other code
+  // in between.
   MachineInstr &MI = *MBBI;
 
   MachineInstr *OriginalCall;
-  MachineOperand &RVTarget = MI.getOperand(0);
-  MachineOperand &CallTarget = MI.getOperand(1);
+  MachineOperand &CallTarget = MI.getOperand(0);
   assert((CallTarget.isGlobal() || CallTarget.isReg()) &&
          "invalid operand for regular call");
-  assert(RVTarget.isGlobal() && "invalid operand for attached call");
   unsigned Opc = CallTarget.isGlobal() ? AArch64::BL : AArch64::BLR;
   OriginalCall = BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(Opc)).getInstr();
   OriginalCall->addOperand(CallTarget);
 
-  unsigned RegMaskStartIdx = 2;
+  unsigned RegMaskStartIdx = 1;
   // Skip register arguments. Those are added during ISel, but are not
   // needed for the concrete branch.
   while (!MI.getOperand(RegMaskStartIdx).isRegMask()) {
@@ -740,22 +736,17 @@ bool AArch64ExpandPseudo::expandCALL_RVMARKER(
        llvm::drop_begin(MI.operands(), RegMaskStartIdx))
     OriginalCall->addOperand(MO);
 
-  BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(AArch64::ORRXrs))
+  auto *Marker = BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(AArch64::ORRXrs))
                      .addReg(AArch64::FP, RegState::Define)
                      .addReg(AArch64::XZR)
                      .addReg(AArch64::FP)
-                     .addImm(0);
-
-  auto *RVCall = BuildMI(MBB, MBBI, MI.getDebugLoc(), TII->get(AArch64::BL))
-                     .add(RVTarget)
+                     .addImm(0)
                      .getInstr();
-
   if (MI.shouldUpdateCallSiteInfo())
-    MBB.getParent()->moveCallSiteInfo(&MI, OriginalCall);
-
+    MBB.getParent()->moveCallSiteInfo(&MI, Marker);
   MI.eraseFromParent();
   finalizeBundle(MBB, OriginalCall->getIterator(),
-                 std::next(RVCall->getIterator()));
+                 std::next(Marker->getIterator()));
   return true;
 }
 

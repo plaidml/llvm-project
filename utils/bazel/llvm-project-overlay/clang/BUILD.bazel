@@ -1041,7 +1041,6 @@ cc_library(
     ]),
     hdrs = glob([
         "include/clang/Tooling/Inclusions/**/*.h",
-        "include/clang/Tooling/Inclusions/**/*.inc",
     ]),
     deps = [
         ":basic",
@@ -1344,7 +1343,6 @@ cc_library(
         "//llvm:ProfileData",
         "//llvm:Support",
         "//llvm:Target",
-        "//llvm:WindowsDriver",
         "//llvm:config",
     ],
 )

@@ -65,7 +65,6 @@ set(LIBCXX_SOURCES
 
 if (LIBCXX_ENABLE_DEBUG_MODE_SUPPORT)
   list(APPEND LIBCXX_SOURCES
-    assert.cpp
     debug.cpp
     )
 endif()

@@ -6,10 +6,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <typeinfo>
+#include "typeinfo"
 
 #if defined(_LIBCPP_ABI_MICROSOFT) && !defined(_LIBCPP_ABI_VCRUNTIME)
-
 #include <string.h>
 
 int std::type_info::__compare(const type_info &__rhs) const noexcept {

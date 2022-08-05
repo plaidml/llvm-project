@@ -15,7 +15,7 @@
 #include "mlir/IR/AffineExprVisitor.h"
 #include "mlir/IR/AffineMap.h"
 #include "mlir/IR/TypeUtilities.h"
-#include "llvm/ADT/SmallBitVector.h"
+#include "llvm/ADT/SmallSet.h"
 
 using namespace mlir;
 using namespace mlir::linalg;
@@ -484,15 +484,15 @@ SmallVector<int64_t, 4> LinalgOp::computeStaticLoopSizes() {
 /// are used within an AffineExpr.
 struct HasAffineDimExprVisitor
     : public AffineExprVisitor<HasAffineDimExprVisitor, bool> {
-  HasAffineDimExprVisitor(llvm::SmallBitVector positions)
-      : positions(std::move(positions)) {}
+  HasAffineDimExprVisitor(llvm::SmallSet<unsigned, 4> &positions)
+      : positions(positions) {}
 
   bool visitAffineBinaryOpExpr(AffineBinaryOpExpr binaryOpExpr) {
     return visit(binaryOpExpr.getLHS()) || visit(binaryOpExpr.getRHS());
   }
 
   bool visitDimExpr(AffineDimExpr dimExpr) {
-    return positions.test(dimExpr.getPosition());
+    return positions.count(dimExpr.getPosition());
   }
 
   bool visitConstantExpr(AffineConstantExpr constExpr) { return false; }
@@ -500,7 +500,7 @@ struct HasAffineDimExprVisitor
   bool visitSymbolExpr(AffineSymbolExpr symbolExpr) { return false; }
 
 private:
-  llvm::SmallBitVector positions;
+  llvm::SmallSet<unsigned, 4> positions;
 };
 
 LogicalResult
@@ -523,17 +523,19 @@ LinalgOp::reifyResultShapes(OpBuilder &b,
 
   /// From loopsToShapesMap extract the submap that represents the shape of the
   /// (resultIdx, dim) needed.
-  AffineMap loopToResultsShapeMap = loopsToShapesMap.getSliceMap(
-      resultShapesSubMapPos.first,
-      resultShapesSubMapPos.second - resultShapesSubMapPos.first);
+  SmallVector<unsigned, 4> resultPosRange =
+      llvm::to_vector<4>(llvm::seq<unsigned>(resultShapesSubMapPos.first,
+                                             resultShapesSubMapPos.second));
+  AffineMap loopToResultsShapeMap = loopsToShapesMap.getSubMap(resultPosRange);
   AffineMap resultShapesFromInputShapesMap =
       loopToResultsShapeMap.compose(getShapesToLoopsMap());
 
   // Check that the result dim map does not contain the positions corresponding
   // to the outputs.
-  llvm::SmallBitVector outputDims(resultShapesFromInputShapesMap.getNumDims());
-  outputDims.set(resultShapesSubMapPos.first, resultShapesSubMapPos.second);
-  HasAffineDimExprVisitor checkDimExpr(std::move(outputDims));
+  llvm::SmallSet<unsigned, 4> outputDims;
+  llvm::for_each(resultPosRange,
+                 [&outputDims](unsigned dim) { outputDims.insert(dim); });
+  HasAffineDimExprVisitor checkDimExpr(outputDims);
   Location loc = getOperation()->getLoc();
   auto allResultDimValues =
       applyMapToValues(b, loc, resultShapesFromInputShapesMap,

@@ -6,7 +6,7 @@ def Test_Dialect : Dialect {
   let name = "test";
 }
 
-class NS_Op<string mnemonic, list<Trait> traits = []> :
+class NS_Op<string mnemonic, list<OpTrait> traits = []> :
     Op<Test_Dialect, mnemonic, traits>;
 
 /// Test unique'ing of type, attribute, successor, and region constraints.

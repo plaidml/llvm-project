@@ -128,9 +128,8 @@ private:
   bool CheckSubstringBound(const parser::Expr &, bool);
   bool IsCharacterSequenceType(const DeclTypeSpec *);
   bool IsDefaultKindNumericType(const IntrinsicTypeSpec &);
-  bool IsDefaultNumericSequenceType(const DeclTypeSpec *);
-  static bool IsAnyNumericSequenceType(const DeclTypeSpec *);
-  static bool IsSequenceType(
+  bool IsNumericSequenceType(const DeclTypeSpec *);
+  bool IsSequenceType(
       const DeclTypeSpec *, std::function<bool(const IntrinsicTypeSpec &)>);
 
   SemanticsContext &context_;

@@ -6,12 +6,11 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "llvm/Support/TargetParser.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringExtras.h"
-#include "llvm/Support/AArch64TargetParser.h"
 #include "llvm/Support/ARMBuildAttributes.h"
 #include "llvm/Support/FormatVariadic.h"
-#include "llvm/Support/TargetParser.h"
 #include "gtest/gtest.h"
 #include <string>
 
@@ -333,13 +332,7 @@ INSTANTIATE_TEST_SUITE_P(
                          ARM::AEK_RAS | ARM::AEK_FP16 | ARM::AEK_DOTPROD |
                              ARM::AEK_SEC | ARM::AEK_MP | ARM::AEK_VIRT |
                              ARM::AEK_HWDIVARM | ARM::AEK_HWDIVTHUMB |
-                             ARM::AEK_DSP | ARM::AEK_CRC,
-                         "8.2-A"),
-        ARMCPUTestParams("cortex-x1c", "armv8.2-a", "crypto-neon-fp-armv8",
-                         ARM::AEK_RAS | ARM::AEK_FP16 | ARM::AEK_DOTPROD |
-                             ARM::AEK_SEC | ARM::AEK_MP | ARM::AEK_VIRT |
-                             ARM::AEK_HWDIVARM | ARM::AEK_HWDIVTHUMB |
-                             ARM::AEK_DSP | ARM::AEK_CRC,
+                             ARM::AEK_DSP | ARM::AEK_CRC | ARM::AEK_RAS,
                          "8.2-A"),
         ARMCPUTestParams("neoverse-n1", "armv8.2-a", "crypto-neon-fp-armv8",
                          ARM::AEK_CRC | ARM::AEK_SEC | ARM::AEK_MP |
@@ -400,7 +393,7 @@ INSTANTIATE_TEST_SUITE_P(
                          ARM::AEK_HWDIVARM | ARM::AEK_HWDIVTHUMB | ARM::AEK_DSP,
                          "7-S")));
 
-static constexpr unsigned NumARMCPUArchs = 88;
+static constexpr unsigned NumARMCPUArchs = 87;
 
 TEST(TargetParserTest, testARMCPUArchList) {
   SmallVector<StringRef, NumARMCPUArchs> List;
@@ -693,13 +686,13 @@ TEST(TargetParserTest, ARMExtensionFeatures) {
     Features.clear();
     ARM::getExtensionFeatures(E.first, Features);
     EXPECT_TRUE(llvm::is_contained(Features, E.second.at(0)));
-    EXPECT_EQ(Extensions.size(), Features.size());
+    EXPECT_TRUE(Extensions.size() == Features.size());
 
     // test -extension
     Features.clear();
     ARM::getExtensionFeatures(~E.first, Features);
     EXPECT_TRUE(llvm::is_contained(Features, E.second.at(1)));
-    EXPECT_EQ(Extensions.size(), Features.size());
+    EXPECT_TRUE(Extensions.size() == Features.size());
   }
 }
 
@@ -707,12 +700,10 @@ TEST(TargetParserTest, ARMFPUFeatures) {
   std::vector<StringRef> Features;
   for (ARM::FPUKind FK = static_cast<ARM::FPUKind>(0);
        FK <= ARM::FPUKind::FK_LAST;
-       FK = static_cast<ARM::FPUKind>(static_cast<unsigned>(FK) + 1)) {
-    if (FK == ARM::FK_INVALID || FK >= ARM::FK_LAST)
-      EXPECT_FALSE(ARM::getFPUFeatures(FK, Features));
-    else
-      EXPECT_TRUE(ARM::getFPUFeatures(FK, Features));
-  }
+       FK = static_cast<ARM::FPUKind>(static_cast<unsigned>(FK) + 1))
+    EXPECT_TRUE((FK == ARM::FK_INVALID || FK >= ARM::FK_LAST)
+                    ? !ARM::getFPUFeatures(FK, Features)
+                    : ARM::getFPUFeatures(FK, Features));
 }
 
 TEST(TargetParserTest, ARMArchExtFeature) {
@@ -1041,14 +1032,6 @@ INSTANTIATE_TEST_SUITE_P(
                              AArch64::AEK_DOTPROD | AArch64::AEK_RCPC |
                              AArch64::AEK_SSBS,
                          "8.2-A"),
-        ARMCPUTestParams("cortex-x1c", "armv8.2-a", "crypto-neon-fp-armv8",
-                         AArch64::AEK_CRC | AArch64::AEK_CRYPTO |
-                             AArch64::AEK_FP | AArch64::AEK_RDM |
-                             AArch64::AEK_SIMD | AArch64::AEK_RAS |
-                             AArch64::AEK_LSE | AArch64::AEK_FP16 |
-                             AArch64::AEK_DOTPROD | AArch64::AEK_RCPC |
-                             AArch64::AEK_SSBS | AArch64::AEK_PAUTH,
-                         "8.2-A"),
         ARMCPUTestParams("cortex-x2", "armv9-a", "neon-fp-armv8",
                          AArch64::AEK_CRC | AArch64::AEK_FP |
                              AArch64::AEK_SIMD | AArch64::AEK_RAS |
@@ -1249,7 +1232,7 @@ INSTANTIATE_TEST_SUITE_P(
                              AArch64::AEK_LSE | AArch64::AEK_RDM,
                          "8.2-A")));
 
-static constexpr unsigned NumAArch64CPUArchs = 53;
+static constexpr unsigned NumAArch64CPUArchs = 52;
 
 TEST(TargetParserTest, testAArch64CPUArchList) {
   SmallVector<StringRef, NumAArch64CPUArchs> List;
@@ -1464,7 +1447,7 @@ TEST(TargetParserTest, AArch64ExtensionFeatures) {
   EXPECT_TRUE(!Features.size());
 
   AArch64::getExtensionFeatures(ExtVal, Features);
-  EXPECT_EQ(Extensions.size(), Features.size());
+  EXPECT_TRUE(Extensions.size() == Features.size());
 
   EXPECT_TRUE(llvm::is_contained(Features, "+crc"));
   EXPECT_TRUE(llvm::is_contained(Features, "+crypto"));
@@ -1493,12 +1476,10 @@ TEST(TargetParserTest, AArch64ExtensionFeatures) {
 TEST(TargetParserTest, AArch64ArchFeatures) {
   std::vector<StringRef> Features;
 
-  for (auto AK : AArch64::ArchKinds) {
-    if (AK == AArch64::ArchKind::INVALID)
-      EXPECT_FALSE(AArch64::getArchFeatures(AK, Features));
-    else
-      EXPECT_TRUE(AArch64::getArchFeatures(AK, Features));
-  }
+  for (auto AK : AArch64::ArchKinds)
+    EXPECT_TRUE((AK == AArch64::ArchKind::INVALID)
+                    ? !AArch64::getArchFeatures(AK, Features)
+                    : AArch64::getArchFeatures(AK, Features));
 }
 
 TEST(TargetParserTest, AArch64ArchExtFeature) {

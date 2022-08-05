@@ -13,7 +13,6 @@
 #include "SubElementInterfaces.h"
 
 namespace llvm {
-class BitVector;
 struct fltSemantics;
 } // namespace llvm
 

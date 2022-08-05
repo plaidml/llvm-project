@@ -162,7 +162,7 @@ public:
 private:
   // Convenient shortcuts.
   using PQueue = std::priority_queue<std::pair<unsigned, unsigned>>;
-  using SmallLISet = SmallPtrSet<const LiveInterval *, 4>;
+  using SmallLISet = SmallPtrSet<LiveInterval *, 4>;
 
   // context
   MachineFunction *MF;
@@ -325,7 +325,7 @@ private:
   bool EnableAdvancedRASplitCost;
 
   /// Set of broken hints that may be reconciled later because of eviction.
-  SmallSetVector<const LiveInterval *, 8> SetOfBrokenHints;
+  SmallSetVector<LiveInterval *, 8> SetOfBrokenHints;
 
   /// The register cost values. This list will be recreated for each Machine
   /// Function
@@ -341,11 +341,11 @@ public:
   void getAnalysisUsage(AnalysisUsage &AU) const override;
   void releaseMemory() override;
   Spiller &spiller() override { return *SpillerInstance; }
-  void enqueueImpl(const LiveInterval *LI) override;
-  const LiveInterval *dequeue() override;
-  MCRegister selectOrSplit(const LiveInterval &,
+  void enqueueImpl(LiveInterval *LI) override;
+  LiveInterval *dequeue() override;
+  MCRegister selectOrSplit(LiveInterval &,
                            SmallVectorImpl<Register> &) override;
-  void aboutToRemoveInterval(const LiveInterval &) override;
+  void aboutToRemoveInterval(LiveInterval &) override;
 
   /// Perform register allocation.
   bool runOnMachineFunction(MachineFunction &mf) override;
@@ -363,15 +363,14 @@ public:
   static char ID;
 
 private:
-  MCRegister selectOrSplitImpl(const LiveInterval &,
-                               SmallVectorImpl<Register> &, SmallVirtRegSet &,
-                               unsigned = 0);
+  MCRegister selectOrSplitImpl(LiveInterval &, SmallVectorImpl<Register> &,
+                               SmallVirtRegSet &, unsigned = 0);
 
   bool LRE_CanEraseVirtReg(Register) override;
   void LRE_WillShrinkVirtReg(Register) override;
   void LRE_DidCloneVirtReg(Register, Register) override;
-  void enqueue(PQueue &CurQueue, const LiveInterval *LI);
-  const LiveInterval *dequeue(PQueue &CurQueue);
+  void enqueue(PQueue &CurQueue, LiveInterval *LI);
+  LiveInterval *dequeue(PQueue &CurQueue);
 
   BlockFrequency calcSpillCost();
   bool addSplitConstraints(InterferenceCache::Cursor, BlockFrequency &);
@@ -396,50 +395,49 @@ private:
                                       const LiveInterval &VirtReg,
                                       SlotIndex Start, SlotIndex End,
                                       float *BestEvictWeight) const;
-  void evictInterference(const LiveInterval &, MCRegister,
+  void evictInterference(LiveInterval &, MCRegister,
                          SmallVectorImpl<Register> &);
-  bool mayRecolorAllInterferences(MCRegister PhysReg,
-                                  const LiveInterval &VirtReg,
+  bool mayRecolorAllInterferences(MCRegister PhysReg, LiveInterval &VirtReg,
                                   SmallLISet &RecoloringCandidates,
                                   const SmallVirtRegSet &FixedRegisters);
 
-  MCRegister tryAssign(const LiveInterval &, AllocationOrder &,
+  MCRegister tryAssign(LiveInterval &, AllocationOrder &,
                        SmallVectorImpl<Register> &, const SmallVirtRegSet &);
-  MCRegister tryEvict(const LiveInterval &, AllocationOrder &,
+  MCRegister tryEvict(LiveInterval &, AllocationOrder &,
                       SmallVectorImpl<Register> &, uint8_t,
                       const SmallVirtRegSet &);
-  MCRegister tryRegionSplit(const LiveInterval &, AllocationOrder &,
+  MCRegister tryRegionSplit(LiveInterval &, AllocationOrder &,
                             SmallVectorImpl<Register> &);
   /// Calculate cost of region splitting.
-  unsigned calculateRegionSplitCost(const LiveInterval &VirtReg,
+  unsigned calculateRegionSplitCost(LiveInterval &VirtReg,
                                     AllocationOrder &Order,
                                     BlockFrequency &BestCost,
                                     unsigned &NumCands, bool IgnoreCSR,
                                     bool *CanCauseEvictionChain = nullptr);
   /// Perform region splitting.
-  unsigned doRegionSplit(const LiveInterval &VirtReg, unsigned BestCand,
+  unsigned doRegionSplit(LiveInterval &VirtReg, unsigned BestCand,
                          bool HasCompact, SmallVectorImpl<Register> &NewVRegs);
   /// Check other options before using a callee-saved register for the first
   /// time.
-  MCRegister tryAssignCSRFirstTime(const LiveInterval &VirtReg,
+  MCRegister tryAssignCSRFirstTime(LiveInterval &VirtReg,
                                    AllocationOrder &Order, MCRegister PhysReg,
                                    uint8_t &CostPerUseLimit,
                                    SmallVectorImpl<Register> &NewVRegs);
   void initializeCSRCost();
-  unsigned tryBlockSplit(const LiveInterval &, AllocationOrder &,
+  unsigned tryBlockSplit(LiveInterval &, AllocationOrder &,
                          SmallVectorImpl<Register> &);
-  unsigned tryInstructionSplit(const LiveInterval &, AllocationOrder &,
+  unsigned tryInstructionSplit(LiveInterval &, AllocationOrder &,
                                SmallVectorImpl<Register> &);
-  unsigned tryLocalSplit(const LiveInterval &, AllocationOrder &,
+  unsigned tryLocalSplit(LiveInterval &, AllocationOrder &,
                          SmallVectorImpl<Register> &);
-  unsigned trySplit(const LiveInterval &, AllocationOrder &,
+  unsigned trySplit(LiveInterval &, AllocationOrder &,
                     SmallVectorImpl<Register> &, const SmallVirtRegSet &);
-  unsigned tryLastChanceRecoloring(const LiveInterval &, AllocationOrder &,
+  unsigned tryLastChanceRecoloring(LiveInterval &, AllocationOrder &,
                                    SmallVectorImpl<Register> &,
                                    SmallVirtRegSet &, unsigned);
   bool tryRecoloringCandidates(PQueue &, SmallVectorImpl<Register> &,
                                SmallVirtRegSet &, unsigned);
-  void tryHintRecoloring(const LiveInterval &);
+  void tryHintRecoloring(LiveInterval &);
   void tryHintsRecoloring();
 
   /// Model the information carried by one end of a copy.

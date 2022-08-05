@@ -1,4 +1,4 @@
-//===- HoistPadding.h - Hoisting for tensor::PadOp -*- C++ --------------*-===//
+//===- HoistPadding.h - Hoisting transformation for PadTensorOp -*- C++ -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -14,22 +14,14 @@
 namespace mlir {
 class Value;
 
-namespace tensor {
-class PadOp;
-} // namespace tensor
-
 namespace linalg {
-class GenericOp;
+class PadTensorOp;
 
 /// Mechanically hoist padding operations on tensors by `numLoops` into a new,
 /// generally larger tensor. This achieves packing of multiple padding ops into
-/// a larger tensor. On success, `opToHoist` is replaced by the cloned version
+/// a larger tensor. On success, `padTensorOp` is replaced by the cloned version
 /// in the packing loop so the caller can continue reasoning about the padding
-/// operation. If `transposeVector` is non-empty, hoist padding introduces a
-/// GenericOp to transpose the padded tensor before inserting it into the packed
-/// tensor. A `transposeVector` can change the storage order of the padded
-/// tensor but does not change the order of the pack or compute loops.
-///
+/// operation.
 ///
 /// Example in pseudo-mlir:
 /// =======================
@@ -38,7 +30,7 @@ class GenericOp;
 /// ```
 ///    scf.for (%i, %j, %k)
 ///      %st0 = tensor.extract_slice f(%i, %k) : ... to tensor<?x?xf32>
-///      %0 = tensor.pad %st0 low[0, 0] high[...] {
+///      %0 = linalg.pad_tensor %st0 low[0, 0] high[...] {
 ///      ^bb0( ... ):
 ///        linalg.yield %pad
 ///      } : tensor<?x?xf32> to tensor<4x8xf32>
@@ -52,7 +44,7 @@ class GenericOp;
 ///      %packed_init = linalg.init_tensor range(%j) : tensor<?x4x8xf32>
 ///      %packed = scf.for (%k) iter_args(%p : %packed_init) {
 ///        %st0 = tensor.extract_slice f(%i, %k) : ... to tensor<?x?xf32>
-///        %0 = tensor.pad %st0 low[0, 0] high[...] {
+///        %0 = linalg.pad_tensor %st0 low[0, 0] high[...] {
 ///        ^bb0( ... ):
 ///          linalg.yield %pad
 ///        } : tensor<?x?xf32> to tensor<4x8xf32>
@@ -67,9 +59,8 @@ class GenericOp;
 ///      }
 ///    }
 /// ```
-FailureOr<Value> hoistPaddingOnTensors(
-    tensor::PadOp opToHoist, int numLoops, ArrayRef<int64_t> transposeVector,
-    tensor::PadOp &hoistedOp, SmallVectorImpl<GenericOp> &transposeOps);
+FailureOr<Value> hoistPaddingOnTensors(PadTensorOp opToHoist, int numLoops,
+                                       PadTensorOp &hoistedOp);
 
 } // namespace linalg
 } // namespace mlir

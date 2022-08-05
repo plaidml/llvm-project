@@ -1943,7 +1943,7 @@ void MicrosoftCXXNameMangler::mangleObjCKindOfType(const ObjCObjectType *T,
   Extra.mangleSourceName("KindOf");
   Extra.mangleType(QualType(T, 0)
                        .stripObjCKindOfType(getASTContext())
-                       ->castAs<ObjCObjectType>(),
+                       ->getAs<ObjCObjectType>(),
                    Quals, Range);
 
   mangleArtificialTagType(TTK_Struct, TemplateMangling, {"__ObjC"});

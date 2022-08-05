@@ -15,12 +15,15 @@
 #include "lld/Common/Strings.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/MapVector.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/MemoryBuffer.h"
 #include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <vector>
 
 namespace lld {
 namespace elf {
@@ -31,6 +34,7 @@ class InputSection;
 class InputSectionBase;
 class OutputSection;
 class SectionBase;
+class Symbol;
 class ThunkSection;
 
 // This represents an r-value in the linker script.
@@ -315,7 +319,7 @@ public:
 
   void addOrphanSections();
   void diagnoseOrphanHandling() const;
-  void adjustOutputSections();
+  void adjustSectionsBeforeSorting();
   void adjustSectionsAfterSorting();
 
   SmallVector<PhdrEntry *, 0> createPhdrs();

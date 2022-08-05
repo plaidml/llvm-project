@@ -81,7 +81,7 @@ float2 float2x;
 // register int rix __asm__("0");
 register int rix __asm__("esp");
 
-int main(void) {
+int main() {
 // CHECK-NOT: atomicrmw
 #pragma omp atomic
   ++dv;

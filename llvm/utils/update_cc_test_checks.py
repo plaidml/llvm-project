@@ -344,13 +344,11 @@ def main():
                                prefixes,
                                func_dict, func, False,
                                ti.args.function_signature,
-                               global_vars_seen_dict,
-                               is_filtered=builder.is_filtered())
+                               global_vars_seen_dict)
         else:
           asm.add_asm_checks(my_output_lines, '//',
                              prefixes,
-                             func_dict, func,
-                             is_filtered=builder.is_filtered())
+                             func_dict, func)
 
       if ti.args.check_globals:
         common.add_global_checks(builder.global_var_dict(), '//', run_list,
@@ -400,8 +398,7 @@ def main():
                 output_lines.append('//')
               added.add(mangled)
               common.add_ir_checks(output_lines, '//', filecheck_run_list, func_dict, mangled,
-                                   False, args.function_signature, global_vars_seen_dict,
-                                   is_filtered=builder.is_filtered())
+                                   False, args.function_signature, global_vars_seen_dict)
               if line.rstrip('\n') == '//':
                 include_line = False
 

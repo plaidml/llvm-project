@@ -65,7 +65,7 @@ public:
   static char ID;
 
   LiveDebugValues();
-  ~LiveDebugValues() = default;
+  ~LiveDebugValues() {}
 
   /// Calculate the liveness information for the given machine function.
   bool runOnMachineFunction(MachineFunction &MF) override;
@@ -128,6 +128,6 @@ bool llvm::debuginfoShouldUseDebugInstrRef(const Triple &T) {
       ValueTrackingVariableLocations != cl::boolOrDefault::BOU_FALSE)
     return true;
 
-  // Enable if explicitly requested on command line.
+  // Otherwise: enable if explicitly requestedo n command line.
   return ValueTrackingVariableLocations == cl::boolOrDefault::BOU_TRUE;
 }

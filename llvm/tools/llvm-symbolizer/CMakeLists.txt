@@ -10,6 +10,7 @@ add_public_tablegen_target(SymbolizerOptsTableGen)
 set(LLVM_LINK_COMPONENTS
   DebugInfoDWARF
   DebugInfoPDB
+  Debuginfod
   Demangle
   Object
   Option
@@ -19,12 +20,9 @@ set(LLVM_LINK_COMPONENTS
 
 add_llvm_tool(llvm-symbolizer
   llvm-symbolizer.cpp
-
   DEPENDS
   SymbolizerOptsTableGen
   )
-
-target_link_libraries(llvm-symbolizer PRIVATE LLVMDebuginfod)
 
 add_llvm_tool_symlink(llvm-addr2line llvm-symbolizer)
 

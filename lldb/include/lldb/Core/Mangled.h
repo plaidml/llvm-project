@@ -183,6 +183,8 @@ public:
   ///
   /// \return
   ///     The number of bytes that this object occupies in memory.
+  ///
+  /// \see ConstString::StaticMemorySize ()
   size_t MemorySize() const;
 
   /// Set the string value in this object.
@@ -226,9 +228,10 @@ public:
   /// Function signature for filtering mangled names.
   using SkipMangledNameFn = bool(llvm::StringRef, ManglingScheme);
 
-  /// Get rich mangling information. This is optimized for batch processing
-  /// while populating a name index. To get the pure demangled name string for
-  /// a single entity, use GetDemangledName() instead.
+  /// Trigger explicit demangling to obtain rich mangling information. This is
+  /// optimized for batch processing while populating a name index. To get the
+  /// pure demangled name string for a single entity, use GetDemangledName()
+  /// instead.
   ///
   /// For names that match the Itanium mangling scheme, this uses LLVM's
   /// ItaniumPartialDemangler. All other names fall back to LLDB's builtin
@@ -247,8 +250,8 @@ public:
   ///
   /// \return
   ///     True on success, false otherwise.
-  bool GetRichManglingInfo(RichManglingContext &context,
-                           SkipMangledNameFn *skip_mangled_name);
+  bool DemangleWithRichManglingInfo(RichManglingContext &context,
+                                    SkipMangledNameFn *skip_mangled_name);
 
   /// Try to identify the mangling scheme used.
   /// \param[in] name

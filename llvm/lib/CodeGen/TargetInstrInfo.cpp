@@ -12,7 +12,6 @@
 
 #include "llvm/CodeGen/TargetInstrInfo.h"
 #include "llvm/ADT/StringExtras.h"
-#include "llvm/BinaryFormat/Dwarf.h"
 #include "llvm/CodeGen/MachineFrameInfo.h"
 #include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/CodeGen/MachineMemOperand.h"
@@ -41,7 +40,8 @@ static cl::opt<bool> DisableHazardRecognizer(
   "disable-sched-hazard", cl::Hidden, cl::init(false),
   cl::desc("Disable hazard detection during preRA scheduling"));
 
-TargetInstrInfo::~TargetInstrInfo() = default;
+TargetInstrInfo::~TargetInstrInfo() {
+}
 
 const TargetRegisterClass*
 TargetInstrInfo::getRegClass(const MCInstrDesc &MCID, unsigned OpNum,
@@ -873,13 +873,11 @@ void TargetInstrInfo::reassociateOps(
   MachineInstrBuilder MIB1 =
       BuildMI(*MF, Prev.getDebugLoc(), TII->get(Opcode), NewVR)
           .addReg(RegX, getKillRegState(KillX))
-          .addReg(RegY, getKillRegState(KillY))
-          .setMIFlags(Prev.getFlags());
+          .addReg(RegY, getKillRegState(KillY));
   MachineInstrBuilder MIB2 =
       BuildMI(*MF, Root.getDebugLoc(), TII->get(Opcode), RegC)
           .addReg(RegA, getKillRegState(KillA))
-          .addReg(NewVR, getKillRegState(true))
-          .setMIFlags(Root.getFlags());
+          .addReg(NewVR, getKillRegState(true));
 
   setSpecialOperandAttr(Root, Prev, *MIB1, *MIB2);
 
@@ -1401,7 +1399,7 @@ std::string TargetInstrInfo::createMIROperandComment(
   return OS.str();
 }
 
-TargetInstrInfo::PipelinerLoopInfo::~PipelinerLoopInfo() = default;
+TargetInstrInfo::PipelinerLoopInfo::~PipelinerLoopInfo() {}
 
 void TargetInstrInfo::mergeOutliningCandidateAttributes(
     Function &F, std::vector<outliner::Candidate> &Candidates) const {

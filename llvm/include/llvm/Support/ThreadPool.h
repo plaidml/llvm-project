@@ -19,6 +19,7 @@
 
 #include <future>
 
+#include <atomic>
 #include <condition_variable>
 #include <functional>
 #include <memory>

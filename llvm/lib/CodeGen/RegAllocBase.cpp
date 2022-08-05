@@ -85,7 +85,7 @@ void RegAllocBase::allocatePhysRegs() {
   seedLiveRegs();
 
   // Continue assigning vregs one at a time to available physical registers.
-  while (const LiveInterval *VirtReg = dequeue()) {
+  while (LiveInterval *VirtReg = dequeue()) {
     assert(!VRM->hasPhys(VirtReg->reg()) && "Register already assigned");
 
     // Unused registers can appear when the spiller coalesces snippets.
@@ -176,7 +176,7 @@ void RegAllocBase::postOptimization() {
   DeadRemats.clear();
 }
 
-void RegAllocBase::enqueue(const LiveInterval *LI) {
+void RegAllocBase::enqueue(LiveInterval *LI) {
   const Register Reg = LI->reg();
 
   assert(Reg.isVirtual() && "Can only enqueue virtual registers");

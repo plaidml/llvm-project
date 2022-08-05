@@ -89,7 +89,8 @@ bool DIEDwarfExpression::isFrameRegister(const TargetRegisterInfo &TRI,
 
 DwarfUnit::DwarfUnit(dwarf::Tag UnitTag, const DICompileUnit *Node,
                      AsmPrinter *A, DwarfDebug *DW, DwarfFile *DWU)
-    : DIEUnit(UnitTag), CUNode(Node), Asm(A), DD(DW), DU(DWU) {}
+    : DIEUnit(UnitTag), CUNode(Node), Asm(A), DD(DW), DU(DWU),
+      IndexTyDie(nullptr) {}
 
 DwarfTypeUnit::DwarfTypeUnit(DwarfCompileUnit &CU, AsmPrinter *A,
                              DwarfDebug *DW, DwarfFile *DWU,
@@ -741,16 +742,6 @@ void DwarfUnit::constructTypeDIE(DIE &Buffer, const DIStringType *STy) {
   } else {
     uint64_t Size = STy->getSizeInBits() >> 3;
     addUInt(Buffer, dwarf::DW_AT_byte_size, None, Size);
-  }
-
-  if (DIExpression *Expr = STy->getStringLocationExp()) {
-    DIELoc *Loc = new (DIEValueAllocator) DIELoc;
-    DIEDwarfExpression DwarfExpr(*Asm, getCU(), *Loc);
-    // This is to describe the memory location of the
-    // string, so lock it down as such.
-    DwarfExpr.setMemoryLocationKind();
-    DwarfExpr.addExpression(Expr);
-    addBlock(Buffer, dwarf::DW_AT_data_location, DwarfExpr.finalize());
   }
 
   if (STy->getEncoding()) {
@@ -1851,7 +1842,5 @@ void DwarfTypeUnit::finishNonUnitTypeDIE(DIE& D, const DICompositeType *CTy) {
   StringRef Name = CTy->getName();
   if (!Name.empty())
     addString(D, dwarf::DW_AT_name, Name);
-  if (Name.startswith("_STN") || !Name.contains('<'))
-    addTemplateParams(D, CTy->getTemplateParams());
   getCU().createTypeDIE(CTy);
 }

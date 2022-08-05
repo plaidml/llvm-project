@@ -18,7 +18,7 @@ add_flang_library(FIRTransforms
   LINK_LIBS
   FIRBuilder
   FIRDialect
-  MLIRAffineUtils
+  MLIRAffineToStandard
   MLIRLLVMIR
   MLIROpenACC
   MLIROpenMP

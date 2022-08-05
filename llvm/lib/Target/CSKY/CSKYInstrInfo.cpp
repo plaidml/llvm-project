@@ -25,10 +25,6 @@ using namespace llvm;
 
 CSKYInstrInfo::CSKYInstrInfo(CSKYSubtarget &STI)
     : CSKYGenInstrInfo(CSKY::ADJCALLSTACKDOWN, CSKY::ADJCALLSTACKUP), STI(STI) {
-  v2sf = STI.hasFPUv2SingleFloat();
-  v2df = STI.hasFPUv2DoubleFloat();
-  v3sf = STI.hasFPUv3SingleFloat();
-  v3df = STI.hasFPUv3DoubleFloat();
 }
 
 static void parseCondBranch(MachineInstr &LastInst, MachineBasicBlock *&Target,
@@ -341,10 +337,6 @@ unsigned CSKYInstrInfo::isLoadFromStackSlot(const MachineInstr &MI,
   case CSKY::LD32H:
   case CSKY::LD32HS:
   case CSKY::LD32W:
-  case CSKY::FLD_S:
-  case CSKY::FLD_D:
-  case CSKY::f2FLD_S:
-  case CSKY::f2FLD_D:
   case CSKY::RESTORE_CARRY:
     break;
   }
@@ -369,10 +361,6 @@ unsigned CSKYInstrInfo::isStoreToStackSlot(const MachineInstr &MI,
   case CSKY::ST32B:
   case CSKY::ST32H:
   case CSKY::ST32W:
-  case CSKY::FST_S:
-  case CSKY::FST_D:
-  case CSKY::f2FST_S:
-  case CSKY::f2FST_D:
   case CSKY::SPILL_CARRY:
     break;
   }
@@ -406,15 +394,7 @@ void CSKYInstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
   } else if (CSKY::CARRYRegClass.hasSubClassEq(RC)) {
     Opcode = CSKY::SPILL_CARRY;
     CFI->setSpillsCR();
-  } else if (v2sf && CSKY::sFPR32RegClass.hasSubClassEq(RC))
-    Opcode = CSKY::FST_S;
-  else if (v2df && CSKY::sFPR64RegClass.hasSubClassEq(RC))
-    Opcode = CSKY::FST_D;
-  else if (v3sf && CSKY::FPR32RegClass.hasSubClassEq(RC))
-    Opcode = CSKY::f2FST_S;
-  else if (v3df && CSKY::FPR64RegClass.hasSubClassEq(RC))
-    Opcode = CSKY::f2FST_D;
-  else {
+  } else {
     llvm_unreachable("Unknown RegisterClass");
   }
 
@@ -449,15 +429,7 @@ void CSKYInstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
   } else if (CSKY::CARRYRegClass.hasSubClassEq(RC)) {
     Opcode = CSKY::RESTORE_CARRY;
     CFI->setSpillsCR();
-  } else if (v2sf && CSKY::sFPR32RegClass.hasSubClassEq(RC))
-    Opcode = CSKY::FLD_S;
-  else if (v2df && CSKY::sFPR64RegClass.hasSubClassEq(RC))
-    Opcode = CSKY::FLD_D;
-  else if (v3sf && CSKY::FPR32RegClass.hasSubClassEq(RC))
-    Opcode = CSKY::f2FLD_S;
-  else if (v3df && CSKY::FPR64RegClass.hasSubClassEq(RC))
-    Opcode = CSKY::f2FLD_D;
-  else {
+  } else {
     llvm_unreachable("Unknown RegisterClass");
   }
 
@@ -520,38 +492,6 @@ void CSKYInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
   unsigned Opcode = 0;
   if (CSKY::GPRRegClass.contains(DestReg, SrcReg))
     Opcode = CSKY::MOV32;
-  else if (v2sf && CSKY::sFPR32RegClass.contains(DestReg, SrcReg))
-    Opcode = CSKY::FMOV_S;
-  else if (v3sf && CSKY::FPR32RegClass.contains(DestReg, SrcReg))
-    Opcode = CSKY::f2FMOV_S;
-  else if (v2df && CSKY::sFPR64RegClass.contains(DestReg, SrcReg))
-    Opcode = CSKY::FMOV_D;
-  else if (v3df && CSKY::FPR64RegClass.contains(DestReg, SrcReg))
-    Opcode = CSKY::f2FMOV_D;
-  else if (v2sf && CSKY::sFPR32RegClass.contains(SrcReg) &&
-           CSKY::GPRRegClass.contains(DestReg))
-    Opcode = CSKY::FMFVRL;
-  else if (v3sf && CSKY::FPR32RegClass.contains(SrcReg) &&
-           CSKY::GPRRegClass.contains(DestReg))
-    Opcode = CSKY::f2FMFVRL;
-  else if (v2df && CSKY::sFPR64RegClass.contains(SrcReg) &&
-           CSKY::GPRRegClass.contains(DestReg))
-    Opcode = CSKY::FMFVRL_D;
-  else if (v3df && CSKY::FPR64RegClass.contains(SrcReg) &&
-           CSKY::GPRRegClass.contains(DestReg))
-    Opcode = CSKY::f2FMFVRL_D;
-  else if (v2sf && CSKY::GPRRegClass.contains(SrcReg) &&
-           CSKY::sFPR32RegClass.contains(DestReg))
-    Opcode = CSKY::FMTVRL;
-  else if (v3sf && CSKY::GPRRegClass.contains(SrcReg) &&
-           CSKY::FPR32RegClass.contains(DestReg))
-    Opcode = CSKY::f2FMTVRL;
-  else if (v2df && CSKY::GPRRegClass.contains(SrcReg) &&
-           CSKY::sFPR64RegClass.contains(DestReg))
-    Opcode = CSKY::FMTVRL_D;
-  else if (v3df && CSKY::GPRRegClass.contains(SrcReg) &&
-           CSKY::FPR64RegClass.contains(DestReg))
-    Opcode = CSKY::f2FMTVRL_D;
   else {
     LLVM_DEBUG(dbgs() << "src = " << SrcReg << ", dst = " << DestReg);
     LLVM_DEBUG(I->dump());

@@ -24,7 +24,6 @@
     __cpp_lib_ranges_zip                      202110L [C++2b]
     __cpp_lib_to_underlying                   202102L [C++2b]
     __cpp_lib_tuples_by_type                  201304L [C++14]
-    __cpp_lib_unreachable                     202202L [C++2b]
 */
 
 #include <utility>
@@ -62,10 +61,6 @@
 
 # ifdef __cpp_lib_tuples_by_type
 #   error "__cpp_lib_tuples_by_type should not be defined before c++14"
-# endif
-
-# ifdef __cpp_lib_unreachable
-#   error "__cpp_lib_unreachable should not be defined before c++2b"
 # endif
 
 #elif TEST_STD_VER == 14
@@ -109,10 +104,6 @@
 # endif
 # if __cpp_lib_tuples_by_type != 201304L
 #   error "__cpp_lib_tuples_by_type should have the value 201304L in c++14"
-# endif
-
-# ifdef __cpp_lib_unreachable
-#   error "__cpp_lib_unreachable should not be defined before c++2b"
 # endif
 
 #elif TEST_STD_VER == 17
@@ -159,10 +150,6 @@
 # endif
 # if __cpp_lib_tuples_by_type != 201304L
 #   error "__cpp_lib_tuples_by_type should have the value 201304L in c++17"
-# endif
-
-# ifdef __cpp_lib_unreachable
-#   error "__cpp_lib_unreachable should not be defined before c++2b"
 # endif
 
 #elif TEST_STD_VER == 20
@@ -221,10 +208,6 @@
 # endif
 # if __cpp_lib_tuples_by_type != 201304L
 #   error "__cpp_lib_tuples_by_type should have the value 201304L in c++20"
-# endif
-
-# ifdef __cpp_lib_unreachable
-#   error "__cpp_lib_unreachable should not be defined before c++2b"
 # endif
 
 #elif TEST_STD_VER > 20
@@ -295,13 +278,6 @@
 # endif
 # if __cpp_lib_tuples_by_type != 201304L
 #   error "__cpp_lib_tuples_by_type should have the value 201304L in c++2b"
-# endif
-
-# ifndef __cpp_lib_unreachable
-#   error "__cpp_lib_unreachable should be defined in c++2b"
-# endif
-# if __cpp_lib_unreachable != 202202L
-#   error "__cpp_lib_unreachable should have the value 202202L in c++2b"
 # endif
 
 #endif // TEST_STD_VER > 20

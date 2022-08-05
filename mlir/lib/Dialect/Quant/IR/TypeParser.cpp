@@ -78,7 +78,7 @@ static ParseResult parseStorageRange(DialectAsmParser &parser,
   }
 
   // Explicit storage min and storage max.
-  SMLoc minLoc = parser.getCurrentLocation(), maxLoc;
+  llvm::SMLoc minLoc = parser.getCurrentLocation(), maxLoc;
   if (parser.parseInteger(storageTypeMin) || parser.parseColon() ||
       parser.getCurrentLocation(&maxLoc) ||
       parser.parseInteger(storageTypeMax) || parser.parseGreater())
@@ -252,7 +252,7 @@ static Type parseUniformType(DialectAsmParser &parser) {
   }
 
   // Parse scales/zeroPoints.
-  SMLoc scaleZPLoc = parser.getCurrentLocation();
+  llvm::SMLoc scaleZPLoc = parser.getCurrentLocation();
   do {
     scales.resize(scales.size() + 1);
     zeroPoints.resize(zeroPoints.size() + 1);

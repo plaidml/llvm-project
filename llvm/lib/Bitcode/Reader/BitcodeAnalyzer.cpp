@@ -864,10 +864,7 @@ Error BitcodeAnalyzer::parseBlock(unsigned BlockID, unsigned IndentLevel,
         O->OS << " codeid=" << Code;
       const BitCodeAbbrev *Abbv = nullptr;
       if (Entry.ID != bitc::UNABBREV_RECORD) {
-        Expected<const BitCodeAbbrev *> MaybeAbbv = Stream.getAbbrev(Entry.ID);
-        if (!MaybeAbbv)
-          return MaybeAbbv.takeError();
-        Abbv = MaybeAbbv.get();
+        Abbv = Stream.getAbbrev(Entry.ID);
         O->OS << " abbrevid=" << Entry.ID;
       }
 

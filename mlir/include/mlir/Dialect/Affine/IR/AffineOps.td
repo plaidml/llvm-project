@@ -27,8 +27,18 @@ def Affine_Dialect : Dialect {
 }
 
 // Base class for Affine dialect ops.
-class Affine_Op<string mnemonic, list<Trait> traits = []> :
-    Op<Affine_Dialect, mnemonic, traits>;
+class Affine_Op<string mnemonic, list<OpTrait> traits = []> :
+    Op<Affine_Dialect, mnemonic, traits> {
+  // For every affine op, there needs to be a:
+  //   * void print(OpAsmPrinter &p, ${C++ class of Op} op)
+  //   * LogicalResult verify(${C++ class of Op} op)
+  //   * ParseResult parse${C++ class of Op}(OpAsmParser &parser,
+  //                                         OperationState &result)
+  // functions.
+  let printer = [{ return ::print(p, *this); }];
+  let verifier = [{ return ::verify(*this); }];
+  let parser = [{ return ::parse$cppClass(parser, result); }];
+}
 
 // Require regions to have affine.yield.
 def ImplicitAffineTerminator
@@ -101,9 +111,7 @@ def AffineApplyOp : Affine_Op<"apply", [NoSideEffect]> {
   }];
 
   let hasCanonicalizer = 1;
-  let hasCustomAssemblyFormat = 1;
   let hasFolder = 1;
-  let hasVerifier = 1;
 }
 
 def AffineForOp : Affine_Op<"for",
@@ -341,9 +349,7 @@ def AffineForOp : Affine_Op<"for",
   }];
 
   let hasCanonicalizer = 1;
-  let hasCustomAssemblyFormat = 1;
   let hasFolder = 1;
-  let hasVerifier = 1;
 }
 
 def AffineIfOp : Affine_Op<"if",
@@ -466,12 +472,10 @@ def AffineIfOp : Affine_Op<"if",
   }];
 
   let hasCanonicalizer = 1;
-  let hasCustomAssemblyFormat = 1;
   let hasFolder = 1;
-  let hasVerifier = 1;
 }
 
-class AffineLoadOpBase<string mnemonic, list<Trait> traits = []> :
+class AffineLoadOpBase<string mnemonic, list<OpTrait> traits = []> :
     Affine_Op<mnemonic, !listconcat(traits,
         [DeclareOpInterfaceMethods<AffineReadOpInterface>,
         DeclareOpInterfaceMethods<AffineMapAccessInterface>,
@@ -533,12 +537,10 @@ def AffineLoadOp : AffineLoadOpBase<"load"> {
   let extraClassDeclaration = extraClassDeclarationBase;
 
   let hasCanonicalizer = 1;
-  let hasCustomAssemblyFormat = 1;
   let hasFolder = 1;
-  let hasVerifier = 1;
 }
 
-class AffineMinMaxOpBase<string mnemonic, list<Trait> traits = []> :
+class AffineMinMaxOpBase<string mnemonic, list<OpTrait> traits = []> :
     Op<Affine_Dialect, mnemonic, traits> {
   let arguments = (ins AffineMapAttr:$map, Variadic<Index>:$operands);
   let results = (outs Index);
@@ -563,10 +565,11 @@ class AffineMinMaxOpBase<string mnemonic, list<Trait> traits = []> :
                         operands().end()};
     }
   }];
-  let hasCustomAssemblyFormat = 1;
+  let verifier = [{ return ::verifyAffineMinMaxOp(*this); }];
+  let printer = [{ return ::printAffineMinMaxOp(p, *this); }];
+  let parser = [{ return ::parseAffineMinMaxOp<$cppClass>(parser, result); }];
   let hasFolder = 1;
   let hasCanonicalizer = 1;
-  let hasVerifier = 1;
 }
 
 def AffineMinOp : AffineMinMaxOpBase<"min", [NoSideEffect]> {
@@ -749,9 +752,7 @@ def AffineParallelOp : Affine_Op<"parallel",
     }
   }];
 
-  let hasCustomAssemblyFormat = 1;
   let hasFolder = 1;
-  let hasVerifier = 1;
 }
 
 def AffinePrefetchOp : Affine_Op<"prefetch",
@@ -830,12 +831,10 @@ def AffinePrefetchOp : Affine_Op<"prefetch",
   }];
 
   let hasCanonicalizer = 1;
-  let hasCustomAssemblyFormat = 1;
   let hasFolder = 1;
-  let hasVerifier = 1;
 }
 
-class AffineStoreOpBase<string mnemonic, list<Trait> traits = []> :
+class AffineStoreOpBase<string mnemonic, list<OpTrait> traits = []> :
     Affine_Op<mnemonic, !listconcat(traits,
     [DeclareOpInterfaceMethods<AffineWriteOpInterface>,
     DeclareOpInterfaceMethods<AffineMapAccessInterface>,
@@ -896,9 +895,7 @@ def AffineStoreOp : AffineStoreOpBase<"store"> {
   let extraClassDeclaration = extraClassDeclarationBase;
 
   let hasCanonicalizer = 1;
-  let hasCustomAssemblyFormat = 1;
   let hasFolder = 1;
-  let hasVerifier = 1;
 }
 
 def AffineYieldOp : Affine_Op<"yield", [NoSideEffect, Terminator, ReturnLike,
@@ -924,7 +921,6 @@ def AffineYieldOp : Affine_Op<"yield", [NoSideEffect, Terminator, ReturnLike,
   ];
 
   let assemblyFormat = "attr-dict ($operands^ `:` type($operands))?";
-  let hasVerifier = 1;
 }
 
 def AffineVectorLoadOp : AffineLoadOpBase<"vector_load"> {
@@ -988,8 +984,6 @@ def AffineVectorLoadOp : AffineLoadOpBase<"vector_load"> {
   }];
 
   let hasCanonicalizer = 1;
-  let hasCustomAssemblyFormat = 1;
-  let hasVerifier = 1;
 }
 
 def AffineVectorStoreOp : AffineStoreOpBase<"vector_store"> {
@@ -1054,8 +1048,6 @@ def AffineVectorStoreOp : AffineStoreOpBase<"vector_store"> {
   }];
 
   let hasCanonicalizer = 1;
-  let hasCustomAssemblyFormat = 1;
-  let hasVerifier = 1;
 }
 
 #endif // AFFINE_OPS

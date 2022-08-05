@@ -102,7 +102,7 @@ SparcTargetMachine::SparcTargetMachine(
   initAsmInfo();
 }
 
-SparcTargetMachine::~SparcTargetMachine() = default;
+SparcTargetMachine::~SparcTargetMachine() {}
 
 const SparcSubtarget *
 SparcTargetMachine::getSubtargetImpl(const Function &F) const {

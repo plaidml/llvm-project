@@ -59,8 +59,9 @@ const Type *HeuristicResolver::getPointeeType(const Type *T) const {
   if (!T)
     return nullptr;
 
-  if (T->isPointerType())
-    return T->castAs<PointerType>()->getPointeeType().getTypePtrOrNull();
+  if (T->isPointerType()) {
+    return T->getAs<PointerType>()->getPointeeType().getTypePtrOrNull();
+  }
 
   // Try to handle smart pointer types.
 

@@ -14,11 +14,10 @@
 #include <__functional/binary_function.h>
 #include <__functional/invoke.h>
 #include <__functional/weak_result_type.h>
-#include <__utility/forward.h>
-#include <type_traits>
+#include <utility>
 
 #if !defined(_LIBCPP_HAS_NO_PRAGMA_SYSTEM_HEADER)
-#  pragma GCC system_header
+#pragma GCC system_header
 #endif
 
 _LIBCPP_BEGIN_NAMESPACE_STD

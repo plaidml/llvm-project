@@ -25,7 +25,7 @@ include "mlir/Interfaces/DataLayoutInterfaces.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
 // Base class for Builtin dialect ops.
-class Builtin_Op<string mnemonic, list<Trait> traits = []> :
+class Builtin_Op<string mnemonic, list<OpTrait> traits = []> :
     Op<Builtin_Dialect, mnemonic, traits>;
 
 //===----------------------------------------------------------------------===//
@@ -155,8 +155,9 @@ def FuncOp : Builtin_Op<"func", [
 
     bool isDeclaration() { return isExternal(); }
   }];
-  let hasCustomAssemblyFormat = 1;
-  let hasVerifier = 1;
+  let parser = [{ return ::parseFuncOp(parser, result); }];
+  let printer = [{ return ::print(*this, p); }];
+  let verifier = [{ return ::verify(*this); }];
 }
 
 //===----------------------------------------------------------------------===//
@@ -220,7 +221,7 @@ def ModuleOp : Builtin_Op<"module", [
       return "builtin";
     }
   }];
-  let hasVerifier = 1;
+  let verifier = [{ return ::verify(*this); }];
 
   // We need to ensure the block inside the region is properly terminated;
   // the auto-generated builders do not guarantee that.

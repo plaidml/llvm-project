@@ -31,7 +31,8 @@
 #include "test_macros.h"
 #include "format_tests.h"
 
-auto test = []<class CharT, class... Args>(std::basic_string_view<CharT> expected, std::basic_string_view<CharT> fmt,
+auto test = []<class CharT, class... Args>(std::basic_string<CharT> expected,
+                                           std::basic_string<CharT> fmt,
                                            const Args&... args) {
   {
     std::basic_string<CharT> out(expected.size(), CharT(' '));
@@ -42,12 +43,14 @@ auto test = []<class CharT, class... Args>(std::basic_string_view<CharT> expecte
   {
     std::list<CharT> out;
     std::format_to(std::back_inserter(out), fmt, args...);
-    assert(std::equal(out.begin(), out.end(), expected.begin(), expected.end()));
+    assert(
+        std::equal(out.begin(), out.end(), expected.begin(), expected.end()));
   }
   {
     std::vector<CharT> out;
     std::format_to(std::back_inserter(out), fmt, args...);
-    assert(std::equal(out.begin(), out.end(), expected.begin(), expected.end()));
+    assert(
+        std::equal(out.begin(), out.end(), expected.begin(), expected.end()));
   }
   {
     assert(expected.size() < 4096 && "Update the size of the buffer.");
@@ -59,14 +62,14 @@ auto test = []<class CharT, class... Args>(std::basic_string_view<CharT> expecte
   }
 };
 
-auto test_exception = []<class CharT, class... Args>(std::string_view what, std::basic_string_view<CharT> fmt,
-                                                     const Args&... args) {
+auto test_exception = []<class CharT, class... Args>(
+    std::string_view what, std::basic_string<CharT> fmt, const Args&... args) {
 #ifndef TEST_HAS_NO_EXCEPTIONS
   try {
     std::basic_string<CharT> out;
     std::format_to(std::back_inserter(out), fmt, args...);
     assert(false);
-  } catch (const std::format_error& e) {
+  } catch (std::format_error& e) {
     LIBCPP_ASSERT(e.what() == what);
     return;
   }

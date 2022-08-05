@@ -43,7 +43,7 @@ class MultipleHitsTestCase(TestBase):
 
             error = lldb.SBError()
             watch = member.Watch(True, True, True, error)
-            self.assertSuccess(error)
+            self.assertTrue(error.Success())
 
         process.Continue();
         self.assertEqual(process.GetState(), lldb.eStateStopped)

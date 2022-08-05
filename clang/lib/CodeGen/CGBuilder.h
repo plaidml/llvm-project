@@ -9,11 +9,10 @@
 #ifndef LLVM_CLANG_LIB_CODEGEN_CGBUILDER_H
 #define LLVM_CLANG_LIB_CODEGEN_CGBUILDER_H
 
-#include "Address.h"
-#include "CodeGenTypeCache.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/IRBuilder.h"
-#include "llvm/IR/Type.h"
+#include "Address.h"
+#include "CodeGenTypeCache.h"
 
 namespace clang {
 namespace CodeGen {
@@ -151,13 +150,18 @@ public:
                                             Ordering, SSID);
   }
 
+  using CGBuilderBaseTy::CreateBitCast;
+  Address CreateBitCast(Address Addr, llvm::Type *Ty,
+                        const llvm::Twine &Name = "") {
+    return Address(CreateBitCast(Addr.getPointer(), Ty, Name),
+                   Addr.getAlignment());
+  }
+
   using CGBuilderBaseTy::CreateAddrSpaceCast;
   Address CreateAddrSpaceCast(Address Addr, llvm::Type *Ty,
                               const llvm::Twine &Name = "") {
-    assert(cast<llvm::PointerType>(Ty)->isOpaqueOrPointeeTypeMatches(
-               Addr.getElementType()) &&
-           "Should not change the element type");
-    return Addr.withPointer(CreateAddrSpaceCast(Addr.getPointer(), Ty, Name));
+    return Address(CreateAddrSpaceCast(Addr.getPointer(), Ty, Name),
+                   Addr.getAlignment());
   }
 
   /// Cast the element type of the given address to a different type,

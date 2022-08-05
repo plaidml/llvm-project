@@ -12,7 +12,6 @@
 #include "lldb/Core/StreamFile.h"
 #include "lldb/Host/FileSystem.h"
 #include "lldb/Utility/Instrumentation.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Status.h"
 #include "lldb/Utility/Stream.h"
 #include "lldb/Utility/StreamString.h"
@@ -99,7 +98,7 @@ void SBStream::RedirectToFile(const char *path, bool append) {
   llvm::Expected<FileUP> file =
       FileSystem::Instance().Open(FileSpec(path), open_options);
   if (!file) {
-    LLDB_LOG_ERROR(GetLog(LLDBLog::API), file.takeError(),
+    LLDB_LOG_ERROR(GetLogIfAllCategoriesSet(LIBLLDB_LOG_API), file.takeError(),
                    "Cannot open {1}: {0}", path);
     return;
   }

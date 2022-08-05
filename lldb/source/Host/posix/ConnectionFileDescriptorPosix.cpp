@@ -13,11 +13,10 @@
 #define _DARWIN_UNLIMITED_SELECT
 #endif
 
-#include "lldb/Host/posix/ConnectionFileDescriptorPosix.h"
 #include "lldb/Host/Config.h"
 #include "lldb/Host/Socket.h"
 #include "lldb/Host/SocketAddress.h"
-#include "lldb/Utility/LLDBLog.h"
+#include "lldb/Host/posix/ConnectionFileDescriptorPosix.h"
 #include "lldb/Utility/SelectHelper.h"
 #include "lldb/Utility/Timeout.h"
 
@@ -55,7 +54,8 @@ ConnectionFileDescriptor::ConnectionFileDescriptor(bool child_processes_inherit)
     : Connection(), m_pipe(), m_mutex(), m_shutting_down(false),
 
       m_child_processes_inherit(child_processes_inherit) {
-  Log *log(GetLog(LLDBLog::Connection | LLDBLog::Object));
+  Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_CONNECTION |
+                                                  LIBLLDB_LOG_OBJECT));
   LLDB_LOGF(log, "%p ConnectionFileDescriptor::ConnectionFileDescriptor ()",
             static_cast<void *>(this));
 }
@@ -66,7 +66,8 @@ ConnectionFileDescriptor::ConnectionFileDescriptor(int fd, bool owns_fd)
   m_io_sp =
       std::make_shared<NativeFile>(fd, File::eOpenOptionReadWrite, owns_fd);
 
-  Log *log(GetLog(LLDBLog::Connection | LLDBLog::Object));
+  Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_CONNECTION |
+                                                  LIBLLDB_LOG_OBJECT));
   LLDB_LOGF(log,
             "%p ConnectionFileDescriptor::ConnectionFileDescriptor (fd = "
             "%i, owns_fd = %i)",
@@ -81,7 +82,8 @@ ConnectionFileDescriptor::ConnectionFileDescriptor(Socket *socket)
 }
 
 ConnectionFileDescriptor::~ConnectionFileDescriptor() {
-  Log *log(GetLog(LLDBLog::Connection | LLDBLog::Object));
+  Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_CONNECTION |
+                                                  LIBLLDB_LOG_OBJECT));
   LLDB_LOGF(log, "%p ConnectionFileDescriptor::~ConnectionFileDescriptor ()",
             static_cast<void *>(this));
   Disconnect(nullptr);
@@ -91,7 +93,7 @@ ConnectionFileDescriptor::~ConnectionFileDescriptor() {
 void ConnectionFileDescriptor::OpenCommandPipe() {
   CloseCommandPipe();
 
-  Log *log = GetLog(LLDBLog::Connection);
+  Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_CONNECTION));
   // Make the command file descriptor here:
   Status result = m_pipe.CreateNew(m_child_processes_inherit);
   if (!result.Success()) {
@@ -109,7 +111,7 @@ void ConnectionFileDescriptor::OpenCommandPipe() {
 }
 
 void ConnectionFileDescriptor::CloseCommandPipe() {
-  Log *log = GetLog(LLDBLog::Connection);
+  Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_CONNECTION));
   LLDB_LOGF(log, "%p ConnectionFileDescriptor::CloseCommandPipe()",
             static_cast<void *>(this));
 
@@ -130,7 +132,7 @@ ConnectionFileDescriptor::Connect(llvm::StringRef path,
                                   socket_id_callback_type socket_id_callback,
                                   Status *error_ptr) {
   std::lock_guard<std::recursive_mutex> guard(m_mutex);
-  Log *log = GetLog(LLDBLog::Connection);
+  Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_CONNECTION));
   LLDB_LOGF(log, "%p ConnectionFileDescriptor::Connect (url = '%s')",
             static_cast<void *>(this), path.str().c_str());
 
@@ -187,7 +189,7 @@ bool ConnectionFileDescriptor::InterruptRead() {
 }
 
 ConnectionStatus ConnectionFileDescriptor::Disconnect(Status *error_ptr) {
-  Log *log = GetLog(LLDBLog::Connection);
+  Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_CONNECTION));
   LLDB_LOGF(log, "%p ConnectionFileDescriptor::Disconnect ()",
             static_cast<void *>(this));
 
@@ -248,7 +250,7 @@ size_t ConnectionFileDescriptor::Read(void *dst, size_t dst_len,
                                       const Timeout<std::micro> &timeout,
                                       ConnectionStatus &status,
                                       Status *error_ptr) {
-  Log *log = GetLog(LLDBLog::Connection);
+  Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_CONNECTION));
 
   std::unique_lock<std::recursive_mutex> locker(m_mutex, std::defer_lock);
   if (!locker.try_lock()) {
@@ -356,7 +358,7 @@ size_t ConnectionFileDescriptor::Read(void *dst, size_t dst_len,
 size_t ConnectionFileDescriptor::Write(const void *src, size_t src_len,
                                        ConnectionStatus &status,
                                        Status *error_ptr) {
-  Log *log = GetLog(LLDBLog::Connection);
+  Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_CONNECTION));
   LLDB_LOGF(log,
             "%p ConnectionFileDescriptor::Write (src = %p, src_len = %" PRIu64
             ")",
@@ -444,7 +446,7 @@ ConnectionFileDescriptor::BytesAvailable(const Timeout<std::micro> &timeout,
   // Read.  If we ever get used more generally we will need to lock here as
   // well.
 
-  Log *log = GetLog(LLDBLog::Connection);
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_CONNECTION));
   LLDB_LOG(log, "this = {0}, timeout = {1}", this, timeout);
 
   // Make a copy of the file descriptors to make sure we don't have another
@@ -654,8 +656,8 @@ ConnectionFileDescriptor::ConnectUDP(llvm::StringRef s,
     if (error_ptr)
       *error_ptr = socket.takeError();
     else
-      LLDB_LOG_ERROR(GetLog(LLDBLog::Connection), socket.takeError(),
-                     "tcp connect failed: {0}");
+      LLDB_LOG_ERROR(GetLogIfAnyCategoriesSet(LIBLLDB_LOG_CONNECTION),
+                     socket.takeError(), "tcp connect failed: {0}");
     return eConnectionStatusError;
   }
   m_io_sp = std::move(*socket);

@@ -306,8 +306,7 @@ bool DeadArgumentEliminationPass::RemoveDeadArgumentsFromCallers(Function &Fn) {
 
   for (Use &U : Fn.uses()) {
     CallBase *CB = dyn_cast<CallBase>(U.getUser());
-    if (!CB || !CB->isCallee(&U) ||
-        CB->getFunctionType() != Fn.getFunctionType())
+    if (!CB || !CB->isCallee(&U))
       continue;
 
     // Now go through all unused args and replace them with "undef".

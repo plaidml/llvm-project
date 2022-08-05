@@ -7,9 +7,9 @@
 //===----------------------------------------------------------------------===//
 
 #include "llvm/Support/Host.h"
+#include "llvm/Config/llvm-config.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/Triple.h"
-#include "llvm/Config/config.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/Program.h"
@@ -47,18 +47,13 @@ protected:
   HostTest() : Host(Triple::normalize(sys::getProcessTriple())) {}
 };
 
-TEST_F(HostTest, NumPhysicalCoresSupported) {
-  if (!isSupportedArchAndOS())
-    GTEST_SKIP();
+TEST_F(HostTest, NumPhysicalCores) {
   int Num = sys::getHostNumPhysicalCores();
-  ASSERT_GT(Num, 0);
-}
 
-TEST_F(HostTest, NumPhysicalCoresUnsupported) {
   if (isSupportedArchAndOS())
-    GTEST_SKIP();
-  int Num = sys::getHostNumPhysicalCores();
-  ASSERT_EQ(Num, -1);
+    ASSERT_GT(Num, 0);
+  else
+    ASSERT_EQ(Num, -1);
 }
 
 TEST(getLinuxHostCPUName, ARM) {
@@ -417,7 +412,7 @@ TEST_F(HostTest, DummyRunAndGetCommandOutputUse) {
 TEST_F(HostTest, getMacOSHostVersion) {
   llvm::Triple HostTriple(llvm::sys::getProcessTriple());
   if (!HostTriple.isMacOSX())
-    GTEST_SKIP();
+    return;
 
   const char *SwVersPath = "/usr/bin/sw_vers";
   StringRef argv[] = {SwVersPath, "-productVersion"};
@@ -446,8 +441,14 @@ TEST_F(HostTest, getMacOSHostVersion) {
   }
 }
 
-// Helper to return AIX system version. Must return void to use ASSERT_*.
-static void getAIXSystemVersion(VersionTuple &SystemVersion) {
+TEST_F(HostTest, AIXVersionDetect) {
+  llvm::Triple HostTriple(llvm::sys::getProcessTriple());
+  if (HostTriple.getOS() != Triple::AIX)
+    return;
+
+  llvm::Triple ConfiguredHostTriple(LLVM_HOST_TRIPLE);
+  ASSERT_EQ(ConfiguredHostTriple.getOS(), Triple::AIX);
+
   const char *ExePath = "/usr/bin/oslevel";
   StringRef argv[] = {ExePath};
   std::unique_ptr<char[]> Buffer;
@@ -455,50 +456,28 @@ static void getAIXSystemVersion(VersionTuple &SystemVersion) {
   ASSERT_EQ(runAndGetCommandOutput(ExePath, argv, Buffer, Size), true);
   StringRef SystemVersionStr = StringRef(Buffer.get(), Size).rtrim();
 
-  SystemVersion =
+  VersionTuple SystemVersion =
       llvm::Triple((Twine("powerpc-ibm-aix") + SystemVersionStr))
           .getOSVersion();
-}
-
-TEST_F(HostTest, AIXHostVersionDetect) {
-  llvm::Triple HostTriple(llvm::sys::getProcessTriple());
-  if (HostTriple.getOS() != Triple::AIX)
-    GTEST_SKIP();
-
-  llvm::Triple ConfiguredHostTriple(LLVM_HOST_TRIPLE);
-  ASSERT_EQ(ConfiguredHostTriple.getOS(), Triple::AIX);
-
-  VersionTuple SystemVersion;
-  getAIXSystemVersion(SystemVersion);
 
   // Ensure that the host triple version (major) and release (minor) numbers,
   // unless explicitly configured, match with those of the current system.
-  auto SysMajor = SystemVersion.getMajor();
-  auto SysMinor = SystemVersion.getMinor();
-  VersionTuple HostVersion = HostTriple.getOSVersion();
-  if (ConfiguredHostTriple.getOSMajorVersion()) {
-    // Explicitly configured, force a match. We do it this way so the
-    // asserts are always executed.
-    SysMajor = HostVersion.getMajor();
-    SysMinor = HostVersion.getMinor();
+  if (!ConfiguredHostTriple.getOSMajorVersion()) {
+    VersionTuple HostVersion = HostTriple.getOSVersion();
+    ASSERT_EQ(SystemVersion.getMajor(), HostVersion.getMajor());
+    ASSERT_EQ(SystemVersion.getMinor(), HostVersion.getMinor());
   }
-  ASSERT_EQ(SysMajor, HostVersion.getMajor());
-  ASSERT_EQ(SysMinor, HostVersion.getMinor());
-}
 
-TEST_F(HostTest, AIXTargetVersionDetect) {
   llvm::Triple TargetTriple(llvm::sys::getDefaultTargetTriple());
   if (TargetTriple.getOS() != Triple::AIX)
-    GTEST_SKIP();
+    return;
 
   // Ensure that the target triple version (major) and release (minor) numbers
   // match with those of the current system.
   llvm::Triple ConfiguredTargetTriple(LLVM_DEFAULT_TARGET_TRIPLE);
   if (ConfiguredTargetTriple.getOSMajorVersion())
-    GTEST_SKIP(); // The version was configured explicitly; skip.
+    return; // The version was configured explicitly; skip.
 
-  VersionTuple SystemVersion;
-  getAIXSystemVersion(SystemVersion);
   VersionTuple TargetVersion = TargetTriple.getOSVersion();
   ASSERT_EQ(SystemVersion.getMajor(), TargetVersion.getMajor());
   ASSERT_EQ(SystemVersion.getMinor(), TargetVersion.getMinor());
@@ -507,7 +486,7 @@ TEST_F(HostTest, AIXTargetVersionDetect) {
 TEST_F(HostTest, AIXHostCPUDetect) {
   llvm::Triple HostTriple(llvm::sys::getProcessTriple());
   if (HostTriple.getOS() != Triple::AIX)
-    GTEST_SKIP();
+    return;
 
   // Return a value based on the current processor implementation mode.
   const char *ExePath = "/usr/sbin/getsystype";

@@ -155,10 +155,6 @@ unsigned ParsedAttr::getMaxArgs() const {
   return getMinArgs() + getInfo().OptArgs;
 }
 
-unsigned ParsedAttr::getNumArgMembers() const {
-  return getInfo().NumArgMembers;
-}
-
 bool ParsedAttr::hasCustomParsing() const {
   return getInfo().HasCustomParsing;
 }
@@ -212,8 +208,6 @@ bool ParsedAttr::isSupportedByPragmaAttribute() const {
   return getInfo().IsSupportedByPragmaAttribute;
 }
 
-bool ParsedAttr::acceptsExprPack() const { return getInfo().AcceptsExprPack; }
-
 unsigned ParsedAttr::getSemanticSpelling() const {
   return getInfo().spellingIndexToSemanticSpelling(*this);
 }
@@ -224,14 +218,6 @@ bool ParsedAttr::hasVariadicArg() const {
   // legitimately bumps up against that maximum, we can use another bit to track
   // whether it's truly variadic or not.
   return getInfo().OptArgs == 15;
-}
-
-bool ParsedAttr::isParamExpr(size_t N) const {
-  return getInfo().isParamExpr(N);
-}
-
-void ParsedAttr::handleAttrWithDelayedArgs(Sema &S, Decl *D) const {
-  ::handleAttrWithDelayedArgs(S, D, *this);
 }
 
 static unsigned getNumAttributeArgs(const ParsedAttr &AL) {

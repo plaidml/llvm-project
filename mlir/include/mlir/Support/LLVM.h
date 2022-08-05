@@ -42,7 +42,6 @@ class Twine;
 
 // Containers.
 template <typename T> class ArrayRef;
-class BitVector;
 namespace detail {
 template <typename KeyT, typename ValueT> struct DenseMapPair;
 } // namespace detail
@@ -71,8 +70,6 @@ class APFloat;
 template <typename Fn> class function_ref;
 template <typename IteratorT> class iterator_range;
 class raw_ostream;
-class SMLoc;
-class SMRange;
 } // namespace llvm
 
 namespace mlir {
@@ -94,7 +91,6 @@ using llvm::Twine;
 //
 // Containers.
 using llvm::ArrayRef;
-using llvm::BitVector;
 template <typename T, typename Enable = void>
 using DenseMapInfo = llvm::DenseMapInfo<T, Enable>;
 template <typename KeyT, typename ValueT,
@@ -129,8 +125,6 @@ using llvm::APSInt;
 template <typename Fn> using function_ref = llvm::function_ref<Fn>;
 using llvm::iterator_range;
 using llvm::raw_ostream;
-using llvm::SMLoc;
-using llvm::SMRange;
 } // namespace mlir
 
 #endif // MLIR_SUPPORT_LLVM_H

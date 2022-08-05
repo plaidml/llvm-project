@@ -25,8 +25,6 @@ static_assert(std::sentinel_for<fs::directory_iterator, fs::directory_iterator>)
 static_assert(!std::sized_sentinel_for<fs::directory_iterator, fs::directory_iterator>);
 static_assert(!std::indirectly_movable<fs::directory_iterator, fs::directory_iterator>);
 static_assert(!std::indirectly_movable_storable<fs::directory_iterator, fs::directory_iterator>);
-static_assert(!std::indirectly_copyable<fs::directory_iterator, fs::directory_iterator>);
-static_assert(!std::indirectly_copyable_storable<fs::directory_iterator, fs::directory_iterator>);
 static_assert(!std::indirectly_swappable<fs::directory_iterator, fs::directory_iterator>);
 
 static_assert(std::input_iterator<fs::recursive_directory_iterator>);
@@ -37,6 +35,4 @@ static_assert(std::sentinel_for<fs::recursive_directory_iterator, fs::recursive_
 static_assert(!std::sized_sentinel_for<fs::recursive_directory_iterator, fs::recursive_directory_iterator>);
 static_assert(!std::indirectly_movable<fs::recursive_directory_iterator, fs::recursive_directory_iterator>);
 static_assert(!std::indirectly_movable_storable<fs::recursive_directory_iterator, fs::recursive_directory_iterator>);
-static_assert(!std::indirectly_copyable<fs::recursive_directory_iterator, fs::recursive_directory_iterator>);
-static_assert(!std::indirectly_copyable_storable<fs::recursive_directory_iterator, fs::recursive_directory_iterator>);
 static_assert(!std::indirectly_swappable<fs::recursive_directory_iterator, fs::recursive_directory_iterator>);

@@ -10,6 +10,7 @@
 #define LLVM_SUPPORT_BINARYSTREAMWRITER_H
 
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/BinaryStreamArray.h"
 #include "llvm/Support/BinaryStreamError.h"
@@ -35,11 +36,16 @@ public:
   explicit BinaryStreamWriter(MutableArrayRef<uint8_t> Data,
                               llvm::support::endianness Endian);
 
-  BinaryStreamWriter(const BinaryStreamWriter &Other) = default;
+  BinaryStreamWriter(const BinaryStreamWriter &Other)
+      : Stream(Other.Stream), Offset(Other.Offset) {}
 
-  BinaryStreamWriter &operator=(const BinaryStreamWriter &Other) = default;
+  BinaryStreamWriter &operator=(const BinaryStreamWriter &Other) {
+    Stream = Other.Stream;
+    Offset = Other.Offset;
+    return *this;
+  }
 
-  virtual ~BinaryStreamWriter() = default;
+  virtual ~BinaryStreamWriter() {}
 
   /// Write the bytes specified in \p Buffer to the underlying stream.
   /// On success, updates the offset so that subsequent writes will occur

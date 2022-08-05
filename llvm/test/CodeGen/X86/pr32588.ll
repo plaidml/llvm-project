@@ -8,7 +8,6 @@
 define void @fn1() {
 ; CHECK-LABEL: fn1:
 ; CHECK:       # %bb.0:
-; CHECK-NEXT:    xorl %eax, %eax
 ; CHECK-NEXT:    cmpl $1, c(%rip)
 ; CHECK-NEXT:    sbbl %eax, %eax
 ; CHECK-NEXT:    andl $1, %eax

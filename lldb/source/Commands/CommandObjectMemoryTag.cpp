@@ -138,7 +138,7 @@ class CommandObjectMemoryTagWrite : public CommandObjectParsed {
 public:
   class OptionGroupTagWrite : public OptionGroup {
   public:
-    OptionGroupTagWrite() : m_end_addr(LLDB_INVALID_ADDRESS) {}
+    OptionGroupTagWrite() : OptionGroup(), m_end_addr(LLDB_INVALID_ADDRESS) {}
 
     ~OptionGroupTagWrite() override = default;
 
@@ -177,7 +177,8 @@ public:
                             "contains the given address.",
                             nullptr,
                             eCommandRequiresTarget | eCommandRequiresProcess |
-                                eCommandProcessMustBePaused) {
+                                eCommandProcessMustBePaused),
+        m_option_group(), m_tag_write_options() {
     // Address
     m_arguments.push_back(
         CommandArgumentEntry{CommandArgumentData(eArgTypeAddressOrExpression)});

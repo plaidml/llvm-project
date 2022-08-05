@@ -72,7 +72,7 @@ DebugMod("postra-sched-debugmod",
                       cl::desc("Debug control MBBs that are scheduled"),
                       cl::init(0), cl::Hidden);
 
-AntiDepBreaker::~AntiDepBreaker() = default;
+AntiDepBreaker::~AntiDepBreaker() { }
 
 namespace {
   class PostRAScheduler : public MachineFunctionPass {
@@ -139,7 +139,7 @@ namespace {
     ///
     /// This is the instruction number from the top of the current block, not
     /// the SlotIndex. It is only used by the AntiDepBreaker.
-    unsigned EndIndex = 0;
+    unsigned EndIndex;
 
   public:
     SchedulePostRATDList(
@@ -206,7 +206,7 @@ SchedulePostRATDList::SchedulePostRATDList(
     const RegisterClassInfo &RCI,
     TargetSubtargetInfo::AntiDepBreakMode AntiDepMode,
     SmallVectorImpl<const TargetRegisterClass *> &CriticalPathRCs)
-    : ScheduleDAGInstrs(MF, &MLI), AA(AA) {
+    : ScheduleDAGInstrs(MF, &MLI), AA(AA), EndIndex(0) {
 
   const InstrItineraryData *InstrItins =
       MF.getSubtarget().getInstrItineraryData();

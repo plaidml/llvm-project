@@ -13,9 +13,9 @@
 #include "lldb/Utility/Connection.h"
 #include "lldb/Utility/ConstString.h"
 #include "lldb/Utility/Event.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Listener.h"
 #include "lldb/Utility/Log.h"
+#include "lldb/Utility/Logging.h"
 #include "lldb/Utility/Status.h"
 
 #include "llvm/ADT/None.h"
@@ -47,7 +47,8 @@ Communication::Communication(const char *name)
 
 {
 
-  LLDB_LOG(GetLog(LLDBLog::Object | LLDBLog::Communication),
+  LLDB_LOG(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_OBJECT |
+                                                  LIBLLDB_LOG_COMMUNICATION),
            "{0} Communication::Communication (name = {1})", this, name);
 
   SetEventName(eBroadcastBitDisconnected, "disconnected");
@@ -61,7 +62,8 @@ Communication::Communication(const char *name)
 }
 
 Communication::~Communication() {
-  LLDB_LOG(GetLog(LLDBLog::Object | LLDBLog::Communication),
+  LLDB_LOG(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_OBJECT |
+                                                  LIBLLDB_LOG_COMMUNICATION),
            "{0} Communication::~Communication (name = {1})", this,
            GetBroadcasterName().AsCString());
   Clear();
@@ -76,7 +78,7 @@ void Communication::Clear() {
 ConnectionStatus Communication::Connect(const char *url, Status *error_ptr) {
   Clear();
 
-  LLDB_LOG(GetLog(LLDBLog::Communication),
+  LLDB_LOG(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_COMMUNICATION),
            "{0} Communication::Connect (url = {1})", this, url);
 
   lldb::ConnectionSP connection_sp(m_connection_sp);
@@ -88,8 +90,8 @@ ConnectionStatus Communication::Connect(const char *url, Status *error_ptr) {
 }
 
 ConnectionStatus Communication::Disconnect(Status *error_ptr) {
-  LLDB_LOG(GetLog(LLDBLog::Communication), "{0} Communication::Disconnect ()",
-           this);
+  LLDB_LOG(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_COMMUNICATION),
+           "{0} Communication::Disconnect ()", this);
 
   assert((!m_read_thread_enabled || m_read_thread_did_exit) &&
          "Disconnecting while the read thread is running is racy!");
@@ -123,7 +125,7 @@ bool Communication::HasConnection() const {
 size_t Communication::Read(void *dst, size_t dst_len,
                            const Timeout<std::micro> &timeout,
                            ConnectionStatus &status, Status *error_ptr) {
-  Log *log = GetLog(LLDBLog::Communication);
+  Log *log = GetLogIfAllCategoriesSet(LIBLLDB_LOG_COMMUNICATION);
   LLDB_LOG(
       log,
       "this = {0}, dst = {1}, dst_len = {2}, timeout = {3}, connection = {4}",
@@ -173,7 +175,7 @@ size_t Communication::Write(const void *src, size_t src_len,
   lldb::ConnectionSP connection_sp(m_connection_sp);
 
   std::lock_guard<std::mutex> guard(m_write_mutex);
-  LLDB_LOG(GetLog(LLDBLog::Communication),
+  LLDB_LOG(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_COMMUNICATION),
            "{0} Communication::Write (src = {1}, src_len = {2}"
            ") connection = {3}",
            this, src, (uint64_t)src_len, connection_sp.get());
@@ -204,7 +206,7 @@ bool Communication::StartReadThread(Status *error_ptr) {
   if (m_read_thread.IsJoinable())
     return true;
 
-  LLDB_LOG(GetLog(LLDBLog::Communication),
+  LLDB_LOG(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_COMMUNICATION),
            "{0} Communication::StartReadThread ()", this);
 
   const std::string thread_name =
@@ -220,7 +222,8 @@ bool Communication::StartReadThread(Status *error_ptr) {
     if (error_ptr)
       *error_ptr = Status(maybe_thread.takeError());
     else {
-      LLDB_LOG(GetLog(LLDBLog::Host), "failed to launch host thread: {}",
+      LLDB_LOG(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_HOST),
+               "failed to launch host thread: {}",
                llvm::toString(maybe_thread.takeError()));
     }
   }
@@ -235,7 +238,7 @@ bool Communication::StopReadThread(Status *error_ptr) {
   if (!m_read_thread.IsJoinable())
     return true;
 
-  LLDB_LOG(GetLog(LLDBLog::Communication),
+  LLDB_LOG(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_COMMUNICATION),
            "{0} Communication::StopReadThread ()", this);
 
   m_read_thread_enabled = false;
@@ -277,7 +280,7 @@ size_t Communication::GetCachedBytes(void *dst, size_t dst_len) {
 void Communication::AppendBytesToCache(const uint8_t *bytes, size_t len,
                                        bool broadcast,
                                        ConnectionStatus status) {
-  LLDB_LOG(GetLog(LLDBLog::Communication),
+  LLDB_LOG(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_COMMUNICATION),
            "{0} Communication::AppendBytesToCache (src = {1}, src_len = {2}, "
            "broadcast = {3})",
            this, bytes, (uint64_t)len, broadcast);
@@ -314,7 +317,7 @@ bool Communication::ReadThreadIsRunning() { return m_read_thread_enabled; }
 lldb::thread_result_t Communication::ReadThread(lldb::thread_arg_t p) {
   Communication *comm = (Communication *)p;
 
-  Log *log = GetLog(LLDBLog::Communication);
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_COMMUNICATION));
 
   LLDB_LOGF(log, "%p Communication::ReadThread () thread starting...", p);
 
@@ -366,7 +369,7 @@ lldb::thread_result_t Communication::ReadThread(lldb::thread_arg_t p) {
       break;
     }
   }
-  log = GetLog(LLDBLog::Communication);
+  log = lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_COMMUNICATION);
   if (log)
     LLDB_LOGF(log, "%p Communication::ReadThread () thread exiting...", p);
 

@@ -12,13 +12,11 @@
 //===----------------------------------------------------------------------===//
 
 #include "asan_poisoning.h"
-
 #include "asan_report.h"
 #include "asan_stack.h"
 #include "sanitizer_common/sanitizer_atomic.h"
-#include "sanitizer_common/sanitizer_flags.h"
-#include "sanitizer_common/sanitizer_interface_internal.h"
 #include "sanitizer_common/sanitizer_libc.h"
+#include "sanitizer_common/sanitizer_flags.h"
 
 namespace __asan {
 

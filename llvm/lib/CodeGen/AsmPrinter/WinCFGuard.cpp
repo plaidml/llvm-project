@@ -29,7 +29,7 @@ using namespace llvm;
 
 WinCFGuard::WinCFGuard(AsmPrinter *A) : Asm(A) {}
 
-WinCFGuard::~WinCFGuard() = default;
+WinCFGuard::~WinCFGuard() {}
 
 void WinCFGuard::endFunction(const MachineFunction *MF) {
 

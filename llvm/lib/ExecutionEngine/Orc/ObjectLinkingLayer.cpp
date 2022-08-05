@@ -607,7 +607,7 @@ private:
   DenseMap<SymbolStringPtr, SymbolNameSet> InternalNamedSymbolDeps;
 };
 
-ObjectLinkingLayer::Plugin::~Plugin() = default;
+ObjectLinkingLayer::Plugin::~Plugin() {}
 
 char ObjectLinkingLayer::ID;
 

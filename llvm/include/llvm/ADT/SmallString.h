@@ -5,10 +5,9 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-///
-/// \file
-/// This file defines the SmallString class.
-///
+//
+// This file defines the SmallString class.
+//
 //===----------------------------------------------------------------------===//
 
 #ifndef LLVM_ADT_SMALLSTRING_H

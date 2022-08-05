@@ -79,7 +79,7 @@ int main(int, char**)
         assert(err == ios.goodbit);
         assert(v == -1);
     }
-    std::hex(ios);
+    hex(ios);
     {
         const char str[] = "0x7FFFFFFFFFFFFFFF";
         std::ios_base::iostate err = ios.goodbit;

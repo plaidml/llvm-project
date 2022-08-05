@@ -5,12 +5,12 @@
 
 extern void use(char *a);
 
-__attribute__((always_inline)) void helper_no_markers(void) {
+__attribute__((always_inline)) void helper_no_markers() {
   char a;
   use(&a);
 }
 
-void lifetime_test(void) {
+void lifetime_test() {
 // O0: lifetime_test
 // O1: lifetime_test
 // O2: lifetime_test

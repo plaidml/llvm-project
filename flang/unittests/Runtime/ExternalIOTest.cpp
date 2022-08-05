@@ -626,7 +626,7 @@ TEST(ExternalIOTests, TestWriteAfterNonAvancingInput) {
   ASSERT_EQ(IONAME(EndIoStatement)(io), IostatOk)
       << "EndIoStatement() for OutputAscii";
 
-  // Verify that the output was written in the record read in non advancing
+  // Verify that the output was written in the record read in non avdancing
   // mode, after the read part, and that the end was truncated.
 
   // REWIND(UNIT=unit)
@@ -647,7 +647,7 @@ TEST(ExternalIOTests, TestWriteAfterNonAvancingInput) {
       << "EndIoStatement() for Read ";
 
   ASSERT_EQ(resultRecord, expectedRecord)
-      << "Record after non advancing read followed by write";
+      << "Record after non advancing read followed by wrote";
 }
 
 TEST(ExternalIOTests, TestWriteAfterEndfile) {

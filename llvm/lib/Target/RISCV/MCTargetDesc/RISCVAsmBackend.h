@@ -38,7 +38,7 @@ public:
         STI.getTargetTriple(), STI.getFeatureBits(), Options.getABIName());
     RISCVFeatures::validate(STI.getTargetTriple(), STI.getFeatureBits());
   }
-  ~RISCVAsmBackend() override = default;
+  ~RISCVAsmBackend() override {}
 
   void setForceRelocs() { ForceRelocs = true; }
 

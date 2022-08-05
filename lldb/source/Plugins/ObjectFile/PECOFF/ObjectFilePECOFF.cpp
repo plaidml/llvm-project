@@ -23,7 +23,6 @@
 #include "lldb/Utility/ArchSpec.h"
 #include "lldb/Utility/DataBufferHeap.h"
 #include "lldb/Utility/FileSpec.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/StreamString.h"
 #include "lldb/Utility/Timer.h"
@@ -133,7 +132,7 @@ size_t ObjectFilePECOFF::GetModuleSpecifications(
   if (!data_sp || !ObjectFilePECOFF::MagicBytesMatch(data_sp))
     return initial_count;
 
-  Log *log = GetLog(LLDBLog::Object);
+  Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_OBJECT));
 
   if (data_sp->GetByteSize() < length)
     if (DataBufferSP full_sp = MapFileData(file, -1, file_offset))
@@ -213,7 +212,7 @@ bool ObjectFilePECOFF::CreateBinary() {
   if (m_binary)
     return true;
 
-  Log *log = GetLog(LLDBLog::Object);
+  Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_OBJECT));
 
   auto binary = llvm::object::createBinary(llvm::MemoryBufferRef(
       toStringRef(m_data.GetData()), m_file.GetFilename().GetStringRef()));
@@ -885,7 +884,7 @@ uint32_t ObjectFilePECOFF::ParseDependentModules() {
   if (!CreateBinary())
     return 0;
 
-  Log *log = GetLog(LLDBLog::Object);
+  Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_OBJECT));
   LLDB_LOG(log, "this = {0}, module = {1} ({2}), file = {3}, binary = {4}",
            this, GetModule().get(), GetModule()->GetSpecificationDescription(),
            m_file.GetPath(), m_binary.get());

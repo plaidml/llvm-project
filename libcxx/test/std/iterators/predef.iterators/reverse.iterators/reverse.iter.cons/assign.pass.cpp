@@ -51,8 +51,6 @@ struct ToIter {
         return *this;
     }
     char *m_value;
-
-    reference operator*() const;
 };
 
 TEST_CONSTEXPR_CXX17 bool tests() {

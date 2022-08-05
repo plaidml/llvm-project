@@ -4472,7 +4472,8 @@ static void InitCatchParam(CodeGenFunction &CGF,
       // pad.  The best solution is to fix the personality function.
       } else {
         // Pull the pointer for the reference type off.
-        llvm::Type *PtrTy = CGF.ConvertTypeForMem(CaughtType);
+        llvm::Type *PtrTy =
+          cast<llvm::PointerType>(LLVMCatchTy)->getElementType();
 
         // Create the temporary and write the adjusted pointer into it.
         Address ExnPtrTmp =
@@ -4555,7 +4556,7 @@ static void InitCatchParam(CodeGenFunction &CGF,
   if (!copyExpr) {
     llvm::Value *rawAdjustedExn = CallBeginCatch(CGF, Exn, true);
     Address adjustedExn(CGF.Builder.CreateBitCast(rawAdjustedExn, PtrTy),
-                        LLVMCatchTy, caughtExnAlignment);
+                        caughtExnAlignment);
     LValue Dest = CGF.MakeAddrLValue(ParamAddr, CatchType);
     LValue Src = CGF.MakeAddrLValue(adjustedExn, CatchType);
     CGF.EmitAggregateCopy(Dest, Src, CatchType, AggValueSlot::DoesNotOverlap);
@@ -4569,7 +4570,7 @@ static void InitCatchParam(CodeGenFunction &CGF,
 
   // Cast that to the appropriate type.
   Address adjustedExn(CGF.Builder.CreateBitCast(rawAdjustedExn, PtrTy),
-                      LLVMCatchTy, caughtExnAlignment);
+                      caughtExnAlignment);
 
   // The copy expression is defined in terms of an OpaqueValueExpr.
   // Find it and map it to the adjusted expression.

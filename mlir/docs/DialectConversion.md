@@ -114,8 +114,8 @@ struct MyTarget : public ConversionTarget {
     /// All operations within the GPU dialect are illegal.
     addIllegalDialect<GPUDialect>();
 
-    /// Mark `cf.br` and `cf.cond_br` as illegal.
-    addIllegalOp<cf::BranchOp, cf::CondBranchOp>();
+    /// Mark `std.br` and `std.cond_br` as illegal.
+    addIllegalOp<BranchOp, CondBranchOp>();
   }
 
   /// Implement the default legalization handler to handle operations marked as

@@ -13,6 +13,7 @@
 #include "llvm/IR/Module.h"
 #include "SymbolTableListTraitsImpl.h"
 #include "llvm/ADT/Optional.h"
+#include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringMap.h"
@@ -38,6 +39,7 @@
 #include "llvm/IR/TypeFinder.h"
 #include "llvm/IR/Value.h"
 #include "llvm/IR/ValueSymbolTable.h"
+#include "llvm/Pass.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/CodeGen.h"
 #include "llvm/Support/Error.h"
@@ -671,15 +673,12 @@ void Module::setRtLibUseGOT() {
   addModuleFlag(ModFlagBehavior::Max, "RtLibUseGOT", 1);
 }
 
-UWTableKind Module::getUwtable() const {
-  if (auto *Val = cast_or_null<ConstantAsMetadata>(getModuleFlag("uwtable")))
-    return UWTableKind(cast<ConstantInt>(Val->getValue())->getZExtValue());
-  return UWTableKind::None;
+bool Module::getUwtable() const {
+  auto *Val = cast_or_null<ConstantAsMetadata>(getModuleFlag("uwtable"));
+  return Val && (cast<ConstantInt>(Val->getValue())->getZExtValue() > 0);
 }
 
-void Module::setUwtable(UWTableKind Kind) {
-  addModuleFlag(ModFlagBehavior::Max, "uwtable", uint32_t(Kind));
-}
+void Module::setUwtable() { addModuleFlag(ModFlagBehavior::Max, "uwtable", 1); }
 
 FramePointerKind Module::getFramePointer() const {
   auto *Val = cast_or_null<ConstantAsMetadata>(getModuleFlag("frame-pointer"));
@@ -737,7 +736,7 @@ void Module::setOverrideStackAlignment(unsigned Align) {
   addModuleFlag(ModFlagBehavior::Error, "override-stack-alignment", Align);
 }
 
-static void addSDKVersionMD(const VersionTuple &V, Module &M, StringRef Name) {
+void Module::setSDKVersion(const VersionTuple &V) {
   SmallVector<unsigned, 3> Entries;
   Entries.push_back(V.getMajor());
   if (auto Minor = V.getMinor()) {
@@ -747,12 +746,8 @@ static void addSDKVersionMD(const VersionTuple &V, Module &M, StringRef Name) {
     // Ignore the 'build' component as it can't be represented in the object
     // file.
   }
-  M.addModuleFlag(Module::ModFlagBehavior::Warning, Name,
-                  ConstantDataArray::get(M.getContext(), Entries));
-}
-
-void Module::setSDKVersion(const VersionTuple &V) {
-  addSDKVersionMD(V, *this, "SDK Version");
+  addModuleFlag(ModFlagBehavior::Warning, "SDK Version",
+                ConstantDataArray::get(Context, Entries));
 }
 
 static VersionTuple getSDKVersionMD(Metadata *MD) {
@@ -825,15 +820,6 @@ StringRef Module::getDarwinTargetVariantTriple() const {
   return "";
 }
 
-void Module::setDarwinTargetVariantTriple(StringRef T) {
-  addModuleFlag(ModFlagBehavior::Override, "darwin.target_variant.triple",
-                MDString::get(getContext(), T));
-}
-
 VersionTuple Module::getDarwinTargetVariantSDKVersion() const {
   return getSDKVersionMD(getModuleFlag("darwin.target_variant.SDK Version"));
-}
-
-void Module::setDarwinTargetVariantSDKVersion(VersionTuple Version) {
-  addSDKVersionMD(Version, *this, "darwin.target_variant.SDK Version");
 }

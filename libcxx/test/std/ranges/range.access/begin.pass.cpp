@@ -8,6 +8,7 @@
 
 // UNSUPPORTED: c++03, c++11, c++14, c++17
 // UNSUPPORTED: libcpp-no-concepts
+// UNSUPPORTED: libcpp-has-no-incomplete-ranges
 
 // std::ranges::begin
 // std::ranges::cbegin
@@ -15,7 +16,6 @@
 #include <ranges>
 
 #include <cassert>
-#include <utility>
 #include "test_macros.h"
 #include "test_iterators.h"
 
@@ -28,33 +28,12 @@ static_assert(!std::is_invocable_v<RangeBeginT, int (&&)[10]>);
 static_assert( std::is_invocable_v<RangeBeginT, int (&)[10]>);
 static_assert(!std::is_invocable_v<RangeBeginT, int (&&)[]>);
 static_assert( std::is_invocable_v<RangeBeginT, int (&)[]>);
-static_assert(!std::is_invocable_v<RangeCBeginT, int (&&)[10]>);
-static_assert( std::is_invocable_v<RangeCBeginT, int (&)[10]>);
-static_assert(!std::is_invocable_v<RangeCBeginT, int (&&)[]>);
-static_assert( std::is_invocable_v<RangeCBeginT, int (&)[]>);
 
 struct Incomplete;
 static_assert(!std::is_invocable_v<RangeBeginT, Incomplete(&&)[]>);
-static_assert(!std::is_invocable_v<RangeBeginT, const Incomplete(&&)[]>);
+static_assert(!std::is_invocable_v<RangeBeginT, Incomplete(&&)[42]>);
 static_assert(!std::is_invocable_v<RangeCBeginT, Incomplete(&&)[]>);
-static_assert(!std::is_invocable_v<RangeCBeginT, const Incomplete(&&)[]>);
-
-static_assert(!std::is_invocable_v<RangeBeginT, Incomplete(&&)[10]>);
-static_assert(!std::is_invocable_v<RangeBeginT, const Incomplete(&&)[10]>);
-static_assert(!std::is_invocable_v<RangeCBeginT, Incomplete(&&)[10]>);
-static_assert(!std::is_invocable_v<RangeCBeginT, const Incomplete(&&)[10]>);
-
-// This case is IFNDR; we handle it SFINAE-friendly.
-LIBCPP_STATIC_ASSERT(!std::is_invocable_v<RangeBeginT, Incomplete(&)[]>);
-LIBCPP_STATIC_ASSERT(!std::is_invocable_v<RangeBeginT, const Incomplete(&)[]>);
-LIBCPP_STATIC_ASSERT(!std::is_invocable_v<RangeCBeginT, Incomplete(&)[]>);
-LIBCPP_STATIC_ASSERT(!std::is_invocable_v<RangeCBeginT, const Incomplete(&)[]>);
-
-// This case is IFNDR; we handle it SFINAE-friendly.
-LIBCPP_STATIC_ASSERT(!std::is_invocable_v<RangeBeginT, Incomplete(&)[10]>);
-LIBCPP_STATIC_ASSERT(!std::is_invocable_v<RangeBeginT, const Incomplete(&)[10]>);
-LIBCPP_STATIC_ASSERT(!std::is_invocable_v<RangeCBeginT, Incomplete(&)[10]>);
-LIBCPP_STATIC_ASSERT(!std::is_invocable_v<RangeCBeginT, const Incomplete(&)[10]>);
+static_assert(!std::is_invocable_v<RangeCBeginT, Incomplete(&&)[42]>);
 
 struct BeginMember {
   int x;
@@ -109,6 +88,12 @@ constexpr bool testArray() {
   return true;
 }
 
+struct BeginMemberFunction {
+  int x;
+  constexpr const int *begin() const { return &x; }
+  friend int *begin(BeginMemberFunction const&);
+};
+
 struct BeginMemberReturnsInt {
   int begin() const;
 };
@@ -124,6 +109,12 @@ struct EmptyBeginMember {
   iterator begin() const;
 };
 static_assert(!std::is_invocable_v<RangeBeginT, EmptyBeginMember const&>);
+
+struct EmptyPtrBeginMember {
+  struct Empty {};
+  Empty x;
+  constexpr const Empty *begin() const { return &x; }
+};
 
 struct PtrConvertibleBeginMember {
   struct iterator { operator int*() const; };
@@ -145,18 +136,6 @@ struct EnabledBorrowingBeginMember {
 };
 template<>
 inline constexpr bool std::ranges::enable_borrowed_range<EnabledBorrowingBeginMember> = true;
-
-struct BeginMemberFunction {
-  int x;
-  constexpr const int *begin() const { return &x; }
-  friend int *begin(BeginMemberFunction const&);
-};
-
-struct EmptyPtrBeginMember {
-  struct Empty {};
-  Empty x;
-  constexpr const Empty *begin() const { return &x; }
-};
 
 constexpr bool testBeginMember() {
   BeginMember a;
@@ -197,39 +176,6 @@ static_assert(!std::is_invocable_v<RangeBeginT,  BeginFunction &>);
 static_assert( std::is_invocable_v<RangeCBeginT, BeginFunction const&>);
 static_assert( std::is_invocable_v<RangeCBeginT, BeginFunction &>);
 
-struct BeginFunctionReturnsInt {
-  friend int begin(BeginFunctionReturnsInt const&);
-};
-static_assert(!std::is_invocable_v<RangeBeginT, BeginFunctionReturnsInt const&>);
-
-struct BeginFunctionReturnsVoidPtr {
-  friend void *begin(BeginFunctionReturnsVoidPtr const&);
-};
-static_assert(!std::is_invocable_v<RangeBeginT, BeginFunctionReturnsVoidPtr const&>);
-
-struct BeginFunctionReturnsPtrConvertible {
-  struct iterator { operator int*() const; };
-  friend iterator begin(BeginFunctionReturnsPtrConvertible const&);
-};
-static_assert(!std::is_invocable_v<RangeBeginT, BeginFunctionReturnsPtrConvertible const&>);
-
-struct BeginFunctionByValue {
-  friend constexpr int *begin(BeginFunctionByValue) { return &globalBuff[1]; }
-};
-static_assert(!std::is_invocable_v<RangeCBeginT, BeginFunctionByValue>);
-
-struct BeginFunctionEnabledBorrowing {
-  friend constexpr int *begin(BeginFunctionEnabledBorrowing) { return &globalBuff[2]; }
-};
-template<>
-inline constexpr bool std::ranges::enable_borrowed_range<BeginFunctionEnabledBorrowing> = true;
-
-struct BeginFunctionReturnsEmptyPtr {
-  struct Empty {};
-  Empty x;
-  friend constexpr const Empty *begin(BeginFunctionReturnsEmptyPtr const& bf) { return &bf.x; }
-};
-
 struct BeginFunctionWithDataMember {
   int x;
   int begin;
@@ -242,6 +188,45 @@ struct BeginFunctionWithPrivateBeginMember {
 private:
   const int *begin() const;
 };
+
+struct BeginFunctionReturnsEmptyPtr {
+  struct Empty {};
+  Empty x;
+  friend constexpr const Empty *begin(BeginFunctionReturnsEmptyPtr const& bf) { return &bf.x; }
+};
+
+struct BeginFunctionByValue {
+  friend constexpr int *begin(BeginFunctionByValue) { return &globalBuff[1]; }
+};
+static_assert(!std::is_invocable_v<RangeCBeginT, BeginFunctionByValue>);
+
+struct BeginFunctionEnabledBorrowing {
+  friend constexpr int *begin(BeginFunctionEnabledBorrowing) { return &globalBuff[2]; }
+};
+template<>
+inline constexpr bool std::ranges::enable_borrowed_range<BeginFunctionEnabledBorrowing> = true;
+
+struct BeginFunctionReturnsInt {
+  friend int begin(BeginFunctionReturnsInt const&);
+};
+static_assert(!std::is_invocable_v<RangeBeginT, BeginFunctionReturnsInt const&>);
+
+struct BeginFunctionReturnsVoidPtr {
+  friend void *begin(BeginFunctionReturnsVoidPtr const&);
+};
+static_assert(!std::is_invocable_v<RangeBeginT, BeginFunctionReturnsVoidPtr const&>);
+
+struct BeginFunctionReturnsEmpty {
+  struct Empty {};
+  friend Empty begin(BeginFunctionReturnsEmpty const&);
+};
+static_assert(!std::is_invocable_v<RangeBeginT, BeginFunctionReturnsEmpty const&>);
+
+struct BeginFunctionReturnsPtrConvertible {
+  struct iterator { operator int*() const; };
+  friend iterator begin(BeginFunctionReturnsPtrConvertible const&);
+};
+static_assert(!std::is_invocable_v<RangeBeginT, BeginFunctionReturnsPtrConvertible const&>);
 
 constexpr bool testBeginFunction() {
   BeginFunction a{};

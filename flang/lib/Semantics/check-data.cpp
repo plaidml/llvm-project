@@ -62,9 +62,7 @@ public:
                 : IsDummy(symbol)              ? "Dummy argument"
                 : IsFunctionResult(symbol)     ? "Function result"
                 : IsAllocatable(symbol)        ? "Allocatable"
-                : IsInitialized(symbol, true /*ignore DATA*/,
-                      true /*ignore allocatable components*/)
-                ? "Default-initialized"
+                : IsInitialized(symbol, true)  ? "Default-initialized"
                 : IsProcedure(symbol) && !IsPointer(symbol) ? "Procedure"
                 // remaining checks don't apply to components
                 : !isFirstSymbol                   ? nullptr

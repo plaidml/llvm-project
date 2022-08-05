@@ -19,8 +19,8 @@
 #include "mlir/Dialect/Linalg/Utils/Utils.h"
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/Dialect/Utils/StructuredOpsUtils.h"
-#include "mlir/Dialect/Vector/IR/VectorOps.h"
-#include "mlir/Dialect/Vector/Transforms/VectorTransforms.h"
+#include "mlir/Dialect/Vector/VectorOps.h"
+#include "mlir/Dialect/Vector/VectorTransforms.h"
 #include "mlir/IR/AffineExpr.h"
 #include "mlir/IR/Matchers.h"
 #include "mlir/IR/PatternMatch.h"
@@ -656,38 +656,6 @@ LogicalResult mlir::linalg::vectorize(RewriterBase &rewriter,
   return success();
 }
 
-LogicalResult mlir::linalg::vectorizeCopy(RewriterBase &rewriter,
-                                          memref::CopyOp copyOp) {
-
-  auto srcType = copyOp.source().getType().cast<MemRefType>();
-  auto dstType = copyOp.target().getType().cast<MemRefType>();
-  if (!srcType.hasStaticShape() || !dstType.hasStaticShape())
-    return failure();
-
-  auto readType =
-      VectorType::get(srcType.getShape(), getElementTypeOrSelf(srcType));
-  auto writeType =
-      VectorType::get(dstType.getShape(), getElementTypeOrSelf(dstType));
-
-  Location loc = copyOp->getLoc();
-  Value zero = rewriter.create<arith::ConstantIndexOp>(loc, 0);
-  SmallVector<Value> indices(srcType.getRank(), zero);
-
-  Value readValue = rewriter.create<vector::TransferReadOp>(
-      loc, readType, copyOp.source(), indices,
-      rewriter.getMultiDimIdentityMap(srcType.getRank()));
-  if (readValue.getType().cast<VectorType>().getRank() == 0) {
-    readValue = rewriter.create<vector::ExtractElementOp>(loc, readValue);
-    readValue = rewriter.create<vector::BroadcastOp>(loc, writeType, readValue);
-  }
-  Operation *writeValue = rewriter.create<vector::TransferWriteOp>(
-      loc, readValue, copyOp.target(), indices,
-      rewriter.getMultiDimIdentityMap(srcType.getRank()));
-  copyOp->getParentOfType<FuncOp>().dump();
-  rewriter.replaceOp(copyOp, writeValue->getResults());
-  return success();
-}
-
 //----------------------------------------------------------------------------//
 // Misc. vectorization patterns.
 //----------------------------------------------------------------------------//
@@ -714,19 +682,20 @@ static SmallVector<Value> ofrToIndexValues(OpBuilder &builder, Location loc,
   return result;
 }
 
-/// Rewrite a tensor::PadOp into a sequence of InitTensorOp, FillOp and
+/// Rewrite a PadTensorOp into a sequence of InitTensorOp, FillOp and
 /// InsertSliceOp. For now, only constant padding values are supported.
 /// If there is enough static type information, TransferReadOps and
 /// TransferWriteOps may be generated instead of InsertSliceOps.
-struct GenericPadOpVectorizationPattern : public GeneralizePadOpPattern {
-  GenericPadOpVectorizationPattern(MLIRContext *context,
-                                   PatternBenefit benefit = 1)
-      : GeneralizePadOpPattern(context, tryVectorizeCopy, benefit) {}
-  /// Vectorize the copying of a tensor::PadOp's source. This is possible if
+struct GenericPadTensorOpVectorizationPattern
+    : public GeneralizePadTensorOpPattern {
+  GenericPadTensorOpVectorizationPattern(MLIRContext *context,
+                                         PatternBenefit benefit = 1)
+      : GeneralizePadTensorOpPattern(context, tryVectorizeCopy, benefit) {}
+  /// Vectorize the copying of a PadTensorOp's source. This is possible if
   /// each dimension size is statically know in the source type or the result
   /// type (or both).
   static LogicalResult tryVectorizeCopy(PatternRewriter &rewriter,
-                                        tensor::PadOp padOp, Value dest) {
+                                        PadTensorOp padOp, Value dest) {
     auto sourceType = padOp.getSourceType();
     auto resultType = padOp.getResultType();
 
@@ -798,13 +767,13 @@ struct GenericPadOpVectorizationPattern : public GeneralizePadOpPattern {
   }
 };
 
-/// Base pattern for rewriting tensor::PadOps whose result is consumed by a
+/// Base pattern for rewriting PadTensorOps whose result is consumed by a
 /// given operation type OpTy.
 template <typename OpTy>
-struct VectorizePadOpUserPattern : public OpRewritePattern<tensor::PadOp> {
-  using OpRewritePattern<tensor::PadOp>::OpRewritePattern;
+struct VectorizePadTensorOpUserPattern : public OpRewritePattern<PadTensorOp> {
+  using OpRewritePattern<PadTensorOp>::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(tensor::PadOp padOp,
+  LogicalResult matchAndRewrite(PadTensorOp padOp,
                                 PatternRewriter &rewriter) const final {
     bool changed = false;
     // Insert users in vector, because some users may be replaced/removed.
@@ -816,10 +785,10 @@ struct VectorizePadOpUserPattern : public OpRewritePattern<tensor::PadOp> {
 
 protected:
   virtual LogicalResult rewriteUser(PatternRewriter &rewriter,
-                                    tensor::PadOp padOp, OpTy op) const = 0;
+                                    PadTensorOp padOp, OpTy op) const = 0;
 };
 
-/// Rewrite use of tensor::PadOp result in TransferReadOp. E.g.:
+/// Rewrite use of PadTensorOp result in TransferReadOp. E.g.:
 /// ```
 /// %0 = linalg.pad_tensor %src ... : tensor<?x?xf32> to tensor<17x5xf32>
 /// %r = vector.transfer_read %0[%c0, %c0], %cst
@@ -838,12 +807,12 @@ protected:
 /// - `xferOp` has no out-of-bounds dims or mask.
 /// - Low padding is static 0.
 /// - Single, scalar padding value.
-struct PadOpVectorizationWithTransferReadPattern
-    : public VectorizePadOpUserPattern<vector::TransferReadOp> {
-  using VectorizePadOpUserPattern<
-      vector::TransferReadOp>::VectorizePadOpUserPattern;
+struct PadTensorOpVectorizationWithTransferReadPattern
+    : public VectorizePadTensorOpUserPattern<vector::TransferReadOp> {
+  using VectorizePadTensorOpUserPattern<
+      vector::TransferReadOp>::VectorizePadTensorOpUserPattern;
 
-  LogicalResult rewriteUser(PatternRewriter &rewriter, tensor::PadOp padOp,
+  LogicalResult rewriteUser(PatternRewriter &rewriter, PadTensorOp padOp,
                             vector::TransferReadOp xferOp) const override {
     // Low padding must be static 0.
     if (!padOp.hasZeroLowPad())
@@ -868,7 +837,7 @@ struct PadOpVectorizationWithTransferReadPattern
   }
 };
 
-/// Rewrite use of tensor::PadOp result in TransferWriteOp.
+/// Rewrite use of PadTensorOp result in TransferWriteOp.
 /// This pattern rewrites TransferWriteOps that write to a padded tensor
 /// value, where the same amount of padding is immediately removed again after
 /// the write. In such cases, the TransferWriteOp can write to the non-padded
@@ -900,12 +869,12 @@ struct PadOpVectorizationWithTransferReadPattern
 ///   ExtractSliceOp trims the same amount of padding that was added
 ///   beforehand.
 /// - Single, scalar padding value.
-struct PadOpVectorizationWithTransferWritePattern
-    : public VectorizePadOpUserPattern<vector::TransferWriteOp> {
-  using VectorizePadOpUserPattern<
-      vector::TransferWriteOp>::VectorizePadOpUserPattern;
+struct PadTensorOpVectorizationWithTransferWritePattern
+    : public VectorizePadTensorOpUserPattern<vector::TransferWriteOp> {
+  using VectorizePadTensorOpUserPattern<
+      vector::TransferWriteOp>::VectorizePadTensorOpUserPattern;
 
-  LogicalResult rewriteUser(PatternRewriter &rewriter, tensor::PadOp padOp,
+  LogicalResult rewriteUser(PatternRewriter &rewriter, PadTensorOp padOp,
                             vector::TransferWriteOp xferOp) const override {
     // TODO: support 0-d corner case.
     if (xferOp.getTransferRank() == 0)
@@ -956,7 +925,7 @@ struct PadOpVectorizationWithTransferWritePattern
   /// sizes may turn out to be equal at runtime.
   bool hasSameTensorSize(Value beforePadding,
                          tensor::ExtractSliceOp afterTrimming) const {
-    // If the input to tensor::PadOp is a CastOp, try with with both CastOp
+    // If the input to PadTensorOp is a CastOp, try with with both CastOp
     // result and CastOp operand.
     if (auto castOp = beforePadding.getDefiningOp<tensor::CastOp>())
       if (hasSameTensorSize(castOp.source(), afterTrimming))
@@ -1031,7 +1000,7 @@ struct PadOpVectorizationWithTransferWritePattern
   }
 };
 
-/// Rewrite use of tensor::PadOp result in InsertSliceOp. E.g.:
+/// Rewrite use of PadTensorOp result in InsertSliceOp. E.g.:
 /// ```
 /// %0 = linalg.pad_tensor %src ... : tensor<?x?xf32> to tensor<17x5xf32>
 /// %r = tensor.insert_slice %0
@@ -1054,12 +1023,12 @@ struct PadOpVectorizationWithTransferWritePattern
 /// - Only unit strides in `insertOp`.
 /// - Single, scalar padding value.
 /// - `padOp` result not used as destination.
-struct PadOpVectorizationWithInsertSlicePattern
-    : public VectorizePadOpUserPattern<tensor::InsertSliceOp> {
-  using VectorizePadOpUserPattern<
-      tensor::InsertSliceOp>::VectorizePadOpUserPattern;
+struct PadTensorOpVectorizationWithInsertSlicePattern
+    : public VectorizePadTensorOpUserPattern<tensor::InsertSliceOp> {
+  using VectorizePadTensorOpUserPattern<
+      tensor::InsertSliceOp>::VectorizePadTensorOpUserPattern;
 
-  LogicalResult rewriteUser(PatternRewriter &rewriter, tensor::PadOp padOp,
+  LogicalResult rewriteUser(PatternRewriter &rewriter, PadTensorOp padOp,
                             tensor::InsertSliceOp insertOp) const override {
     // Low padding must be static 0.
     if (!padOp.hasZeroLowPad())
@@ -1118,14 +1087,14 @@ struct PadOpVectorizationWithInsertSlicePattern
   }
 };
 
-void mlir::linalg::populatePadOpVectorizationPatterns(
+void mlir::linalg::populatePadTensorOpVectorizationPatterns(
     RewritePatternSet &patterns, PatternBenefit baseBenefit) {
-  patterns.add<GenericPadOpVectorizationPattern>(patterns.getContext(),
-                                                 baseBenefit);
+  patterns.add<GenericPadTensorOpVectorizationPattern>(patterns.getContext(),
+                                                       baseBenefit);
   // Try these specialized patterns first before resorting to the generic one.
-  patterns.add<PadOpVectorizationWithTransferReadPattern,
-               PadOpVectorizationWithTransferWritePattern,
-               PadOpVectorizationWithInsertSlicePattern>(
+  patterns.add<PadTensorOpVectorizationWithTransferReadPattern,
+               PadTensorOpVectorizationWithTransferWritePattern,
+               PadTensorOpVectorizationWithInsertSlicePattern>(
       patterns.getContext(), baseBenefit.getBenefit() + 1);
 }
 
@@ -1200,11 +1169,11 @@ LogicalResult LinalgCopyVTRForwardingPattern::matchAndRewrite(
   LDBG("with subView " << subView);
 
   // Find the copy into `subView` without interleaved uses.
-  memref::CopyOp copyOp;
+  CopyOp copyOp;
   for (auto &u : subView.getUses()) {
-    if (auto newCopyOp = dyn_cast<memref::CopyOp>(u.getOwner())) {
-      assert(newCopyOp.target().getType().isa<MemRefType>());
-      if (newCopyOp.target() != subView)
+    if (auto newCopyOp = dyn_cast<CopyOp>(u.getOwner())) {
+      assert(newCopyOp.output().getType().isa<MemRefType>());
+      if (newCopyOp.output() != subView)
         continue;
       LDBG("copy candidate " << *newCopyOp);
       if (mayExistInterleavedUses(newCopyOp, xferOp, {viewOrAlloc, subView}))
@@ -1238,10 +1207,10 @@ LogicalResult LinalgCopyVTRForwardingPattern::matchAndRewrite(
   if (maybeFillOp)
     LDBG("with maybeFillOp " << *maybeFillOp);
 
-  // `in` is the subview that memref.copy reads. Replace it.
-  Value in = copyOp.source();
+  // `in` is the subview that linalg.copy reads. Replace it.
+  Value in = copyOp.input();
 
-  // memref.copy + linalg.fill can be used to create a padded local buffer.
+  // linalg.copy + linalg.fill can be used to create a padded local buffer.
   // The `masked` attribute is only valid on this padded buffer.
   // When forwarding to vector.transfer_read, the attribute must be reset
   // conservatively.
@@ -1280,10 +1249,10 @@ LogicalResult LinalgCopyVTWForwardingPattern::matchAndRewrite(
   Value subView = subViewOp.getResult();
 
   // Find the copy from `subView` without interleaved uses.
-  memref::CopyOp copyOp;
+  CopyOp copyOp;
   for (auto &u : subViewOp.getResult().getUses()) {
-    if (auto newCopyOp = dyn_cast<memref::CopyOp>(u.getOwner())) {
-      if (newCopyOp.source() != subView)
+    if (auto newCopyOp = dyn_cast<CopyOp>(u.getOwner())) {
+      if (newCopyOp.getInputOperand(0)->get() != subView)
         continue;
       if (mayExistInterleavedUses(xferOp, newCopyOp, {viewOrAlloc, subView}))
         continue;
@@ -1295,11 +1264,11 @@ LogicalResult LinalgCopyVTWForwardingPattern::matchAndRewrite(
     return failure();
 
   // `out` is the subview copied into that we replace.
-  assert(copyOp.target().getType().isa<MemRefType>());
-  Value out = copyOp.target();
+  assert(copyOp.output().getType().isa<MemRefType>());
+  Value out = copyOp.output();
 
   // Forward vector.transfer into copy.
-  // memref.copy + linalg.fill can be used to create a padded local buffer.
+  // linalg.copy + linalg.fill can be used to create a padded local buffer.
   // The `masked` attribute is only valid on this padded buffer.
   // When forwarding to vector.transfer_write, the attribute must be reset
   // conservatively.

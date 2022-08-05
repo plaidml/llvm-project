@@ -36,7 +36,7 @@ class RestrictedPtrType<Type type> : Type {
 }
 
 // Builtin types.
-def VarArgType : NamedType<"...">;
+def VarArgType : Type {}
 def VoidType : NamedType<"void">;
 def IntType : NamedType<"int">;
 def LongType : NamedType<"long">;

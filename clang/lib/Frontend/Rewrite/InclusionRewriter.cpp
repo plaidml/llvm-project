@@ -251,12 +251,28 @@ bool InclusionRewriter::IsIfAtLocationTrue(SourceLocation Loc) const {
   return false;
 }
 
+/// Detect the likely line ending style of \p FromFile by examining the first
+/// newline found within it.
+static StringRef DetectEOL(const MemoryBufferRef &FromFile) {
+  // Detect what line endings the file uses, so that added content does not mix
+  // the style. We need to check for "\r\n" first because "\n\r" will match
+  // "\r\n\r\n".
+  const char *Pos = strchr(FromFile.getBufferStart(), '\n');
+  if (!Pos)
+    return "\n";
+  if (Pos - 1 >= FromFile.getBufferStart() && Pos[-1] == '\r')
+    return "\r\n";
+  if (Pos + 1 < FromFile.getBufferEnd() && Pos[1] == '\r')
+    return "\n\r";
+  return "\n";
+}
+
 void InclusionRewriter::detectMainFileEOL() {
   Optional<MemoryBufferRef> FromFile = *SM.getBufferOrNone(SM.getMainFileID());
   assert(FromFile);
   if (!FromFile)
     return; // Should never happen, but whatever.
-  MainEOL = FromFile->getBuffer().detectEOL();
+  MainEOL = DetectEOL(*FromFile);
 }
 
 /// Writes out bytes from \p FromFile, starting at \p NextToWrite and ending at
@@ -362,7 +378,7 @@ void InclusionRewriter::Process(FileID FileId,
   Lexer RawLex(FileId, FromFile, PP.getSourceManager(), PP.getLangOpts());
   RawLex.SetCommentRetentionState(false);
 
-  StringRef LocalEOL = FromFile.getBuffer().detectEOL();
+  StringRef LocalEOL = DetectEOL(FromFile);
 
   // Per the GNU docs: "1" indicates entering a new file.
   if (FileId == SM.getMainFileID() || FileId == PP.getPredefinesFileID())

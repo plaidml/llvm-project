@@ -27,7 +27,7 @@ static void generateLocationsFromIR(raw_ostream &os, StringRef fileName,
   // Print the IR to the stream, and collect the raw line+column information.
   AsmState::LocationMap opToLineCol;
   AsmState state(op, flags, &opToLineCol);
-  op->print(os, state);
+  op->print(os, state, flags);
 
   Builder builder(op->getContext());
   Optional<StringAttr> tagIdentifier;

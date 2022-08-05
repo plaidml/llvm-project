@@ -5,10 +5,9 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-///
-/// \file
-/// This file defines the ImmutableMap class.
-///
+//
+// This file defines the ImmutableMap class.
+//
 //===----------------------------------------------------------------------===//
 
 #ifndef LLVM_ADT_IMMUTABLEMAP_H

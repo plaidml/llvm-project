@@ -8,7 +8,6 @@
 
 #include "lldb/Host/ConnectionFileDescriptor.h"
 #include "lldb/Host/common/TCPSocket.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/Status.h"
 #include "lldb/Utility/UriParser.h"
@@ -29,7 +28,7 @@ static Status ForwardPortWithAdb(
     llvm::StringRef remote_socket_name,
     const llvm::Optional<AdbClient::UnixSocketNamespace> &socket_namespace,
     std::string &device_id) {
-  Log *log = GetLog(LLDBLog::Platform);
+  Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_PLATFORM));
 
   AdbClient adb;
   auto error = AdbClient::CreateByDeviceID(device_id, adb);
@@ -90,7 +89,7 @@ bool PlatformAndroidRemoteGDBServer::LaunchGDBServer(lldb::pid_t &pid,
                                         socket_name))
     return false;
 
-  Log *log = GetLog(LLDBLog::Platform);
+  Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_PLATFORM));
 
   auto error =
       MakeConnectURL(pid, remote_port, socket_name.c_str(), connect_url);
@@ -138,7 +137,7 @@ Status PlatformAndroidRemoteGDBServer::ConnectRemote(Args &args) {
 
   args.ReplaceArgumentAtIndex(0, connect_url);
 
-  Log *log = GetLog(LLDBLog::Platform);
+  Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_PLATFORM));
   LLDB_LOGF(log, "Rewritten platform connect URL: %s", connect_url.c_str());
 
   error = PlatformRemoteGDBServer::ConnectRemote(args);
@@ -154,7 +153,7 @@ Status PlatformAndroidRemoteGDBServer::DisconnectRemote() {
 }
 
 void PlatformAndroidRemoteGDBServer::DeleteForwardPort(lldb::pid_t pid) {
-  Log *log = GetLog(LLDBLog::Platform);
+  Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_PLATFORM));
 
   auto it = m_port_forwards.find(pid);
   if (it == m_port_forwards.end())

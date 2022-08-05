@@ -7,8 +7,7 @@
 // -fprofile-use=<dir>        Uses the profile file <dir>/default.profdata
 // -fprofile-use=<dir>/file   Uses the profile file <dir>/file
 
-// On AIX, -flto used to be required with -fprofile-generate, so test those
-// extra cases.
+// On AIX, -flto is required with -fprofile-generate
 
 // RUN: %clang %s -c -S -o - -emit-llvm -target powerpc64-unknown-aix -flto -fprofile-generate | FileCheck -check-prefix=PROFILE-GEN %s
 // PROFILE-GEN: @__profc_main = {{(private|internal)}} global [2 x i64] zeroinitializer, section
@@ -54,7 +53,7 @@
 
 int X = 0;
 
-int main(void) {
+int main() {
   int i;
   for (i = 0; i < 100; i++)
     X += i;

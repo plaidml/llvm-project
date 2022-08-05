@@ -33,6 +33,9 @@
 
 #include <any>
 
+using std::any;
+using std::any_cast;
+
 struct no_copy
 {
     no_copy() {}
@@ -47,17 +50,17 @@ struct no_move {
 };
 
 int main(int, char**) {
-    std::any a;
+    any a;
     // expected-error-re@any:* {{static_assert failed{{.*}} "ValueType is required to be an lvalue reference or a CopyConstructible type"}}
-    std::any_cast<no_copy>(static_cast<std::any&>(a)); // expected-note {{requested here}}
+    any_cast<no_copy>(static_cast<any&>(a)); // expected-note {{requested here}}
 
     // expected-error-re@any:* {{static_assert failed{{.*}} "ValueType is required to be a const lvalue reference or a CopyConstructible type"}}
-    std::any_cast<no_copy>(static_cast<std::any const&>(a)); // expected-note {{requested here}}
+    any_cast<no_copy>(static_cast<any const&>(a)); // expected-note {{requested here}}
 
-    std::any_cast<no_copy>(static_cast<std::any &&>(a)); // OK
+    any_cast<no_copy>(static_cast<any &&>(a)); // OK
 
     // expected-error-re@any:* {{static_assert failed{{.*}} "ValueType is required to be an rvalue reference or a CopyConstructible type"}}
-    std::any_cast<no_move>(static_cast<std::any &&>(a));
+    any_cast<no_move>(static_cast<any &&>(a));
 
   return 0;
 }

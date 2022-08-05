@@ -4027,9 +4027,6 @@ def warn_vector_mode_deprecated : Warning<
   "specifying vector types with the 'mode' attribute is deprecated; "
   "use the 'vector_size' attribute instead">,
   InGroup<DeprecatedAttributes>;
-def warn_deprecated_noreturn_spelling : Warning<
-  "the '[[_Noreturn]]' attribute spelling is deprecated in C2x; use "
-  "'[[noreturn]]' instead">, InGroup<DeprecatedAttributes>;
 def err_complex_mode_vector_type : Error<
   "type of machine mode does not support base vector types">;
 def err_enum_mode_vector_type : Error<
@@ -4669,8 +4666,6 @@ def err_ovl_no_viable_object_call : Error<
   "no matching function for call to object of type %0">;
 def err_ovl_ambiguous_object_call : Error<
   "call to object of type %0 is ambiguous">;
-def err_ovl_ambiguous_subscript_call : Error<
-  "call to subscript operator of type %0 is ambiguous">;
 def err_ovl_deleted_object_call : Error<
   "call to deleted function call operator in type %0">;
 def note_ovl_surrogate_cand : Note<"conversion candidate of type %0">;
@@ -6576,8 +6571,7 @@ def err_arithmetic_nonfragile_interface : Error<
   "this architecture and platform">;
 
 def warn_deprecated_comma_subscript : Warning<
-  "top-level comma expression in array subscript is deprecated "
-  "in C++20 and unsupported in C++2b">,
+  "top-level comma expression in array subscript is deprecated">,
   InGroup<DeprecatedCommaSubscript>;
 
 def ext_subscript_non_lvalue : Extension<
@@ -7809,11 +7803,6 @@ def err_expected_class_or_namespace : Error<"%0 is not a class"
   "%select{ or namespace|, namespace, or enumeration}1">;
 def err_invalid_declarator_scope : Error<"cannot define or redeclare %0 here "
   "because namespace %1 does not enclose namespace %2">;
-def err_export_non_namespace_scope_name : Error<
-  "cannot export %0 as it is not at namespace scope">;
-def err_redeclaration_non_exported : Error <
-  "cannot export redeclaration %0 here since the previous declaration is not "
-  "exported">;
 def err_invalid_declarator_global_scope : Error<
   "definition or redeclaration of %0 cannot name the global scope">;
 def err_invalid_declarator_in_function : Error<
@@ -8978,12 +8967,6 @@ def err_operator_overload_static : Error<
   "overloaded %0 cannot be a static member function">;
 def err_operator_overload_default_arg : Error<
   "parameter of overloaded %0 cannot have a default argument">;
-
-def ext_subscript_overload : ExtWarn<
-  "overloaded %0 with %select{no|a defaulted|more than one}1 parameter is a C++2b extension">, InGroup<CXXPre2bCompat>, DefaultIgnore;
-def error_subscript_overload : Error<
-  "overloaded %0 cannot have %select{no|a defaulted|more than one}1 parameter before C++2b">;
-
 def err_operator_overload_must_be : Error<
   "overloaded %0 must be a %select{unary|binary|unary or binary}2 operator "
   "(has %1 parameter%s1)">;
@@ -9386,9 +9369,6 @@ def warn_printf_ObjCflags_without_ObjCConversion: Warning<
 def warn_printf_invalid_objc_flag: Warning<
     "'%0' is not a valid object format flag">,
     InGroup<Format>;
-def warn_printf_narg_not_supported : Warning<
-    "'%%n' specifier not supported on this platform">,
-    InGroup<Format>;
 def warn_scanf_scanlist_incomplete : Warning<
   "no closing ']' for '%%[' in scanf format string">,
   InGroup<Format>;
@@ -9568,8 +9548,7 @@ def err_generic_sel_multi_match : Error<
 
 // Blocks
 def err_blocks_disable : Error<"blocks support disabled - compile with -fblocks"
-  " or %select{pick a deployment target that supports them|for OpenCL C 2.0"
-  " or OpenCL C 3.0 with __opencl_c_device_enqueue feature}0">;
+  " or %select{pick a deployment target that supports them|for OpenCL 2.0}0">;
 def err_block_returning_array_function : Error<
   "block cannot return %select{array|function}0 type %1">;
 
@@ -10531,15 +10510,6 @@ def err_omp_atomic_capture_not_compound_statement : Error<
   " where x is an lvalue expression with scalar type">;
 def note_omp_atomic_capture: Note<
   "%select{expected assignment expression|expected compound statement|expected exactly two expression statements|expected in right hand side of the first expression}0">;
-def err_omp_atomic_compare : Error<
-  "the statement for 'atomic compare' must be a compound statement of form '{x = expr ordop x ? expr : x;}', '{x = x ordop expr? expr : x;}',"
-  " '{x = x == e ? d : x;}', '{x = e == x ? d : x;}', or 'if(expr ordop x) {x = expr;}', 'if(x ordop expr) {x = expr;}', 'if(x == e) {x = d;}',"
-  " 'if(e == x) {x = d;}' where 'x' is an lvalue expression with scalar type, 'expr', 'e', and 'd' are expressions with scalar type,"
-  " and 'ordop' is one of '<' or '>'.">;
-def note_omp_atomic_compare: Note<
-  "%select{expected compound statement|expected exactly one expression statement|expected assignment statement|expected conditional operator|expect result value to be at false expression|"
-  "expect binary operator in conditional expression|expect '<', '>' or '==' as order operator|expect comparison in a form of 'x == e', 'e == x', 'x ordop expr', or 'expr ordop x'|"
-  "expect lvalue for result value|expect scalar value|expect integer value}0">;
 def err_omp_atomic_several_clauses : Error<
   "directive '#pragma omp atomic' cannot contain more than one 'read', 'write', 'update', 'capture', or 'compare' clause">;
 def err_omp_several_mem_order_clauses : Error<
@@ -10720,8 +10690,6 @@ def err_omp_directive_before_requires : Error <
   "'%0' region encountered before requires directive with '%1' clause">;
 def note_omp_requires_encountered_directive : Note <
   "'%0' previously encountered here">;
-def err_omp_device_ancestor_without_requires_reverse_offload : Error <
-  "Device clause with ancestor device-modifier used without specifying 'requires reverse_offload'">;
 def err_omp_invalid_scope : Error <
   "'#pragma omp %0' directive must appear only in file scope">;
 def note_omp_invalid_length_on_this_ptr_mapping : Note <
@@ -11134,10 +11102,6 @@ def err_coroutine_promise_final_suspend_requires_nothrow : Error<
 def note_coroutine_function_declare_noexcept : Note<
   "must be declared with 'noexcept'"
 >;
-def warn_always_inline_coroutine : Warning<
-  "this coroutine may be split into pieces; not every piece is guaranteed to be inlined"
-  >,
-  InGroup<AlwaysInlineCoroutine>;
 } // end of coroutines issue category
 
 let CategoryName = "Documentation Issue" in {
@@ -11476,9 +11440,6 @@ def warn_sycl_kernel_num_of_function_params : Warning<
 def warn_sycl_kernel_return_type : Warning<
   "function template with 'sycl_kernel' attribute must have a 'void' return type">,
   InGroup<IgnoredAttributes>;
-def err_sycl_special_type_num_init_method : Error<
-  "types with 'sycl_special_class' attribute must have one and only one '__init' "
-  "method defined">;
 
 def err_bit_int_bad_size : Error<"%select{signed|unsigned}0 _BitInt must "
                                  "have a bit size of at least %select{2|1}0">;
@@ -11502,7 +11463,7 @@ def warn_tcb_enforcement_violation : Warning<
 
 // RISC-V builtin required extension warning
 def err_riscv_builtin_requires_extension : Error<
-  "builtin requires at least one of the following extensions support to be enabled : %0">;
+  "builtin requires '%0' extension support to be enabled">;
 def err_riscv_builtin_invalid_lmul : Error<
   "LMUL argument must be in the range [0,3] or [5,7]">;
 } // end of sema component.

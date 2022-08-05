@@ -3,6 +3,9 @@
 //
 // RUN: %clangxx %s -o %t && %run %t 2>&1
 
+// connect() fails on Android.
+// UNSUPPORTED: android
+
 #include <assert.h>
 #include <errno.h>
 #include <netinet/in.h>
@@ -14,10 +17,10 @@ int main() {
 
   const sockaddr_in sin = {
       .sin_family = AF_INET,
-      .sin_port = htons(1234),
+      .sin_port = 1234,
       .sin_addr =
           {
-              .s_addr = htonl(INADDR_LOOPBACK),
+              .s_addr = INADDR_LOOPBACK,
           },
   };
   assert(connect(fd, reinterpret_cast<const sockaddr *>(&sin), sizeof(sin)) ==

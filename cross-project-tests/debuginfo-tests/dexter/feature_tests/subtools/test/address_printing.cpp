@@ -8,8 +8,7 @@
 //      display the address properly; if it is implemented, this test should be
 //      updated.
 //
-// The dbgeng driver doesn't support \DexLimitSteps yet.
-// UNSUPPORTED: system-windows
+// REQUIRES: lldb, system-linux
 //
 // RUN: not %dexter_regression_test -v -- %s | FileCheck %s
 

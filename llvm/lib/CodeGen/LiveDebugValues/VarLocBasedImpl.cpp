@@ -329,7 +329,7 @@ private:
       EntryValueKind,
       EntryValueBackupKind,
       EntryValueCopyBackupKind
-    } EVKind = EntryValueLocKind::NonEntryValueKind;
+    } EVKind;
 
     /// The value location. Stored separately to avoid repeatedly
     /// extracting it from MI.
@@ -397,7 +397,8 @@ private:
     VarLoc(const MachineInstr &MI, LexicalScopes &LS)
         : Var(MI.getDebugVariable(), MI.getDebugExpression(),
               MI.getDebugLoc()->getInlinedAt()),
-          Expr(MI.getDebugExpression()), MI(MI) {
+          Expr(MI.getDebugExpression()), MI(MI),
+          EVKind(EntryValueLocKind::NonEntryValueKind) {
       assert(MI.isDebugValue() && "not a DBG_VALUE");
       assert((MI.isDebugValueList() || MI.getNumOperands() == 4) &&
              "malformed DBG_VALUE");
@@ -1035,9 +1036,9 @@ public:
 //            Implementation
 //===----------------------------------------------------------------------===//
 
-VarLocBasedLDV::VarLocBasedLDV() = default;
+VarLocBasedLDV::VarLocBasedLDV() { }
 
-VarLocBasedLDV::~VarLocBasedLDV() = default;
+VarLocBasedLDV::~VarLocBasedLDV() { }
 
 /// Erase a variable from the set of open ranges, and additionally erase any
 /// fragments that may overlap it. If the VarLoc is a backup location, erase

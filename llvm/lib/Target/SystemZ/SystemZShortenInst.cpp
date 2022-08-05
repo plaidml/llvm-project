@@ -26,7 +26,11 @@ namespace {
 class SystemZShortenInst : public MachineFunctionPass {
 public:
   static char ID;
-  SystemZShortenInst();
+  SystemZShortenInst(const SystemZTargetMachine &tm);
+
+  StringRef getPassName() const override {
+    return "SystemZ Instruction Shortening";
+  }
 
   bool processBlock(MachineBasicBlock &MBB);
   bool runOnMachineFunction(MachineFunction &F) override;
@@ -52,17 +56,12 @@ private:
 char SystemZShortenInst::ID = 0;
 } // end anonymous namespace
 
-INITIALIZE_PASS(SystemZShortenInst, DEBUG_TYPE,
-                "SystemZ Instruction Shortening", false, false)
-
 FunctionPass *llvm::createSystemZShortenInstPass(SystemZTargetMachine &TM) {
-  return new SystemZShortenInst();
+  return new SystemZShortenInst(TM);
 }
 
-SystemZShortenInst::SystemZShortenInst()
-    : MachineFunctionPass(ID), TII(nullptr) {
-  initializeSystemZShortenInstPass(*PassRegistry::getPassRegistry());
-}
+SystemZShortenInst::SystemZShortenInst(const SystemZTargetMachine &tm)
+  : MachineFunctionPass(ID), TII(nullptr) {}
 
 // Tie operands if MI has become a two-address instruction.
 static void tieOpsIfNeeded(MachineInstr &MI) {

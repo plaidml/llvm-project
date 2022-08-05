@@ -10,6 +10,7 @@
 #define LLVM_SUPPORT_BINARYSTREAMREADER_H
 
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Alignment.h"
 #include "llvm/Support/BinaryStreamArray.h"
@@ -17,6 +18,7 @@
 #include "llvm/Support/ConvertUTF.h"
 #include "llvm/Support/Endian.h"
 #include "llvm/Support/Error.h"
+#include "llvm/Support/type_traits.h"
 #include <type_traits>
 
 namespace llvm {
@@ -35,11 +37,16 @@ public:
                               llvm::support::endianness Endian);
   explicit BinaryStreamReader(StringRef Data, llvm::support::endianness Endian);
 
-  BinaryStreamReader(const BinaryStreamReader &Other) = default;
+  BinaryStreamReader(const BinaryStreamReader &Other)
+      : Stream(Other.Stream), Offset(Other.Offset) {}
 
-  BinaryStreamReader &operator=(const BinaryStreamReader &Other) = default;
+  BinaryStreamReader &operator=(const BinaryStreamReader &Other) {
+    Stream = Other.Stream;
+    Offset = Other.Offset;
+    return *this;
+  }
 
-  virtual ~BinaryStreamReader() = default;
+  virtual ~BinaryStreamReader() {}
 
   /// Read as much as possible from the underlying string at the current offset
   /// without invoking a copy, and set \p Buffer to the resulting data slice.

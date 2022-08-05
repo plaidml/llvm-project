@@ -899,8 +899,8 @@ static bool VerifyHeader(llvm::ArrayRef<char> content) {
   return expectSum == actualSum;
 }
 
-Scope *ModFileReader::Read(const SourceName &name,
-    std::optional<bool> isIntrinsic, Scope *ancestor, bool silent) {
+Scope *ModFileReader::Read(
+    const SourceName &name, Scope *ancestor, bool silent) {
   std::string ancestorName; // empty for module
   if (ancestor) {
     if (auto *scope{ancestor->FindSubmodule(name)}) {
@@ -908,37 +908,16 @@ Scope *ModFileReader::Read(const SourceName &name,
     }
     ancestorName = ancestor->GetName().value().ToString();
   } else {
-    if (!isIntrinsic.value_or(false)) {
-      auto it{context_.globalScope().find(name)};
-      if (it != context_.globalScope().end()) {
-        return it->second->scope();
-      }
-    }
-    if (isIntrinsic.value_or(true)) {
-      auto it{context_.intrinsicModulesScope().find(name)};
-      if (it != context_.intrinsicModulesScope().end()) {
-        return it->second->scope();
-      }
+    auto it{context_.globalScope().find(name)};
+    if (it != context_.globalScope().end()) {
+      return it->second->scope();
     }
   }
   parser::Parsing parsing{context_.allCookedSources()};
   parser::Options options;
   options.isModuleFile = true;
   options.features.Enable(common::LanguageFeature::BackslashEscapes);
-  if (!isIntrinsic.value_or(false)) {
-    options.searchDirectories = context_.searchDirectories();
-    // If a directory is in both lists, the intrinsic module directory
-    // takes precedence.
-    for (const auto &dir : context_.intrinsicModuleDirectories()) {
-      std::remove(options.searchDirectories.begin(),
-          options.searchDirectories.end(), dir);
-    }
-  }
-  if (isIntrinsic.value_or(true)) {
-    for (const auto &dir : context_.intrinsicModuleDirectories()) {
-      options.searchDirectories.push_back(dir);
-    }
-  }
+  options.searchDirectories = context_.searchDirectories();
   auto path{ModFileName(name, ancestorName, context_.moduleFileSuffix())};
   const auto *sourceFile{parsing.Prescan(path, options)};
   if (parsing.messages().AnyFatalError()) {
@@ -967,21 +946,10 @@ Scope *ModFileReader::Read(const SourceName &name,
     return nullptr;
   }
   Scope *parentScope; // the scope this module/submodule goes into
-  if (!isIntrinsic.has_value()) {
-    for (const auto &dir : context_.intrinsicModuleDirectories()) {
-      if (sourceFile->path().size() > dir.size() &&
-          sourceFile->path().find(dir) == 0) {
-        isIntrinsic = true;
-        break;
-      }
-    }
-  }
-  Scope &topScope{isIntrinsic.value_or(false) ? context_.intrinsicModulesScope()
-                                              : context_.globalScope()};
   if (!ancestor) {
-    parentScope = &topScope;
+    parentScope = &context_.globalScope();
   } else if (std::optional<SourceName> parent{GetSubmoduleParent(*parseTree)}) {
-    parentScope = Read(*parent, false /*not intrinsic*/, ancestor, silent);
+    parentScope = Read(*parent, ancestor);
   } else {
     parentScope = ancestor;
   }
@@ -991,12 +959,9 @@ Scope *ModFileReader::Read(const SourceName &name,
   }
   Symbol &modSymbol{*pair.first->second};
   modSymbol.set(Symbol::Flag::ModFile);
-  ResolveNames(context_, *parseTree, topScope);
+  ResolveNames(context_, *parseTree);
   CHECK(modSymbol.has<ModuleDetails>());
   CHECK(modSymbol.test(Symbol::Flag::ModFile));
-  if (isIntrinsic.value_or(false)) {
-    modSymbol.attrs().set(Attr::INTRINSIC);
-  }
   return modSymbol.scope();
 }
 

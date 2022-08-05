@@ -398,8 +398,8 @@ static bool isAliasDecl(ASTContext *Context, const Decl *TheDecl,
     if (OpCall->getOperator() == OO_Star)
       return isDereferenceOfOpCall(OpCall, IndexVar);
     if (OpCall->getOperator() == OO_Subscript) {
-      return OpCall->getNumArgs() == 2 &&
-             isIndexInSubscriptExpr(OpCall->getArg(1), IndexVar);
+      assert(OpCall->getNumArgs() == 2);
+      return isIndexInSubscriptExpr(OpCall->getArg(1), IndexVar);
     }
     break;
   }

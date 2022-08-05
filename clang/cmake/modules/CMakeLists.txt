@@ -1,4 +1,3 @@
-include(ExtendPath)
 include(LLVMDistributionSupport)
 include(FindPrefixFromConfig)
 
@@ -43,9 +42,8 @@ find_prefix_from_config(CLANG_CONFIG_CODE CLANG_INSTALL_PREFIX "${CLANG_INSTALL_
 set(CLANG_CONFIG_CMAKE_DIR "\${CLANG_INSTALL_PREFIX}/${CLANG_INSTALL_PACKAGE_DIR}")
 set(CLANG_CONFIG_LLVM_CMAKE_DIR "\${CLANG_INSTALL_PREFIX}/${LLVM_INSTALL_PACKAGE_DIR}")
 get_config_exports_includes(Clang CLANG_CONFIG_INCLUDE_EXPORTS)
-extend_path(base_includedir "\${CLANG_INSTALL_PREFIX}" "${CMAKE_INSTALL_INCLUDEDIR}")
 set(CLANG_CONFIG_INCLUDE_DIRS
-  "${base_includedir}"
+  "\${CLANG_INSTALL_PREFIX}/include"
   )
 configure_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/ClangConfig.cmake.in

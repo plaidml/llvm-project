@@ -101,20 +101,20 @@ public:
     LoadStoreForwarding<fir::LoadOp, fir::StoreOp> lsf(domInfo);
     f.walk([&](fir::LoadOp loadOp) {
       auto maybeStore = lsf.findStoreToForward(
-          loadOp, getSpecificUsers<fir::StoreOp>(loadOp.getMemref()));
+          loadOp, getSpecificUsers<fir::StoreOp>(loadOp.memref()));
       if (maybeStore) {
         auto storeOp = maybeStore.getValue();
         LLVM_DEBUG(llvm::dbgs() << "FlangMemDataFlowOpt: In " << f.getName()
                                 << " erasing load " << loadOp
                                 << " with value from " << storeOp << '\n');
-        loadOp.getResult().replaceAllUsesWith(storeOp.getValue());
+        loadOp.getResult().replaceAllUsesWith(storeOp.value());
         loadOp.erase();
       }
     });
     f.walk([&](fir::AllocaOp alloca) {
       for (auto &storeOp : getSpecificUsers<fir::StoreOp>(alloca.getResult())) {
         if (!lsf.findReadForWrite(
-                storeOp, getSpecificUsers<fir::LoadOp>(storeOp.getMemref()))) {
+                storeOp, getSpecificUsers<fir::LoadOp>(storeOp.memref()))) {
           LLVM_DEBUG(llvm::dbgs() << "FlangMemDataFlowOpt: In " << f.getName()
                                   << " erasing store " << storeOp << '\n');
           storeOp.erase();

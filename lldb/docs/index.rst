@@ -158,6 +158,7 @@ interesting areas to contribute to lldb.
    :caption: Design
 
    design/overview
+   design/reproducers
    design/sbapi
 
 .. toctree::

@@ -18,7 +18,6 @@ define amdgpu_kernel void @max_alignment_128() #0 {
 ; VI-NEXT:     .amdhsa_group_segment_fixed_size 0
 ; VI-NEXT:     .amdhsa_private_segment_fixed_size 256
 ; VI-NEXT:     .amdhsa_kernarg_size 0
-; VI-NEXT:     .amdhsa_user_sgpr_count 6
 ; VI-NEXT:     .amdhsa_user_sgpr_private_segment_buffer 1
 ; VI-NEXT:     .amdhsa_user_sgpr_dispatch_ptr 0
 ; VI-NEXT:     .amdhsa_user_sgpr_queue_ptr 0
@@ -66,7 +65,6 @@ define amdgpu_kernel void @max_alignment_128() #0 {
 ; GFX9-NEXT:     .amdhsa_group_segment_fixed_size 0
 ; GFX9-NEXT:     .amdhsa_private_segment_fixed_size 256
 ; GFX9-NEXT:     .amdhsa_kernarg_size 0
-; GFX9-NEXT:     .amdhsa_user_sgpr_count 6
 ; GFX9-NEXT:     .amdhsa_user_sgpr_private_segment_buffer 1
 ; GFX9-NEXT:     .amdhsa_user_sgpr_dispatch_ptr 0
 ; GFX9-NEXT:     .amdhsa_user_sgpr_queue_ptr 0
@@ -121,7 +119,6 @@ define amdgpu_kernel void @stackrealign_attr() #1 {
 ; VI-NEXT:     .amdhsa_group_segment_fixed_size 0
 ; VI-NEXT:     .amdhsa_private_segment_fixed_size 8
 ; VI-NEXT:     .amdhsa_kernarg_size 0
-; VI-NEXT:     .amdhsa_user_sgpr_count 6
 ; VI-NEXT:     .amdhsa_user_sgpr_private_segment_buffer 1
 ; VI-NEXT:     .amdhsa_user_sgpr_dispatch_ptr 0
 ; VI-NEXT:     .amdhsa_user_sgpr_queue_ptr 0
@@ -169,7 +166,6 @@ define amdgpu_kernel void @stackrealign_attr() #1 {
 ; GFX9-NEXT:     .amdhsa_group_segment_fixed_size 0
 ; GFX9-NEXT:     .amdhsa_private_segment_fixed_size 8
 ; GFX9-NEXT:     .amdhsa_kernarg_size 0
-; GFX9-NEXT:     .amdhsa_user_sgpr_count 6
 ; GFX9-NEXT:     .amdhsa_user_sgpr_private_segment_buffer 1
 ; GFX9-NEXT:     .amdhsa_user_sgpr_dispatch_ptr 0
 ; GFX9-NEXT:     .amdhsa_user_sgpr_queue_ptr 0
@@ -224,7 +220,6 @@ define amdgpu_kernel void @alignstack_attr() #2 {
 ; VI-NEXT:     .amdhsa_group_segment_fixed_size 0
 ; VI-NEXT:     .amdhsa_private_segment_fixed_size 128
 ; VI-NEXT:     .amdhsa_kernarg_size 0
-; VI-NEXT:     .amdhsa_user_sgpr_count 6
 ; VI-NEXT:     .amdhsa_user_sgpr_private_segment_buffer 1
 ; VI-NEXT:     .amdhsa_user_sgpr_dispatch_ptr 0
 ; VI-NEXT:     .amdhsa_user_sgpr_queue_ptr 0
@@ -272,7 +267,6 @@ define amdgpu_kernel void @alignstack_attr() #2 {
 ; GFX9-NEXT:     .amdhsa_group_segment_fixed_size 0
 ; GFX9-NEXT:     .amdhsa_private_segment_fixed_size 128
 ; GFX9-NEXT:     .amdhsa_kernarg_size 0
-; GFX9-NEXT:     .amdhsa_user_sgpr_count 6
 ; GFX9-NEXT:     .amdhsa_user_sgpr_private_segment_buffer 1
 ; GFX9-NEXT:     .amdhsa_user_sgpr_dispatch_ptr 0
 ; GFX9-NEXT:     .amdhsa_user_sgpr_queue_ptr 0

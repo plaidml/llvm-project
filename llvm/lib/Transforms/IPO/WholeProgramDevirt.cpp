@@ -866,14 +866,13 @@ void updateVCallVisibilityInIndex(
   if (!hasWholeProgramVisibility(WholeProgramVisibilityEnabledInLTO))
     return;
   for (auto &P : Index) {
-    // Don't upgrade the visibility for symbols exported to the dynamic
-    // linker, as we have no information on their eventual use.
-    if (DynamicExportSymbols.count(P.first))
-      continue;
     for (auto &S : P.second.SummaryList) {
       auto *GVar = dyn_cast<GlobalVarSummary>(S.get());
       if (!GVar ||
-          GVar->getVCallVisibility() != GlobalObject::VCallVisibilityPublic)
+          GVar->getVCallVisibility() != GlobalObject::VCallVisibilityPublic ||
+          // Don't upgrade the visibility for symbols exported to the dynamic
+          // linker, as we have no information on their eventual use.
+          DynamicExportSymbols.count(P.first))
         continue;
       GVar->setVCallVisibility(GlobalObject::VCallVisibilityLinkageUnit);
     }
@@ -971,7 +970,7 @@ bool DevirtModule::runForTesting(
     if (StringRef(ClWriteSummary).endswith(".bc")) {
       raw_fd_ostream OS(ClWriteSummary, EC, sys::fs::OF_None);
       ExitOnErr(errorCodeToError(EC));
-      writeIndexToFile(*Summary, OS);
+      WriteIndexToFile(*Summary, OS);
     } else {
       raw_fd_ostream OS(ClWriteSummary, EC, sys::fs::OF_TextWithCRLF);
       ExitOnErr(errorCodeToError(EC));

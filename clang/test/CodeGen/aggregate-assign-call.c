@@ -15,7 +15,7 @@ struct S foo(void);
 
 // CHECK-LABEL: define dso_local void @bar
 __attribute__((optnone))
-struct S bar(void) {
+struct S bar() {
   // O0-NOT: @llvm.lifetime.start
   // O0-NOT: @llvm.lifetime.end
 

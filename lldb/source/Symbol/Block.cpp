@@ -13,7 +13,6 @@
 #include "lldb/Symbol/Function.h"
 #include "lldb/Symbol/SymbolFile.h"
 #include "lldb/Symbol/VariableList.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
 
 #include <memory>
@@ -335,7 +334,7 @@ void Block::FinalizeRanges() {
 void Block::AddRange(const Range &range) {
   Block *parent_block = GetParent();
   if (parent_block && !parent_block->Contains(range)) {
-    Log *log = GetLog(LLDBLog::Symbols);
+    Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_SYMBOLS));
     if (log) {
       ModuleSP module_sp(m_parent_scope->CalculateSymbolContextModule());
       Function *function = m_parent_scope->CalculateSymbolContextFunction();

@@ -726,8 +726,7 @@ public:
 
   virtual bool HandlePrintfSpecifier(const analyze_printf::PrintfSpecifier &FS,
                                      const char *startSpecifier,
-                                     unsigned specifierLen,
-                                     const TargetInfo &Target) {
+                                     unsigned specifierLen) {
     return true;
   }
 

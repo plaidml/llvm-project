@@ -23,8 +23,7 @@ class ScriptedProcessInterface : virtual public ScriptedInterface {
 public:
   StructuredData::GenericSP
   CreatePluginObject(llvm::StringRef class_name, ExecutionContext &exe_ctx,
-                     StructuredData::DictionarySP args_sp,
-                     StructuredData::Generic *script_obj = nullptr) override {
+                     StructuredData::DictionarySP args_sp) override {
     return nullptr;
   }
 
@@ -41,8 +40,6 @@ public:
     error.SetErrorString("ScriptedProcess have no memory region.");
     return {};
   }
-
-  virtual StructuredData::DictionarySP GetThreadsInfo() { return nullptr; }
 
   virtual StructuredData::DictionarySP GetThreadWithID(lldb::tid_t tid) {
     return nullptr;
@@ -69,17 +66,18 @@ public:
 
 protected:
   friend class ScriptedThread;
-  virtual lldb::ScriptedThreadInterfaceSP CreateScriptedThreadInterface() {
+  virtual lldb::ScriptedThreadInterfaceSP GetScriptedThreadInterface() {
     return nullptr;
   }
+
+  lldb::ScriptedThreadInterfaceSP m_scripted_thread_interface_sp = nullptr;
 };
 
 class ScriptedThreadInterface : virtual public ScriptedInterface {
 public:
   StructuredData::GenericSP
   CreatePluginObject(llvm::StringRef class_name, ExecutionContext &exe_ctx,
-                     StructuredData::DictionarySP args_sp,
-                     StructuredData::Generic *script_obj = nullptr) override {
+                     StructuredData::DictionarySP args_sp) override {
     return nullptr;
   }
 

@@ -37,10 +37,10 @@ enum EdgeKind_riscv : Edge::Kind {
   ///
   R_RISCV_64,
 
-  /// PC-relative branch pointer value relocation
+  /// Low 12 bits of PC-relative branch pointer value relocation
   ///
   /// Fixup expression:
-  ///   Fixup <- (Target - Fixup + Addend)
+  ///   Fixup <- (Target - Fixup + Addend) & 0xFFF
   ///
   R_RISCV_BRANCH,
 
@@ -78,12 +78,6 @@ enum EdgeKind_riscv : Edge::Kind {
   /// Fixup expression:
   ///   Fixup <- (Target - Fixup + Addend)
   R_RISCV_CALL,
-
-  /// 32 bits PC relative relocation
-  ///
-  /// Fixup expression:
-  ///   Fixup <- (Target - Fixup + Addend)
-  R_RISCV_32_PCREL,
 
   /// PC relative GOT offset
   ///
@@ -143,31 +137,7 @@ enum EdgeKind_riscv : Edge::Kind {
   ///
   /// Fixup expression
   ///   Fixup <- (Target - *{1}Fixup - Addend)
-  R_RISCV_SUB8,
-
-  /// Local label assignment
-  ///
-  /// Fixup expression:
-  ///   Fixup <- (Target + Addend)
-  R_RISCV_SET6,
-
-  /// Local label assignment
-  ///
-  /// Fixup expression:
-  ///   Fixup <- (Target + Addend)
-  R_RISCV_SET8,
-
-  /// Local label assignment
-  ///
-  /// Fixup expression:
-  ///   Fixup <- (Target + Addend)
-  R_RISCV_SET16,
-
-  /// Local label assignment
-  ///
-  /// Fixup expression:
-  ///   Fixup <- (Target + Addend)
-  R_RISCV_SET32,
+  R_RISCV_SUB8
 };
 
 /// Returns a string name for the given riscv edge. For debugging purposes

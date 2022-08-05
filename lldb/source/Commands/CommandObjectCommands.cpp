@@ -38,7 +38,8 @@ public:
       : CommandObjectParsed(
             interpreter, "command source",
             "Read and execute LLDB commands from the file <filename>.",
-            nullptr) {
+            nullptr),
+        m_options() {
     CommandArgumentEntry arg;
     CommandArgumentData file_arg;
 
@@ -56,9 +57,9 @@ public:
 
   ~CommandObjectCommandsSource() override = default;
 
-  llvm::Optional<std::string> GetRepeatCommand(Args &current_command_args,
-                                               uint32_t index) override {
-    return std::string("");
+  const char *GetRepeatCommand(Args &current_command_args,
+                               uint32_t index) override {
+    return "";
   }
 
   void
@@ -75,8 +76,8 @@ protected:
   class CommandOptions : public Options {
   public:
     CommandOptions()
-        : m_stop_on_error(true), m_silent_run(false), m_stop_on_continue(true),
-          m_cmd_relative_to_command_file(false) {}
+        : Options(), m_stop_on_error(true), m_silent_run(false),
+          m_stop_on_continue(true), m_cmd_relative_to_command_file(false) {}
 
     ~CommandOptions() override = default;
 
@@ -206,7 +207,7 @@ class CommandObjectCommandsAlias : public CommandObjectRaw {
 protected:
   class CommandOptions : public OptionGroup {
   public:
-    CommandOptions() {}
+    CommandOptions() : OptionGroup(), m_help(), m_long_help() {}
 
     ~CommandOptions() override = default;
 
@@ -257,7 +258,8 @@ public:
   CommandObjectCommandsAlias(CommandInterpreter &interpreter)
       : CommandObjectRaw(
             interpreter, "command alias",
-            "Define a custom command in terms of an existing command.") {
+            "Define a custom command in terms of an existing command."),
+        m_option_group(), m_command_options() {
     m_option_group.Append(&m_command_options);
     m_option_group.Finalize();
 
@@ -483,9 +485,8 @@ protected:
     OptionArgVectorSP option_arg_vector_sp =
         OptionArgVectorSP(new OptionArgVector);
 
-    const bool include_aliases = true;
-    if (CommandObjectSP cmd_obj_sp = m_interpreter.GetCommandSPExact(
-            cmd_obj.GetCommandName(), include_aliases)) {
+    if (CommandObjectSP cmd_obj_sp =
+            m_interpreter.GetCommandSPExact(cmd_obj.GetCommandName())) {
       if (m_interpreter.AliasExists(alias_command) ||
           m_interpreter.UserCommandExists(alias_command)) {
         result.AppendWarningWithFormat(
@@ -791,7 +792,8 @@ public:
             "regular expressions.",
             "command regex <cmd-name> [s/<regex>/<subst>/ ...]"),
         IOHandlerDelegateMultiline("",
-                                   IOHandlerDelegate::Completion::LLDBCommand) {
+                                   IOHandlerDelegate::Completion::LLDBCommand),
+        m_options() {
     SetHelpLong(
         R"(
 )"
@@ -1022,7 +1024,7 @@ private:
 
   class CommandOptions : public Options {
   public:
-    CommandOptions() {}
+    CommandOptions() : Options() {}
 
     ~CommandOptions() override = default;
 
@@ -1236,7 +1238,8 @@ class CommandObjectCommandsScriptImport : public CommandObjectParsed {
 public:
   CommandObjectCommandsScriptImport(CommandInterpreter &interpreter)
       : CommandObjectParsed(interpreter, "command script import",
-                            "Import a scripting module in LLDB.", nullptr) {
+                            "Import a scripting module in LLDB.", nullptr),
+        m_options() {
     CommandArgumentEntry arg1;
     CommandArgumentData cmd_arg;
 
@@ -1267,7 +1270,7 @@ public:
 protected:
   class CommandOptions : public Options {
   public:
-    CommandOptions() {}
+    CommandOptions() : Options() {}
 
     ~CommandOptions() override = default;
 
@@ -1391,7 +1394,7 @@ public:
                             "must be a path to a user-added container "
                             "command, and the last element will be the new "
                             "command name."),
-        IOHandlerDelegateMultiline("DONE") {
+        IOHandlerDelegateMultiline("DONE"), m_options() {
     CommandArgumentEntry arg1;
     CommandArgumentData cmd_arg;
 
@@ -1422,7 +1425,8 @@ public:
 protected:
   class CommandOptions : public Options {
   public:
-    CommandOptions() {}
+    CommandOptions()
+        : Options(), m_class_name(), m_funct_name(), m_short_help() {}
 
     ~CommandOptions() override = default;
 
@@ -1879,7 +1883,7 @@ public:
 protected:
   class CommandOptions : public Options {
   public:
-    CommandOptions() {}
+    CommandOptions() : Options(), m_short_help(), m_long_help() {}
 
     ~CommandOptions() override = default;
 

@@ -1,4 +1,6 @@
-// A contrived example to test the double jump removal peephole.
+/*
+ * A contrived example to test the double jump removal peephole.
+ */
 
 extern "C" unsigned long bar(unsigned long count) {
   return count + 1;

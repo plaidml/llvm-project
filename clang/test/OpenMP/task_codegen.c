@@ -13,10 +13,10 @@
 typedef void *omp_depend_t;
 typedef __UINTPTR_TYPE__ omp_event_handle_t;
 
-void foo(void);
+void foo();
 
 // CHECK-LABEL: @main
-int main(void) {
+int main() {
   omp_depend_t d, x;
   omp_event_handle_t evt;
   int a, *b;
@@ -131,7 +131,7 @@ int main(void) {
 // CHECK: call void @__kmpc_end_taskgroup(
 
 // CHECK-LINE: @bar
-void bar(void) {
+void bar() {
   int **a;
   // CHECK: call void @__kmpc_for_static_init_4(
 #pragma omp for

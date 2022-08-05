@@ -1326,8 +1326,6 @@ llvm::json::Value toJSON(InlayHintKind K) {
     return "parameter";
   case InlayHintKind::TypeHint:
     return "type";
-  case InlayHintKind::DesignatorHint:
-    return "designator";
   }
   llvm_unreachable("Unknown clang.clangd.InlayHintKind");
 }

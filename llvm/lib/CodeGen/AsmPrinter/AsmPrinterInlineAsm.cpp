@@ -26,7 +26,6 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/MC/MCAsmInfo.h"
-#include "llvm/MC/MCParser/MCAsmLexer.h"
 #include "llvm/MC/MCParser/MCTargetAsmParser.h"
 #include "llvm/MC/MCStreamer.h"
 #include "llvm/MC/MCSubtargetInfo.h"
@@ -399,9 +398,9 @@ void AsmPrinter::emitInlineAsm(const MachineInstr *MI) const {
   if (!RestrRegs.empty()) {
     std::string Msg = "inline asm clobber list contains reserved registers: ";
     ListSeparator LS;
-    for (const Register RR : RestrRegs) {
+    for (const Register &RR : RestrRegs) {
       Msg += LS;
-      Msg += TRI->getRegAsmName(RR);
+      Msg += TRI->getName(RR);
     }
     const char *Note =
         "Reserved registers on the clobber list may not be "

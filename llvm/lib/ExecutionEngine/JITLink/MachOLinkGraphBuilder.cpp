@@ -19,7 +19,7 @@ static const char *CommonSectionName = "__common";
 namespace llvm {
 namespace jitlink {
 
-MachOLinkGraphBuilder::~MachOLinkGraphBuilder() = default;
+MachOLinkGraphBuilder::~MachOLinkGraphBuilder() {}
 
 Expected<std::unique_ptr<LinkGraph>> MachOLinkGraphBuilder::buildGraph() {
 

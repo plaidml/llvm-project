@@ -30,6 +30,8 @@
 #include "llvm/IR/Operator.h"
 #include "llvm/IR/PatternMatch.h"
 #include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/ManagedStatic.h"
+#include "llvm/Support/MathExtras.h"
 using namespace llvm;
 using namespace llvm::PatternMatch;
 
@@ -117,21 +119,21 @@ static Constant *FoldBitCast(Constant *V, Type *DestTy) {
     if (PointerType *DPTy = dyn_cast<PointerType>(DestTy))
       if (PTy->getAddressSpace() == DPTy->getAddressSpace() &&
           !PTy->isOpaque() && !DPTy->isOpaque() &&
-          PTy->getNonOpaquePointerElementType()->isSized()) {
+          PTy->getElementType()->isSized()) {
         SmallVector<Value*, 8> IdxList;
         Value *Zero =
           Constant::getNullValue(Type::getInt32Ty(DPTy->getContext()));
         IdxList.push_back(Zero);
-        Type *ElTy = PTy->getNonOpaquePointerElementType();
-        while (ElTy && ElTy != DPTy->getNonOpaquePointerElementType()) {
+        Type *ElTy = PTy->getElementType();
+        while (ElTy && ElTy != DPTy->getElementType()) {
           ElTy = GetElementPtrInst::getTypeAtIndex(ElTy, (uint64_t)0);
           IdxList.push_back(Zero);
         }
 
-        if (ElTy == DPTy->getNonOpaquePointerElementType())
+        if (ElTy == DPTy->getElementType())
           // This GEP is inbounds because all indices are zero.
-          return ConstantExpr::getInBoundsGetElementPtr(
-              PTy->getNonOpaquePointerElementType(), V, IdxList);
+          return ConstantExpr::getInBoundsGetElementPtr(PTy->getElementType(),
+                                                        V, IdxList);
       }
 
   // Handle casts from one vector constant to another.  We know that the src
@@ -2094,12 +2096,11 @@ Constant *llvm::ConstantFoldGetElementPtr(Type *PointeeTy, Constant *C,
       PointerType *SrcPtrTy =
         dyn_cast<PointerType>(CE->getOperand(0)->getType());
       PointerType *DstPtrTy = dyn_cast<PointerType>(CE->getType());
-      if (SrcPtrTy && DstPtrTy && !SrcPtrTy->isOpaque() &&
-          !DstPtrTy->isOpaque()) {
+      if (SrcPtrTy && DstPtrTy) {
         ArrayType *SrcArrayTy =
-          dyn_cast<ArrayType>(SrcPtrTy->getNonOpaquePointerElementType());
+          dyn_cast<ArrayType>(SrcPtrTy->getElementType());
         ArrayType *DstArrayTy =
-          dyn_cast<ArrayType>(DstPtrTy->getNonOpaquePointerElementType());
+          dyn_cast<ArrayType>(DstPtrTy->getElementType());
         if (SrcArrayTy && DstArrayTy
             && SrcArrayTy->getElementType() == DstArrayTy->getElementType()
             && SrcPtrTy->getAddressSpace() == DstPtrTy->getAddressSpace())

@@ -51,7 +51,7 @@ protected:
   DwarfFile *DU;
 
   /// An anonymous type for index type.  Owned by DIEUnit.
-  DIE *IndexTyDie = nullptr;
+  DIE *IndexTyDie;
 
   /// Tracks the mapping of unit level debug information variables to debug
   /// information entries.

@@ -552,7 +552,7 @@ public:
   MachineBasicBlock::iterator
   insertOutlinedCall(Module &M, MachineBasicBlock &MBB,
                      MachineBasicBlock::iterator &It, MachineFunction &MF,
-                     outliner::Candidate &C) const override;
+                     const outliner::Candidate &C) const override;
 
 #define GET_INSTRINFO_HELPER_DECLS
 #include "X86GenInstrInfo.inc"

@@ -30,13 +30,12 @@
 #include "llvm/Support/Error.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/MathExtras.h"
-#include "llvm/Support/MemAlloc.h"
 #include "llvm/Support/TypeSize.h"
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
 #include <cstdlib>
-#include <new>
+#include <tuple>
 #include <utility>
 
 using namespace llvm;

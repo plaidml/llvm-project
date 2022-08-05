@@ -35,6 +35,7 @@ MCAsmBackend *createCSKYAsmBackend(const Target &T, const MCSubtargetInfo &STI,
                                    const MCTargetOptions &Options);
 
 MCCodeEmitter *createCSKYMCCodeEmitter(const MCInstrInfo &MCII,
+                                       const MCRegisterInfo &MRI,
                                        MCContext &Ctx);
 } // namespace llvm
 

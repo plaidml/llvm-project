@@ -1898,14 +1898,6 @@ public:
   }
 };
 
-MCPlusBuilder *createX86MCPlusBuilder(const MCInstrAnalysis *,
-                                      const MCInstrInfo *,
-                                      const MCRegisterInfo *);
-
-MCPlusBuilder *createAArch64MCPlusBuilder(const MCInstrAnalysis *,
-                                          const MCInstrInfo *,
-                                          const MCRegisterInfo *);
-
 } // namespace bolt
 } // namespace llvm
 

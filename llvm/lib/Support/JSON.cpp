@@ -12,7 +12,6 @@
 #include "llvm/Support/Error.h"
 #include "llvm/Support/Format.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/NativeFormatting.h"
 #include <cctype>
 
 namespace llvm {

@@ -314,7 +314,8 @@ unsigned DIE::computeOffsetsAndAbbrevs(const dwarf::FormParams &FormParams,
 //===----------------------------------------------------------------------===//
 // DIEUnit Implementation
 //===----------------------------------------------------------------------===//
-DIEUnit::DIEUnit(dwarf::Tag UnitTag) : Die(UnitTag) {
+DIEUnit::DIEUnit(dwarf::Tag UnitTag)
+    : Die(UnitTag), Section(nullptr), Offset(0) {
   Die.Owner = this;
   assert((UnitTag == dwarf::DW_TAG_compile_unit ||
           UnitTag == dwarf::DW_TAG_skeleton_unit ||

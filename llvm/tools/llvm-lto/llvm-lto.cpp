@@ -46,7 +46,6 @@
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/WithColor.h"
 #include "llvm/Target/TargetOptions.h"
 #include <algorithm>
 #include <cassert>
@@ -497,7 +496,7 @@ static void createCombinedModuleSummaryIndex() {
   raw_fd_ostream OS(OutputFilename + ".thinlto.bc", EC,
                     sys::fs::OpenFlags::OF_None);
   error(EC, "error opening the file '" + OutputFilename + ".thinlto.bc'");
-  writeIndexToFile(CombinedIndex, OS);
+  WriteIndexToFile(CombinedIndex, OS);
   OS.close();
 }
 
@@ -660,7 +659,7 @@ private:
     std::error_code EC;
     raw_fd_ostream OS(OutputFilename, EC, sys::fs::OpenFlags::OF_None);
     error(EC, "error opening the file '" + OutputFilename + "'");
-    writeIndexToFile(*CombinedIndex, OS);
+    WriteIndexToFile(*CombinedIndex, OS);
   }
 
   /// Load the combined index from disk, then compute and generate
@@ -698,7 +697,7 @@ private:
       std::error_code EC;
       raw_fd_ostream OS(OutputName, EC, sys::fs::OpenFlags::OF_None);
       error(EC, "error opening the file '" + OutputName + "'");
-      writeIndexToFile(*Index, OS, &ModuleToSummariesForIndex);
+      WriteIndexToFile(*Index, OS, &ModuleToSummariesForIndex);
     }
   }
 

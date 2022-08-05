@@ -35,7 +35,7 @@ if.then:                                          ; preds = %entry
 ; CHECK-LABEL: double_return:
 ; HARDEN:          {{bx lr$}}
 ; NOHARDENARM:     {{bxgt lr$}}
-; NOHARDENTHUMB:   {{bxgt lr$}}
+; NOHARDENTHUMB:   {{bx lr$}}
 ; ISBDSB-NEXT: dsb sy
 ; ISBDSB-NEXT: isb
 ; SB-NEXT:     {{ sb$}}

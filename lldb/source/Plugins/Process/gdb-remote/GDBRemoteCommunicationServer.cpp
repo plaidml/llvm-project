@@ -138,7 +138,7 @@ GDBRemoteCommunicationServer::Handle_QErrorStringEnable(
 GDBRemoteCommunication::PacketResult
 GDBRemoteCommunicationServer::SendIllFormedResponse(
     const StringExtractorGDBRemote &failed_packet, const char *message) {
-  Log *log = GetLog(GDBRLog::Packets);
+  Log *log(ProcessGDBRemoteLog::GetLogIfAllCategoriesSet(GDBR_LOG_PACKETS));
   LLDB_LOGF(log, "GDBRemoteCommunicationServer::%s: ILLFORMED: '%s' (%s)",
             __FUNCTION__, failed_packet.GetStringRef().data(),
             message ? message : "");

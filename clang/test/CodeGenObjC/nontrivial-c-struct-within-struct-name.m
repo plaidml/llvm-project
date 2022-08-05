@@ -14,9 +14,9 @@ typedef struct {
   Bar bar;
 } Baz;
 
-I *getI(void);
+I *getI();
 
-void f(void) {
+void f() {
   Foo foo = {getI()};
   Bar bar = {foo};
   Baz baz = {bar};

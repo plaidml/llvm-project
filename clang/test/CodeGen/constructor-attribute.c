@@ -14,9 +14,9 @@
 // CHECK: define internal void @G()
 // CHECK: define{{.*}} i32 @__GLOBAL_init_789(i32 noundef %{{.*}})
 // CHECK: define internal void @C()
-// CHECK: define internal i32 @foo()
 // CHECK: define internal void @D()
 // CHECK: define{{.*}} i32 @main()
+// CHECK: define internal i32 @foo()
 // WITHOUTATEXIT-NOT: define
 
 // CXAATEXIT: define internal void @__GLOBAL_init_123(){{.*}}section "__TEXT,__StaticInit,regular,pure_instructions" !dbg ![[GLOBAL_INIT_SP:.*]] {
@@ -38,28 +38,28 @@
 
 int printf(const char *, ...);
 
-void A(void) __attribute__((constructor));
-void B(void) __attribute__((destructor));
+void A() __attribute__((constructor));
+void B() __attribute__((destructor));
 
-void A(void) {
+void A() {
   printf("A\n");
 }
 
-void B(void) {
+void B() {
   printf("B\n");
 }
 
-static void C(void) __attribute__((constructor));
+static void C() __attribute__((constructor));
 
-static void D(void) __attribute__((destructor));
+static void D() __attribute__((destructor));
 
-static __attribute__((destructor(123))) void E(void) {
+static __attribute__((destructor(123))) void E() {
 }
 
-static __attribute__((destructor(789))) void F(void) {
+static __attribute__((destructor(789))) void F() {
 }
 
-static __attribute__((destructor(123))) void G(void) {
+static __attribute__((destructor(123))) void G() {
 }
 
 // Test that this function doesn't collide with the synthesized constructor
@@ -68,19 +68,19 @@ int __GLOBAL_init_789(int a) {
   return a * a;
 }
 
-static int foo(void) {
+static int foo() {
   return 10;
 }
 
-static void C(void) {
+static void C() {
   printf("A: %d\n", foo());
 }
 
-static void D(void) {
+static void D() {
   printf("B\n");
 }
 
-int main(void) {
+int main() {
   return 0;
 }
 

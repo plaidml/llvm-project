@@ -30,7 +30,7 @@ public:
   typedef function_ref<bool(StringRef::iterator Loc, const Twine &)>
       ErrorCallbackType;
 
-  MIRFormatter() = default;
+  MIRFormatter() {}
   virtual ~MIRFormatter() = default;
 
   /// Implement target specific printing for machine operand immediate value, so

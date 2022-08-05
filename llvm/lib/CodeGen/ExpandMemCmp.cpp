@@ -70,8 +70,8 @@ class MemCmpExpansion {
   CallInst *const CI;
   ResultBlock ResBlock;
   const uint64_t Size;
-  unsigned MaxLoadSize = 0;
-  uint64_t NumLoadsNonOneByte = 0;
+  unsigned MaxLoadSize;
+  uint64_t NumLoadsNonOneByte;
   const uint64_t NumLoadsPerBlockForZeroCmp;
   std::vector<BasicBlock *> LoadCmpBlocks;
   BasicBlock *EndBlock;
@@ -219,7 +219,8 @@ MemCmpExpansion::MemCmpExpansion(
     const TargetTransformInfo::MemCmpExpansionOptions &Options,
     const bool IsUsedForZeroCmp, const DataLayout &TheDataLayout,
     DomTreeUpdater *DTU)
-    : CI(CI), Size(Size), NumLoadsPerBlockForZeroCmp(Options.NumLoadsPerBlock),
+    : CI(CI), Size(Size), MaxLoadSize(0), NumLoadsNonOneByte(0),
+      NumLoadsPerBlockForZeroCmp(Options.NumLoadsPerBlock),
       IsUsedForZeroCmp(IsUsedForZeroCmp), DL(TheDataLayout), DTU(DTU),
       Builder(CI) {
   assert(Size > 0 && "zero blocks");

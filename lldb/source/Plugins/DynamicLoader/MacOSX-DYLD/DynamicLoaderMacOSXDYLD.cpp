@@ -27,7 +27,6 @@
 #include "lldb/Target/ThreadPlanRunToAddress.h"
 #include "lldb/Utility/DataBuffer.h"
 #include "lldb/Utility/DataBufferHeap.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/State.h"
 
@@ -534,7 +533,7 @@ bool DynamicLoaderMacOSXDYLD::ReadAllImageInfosStructure() {
 bool DynamicLoaderMacOSXDYLD::AddModulesUsingImageInfosAddress(
     lldb::addr_t image_infos_addr, uint32_t image_infos_count) {
   ImageInfo::collection image_infos;
-  Log *log = GetLog(LLDBLog::DynamicLoader);
+  Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_DYNAMIC_LOADER));
   LLDB_LOGF(log, "Adding %d modules.\n", image_infos_count);
 
   std::lock_guard<std::recursive_mutex> guard(m_mutex);
@@ -575,7 +574,7 @@ bool DynamicLoaderMacOSXDYLD::AddModulesUsingImageInfosAddress(
 bool DynamicLoaderMacOSXDYLD::RemoveModulesUsingImageInfosAddress(
     lldb::addr_t image_infos_addr, uint32_t image_infos_count) {
   ImageInfo::collection image_infos;
-  Log *log = GetLog(LLDBLog::DynamicLoader);
+  Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_DYNAMIC_LOADER));
 
   std::lock_guard<std::recursive_mutex> guard(m_mutex);
   std::lock_guard<std::recursive_mutex> baseclass_guard(GetMutex());
@@ -699,7 +698,7 @@ bool DynamicLoaderMacOSXDYLD::ReadImageInfos(
 // thereof).  Only do this if this is the first time we're reading the dyld
 // infos.  Return true if we actually read anything, and false otherwise.
 bool DynamicLoaderMacOSXDYLD::InitializeFromAllImageInfos() {
-  Log *log = GetLog(LLDBLog::DynamicLoader);
+  Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_DYNAMIC_LOADER));
 
   std::lock_guard<std::recursive_mutex> guard(m_mutex);
   std::lock_guard<std::recursive_mutex> baseclass_guard(GetMutex());

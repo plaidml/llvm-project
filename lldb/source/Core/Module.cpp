@@ -39,8 +39,8 @@
 #include "lldb/Target/Target.h"
 #include "lldb/Utility/DataBufferHeap.h"
 #include "lldb/Utility/LLDBAssert.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
+#include "lldb/Utility/Logging.h"
 #include "lldb/Utility/RegularExpression.h"
 #include "lldb/Utility/Status.h"
 #include "lldb/Utility/Stream.h"
@@ -138,7 +138,8 @@ Module::Module(const ModuleSpec &module_spec)
     GetModuleCollection().push_back(this);
   }
 
-  Log *log(GetLog(LLDBLog::Object | LLDBLog::Modules));
+  Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_OBJECT |
+                                                  LIBLLDB_LOG_MODULES));
   if (log != nullptr)
     LLDB_LOGF(log, "%p Module::Module((%s) '%s%s%s%s')",
               static_cast<void *>(this),
@@ -250,7 +251,8 @@ Module::Module(const FileSpec &file_spec, const ArchSpec &arch,
   if (object_name)
     m_object_name = *object_name;
 
-  Log *log(GetLog(LLDBLog::Object | LLDBLog::Modules));
+  Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_OBJECT |
+                                                  LIBLLDB_LOG_MODULES));
   if (log != nullptr)
     LLDB_LOGF(log, "%p Module::Module((%s) '%s%s%s%s')",
               static_cast<void *>(this), m_arch.GetArchitectureName(),
@@ -279,7 +281,8 @@ Module::~Module() {
     assert(pos != end);
     modules.erase(pos);
   }
-  Log *log(GetLog(LLDBLog::Object | LLDBLog::Modules));
+  Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_OBJECT |
+                                                  LIBLLDB_LOG_MODULES));
   if (log != nullptr)
     LLDB_LOGF(log, "%p Module::~Module((%s) '%s%s%s%s')",
               static_cast<void *>(this), m_arch.GetArchitectureName(),
@@ -1626,7 +1629,7 @@ void Module::RegisterXcodeSDK(llvm::StringRef sdk_name,
 bool Module::MergeArchitecture(const ArchSpec &arch_spec) {
   if (!arch_spec.IsValid())
     return false;
-  LLDB_LOGF(GetLog(LLDBLog::Object | LLDBLog::Modules),
+  LLDB_LOGF(GetLogIfAllCategoriesSet(LIBLLDB_LOG_OBJECT | LIBLLDB_LOG_MODULES),
             "module has arch %s, merging/replacing with arch %s",
             m_arch.GetTriple().getTriple().c_str(),
             arch_spec.GetTriple().getTriple().c_str());

@@ -33,17 +33,17 @@ void AsyncDialect::initialize() {
 // YieldOp
 //===----------------------------------------------------------------------===//
 
-LogicalResult YieldOp::verify() {
+static LogicalResult verify(YieldOp op) {
   // Get the underlying value types from async values returned from the
   // parent `async.execute` operation.
-  auto executeOp = (*this)->getParentOfType<ExecuteOp>();
+  auto executeOp = op->getParentOfType<ExecuteOp>();
   auto types = llvm::map_range(executeOp.results(), [](const OpResult &result) {
     return result.getType().cast<ValueType>().getValueType();
   });
 
-  if (getOperandTypes() != types)
-    return emitOpError("operand types do not match the types returned from "
-                       "the parent ExecuteOp");
+  if (op.getOperandTypes() != types)
+    return op.emitOpError("operand types do not match the types returned from "
+                          "the parent ExecuteOp");
 
   return success();
 }
@@ -125,16 +125,16 @@ void ExecuteOp::build(OpBuilder &builder, OperationState &result,
   }
 }
 
-void ExecuteOp::print(OpAsmPrinter &p) {
+static void print(OpAsmPrinter &p, ExecuteOp op) {
   // [%tokens,...]
-  if (!dependencies().empty())
-    p << " [" << dependencies() << "]";
+  if (!op.dependencies().empty())
+    p << " [" << op.dependencies() << "]";
 
   // (%value as %unwrapped: !async.value<!arg.type>, ...)
-  if (!operands().empty()) {
+  if (!op.operands().empty()) {
     p << " (";
-    Block *entry = body().empty() ? nullptr : &body().front();
-    llvm::interleaveComma(operands(), p, [&, n = 0](Value operand) mutable {
+    Block *entry = op.body().empty() ? nullptr : &op.body().front();
+    llvm::interleaveComma(op.operands(), p, [&, n = 0](Value operand) mutable {
       Value argument = entry ? entry->getArgument(n++) : Value();
       p << operand << " as " << argument << ": " << operand.getType();
     });
@@ -142,14 +142,14 @@ void ExecuteOp::print(OpAsmPrinter &p) {
   }
 
   // -> (!async.value<!return.type>, ...)
-  p.printOptionalArrowTypeList(llvm::drop_begin(getResultTypes()));
-  p.printOptionalAttrDictWithKeyword((*this)->getAttrs(),
+  p.printOptionalArrowTypeList(llvm::drop_begin(op.getResultTypes()));
+  p.printOptionalAttrDictWithKeyword(op->getAttrs(),
                                      {kOperandSegmentSizesAttr});
   p << ' ';
-  p.printRegion(body(), /*printEntryBlockArgs=*/false);
+  p.printRegion(op.body(), /*printEntryBlockArgs=*/false);
 }
 
-ParseResult ExecuteOp::parse(OpAsmParser &parser, OperationState &result) {
+static ParseResult parseExecuteOp(OpAsmParser &parser, OperationState &result) {
   MLIRContext *ctx = result.getContext();
 
   // Sizes of parsed variadic operands, will be updated below after parsing.
@@ -228,16 +228,16 @@ ParseResult ExecuteOp::parse(OpAsmParser &parser, OperationState &result) {
   return success();
 }
 
-LogicalResult ExecuteOp::verify() {
+static LogicalResult verify(ExecuteOp op) {
   // Unwrap async.execute value operands types.
-  auto unwrappedTypes = llvm::map_range(operands(), [](Value operand) {
+  auto unwrappedTypes = llvm::map_range(op.operands(), [](Value operand) {
     return operand.getType().cast<ValueType>().getValueType();
   });
 
   // Verify that unwrapped argument types matches the body region arguments.
-  if (body().getArgumentTypes() != unwrappedTypes)
-    return emitOpError("async body region argument types do not match the "
-                       "execute operation arguments types");
+  if (op.body().getArgumentTypes() != unwrappedTypes)
+    return op.emitOpError("async body region argument types do not match the "
+                          "execute operation arguments types");
 
   return success();
 }
@@ -303,19 +303,19 @@ static void printAwaitResultType(OpAsmPrinter &p, Operation *op,
   p << operandType;
 }
 
-LogicalResult AwaitOp::verify() {
-  Type argType = operand().getType();
+static LogicalResult verify(AwaitOp op) {
+  Type argType = op.operand().getType();
 
   // Awaiting on a token does not have any results.
-  if (argType.isa<TokenType>() && !getResultTypes().empty())
-    return emitOpError("awaiting on a token must have empty result");
+  if (argType.isa<TokenType>() && !op.getResultTypes().empty())
+    return op.emitOpError("awaiting on a token must have empty result");
 
   // Awaiting on a value unwraps the async value type.
   if (auto value = argType.dyn_cast<ValueType>()) {
-    if (*getResultType() != value.getValueType())
-      return emitOpError() << "result type " << *getResultType()
-                           << " does not match async value type "
-                           << value.getValueType();
+    if (*op.getResultType() != value.getValueType())
+      return op.emitOpError()
+             << "result type " << *op.getResultType()
+             << " does not match async value type " << value.getValueType();
   }
 
   return success();

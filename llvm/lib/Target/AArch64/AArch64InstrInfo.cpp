@@ -93,18 +93,9 @@ unsigned AArch64InstrInfo::getInstSizeInBytes(const MachineInstr &MI) const {
   //        before the assembly printer.
   unsigned NumBytes = 0;
   const MCInstrDesc &Desc = MI.getDesc();
-
-  // Size should be preferably set in
-  // llvm/lib/Target/AArch64/AArch64InstrInfo.td (default case).
-  // Specific cases handle instructions of variable sizes
   switch (Desc.getOpcode()) {
   default:
-    if (Desc.getSize())
-      return Desc.getSize();
-
-    // Anything not explicitly designated otherwise (i.e. pseudo-instructions
-    // with fixed constant size but not specified in .td file) is a normal
-    // 4-byte insn.
+    // Anything not explicitly designated otherwise is a normal 4-byte insn.
     NumBytes = 4;
     break;
   case TargetOpcode::STACKMAP:
@@ -124,8 +115,28 @@ unsigned AArch64InstrInfo::getInstSizeInBytes(const MachineInstr &MI) const {
     if (NumBytes == 0)
       NumBytes = 4;
     break;
+  case AArch64::TLSDESC_CALLSEQ:
+    // This gets lowered to an instruction sequence which takes 16 bytes
+    NumBytes = 16;
+    break;
+  case AArch64::SpeculationBarrierISBDSBEndBB:
+    // This gets lowered to 2 4-byte instructions.
+    NumBytes = 8;
+    break;
+  case AArch64::SpeculationBarrierSBEndBB:
+    // This gets lowered to 1 4-byte instructions.
+    NumBytes = 4;
+    break;
+  case AArch64::JumpTableDest32:
+  case AArch64::JumpTableDest16:
+  case AArch64::JumpTableDest8:
+    NumBytes = 12;
+    break;
   case AArch64::SPACE:
     NumBytes = MI.getOperand(1).getImm();
+    break;
+  case AArch64::StoreSwiftAsyncContext:
+    NumBytes = 20;
     break;
   case TargetOpcode::BUNDLE:
     NumBytes = getInstBundleLength(MI);
@@ -6214,14 +6225,6 @@ void AArch64InstrInfo::genAlternativeCodeSequence(
   if (MUL)
     DelInstrs.push_back(MUL);
   DelInstrs.push_back(&Root);
-
-  // Set the flags on the inserted instructions to be the merged flags of the
-  // instructions that we have combined.
-  uint16_t Flags = Root.getFlags();
-  if (MUL)
-    Flags = Root.mergeFlagsWith(*MUL);
-  for (auto *MI : InsInstrs)
-    MI->setFlags(Flags);
 }
 
 /// Replace csincr-branch sequence by simple conditional branch
@@ -6534,12 +6537,13 @@ enum MachineOutlinerMBBFlags {
   UnsafeRegsDead = 0x8
 };
 
-Register
-AArch64InstrInfo::findRegisterToSaveLRTo(outliner::Candidate &C) const {
+unsigned
+AArch64InstrInfo::findRegisterToSaveLRTo(const outliner::Candidate &C) const {
+  assert(C.LRUWasSet && "LRU wasn't set?");
   MachineFunction *MF = C.getMF();
-  const TargetRegisterInfo &TRI = *MF->getSubtarget().getRegisterInfo();
-  const AArch64RegisterInfo *ARI =
-      static_cast<const AArch64RegisterInfo *>(&TRI);
+  const AArch64RegisterInfo *ARI = static_cast<const AArch64RegisterInfo *>(
+      MF->getSubtarget().getRegisterInfo());
+
   // Check if there is an available register across the sequence that we can
   // use.
   for (unsigned Reg : AArch64::GPR64RegClass) {
@@ -6547,11 +6551,12 @@ AArch64InstrInfo::findRegisterToSaveLRTo(outliner::Candidate &C) const {
         Reg != AArch64::LR &&  // LR is not reserved, but don't use it.
         Reg != AArch64::X16 && // X16 is not guaranteed to be preserved.
         Reg != AArch64::X17 && // Ditto for X17.
-        C.isAvailableAcrossAndOutOfSeq(Reg, TRI) &&
-        C.isAvailableInsideSeq(Reg, TRI))
+        C.LRU.available(Reg) && C.UsedInSequence.available(Reg))
       return Reg;
   }
-  return Register();
+
+  // No suitable register. Return 0.
+  return 0u;
 }
 
 static bool
@@ -6718,8 +6723,10 @@ outliner::OutlinedFunction AArch64InstrInfo::getOutliningCandidateInfo(
     // to compute liveness here.
     if (C.Flags & UnsafeRegsDead)
       return false;
-    return C.isAnyUnavailableAcrossOrOutOfSeq(
-        {AArch64::W16, AArch64::W17, AArch64::NZCV}, TRI);
+    C.initLRU(TRI);
+    LiveRegUnits LRU = C.LRU;
+    return (!LRU.available(AArch64::W16) || !LRU.available(AArch64::W17) ||
+            !LRU.available(AArch64::NZCV));
   };
 
   // Are there any candidates where those registers are live?
@@ -6864,6 +6871,8 @@ outliner::OutlinedFunction AArch64InstrInfo::getOutliningCandidateInfo(
 
     // Check if we have to save LR.
     for (outliner::Candidate &C : RepeatedSequenceLocs) {
+      C.initLRU(TRI);
+
       // If we have a noreturn caller, then we're going to be conservative and
       // say that we have to save LR. If we don't have a ret at the end of the
       // block, then we can't reason about liveness accurately.
@@ -6874,7 +6883,7 @@ outliner::OutlinedFunction AArch64InstrInfo::getOutliningCandidateInfo(
           C.getMF()->getFunction().hasFnAttribute(Attribute::NoReturn);
 
       // Is LR available? If so, we don't need a save.
-      if (C.isAvailableAcrossAndOutOfSeq(AArch64::LR, TRI) && !IsNoReturn) {
+      if (C.LRU.available(AArch64::LR) && !IsNoReturn) {
         NumBytesNoStackCalls += 4;
         C.setCallInfo(MachineOutlinerNoLRSave, 4);
         CandidatesWithoutStackFixups.push_back(C);
@@ -6890,7 +6899,7 @@ outliner::OutlinedFunction AArch64InstrInfo::getOutliningCandidateInfo(
 
       // Is SP used in the sequence at all? If not, we don't have to modify
       // the stack, so we are guaranteed to get the same frame.
-      else if (C.isAvailableInsideSeq(AArch64::SP, TRI)) {
+      else if (C.UsedInSequence.available(AArch64::SP)) {
         NumBytesNoStackCalls += 12;
         C.setCallInfo(MachineOutlinerDefault, 12);
         CandidatesWithoutStackFixups.push_back(C);
@@ -6959,12 +6968,11 @@ outliner::OutlinedFunction AArch64InstrInfo::getOutliningCandidateInfo(
       // LR to (ie one extra stack save/restore).
       //
       if (FlagsSetInAll & MachineOutlinerMBBFlags::HasCalls) {
-        erase_if(RepeatedSequenceLocs, [this, &TRI](outliner::Candidate &C) {
+        erase_if(RepeatedSequenceLocs, [this](outliner::Candidate &C) {
           return (std::any_of(
                      C.front(), std::next(C.back()),
                      [](const MachineInstr &MI) { return MI.isCall(); })) &&
-                 (!C.isAvailableAcrossAndOutOfSeq(AArch64::LR, TRI) ||
-                  !findRegisterToSaveLRTo(C));
+                 (!C.LRU.available(AArch64::LR) || !findRegisterToSaveLRTo(C));
         });
       }
     }
@@ -7498,7 +7506,7 @@ void AArch64InstrInfo::buildOutlinedFrame(
 
 MachineBasicBlock::iterator AArch64InstrInfo::insertOutlinedCall(
     Module &M, MachineBasicBlock &MBB, MachineBasicBlock::iterator &It,
-    MachineFunction &MF, outliner::Candidate &C) const {
+    MachineFunction &MF, const outliner::Candidate &C) const {
 
   // Are we tail calling?
   if (C.CallConstructionID == MachineOutlinerTailCall) {
@@ -7529,8 +7537,8 @@ MachineBasicBlock::iterator AArch64InstrInfo::insertOutlinedCall(
   if (C.CallConstructionID == MachineOutlinerRegSave) {
     // FIXME: This logic should be sunk into a target-specific interface so that
     // we don't have to recompute the register.
-    Register Reg = findRegisterToSaveLRTo(C);
-    assert(Reg && "No callee-saved register available?");
+    unsigned Reg = findRegisterToSaveLRTo(C);
+    assert(Reg != 0 && "No callee-saved register available?");
 
     // LR has to be a live in so that we can save it.
     if (!MBB.isLiveIn(AArch64::LR))

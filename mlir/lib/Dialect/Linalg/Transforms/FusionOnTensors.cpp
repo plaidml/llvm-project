@@ -458,9 +458,5 @@ mlir::linalg::tileConsumerAndFuseProducers(OpBuilder &b, LinalgOp consumerOp,
     return failure();
   fuseProducersGreedily(tileLoopNest.getRootOp().getInputOperands());
 
-  // Exit if the tile loop nest is empty since all tile sizes are zero.
-  if (tileLoopNest.isEmpty())
-    return failure();
-
   return tileLoopNest;
 }

@@ -294,10 +294,10 @@ which first check the ``NOTE:`` line exists and matches the script name.
 These are the most common scripts and their purposes/applications in generating
 assertions:
 
-.. code-block:: none
+.. code-block::
 
   update_analyze_test_checks.py
-  opt -passes='print<cost-model>'
+  opt --analyze --costmodel
 
   update_cc_test_checks.py
   C/C++, or clang/clang++ (IR checks)

@@ -156,8 +156,7 @@ HTTPClient::HTTPClient() {
          "Must call HTTPClient::initialize() at the beginning of main().");
   if (Curl)
     return;
-  Curl = curl_easy_init();
-  assert(Curl && "Curl could not be initialized");
+  assert((Curl = curl_easy_init()) && "Curl could not be initialized.");
   // Set the callback hooks.
   curl_easy_setopt(Curl, CURLOPT_WRITEFUNCTION, curlWriteFunction);
   curl_easy_setopt(Curl, CURLOPT_HEADERFUNCTION, curlHeaderFunction);

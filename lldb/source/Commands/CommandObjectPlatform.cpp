@@ -145,6 +145,7 @@ public:
                             "Create a platform if needed and select it as the "
                             "current platform.",
                             "platform select <platform-name>", 0),
+        m_option_group(),
         m_platform_options(
             false) // Don't include the "--platform" option by passing false
   {
@@ -376,6 +377,7 @@ public:
                             "Set settings for the current target's platform, "
                             "or for a platform by name.",
                             "platform settings", 0),
+        m_options(),
         m_option_working_dir(LLDB_OPT_SET_1, false, "working-dir", 'w',
                              CommandCompletions::eRemoteDiskDirectoryCompletion,
                              eArgTypePath,
@@ -415,7 +417,8 @@ public:
   CommandObjectPlatformMkDir(CommandInterpreter &interpreter)
       : CommandObjectParsed(interpreter, "platform mkdir",
                             "Make a new directory on the remote end.", nullptr,
-                            0) {}
+                            0),
+        m_options() {}
 
   ~CommandObjectPlatformMkDir() override = default;
 
@@ -461,7 +464,8 @@ class CommandObjectPlatformFOpen : public CommandObjectParsed {
 public:
   CommandObjectPlatformFOpen(CommandInterpreter &interpreter)
       : CommandObjectParsed(interpreter, "platform file open",
-                            "Open a file on the remote end.", nullptr, 0) {}
+                            "Open a file on the remote end.", nullptr, 0),
+        m_options() {}
 
   ~CommandObjectPlatformFOpen() override = default;
 
@@ -562,7 +566,8 @@ public:
   CommandObjectPlatformFRead(CommandInterpreter &interpreter)
       : CommandObjectParsed(interpreter, "platform file read",
                             "Read data from a file on the remote end.", nullptr,
-                            0) {}
+                            0),
+        m_options() {}
 
   ~CommandObjectPlatformFRead() override = default;
 
@@ -600,7 +605,7 @@ public:
 protected:
   class CommandOptions : public Options {
   public:
-    CommandOptions() {}
+    CommandOptions() : Options() {}
 
     ~CommandOptions() override = default;
 
@@ -655,7 +660,8 @@ public:
   CommandObjectPlatformFWrite(CommandInterpreter &interpreter)
       : CommandObjectParsed(interpreter, "platform file write",
                             "Write data to a file on the remote end.", nullptr,
-                            0) {}
+                            0),
+        m_options() {}
 
   ~CommandObjectPlatformFWrite() override = default;
 
@@ -692,7 +698,7 @@ public:
 protected:
   class CommandOptions : public Options {
   public:
-    CommandOptions() {}
+    CommandOptions() : Options() {}
 
     ~CommandOptions() override = default;
 
@@ -1118,7 +1124,8 @@ public:
       : CommandObjectParsed(interpreter, "platform process launch",
                             "Launch a new process on a remote platform.",
                             "platform process launch program",
-                            eCommandRequiresTarget | eCommandTryTargetAPILock) {
+                            eCommandRequiresTarget | eCommandTryTargetAPILock),
+        m_options(), m_all_options() {
     m_all_options.Append(&m_options);
     m_all_options.Finalize();
   }
@@ -1210,7 +1217,8 @@ public:
       : CommandObjectParsed(interpreter, "platform process list",
                             "List processes on a remote platform by name, pid, "
                             "or many other matching attributes.",
-                            "platform process list", 0) {}
+                            "platform process list", 0),
+        m_options() {}
 
   ~CommandObjectPlatformProcessList() override = default;
 
@@ -1316,7 +1324,7 @@ protected:
 
   class CommandOptions : public Options {
   public:
-    CommandOptions() {}
+    CommandOptions() : Options(), match_info() {}
 
     ~CommandOptions() override = default;
 
@@ -1552,7 +1560,7 @@ class CommandObjectPlatformProcessAttach : public CommandObjectParsed {
 public:
   class CommandOptions : public Options {
   public:
-    CommandOptions() {
+    CommandOptions() : Options() {
       // Keep default values of all options in one place: OptionParsingStarting
       // ()
       OptionParsingStarting(nullptr);
@@ -1614,7 +1622,8 @@ public:
   CommandObjectPlatformProcessAttach(CommandInterpreter &interpreter)
       : CommandObjectParsed(interpreter, "platform process attach",
                             "Attach to a process.",
-                            "platform process attach <cmd-options>") {}
+                            "platform process attach <cmd-options>"),
+        m_options() {}
 
   ~CommandObjectPlatformProcessAttach() override = default;
 
@@ -1680,7 +1689,7 @@ class CommandObjectPlatformShell : public CommandObjectRaw {
 public:
   class CommandOptions : public Options {
   public:
-    CommandOptions() {}
+    CommandOptions() : Options() {}
 
     ~CommandOptions() override = default;
 
@@ -1738,7 +1747,8 @@ public:
   CommandObjectPlatformShell(CommandInterpreter &interpreter)
       : CommandObjectRaw(interpreter, "platform shell",
                          "Run a shell command on the current platform.",
-                         "platform shell <shell-command>", 0) {}
+                         "platform shell <shell-command>", 0),
+        m_options() {}
 
   ~CommandObjectPlatformShell() override = default;
 

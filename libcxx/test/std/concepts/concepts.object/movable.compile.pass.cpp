@@ -22,10 +22,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "test_macros.h"
-
-#ifndef TEST_HAS_NO_THREADS
-#  include <mutex>
+#ifndef _LIBCPP_HAS_NO_THREADS
+#   include <mutex>
 #endif
 
 #include "type_classification/moveconstructible.h"

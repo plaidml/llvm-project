@@ -5,7 +5,7 @@ include "mlir/Interfaces/SideEffectInterfaces.td"
 def TEST_Dialect : Dialect {
   let name = "test";
 }
-class TEST_Op<string mnemonic, list<Trait> traits = []> :
+class TEST_Op<string mnemonic, list<OpTrait> traits = []> :
     Op<TEST_Dialect, mnemonic, traits>;
 
 def CustomResource : Resource<"CustomResource">;

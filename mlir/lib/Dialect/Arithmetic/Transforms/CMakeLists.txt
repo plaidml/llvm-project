@@ -1,5 +1,4 @@
 add_mlir_dialect_library(MLIRArithmeticTransforms
-  BufferizableOpInterfaceImpl.cpp
   Bufferize.cpp
   ExpandOps.cpp
 
@@ -11,7 +10,6 @@ add_mlir_dialect_library(MLIRArithmeticTransforms
 
   LINK_LIBS PUBLIC
   MLIRArithmetic
-  MLIRBufferization
   MLIRBufferizationTransforms
   MLIRIR
   MLIRMemRef

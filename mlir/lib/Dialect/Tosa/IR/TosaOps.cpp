@@ -13,6 +13,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "mlir/Dialect/Tosa/IR/TosaOps.h"
+#include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/Dialect/Tosa/Utils/QuantUtils.h"
 #include "mlir/Dialect/Tosa/Utils/ShapeUtils.h"
@@ -128,7 +129,7 @@ struct ConcatOptimization : public OpRewritePattern<tosa::ConcatOp> {
   }
 };
 
-void ConcatOp::getCanonicalizationPatterns(RewritePatternSet &results,
+void ConcatOp::getCanonicalizationPatterns(OwningRewritePatternList &results,
                                            MLIRContext *context) {
   results.insert<ConcatOptimization>(context);
 }
@@ -186,7 +187,7 @@ struct ReshapeConstOptimization : public OpRewritePattern<tosa::ReshapeOp> {
   }
 };
 
-void ReshapeOp::getCanonicalizationPatterns(RewritePatternSet &results,
+void ReshapeOp::getCanonicalizationPatterns(OwningRewritePatternList &results,
                                             MLIRContext *context) {
   results.insert<ReshapeReshapeOptimization>(context);
   results.insert<ReshapeConstOptimization>(context);
@@ -283,7 +284,7 @@ struct NoOpOptimization : public OpRewritePattern<tosa::TransposeOp> {
   }
 };
 
-void TransposeOp::getCanonicalizationPatterns(RewritePatternSet &results,
+void TransposeOp::getCanonicalizationPatterns(OwningRewritePatternList &results,
                                               MLIRContext *context) {
   results.insert<ConstantTransposeOptimization>(context);
   results.insert<NoOpOptimization>(context);
@@ -321,7 +322,7 @@ struct AddZeroOptimization : public OpRewritePattern<tosa::AddOp> {
   }
 };
 
-void AddOp::getCanonicalizationPatterns(RewritePatternSet &results,
+void AddOp::getCanonicalizationPatterns(OwningRewritePatternList &results,
                                         MLIRContext *context) {
   results.insert<AddZeroOptimization>(context);
 }
@@ -370,7 +371,7 @@ struct MulOneOptimization : public OpRewritePattern<tosa::MulOp> {
   }
 };
 
-void MulOp::getCanonicalizationPatterns(RewritePatternSet &results,
+void MulOp::getCanonicalizationPatterns(OwningRewritePatternList &results,
                                         MLIRContext *context) {
   results.insert<MulOneOptimization>(context);
 }
@@ -417,7 +418,7 @@ struct MaterializePadValue : public OpRewritePattern<tosa::PadOp> {
   }
 };
 
-void PadOp::getCanonicalizationPatterns(RewritePatternSet &results,
+void PadOp::getCanonicalizationPatterns(OwningRewritePatternList &results,
                                         MLIRContext *context) {
   results.insert<MaterializePadValue>(context);
 }
@@ -452,7 +453,7 @@ struct MaxPool2dIsNoOp : public OpRewritePattern<tosa::MaxPool2dOp> {
   }
 };
 
-void MaxPool2dOp::getCanonicalizationPatterns(RewritePatternSet &results,
+void MaxPool2dOp::getCanonicalizationPatterns(OwningRewritePatternList &results,
                                               MLIRContext *context) {
   results.insert<MaxPool2dIsNoOp>(context);
 }
@@ -525,39 +526,9 @@ struct ClampIsNoOp : public OpRewritePattern<tosa::ClampOp> {
   }
 };
 
-struct ClampClampOptimization : public OpRewritePattern<tosa::ClampOp> {
-  using OpRewritePattern<tosa::ClampOp>::OpRewritePattern;
-
-  LogicalResult matchAndRewrite(tosa::ClampOp op,
-                                PatternRewriter &rewriter) const override {
-    Value input = op.input();
-
-    Operation *definingOp = input.getDefiningOp();
-    if (!definingOp)
-      return failure();
-
-    if (tosa::ClampOp clampOp = dyn_cast<tosa::ClampOp>(definingOp)) {
-      auto minFp = std::max(op.min_fp(), clampOp.min_fp()).convertToFloat();
-      auto maxFp = std::min(op.max_fp(), clampOp.max_fp()).convertToFloat();
-
-      auto minInt = std::max(op.min_int(), clampOp.min_int());
-      auto maxInt = std::min(op.max_int(), clampOp.max_int());
-
-      rewriter.replaceOpWithNewOp<tosa::ClampOp>(
-          op, op.getType(), clampOp.input(), rewriter.getI64IntegerAttr(minInt),
-          rewriter.getI64IntegerAttr(maxInt), rewriter.getF32FloatAttr(minFp),
-          rewriter.getF32FloatAttr(maxFp));
-      return success();
-    }
-
-    return failure();
-  }
-};
-
-void ClampOp::getCanonicalizationPatterns(RewritePatternSet &results,
+void ClampOp::getCanonicalizationPatterns(OwningRewritePatternList &results,
                                           MLIRContext *context) {
   results.insert<ClampIsNoOp>(context);
-  results.insert<ClampClampOptimization>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -700,9 +671,9 @@ static LogicalResult verifyConvOp(T op) {
   return success();
 }
 
-LogicalResult tosa::AvgPool2dOp::verify() {
-  auto inputETy = input().getType().cast<ShapedType>().getElementType();
-  auto resultETy = getType().cast<ShapedType>().getElementType();
+static LogicalResult verifyAveragePoolOp(tosa::AvgPool2dOp op) {
+  auto inputETy = op.input().getType().cast<ShapedType>().getElementType();
+  auto resultETy = op.getType().cast<ShapedType>().getElementType();
 
   if (auto quantType = inputETy.dyn_cast<mlir::quant::UniformQuantizedType>())
     inputETy = quantType.getStorageType();
@@ -717,7 +688,7 @@ LogicalResult tosa::AvgPool2dOp::verify() {
   if (inputETy.isInteger(16) && resultETy.isInteger(16))
     return success();
 
-  return emitOpError("input/output element types are incompatible.");
+  return op.emitOpError("input/output element types are incompatible.");
 }
 
 //===----------------------------------------------------------------------===//
@@ -1008,8 +979,6 @@ LogicalResult tosa::FullyConnectedOp::inferReturnTypeComponents(
   inferredReturnShapes.push_back(ShapedTypeComponents(outShape));
   return success();
 }
-
-LogicalResult FullyConnectedOp::verify() { return verifyConvOp(*this); }
 
 LogicalResult tosa::MatMulOp::inferReturnTypeComponents(
     MLIRContext *context, ::llvm::Optional<Location> location,
@@ -1633,8 +1602,6 @@ LogicalResult Conv2DOp::inferReturnTypeComponents(
   return success();
 }
 
-LogicalResult Conv2DOp::verify() { return verifyConvOp(*this); }
-
 LogicalResult Conv3DOp::inferReturnTypeComponents(
     MLIRContext *context, ::llvm::Optional<Location> location,
     ValueShapeRange operands, DictionaryAttr attributes, RegionRange regions,
@@ -1710,8 +1677,6 @@ LogicalResult Conv3DOp::inferReturnTypeComponents(
   inferredReturnShapes.push_back(ShapedTypeComponents(outputShape));
   return success();
 }
-
-LogicalResult Conv3DOp::verify() { return verifyConvOp(*this); }
 
 LogicalResult AvgPool2dOp::inferReturnTypeComponents(
     MLIRContext *context, ::llvm::Optional<Location> location,
@@ -1804,8 +1769,6 @@ LogicalResult DepthwiseConv2DOp::inferReturnTypeComponents(
   inferredReturnShapes.push_back(ShapedTypeComponents(outputShape));
   return success();
 }
-
-LogicalResult DepthwiseConv2DOp::verify() { return verifyConvOp(*this); }
 
 LogicalResult TransposeConv2DOp::inferReturnTypeComponents(
     MLIRContext *context, ::llvm::Optional<Location> location,

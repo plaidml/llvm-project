@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "llvm/MC/MCObjectStreamer.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/MC/MCAsmBackend.h"
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCAssembler.h"
@@ -36,7 +37,7 @@ MCObjectStreamer::MCObjectStreamer(MCContext &Context,
     setAllowAutoPadding(Assembler->getBackend().allowAutoPadding());
 }
 
-MCObjectStreamer::~MCObjectStreamer() = default;
+MCObjectStreamer::~MCObjectStreamer() {}
 
 // AssemblerPtr is used for evaluation of expressions and causes
 // difference between asm and object outputs. Return nullptr to in
@@ -118,31 +119,8 @@ void MCObjectStreamer::resolvePendingFixups() {
       continue;
     }
     flushPendingLabels(PendingFixup.DF, PendingFixup.DF->getContents().size());
-    PendingFixup.Fixup.setOffset(PendingFixup.Sym->getOffset() +
-                                 PendingFixup.Fixup.getOffset());
-
-    // If the location symbol to relocate is in MCEncodedFragmentWithFixups,
-    // put the Fixup into location symbol's fragment. Otherwise
-    // put into PendingFixup.DF
-    MCFragment *SymFragment = PendingFixup.Sym->getFragment();
-    switch (SymFragment->getKind()) {
-    case MCFragment::FT_Relaxable:
-    case MCFragment::FT_Dwarf:
-    case MCFragment::FT_PseudoProbe:
-      cast<MCEncodedFragmentWithFixups<8, 1>>(SymFragment)
-          ->getFixups()
-          .push_back(PendingFixup.Fixup);
-      break;
-    case MCFragment::FT_Data:
-    case MCFragment::FT_CVDefRange:
-      cast<MCEncodedFragmentWithFixups<32, 4>>(SymFragment)
-          ->getFixups()
-          .push_back(PendingFixup.Fixup);
-      break;
-    default:
-      PendingFixup.DF->getFixups().push_back(PendingFixup.Fixup);
-      break;
-    }
+    PendingFixup.Fixup.setOffset(PendingFixup.Sym->getOffset());
+    PendingFixup.DF->getFixups().push_back(PendingFixup.Fixup);
   }
   PendingFixups.clear();
 }
@@ -838,9 +816,8 @@ MCObjectStreamer::emitRelocDirective(const MCExpr &Offset, StringRef Name,
     return None;
   }
 
-  PendingFixups.emplace_back(
-      &SRE.getSymbol(), DF,
-      MCFixup::create(OffsetVal.getConstant(), Expr, Kind, Loc));
+  PendingFixups.emplace_back(&SRE.getSymbol(), DF,
+                             MCFixup::create(-1, Expr, Kind, Loc));
   return None;
 }
 

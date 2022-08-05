@@ -124,7 +124,6 @@ inline bool FormattedComplexIO(
       DataEdit rEdit, iEdit;
       rEdit.descriptor = DataEdit::ListDirectedRealPart;
       iEdit.descriptor = DataEdit::ListDirectedImaginaryPart;
-      rEdit.modes = iEdit.modes = io.mutableModes();
       if (!RealOutputEditing<KIND>{io, x[0]}.Edit(rEdit) ||
           !RealOutputEditing<KIND>{io, x[1]}.Edit(iEdit)) {
         return false;

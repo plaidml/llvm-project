@@ -67,12 +67,12 @@ DwarfCompileUnit::DwarfCompileUnit(unsigned UID, const DICompileUnit *Node,
 /// DW_FORM_addr or DW_FORM_GNU_addr_index.
 void DwarfCompileUnit::addLabelAddress(DIE &Die, dwarf::Attribute Attribute,
                                        const MCSymbol *Label) {
-  if ((Skeleton || !DD->useSplitDwarf()) && Label)
-    DD->addArangeLabel(SymbolCU(this, Label));
-
   // Don't use the address pool in non-fission or in the skeleton unit itself.
   if ((!DD->useSplitDwarf() || !Skeleton) && DD->getDwarfVersion() < 5)
     return addLocalLabelAddress(Die, Attribute, Label);
+
+  if (Label)
+    DD->addArangeLabel(SymbolCU(this, Label));
 
   bool UseAddrOffsetFormOrExpressions =
       DD->useAddrOffsetForm() || DD->useAddrOffsetExpressions();
@@ -109,6 +109,9 @@ void DwarfCompileUnit::addLocalLabelAddress(DIE &Die,
                                             dwarf::Attribute Attribute,
                                             const MCSymbol *Label) {
   if (Label)
+    DD->addArangeLabel(SymbolCU(this, Label));
+
+  if (Label)
     addAttribute(Die, Attribute, dwarf::DW_FORM_addr, DIELabel(Label));
   else
     addAttribute(Die, Attribute, dwarf::DW_FORM_addr, DIEInteger(0));
@@ -124,14 +127,9 @@ unsigned DwarfCompileUnit::getOrCreateSourceID(const DIFile *File) {
   if (!File)
     return Asm->OutStreamer->emitDwarfFileDirective(0, "", "", None, None,
                                                     CUID);
-
-  if (LastFile != File) {
-    LastFile = File;
-    LastFileID = Asm->OutStreamer->emitDwarfFileDirective(
-        0, File->getDirectory(), File->getFilename(), DD->getMD5AsBytes(File),
-        File->getSource(), CUID);
-  }
-  return LastFileID;
+  return Asm->OutStreamer->emitDwarfFileDirective(
+      0, File->getDirectory(), File->getFilename(), DD->getMD5AsBytes(File),
+      File->getSource(), CUID);
 }
 
 DIE *DwarfCompileUnit::getOrCreateGlobalVariableDIE(
@@ -502,7 +500,7 @@ DIE &DwarfCompileUnit::updateSubprogramScopeDIE(const DISubprogram *SP) {
           // FIXME: when writing dwo, we need to avoid relocations. Probably
           // the "right" solution is to treat globals the way func and data
           // symbols are (with entries in .debug_addr).
-          // For now, since we only ever use index 0, this should work as-is.
+          // For now, since we only ever use index 0, this should work as-is.       
           addUInt(*Loc, dwarf::DW_FORM_data4, FrameBase.Location.WasmLoc.Index);
         }
         addUInt(*Loc, dwarf::DW_FORM_data1, dwarf::DW_OP_stack_value);
@@ -1583,8 +1581,7 @@ void DwarfCompileUnit::createBaseTypeDIEs() {
               Twine(dwarf::AttributeEncodingString(Btr.Encoding) +
                     "_" + Twine(Btr.BitSize)).toStringRef(Str));
     addUInt(Die, dwarf::DW_AT_encoding, dwarf::DW_FORM_data1, Btr.Encoding);
-    // Round up to smallest number of bytes that contains this number of bits.
-    addUInt(Die, dwarf::DW_AT_byte_size, None, divideCeil(Btr.BitSize, 8));
+    addUInt(Die, dwarf::DW_AT_byte_size, None, Btr.BitSize / 8);
 
     Btr.Die = &Die;
   }

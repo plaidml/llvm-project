@@ -16,7 +16,6 @@
 
 #include "llvm/MC/MCObjectFileInfo.h"
 #include "llvm/MC/MCRegister.h"
-#include "llvm/Support/Alignment.h"
 #include <cstdint>
 
 namespace llvm {

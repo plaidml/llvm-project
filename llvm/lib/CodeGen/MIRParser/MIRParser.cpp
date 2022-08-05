@@ -1023,7 +1023,7 @@ SMDiagnostic MIRParserImpl::diagFromBlockStringDiag(const SMDiagnostic &Error,
 MIRParser::MIRParser(std::unique_ptr<MIRParserImpl> Impl)
     : Impl(std::move(Impl)) {}
 
-MIRParser::~MIRParser() = default;
+MIRParser::~MIRParser() {}
 
 std::unique_ptr<Module>
 MIRParser::parseIRModule(DataLayoutCallbackTy DataLayoutCallback) {

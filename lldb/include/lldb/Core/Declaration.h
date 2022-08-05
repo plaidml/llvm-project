@@ -152,6 +152,8 @@ public:
   ///     The number of bytes that this object occupies in memory.
   ///     The returned value does not include the bytes for any
   ///     shared string values.
+  ///
+  /// \see ConstString::StaticMemorySize ()
   size_t MemorySize() const;
 
   /// Set accessor for the declaration file specification.

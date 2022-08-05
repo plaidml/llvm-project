@@ -990,24 +990,6 @@ SDValue SelectionDAGBuilder::LowerAsSTATEPOINT(
   return ReturnVal;
 }
 
-/// Return two gc.results if present.  First result is a block local
-/// gc.result, second result is a non-block local gc.result.  Corresponding
-/// entry will be nullptr if not present.
-static std::pair<const GCResultInst*, const GCResultInst*>
-getGCResultLocality(const GCStatepointInst &S) {
-  std::pair<const GCResultInst *, const GCResultInst*> Res(nullptr, nullptr);
-  for (auto *U : S.users()) {
-    auto *GRI = dyn_cast<GCResultInst>(U);
-    if (!GRI)
-      continue;
-    if (GRI->getParent() == S.getParent())
-      Res.first = GRI;
-    else
-      Res.second = GRI;
-  }
-  return Res;
-}
-
 void
 SelectionDAGBuilder::LowerStatepoint(const GCStatepointInst &I,
                                      const BasicBlock *EHPadBB /*= nullptr*/) {
@@ -1093,11 +1075,12 @@ SelectionDAGBuilder::LowerStatepoint(const GCStatepointInst &I,
   SDValue ReturnValue = LowerAsSTATEPOINT(SI);
 
   // Export the result value if needed
-  const auto GCResultLocality = getGCResultLocality(I);
+  const std::pair<bool, bool> GCResultLocality = I.getGCResultLocality();
+  Type *RetTy = I.getActualReturnType();
 
-  if (!GCResultLocality.first && !GCResultLocality.second) {
-    // The return value is not needed, just generate a poison value.
-    // Note: This covers the void return case.
+  if (RetTy->isVoidTy() ||
+      (!GCResultLocality.first && !GCResultLocality.second)) {
+    // The return value is not needed, just generate a poison value. 
     setValue(&I, DAG.getIntPtrConstant(-1, getCurSDLoc()));
     return;
   }
@@ -1119,7 +1102,6 @@ SelectionDAGBuilder::LowerStatepoint(const GCStatepointInst &I,
   // manually.
   // TODO: To eliminate this problem we can remove gc.result intrinsics
   //       completely and make statepoint call to return a tuple.
-  Type *RetTy = GCResultLocality.second->getType();
   unsigned Reg = FuncInfo.CreateRegs(RetTy);
   RegsForValue RFV(*DAG.getContext(), DAG.getTargetLoweringInfo(),
                    DAG.getDataLayout(), Reg, RetTy,
@@ -1186,7 +1168,7 @@ void SelectionDAGBuilder::visitGCResult(const GCResultInst &CI) {
   // register because statepoint and actual call return types can be
   // different, and getValue() will use CopyFromReg of the wrong type,
   // which is always i32 in our case.
-  Type *RetTy = CI.getType();
+  Type *RetTy = SI->getActualReturnType();
   SDValue CopyFromReg = getCopyFromRegs(SI, RetTy);
   
   assert(CopyFromReg.getNode());

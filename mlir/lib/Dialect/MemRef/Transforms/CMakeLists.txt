@@ -1,8 +1,5 @@
 add_mlir_dialect_library(MLIRMemRefTransforms
-  ComposeSubView.cpp
-  ExpandOps.cpp
   FoldSubViewOps.cpp
-  NormalizeMemRefs.cpp
   ResolveShapedTypeResultDims.cpp
 
   ADDITIONAL_HEADER_DIRS
@@ -13,7 +10,6 @@ add_mlir_dialect_library(MLIRMemRefTransforms
 
   LINK_LIBS PUBLIC
   MLIRAffine
-  MLIRAffineUtils
   MLIRArithmetic
   MLIRInferTypeOpInterface
   MLIRMemRef

@@ -25,12 +25,12 @@ namespace detail {
 template <typename BaseT>
 class AsmParserImpl : public BaseT {
 public:
-  AsmParserImpl(SMLoc nameLoc, Parser &parser)
+  AsmParserImpl(llvm::SMLoc nameLoc, Parser &parser)
       : nameLoc(nameLoc), parser(parser) {}
   ~AsmParserImpl() override = default;
 
   /// Return the location of the original name token.
-  SMLoc getNameLoc() const override { return nameLoc; }
+  llvm::SMLoc getNameLoc() const override { return nameLoc; }
 
   //===--------------------------------------------------------------------===//
   // Utilities
@@ -40,7 +40,7 @@ public:
   bool didEmitError() const { return emittedError; }
 
   /// Emit a diagnostic at the specified location and return failure.
-  InFlightDiagnostic emitError(SMLoc loc, const Twine &message) override {
+  InFlightDiagnostic emitError(llvm::SMLoc loc, const Twine &message) override {
     emittedError = true;
     return parser.emitError(loc, message);
   }
@@ -51,12 +51,12 @@ public:
 
   /// Get the location of the next token and store it into the argument.  This
   /// always succeeds.
-  SMLoc getCurrentLocation() override {
+  llvm::SMLoc getCurrentLocation() override {
     return parser.getToken().getLoc();
   }
 
   /// Re-encode the given source location as an MLIR location and return it.
-  Location getEncodedSourceLoc(SMLoc loc) override {
+  Location getEncodedSourceLoc(llvm::SMLoc loc) override {
     return parser.getEncodedSourceLocation(loc);
   }
 
@@ -291,7 +291,7 @@ public:
   ParseResult parseFloat(double &result) override {
     bool isNegative = parser.consumeIf(Token::minus);
     Token curTok = parser.getToken();
-    SMLoc loc = curTok.getLoc();
+    llvm::SMLoc loc = curTok.getLoc();
 
     // Check for a floating point value.
     if (curTok.is(Token::floatliteral)) {
@@ -491,7 +491,7 @@ public:
 
 protected:
   /// The source location of the dialect symbol.
-  SMLoc nameLoc;
+  llvm::SMLoc nameLoc;
 
   /// The main parser.
   Parser &parser;

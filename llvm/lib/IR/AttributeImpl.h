@@ -255,7 +255,6 @@ public:
   std::pair<unsigned, Optional<unsigned>> getAllocSizeArgs() const;
   unsigned getVScaleRangeMin() const;
   Optional<unsigned> getVScaleRangeMax() const;
-  UWTableKind getUWTableKind() const;
   std::string getAsString(bool InAttrGrp) const;
   Type *getAttributeType(Attribute::AttrKind Kind) const;
 

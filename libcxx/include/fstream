@@ -179,12 +179,10 @@ typedef basic_fstream<wchar_t> wfstream;
 
 */
 
-#include <__algorithm/max.h>
-#include <__assert>
 #include <__availability>
 #include <__config>
+#include <__debug>
 #include <__locale>
-#include <__utility/unreachable.h>
 #include <cstdio>
 #include <cstdlib>
 #include <istream>
@@ -196,7 +194,7 @@ typedef basic_fstream<wchar_t> wfstream;
 #endif
 
 #if !defined(_LIBCPP_HAS_NO_PRAGMA_SYSTEM_HEADER)
-#  pragma GCC system_header
+#pragma GCC system_header
 #endif
 
 _LIBCPP_PUSH_MACROS
@@ -540,7 +538,7 @@ const char* basic_filebuf<_CharT, _Traits>::__make_mdstring(
   default:
     return nullptr;
   }
-  __libcpp_unreachable();
+  _LIBCPP_UNREACHABLE();
 }
 
 template <class _CharT, class _Traits>

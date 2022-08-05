@@ -3,15 +3,7 @@
 LLVM/OpenMP Runtimes
 ====================
 
-There are four distinct types of LLVM/OpenMP runtimes: the host runtime
-:ref:`libomp`, the target offloading runtime :ref:`libomptarget`, the target
-offloading plugin :ref:`libomptarget_plugin`, and finally the target device
-runtime :ref:`libomptarget_device`.
-
-For general information on debugging OpenMP target offloading applications, see
-:ref:`libomptarget_info` and :ref:`libomptarget_device_debugging`
-
-.. _libomp:
+There are four distinct types of LLVM/OpenMP runtimes
 
 LLVM/OpenMP Host Runtime (``libomp``)
 -------------------------------------
@@ -671,8 +663,6 @@ OpenMP run-time library during program execution.
 
 **Default:** ``true``
 
-.. _libomptarget:
-
 LLVM/OpenMP Target Host Runtime (``libomptarget``)
 --------------------------------------------------
 
@@ -732,8 +722,6 @@ larger than this threshold will not use the memory manager and be freed after
 the device kernel exits. The default threshold value is ``8KB``. If
 ``LIBOMPTARGET_MEMORY_MANAGER_THRESHOLD`` is set to ``0`` the memory manager
 will be completely disabled.
-
-.. _libomptarget_info:
 
 LIBOMPTARGET_INFO
 """""""""""""""""
@@ -947,7 +935,7 @@ going wrong.
     Libomptarget error: Copying data from device failed.
     Libomptarget error: Call to targetDataEnd failed, abort target.
     Libomptarget error: Failed to process data after launching the kernel.
-    Libomptarget error: Consult https://openmp.llvm.org/design/Runtimes.html for debugging options.
+    Libomptarget error: Run with LIBOMPTARGET_INFO=4 to dump host-target pointer mappings.
     sum.cpp:5:1: Libomptarget error 1: failure of target construct while offloading is mandatory
 
 This shows that there is an illegal memory access occuring inside the OpenMP
@@ -1032,7 +1020,6 @@ value of the ``LIBOMPTARGET_MAP_FORCE_ATOMIC`` environment variable.
 The default behavior of LLVM 14 is to force atomic maps clauses, prior versions
 of LLVM did not.
 
-.. _libomptarget_plugin:
 
 LLVM/OpenMP Target Host Runtime Plugins (``libomptarget.rtl.XXXX``)
 -------------------------------------------------------------------
@@ -1095,16 +1082,12 @@ LIBOMPTARGET_RPC_LATENCY
 """"""""""""""""""""""""
 This is the maximum amount of time the client will wait for a response from the server.
 
-.. _libomptarget_device:
-
 LLVM/OpenMP Target Device Runtime (``libomptarget-ARCH-SUBARCH.bc``)
 --------------------------------------------------------------------
 
 The target device runtime is an LLVM bitcode library that implements OpenMP
 runtime functions on the target device. It is linked with the device code's LLVM
 IR during compilation.
-
-.. _libomptarget_device_debugging:
 
 Debugging
 ^^^^^^^^^
@@ -1120,7 +1103,6 @@ debugging features are supported.
 
     * Enable debugging assertions in the device. ``0x01``
     * Enable OpenMP runtime function traces in the device. ``0x2``
-    * Enable diagnosing common problems during offloading . ``0x4``
 
 .. code-block:: c++
 

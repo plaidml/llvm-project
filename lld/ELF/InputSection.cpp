@@ -8,20 +8,26 @@
 
 #include "InputSection.h"
 #include "Config.h"
+#include "EhFrame.h"
 #include "InputFiles.h"
+#include "LinkerScript.h"
 #include "OutputSections.h"
 #include "Relocations.h"
 #include "SymbolTable.h"
 #include "Symbols.h"
 #include "SyntheticSections.h"
 #include "Target.h"
+#include "Thunks.h"
 #include "lld/Common/CommonLinkerContext.h"
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/Compression.h"
 #include "llvm/Support/Endian.h"
+#include "llvm/Support/Threading.h"
 #include "llvm/Support/xxhash.h"
 #include <algorithm>
 #include <mutex>
+#include <set>
+#include <unordered_set>
 #include <vector>
 
 using namespace llvm;
@@ -78,7 +84,22 @@ InputSectionBase::InputSectionBase(InputFile *file, uint64_t flags,
     if (!zlib::isAvailable())
       error(toString(file) + ": contains a compressed section, " +
             "but zlib is not available");
-    invokeELFT(parseCompressedHeader);
+    switch (config->ekind) {
+    case ELF32LEKind:
+      parseCompressedHeader<ELF32LE>();
+      break;
+    case ELF32BEKind:
+      parseCompressedHeader<ELF32BE>();
+      break;
+    case ELF64LEKind:
+      parseCompressedHeader<ELF64LE>();
+      break;
+    case ELF64BEKind:
+      parseCompressedHeader<ELF64BE>();
+      break;
+    default:
+      llvm_unreachable("unknown ELFT");
+    }
   }
 }
 
@@ -345,7 +366,7 @@ template <class ELFT> void InputSection::copyShtGroup(uint8_t *buf) {
   // different in the output. We also need to handle combined or discarded
   // members.
   ArrayRef<InputSectionBase *> sections = file->getSections();
-  DenseSet<uint32_t> seen;
+  std::unordered_set<uint32_t> seen;
   for (uint32_t idx : from.slice(1)) {
     OutputSection *osec = sections[idx]->getOutputSection();
     if (osec && seen.insert(osec->sectionIndex).second)
@@ -1020,14 +1041,6 @@ void InputSectionBase::relocateAlloc(uint8_t *buf, uint8_t *bufEnd) {
       }
       target.relocate(bufLoc, rel, targetVA);
       break;
-    case R_AARCH64_PAGE_PC:
-      if (i + 1 < size && aarch64relaxer.tryRelaxAdrpAdd(
-                              rel, relocations[i + 1], secAddr, buf)) {
-        ++i;
-        continue;
-      }
-      target.relocate(bufLoc, rel, targetVA);
-      break;
     case R_PPC64_RELAX_GOT_PC: {
       // The R_PPC64_PCREL_OPT relocation must appear immediately after
       // R_PPC64_GOT_PCREL34 in the relocations table at the same offset.
@@ -1114,8 +1127,7 @@ void InputSectionBase::relocateAlloc(uint8_t *buf, uint8_t *bufEnd) {
 // For each function-defining prologue, find any calls to __morestack,
 // and replace them with calls to __morestack_non_split.
 static void switchMorestackCallsToMorestackNonSplit(
-    DenseSet<Defined *> &prologues,
-    SmallVector<Relocation *, 0> &morestackCalls) {
+    DenseSet<Defined *> &prologues, std::vector<Relocation *> &morestackCalls) {
 
   // If the target adjusted a function's prologue, all calls to
   // __morestack inside that function should be switched to
@@ -1165,7 +1177,7 @@ template <class ELFT>
 void InputSectionBase::adjustSplitStackFunctionPrologues(uint8_t *buf,
                                                          uint8_t *end) {
   DenseSet<Defined *> prologues;
-  SmallVector<Relocation *, 0> morestackCalls;
+  std::vector<Relocation *> morestackCalls;
 
   for (Relocation &rel : relocations) {
     // Ignore calls into the split-stack api.
@@ -1249,8 +1261,9 @@ template <class ELFT> void InputSection::writeTo(uint8_t *buf) {
 
   // Copy section contents from source object file to output file
   // and then apply relocations.
-  memcpy(buf, rawData.data(), rawData.size());
-  relocate<ELFT>(buf, buf + rawData.size());
+  memcpy(buf, data().data(), data().size());
+  uint8_t *bufEnd = buf + data().size();
+  relocate<ELFT>(buf, bufEnd);
 }
 
 void InputSection::replace(InputSection *other) {
@@ -1347,12 +1360,16 @@ void EhInputSection::split(ArrayRef<RelTy> rels) {
 }
 
 static size_t findNull(StringRef s, size_t entSize) {
+  // Optimize the common case.
+  if (entSize == 1)
+    return s.find(0);
+
   for (unsigned i = 0, n = s.size(); i != n; i += entSize) {
     const char *b = s.begin() + i;
     if (std::all_of(b, b + entSize, [](char c) { return c == 0; }))
       return i;
   }
-  llvm_unreachable("");
+  return StringRef::npos;
 }
 
 SyntheticSection *MergeInputSection::getParent() const {
@@ -1361,24 +1378,20 @@ SyntheticSection *MergeInputSection::getParent() const {
 
 // Split SHF_STRINGS section. Such section is a sequence of
 // null-terminated strings.
-void MergeInputSection::splitStrings(StringRef s, size_t entSize) {
+void MergeInputSection::splitStrings(ArrayRef<uint8_t> data, size_t entSize) {
+  size_t off = 0;
   const bool live = !(flags & SHF_ALLOC) || !config->gcSections;
-  const char *p = s.data(), *end = s.data() + s.size();
-  if (!std::all_of(end - entSize, end, [](char c) { return c == 0; }))
-    fatal(toString(this) + ": string is not null terminated");
-  if (entSize == 1) {
-    // Optimize the common case.
-    do {
-      size_t size = strlen(p) + 1;
-      pieces.emplace_back(p - s.begin(), xxHash64(StringRef(p, size)), live);
-      p += size;
-    } while (p != end);
-  } else {
-    do {
-      size_t size = findNull(StringRef(p, end - p), entSize) + entSize;
-      pieces.emplace_back(p - s.begin(), xxHash64(StringRef(p, size)), live);
-      p += size;
-    } while (p != end);
+  StringRef s = toStringRef(data);
+
+  while (!s.empty()) {
+    size_t end = findNull(s, entSize);
+    if (end == StringRef::npos)
+      fatal(toString(this) + ": string is not null terminated");
+    size_t size = end + entSize;
+
+    pieces.emplace_back(off, xxHash64(s.substr(0, size)), live);
+    s = s.substr(size);
+    off += size;
   }
 }
 
@@ -1390,7 +1403,7 @@ void MergeInputSection::splitNonStrings(ArrayRef<uint8_t> data,
   assert((size % entSize) == 0);
   const bool live = !(flags & SHF_ALLOC) || !config->gcSections;
 
-  pieces.resize_for_overwrite(size / entSize);
+  pieces.assign(size / entSize, SectionPiece(0, 0, false));
   for (size_t i = 0, j = 0; i != size; i += entSize, j++)
     pieces[j] = {i, (uint32_t)xxHash64(data.slice(i, entSize)), live};
 }
@@ -1417,7 +1430,7 @@ void MergeInputSection::splitIntoPieces() {
   assert(pieces.empty());
 
   if (flags & SHF_STRINGS)
-    splitStrings(toStringRef(data()), entsize);
+    splitStrings(data(), entsize);
   else
     splitNonStrings(data(), entsize);
 }

@@ -1,6 +1,7 @@
 #include "llvm/Support/ScopedPrinter.h"
 
 #include "llvm/Support/Format.h"
+#include <cctype>
 
 using namespace llvm::support;
 

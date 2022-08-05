@@ -86,8 +86,8 @@ SymbolSlab generateSymbols(std::vector<std::string> QualifiedNames) {
 
 SymbolSlab generateNumSymbols(int Begin, int End) {
   std::vector<std::string> Names;
-  for (int I = Begin; I <= End; I++)
-    Names.push_back(std::to_string(I));
+  for (int i = Begin; i <= End; i++)
+    Names.push_back(std::to_string(i));
   return generateSymbols(Names);
 }
 

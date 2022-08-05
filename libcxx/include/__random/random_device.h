@@ -13,7 +13,7 @@
 #include <string>
 
 #if !defined(_LIBCPP_HAS_NO_PRAGMA_SYSTEM_HEADER)
-#  pragma GCC system_header
+#pragma GCC system_header
 #endif
 
 _LIBCPP_PUSH_MACROS
@@ -28,8 +28,10 @@ class _LIBCPP_TYPE_VIS random_device
 #ifdef _LIBCPP_USING_DEV_RANDOM
     int __f_;
 #elif !defined(_LIBCPP_ABI_NO_RANDOM_DEVICE_COMPATIBILITY_LAYOUT)
-    _LIBCPP_DIAGNOSTIC_PUSH
-    _LIBCPP_CLANG_DIAGNOSTIC_IGNORED("-Wunused-private-field")
+#   if defined(__clang__)
+#       pragma clang diagnostic push
+#       pragma clang diagnostic ignored "-Wunused-private-field"
+#   endif
 
     // Apple platforms used to use the `_LIBCPP_USING_DEV_RANDOM` code path, and now
     // use `arc4random()` as of this comment. In order to avoid breaking the ABI, we
@@ -40,7 +42,9 @@ class _LIBCPP_TYPE_VIS random_device
 
     // ... vendors can add workarounds here if they switch to a different representation ...
 
-    _LIBCPP_DIAGNOSTIC_POP
+#   if defined(__clang__)
+#       pragma clang diagnostic pop
+#   endif
 #endif
 
 public:

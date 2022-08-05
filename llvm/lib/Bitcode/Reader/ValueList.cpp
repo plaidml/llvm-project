@@ -18,7 +18,9 @@
 #include "llvm/IR/Value.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/ErrorHandling.h"
+#include <algorithm>
 #include <cstddef>
+#include <limits>
 
 using namespace llvm;
 
@@ -60,7 +62,7 @@ DEFINE_TRANSPARENT_OPERAND_ACCESSORS(ConstantPlaceHolder, Value)
 
 } // end namespace llvm
 
-void BitcodeReaderValueList::assignValue(unsigned Idx, Value *V) {
+void BitcodeReaderValueList::assignValue(Value *V, unsigned Idx) {
   if (Idx == size()) {
     push_back(V);
     return;

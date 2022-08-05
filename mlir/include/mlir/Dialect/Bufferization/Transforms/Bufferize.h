@@ -28,9 +28,6 @@
 namespace mlir {
 namespace bufferization {
 
-class BufferizationState;
-struct BufferizationOptions;
-
 /// A helper type converter class that automatically populates the relevant
 /// materializations and type conversions for bufferization.
 class BufferizeTypeConverter : public TypeConverter {
@@ -55,6 +52,8 @@ void populateBufferizeMaterializationLegality(ConversionTarget &target);
 void populateEliminateBufferizeMaterializationsPatterns(
     BufferizeTypeConverter &typeConverter, RewritePatternSet &patterns);
 
+class BufferizationState;
+
 /// Bufferize `op` and its nested ops that implement `BufferizableOpInterface`.
 /// Whether buffer copies are needed or not is queried from `state`.
 ///
@@ -62,27 +61,12 @@ void populateEliminateBufferizeMaterializationsPatterns(
 /// unknown op (that does not implement `BufferizableOpInterface`) is found. No
 /// to_tensor/to_memref ops are inserted in that case.
 ///
-/// Note: The layout map chosen to bufferize is the most dynamic canonical
+/// Note: Tje layout map chosen to bufferize is the most dynamic canonical
 /// strided layout of the proper rank. This ensures compatibility with expected
 /// layouts after transformations. Combinations of memref.cast +
 /// canonicalization are responsible for clean ups.
 // TODO: Extract `options` from `state` and pass as separate argument.
 LogicalResult bufferizeOp(Operation *op, const BufferizationState &state);
-
-/// Bufferize `op` and its nested ops that implement `BufferizableOpInterface`.
-/// Buffers are duplicated and copied before any tensor use that bufferizes to
-/// a memory write.
-///
-/// Note: This function bufferizes ops without utilizing analysis results. It
-/// can be used to implement partial bufferization passes.
-LogicalResult bufferizeOp(Operation *op, const BufferizationOptions &options);
-
-/// Populate the pattern set with a pattern that bufferizes ops that implement
-/// `BufferizableOpInterface`.
-void populateBufferizationPattern(const BufferizationState &state,
-                                  RewritePatternSet &patterns);
-
-BufferizationOptions getPartialBufferizationOptions();
 
 } // namespace bufferization
 } // namespace mlir

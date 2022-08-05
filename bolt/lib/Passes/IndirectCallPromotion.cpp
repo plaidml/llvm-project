@@ -13,6 +13,7 @@
 #include "bolt/Passes/IndirectCallPromotion.h"
 #include "bolt/Passes/BinaryFunctionCallGraph.h"
 #include "bolt/Passes/DataflowInfoManager.h"
+#include "bolt/Utils/CommandLineOpts.h"
 #include "llvm/Support/CommandLine.h"
 
 #define DEBUG_TYPE "ICP"
@@ -280,7 +281,7 @@ IndirectCallPromotion::getCallTargets(BinaryBasicBlock &BB,
         Inst.getOperand(0).getReg() == BC.MRI->getProgramCounter())
       return Targets;
 
-    const auto ICSP = BC.MIB->tryGetAnnotationAs<IndirectCallSiteProfile>(
+    auto ICSP = BC.MIB->tryGetAnnotationAs<IndirectCallSiteProfile>(
         Inst, "CallProfile");
     if (ICSP) {
       for (const IndirectCallProfile &CSP : ICSP.get()) {
@@ -291,18 +292,17 @@ IndirectCallPromotion::getCallTargets(BinaryBasicBlock &BB,
     }
   }
 
-  // Sort by target count, number of indices in case of jump table, and
-  // mispredicts. We prioritize targets with high count, small number of indices
-  // and high mispredicts. Break ties by selecting targets with lower addresses.
+  // Sort by target count, number of indices in case of jump table,  and
+  // mispredicts. We prioritize targets with high count, small number of
+  // indices and high mispredicts
   std::stable_sort(Targets.begin(), Targets.end(),
                    [](const Callsite &A, const Callsite &B) {
                      if (A.Branches != B.Branches)
                        return A.Branches > B.Branches;
-                     if (A.JTIndices.size() != B.JTIndices.size())
+                     else if (A.JTIndices.size() != B.JTIndices.size())
                        return A.JTIndices.size() < B.JTIndices.size();
-                     if (A.Mispreds != B.Mispreds)
+                     else
                        return A.Mispreds > B.Mispreds;
-                     return A.To.Addr < B.To.Addr;
                    });
 
   // Remove non-symbol targets
@@ -938,7 +938,7 @@ size_t IndirectCallPromotion::canPromoteCallsite(
   // If we have no targets (or no calls), skip this callsite.
   if (Targets.empty() || !NumCalls) {
     if (opts::Verbosity >= 1) {
-      const ptrdiff_t InstIdx = &Inst - &(*BB.begin());
+      const auto InstIdx = &Inst - &(*BB.begin());
       outs() << "BOLT-INFO: ICP failed in " << *BB.getFunction() << " @ "
              << InstIdx << " in " << BB.getName() << ", calls = " << NumCalls
              << ", targets empty or NumCalls == 0.\n";
@@ -962,6 +962,7 @@ size_t IndirectCallPromotion::canPromoteCallsite(
   }
 
   // Pick the top N targets.
+  uint64_t TotalCallsTopN = 0;
   uint64_t TotalMispredictsTopN = 0;
   size_t N = 0;
 
@@ -984,7 +985,7 @@ size_t IndirectCallPromotion::canPromoteCallsite(
     if (TopNFrequency == 0 ||
         TopNFrequency < opts::IndirectCallPromotionMispredictThreshold) {
       if (opts::Verbosity >= 1) {
-        const ptrdiff_t InstIdx = &Inst - &(*BB.begin());
+        const auto InstIdx = &Inst - &(*BB.begin());
         outs() << "BOLT-INFO: ICP failed in " << *BB.getFunction() << " @ "
                << InstIdx << " in " << BB.getName() << ", calls = " << NumCalls
                << ", top N mis. frequency " << format("%.1f", TopNFrequency)
@@ -1014,6 +1015,7 @@ size_t IndirectCallPromotion::canPromoteCallsite(
       if (N + (Targets[I].JTIndices.empty() ? 1 : Targets[I].JTIndices.size()) >
           TrialN)
         break;
+      TotalCallsTopN += Targets[I].Branches;
       TotalMispredictsTopN += Targets[I].Mispreds;
       NumRemainingCalls -= Targets[I].Branches;
       N += Targets[I].JTIndices.empty() ? 1 : Targets[I].JTIndices.size();
@@ -1032,7 +1034,7 @@ size_t IndirectCallPromotion::canPromoteCallsite(
       if (TopNMispredictFrequency <
           opts::IndirectCallPromotionMispredictThreshold) {
         if (opts::Verbosity >= 1) {
-          const ptrdiff_t InstIdx = &Inst - &(*BB.begin());
+          const auto InstIdx = &Inst - &(*BB.begin());
           outs() << "BOLT-INFO: ICP failed in " << *BB.getFunction() << " @ "
                  << InstIdx << " in " << BB.getName()
                  << ", calls = " << NumCalls << ", top N mispredict frequency "
@@ -1062,7 +1064,7 @@ void IndirectCallPromotion::printCallsiteInfo(
   BinaryContext &BC = BB.getFunction()->getBinaryContext();
   const bool IsTailCall = BC.MIB->isTailCall(Inst);
   const bool IsJumpTable = BB.getFunction()->getJumpTable(Inst);
-  const ptrdiff_t InstIdx = &Inst - &(*BB.begin());
+  const auto InstIdx = &Inst - &(*BB.begin());
 
   outs() << "BOLT-INFO: ICP candidate branch info: " << *BB.getFunction()
          << " @ " << InstIdx << " in " << BB.getName()
@@ -1217,7 +1219,7 @@ void IndirectCallPromotion::runOnFunctions(BinaryContext &BC) {
 
       for (unsigned Idx = 0; Idx < BB->size(); ++Idx) {
         MCInst &Inst = BB->getInstructionAtIndex(Idx);
-        const ptrdiff_t InstIdx = &Inst - &(*BB->begin());
+        const auto InstIdx = &Inst - &(*BB->begin());
         const bool IsTailCall = BC.MIB->isTailCall(Inst);
         const bool HasIndirectCallProfile =
             BC.MIB->hasAnnotation(Inst, "CallProfile");

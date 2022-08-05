@@ -7,7 +7,6 @@
 //===----------------------------------------------------------------------===//
 
 #include "TestAsmPrinter.h"
-#include "llvm/BinaryFormat/ELF.h"
 #include "llvm/CodeGen/AsmPrinter.h"
 #include "llvm/CodeGen/MachineModuleInfo.h"
 #include "llvm/IR/LegacyPassManager.h"

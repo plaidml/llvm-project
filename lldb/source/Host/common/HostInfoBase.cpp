@@ -13,7 +13,6 @@
 #include "lldb/Host/HostInfo.h"
 #include "lldb/Host/HostInfoBase.h"
 #include "lldb/Utility/ArchSpec.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/StreamString.h"
 
@@ -120,7 +119,7 @@ FileSpec HostInfoBase::GetShlibDir() {
   llvm::call_once(g_fields->m_lldb_so_dir_once, []() {
     if (!HostInfo::ComputeSharedLibraryDirectory(g_fields->m_lldb_so_dir))
       g_fields->m_lldb_so_dir = FileSpec();
-    Log *log = GetLog(LLDBLog::Host);
+    Log *log = lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_HOST);
     LLDB_LOG(log, "shlib dir -> `{0}`", g_fields->m_lldb_so_dir);
   });
   return g_fields->m_lldb_so_dir;
@@ -130,7 +129,7 @@ FileSpec HostInfoBase::GetSupportExeDir() {
   llvm::call_once(g_fields->m_lldb_support_exe_dir_once, []() {
     if (!HostInfo::ComputeSupportExeDirectory(g_fields->m_lldb_support_exe_dir))
       g_fields->m_lldb_support_exe_dir = FileSpec();
-    Log *log = GetLog(LLDBLog::Host);
+    Log *log = lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_HOST);
     LLDB_LOG(log, "support exe dir -> `{0}`", g_fields->m_lldb_support_exe_dir);
   });
   return g_fields->m_lldb_support_exe_dir;
@@ -140,7 +139,7 @@ FileSpec HostInfoBase::GetHeaderDir() {
   llvm::call_once(g_fields->m_lldb_headers_dir_once, []() {
     if (!HostInfo::ComputeHeaderDirectory(g_fields->m_lldb_headers_dir))
       g_fields->m_lldb_headers_dir = FileSpec();
-    Log *log = GetLog(LLDBLog::Host);
+    Log *log = lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_HOST);
     LLDB_LOG(log, "header dir -> `{0}`", g_fields->m_lldb_headers_dir);
   });
   return g_fields->m_lldb_headers_dir;
@@ -150,7 +149,7 @@ FileSpec HostInfoBase::GetSystemPluginDir() {
   llvm::call_once(g_fields->m_lldb_system_plugin_dir_once, []() {
     if (!HostInfo::ComputeSystemPluginsDirectory(g_fields->m_lldb_system_plugin_dir))
       g_fields->m_lldb_system_plugin_dir = FileSpec();
-    Log *log = GetLog(LLDBLog::Host);
+    Log *log = lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_HOST);
     LLDB_LOG(log, "system plugin dir -> `{0}`",
              g_fields->m_lldb_system_plugin_dir);
   });
@@ -161,7 +160,7 @@ FileSpec HostInfoBase::GetUserPluginDir() {
   llvm::call_once(g_fields->m_lldb_user_plugin_dir_once, []() {
     if (!HostInfo::ComputeUserPluginsDirectory(g_fields->m_lldb_user_plugin_dir))
       g_fields->m_lldb_user_plugin_dir = FileSpec();
-    Log *log = GetLog(LLDBLog::Host);
+    Log *log = lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_HOST);
     LLDB_LOG(log, "user plugin dir -> `{0}`", g_fields->m_lldb_user_plugin_dir);
   });
   return g_fields->m_lldb_user_plugin_dir;
@@ -171,7 +170,7 @@ FileSpec HostInfoBase::GetProcessTempDir() {
   llvm::call_once(g_fields->m_lldb_process_tmp_dir_once, []() {
     if (!HostInfo::ComputeProcessTempFileDirectory( g_fields->m_lldb_process_tmp_dir))
       g_fields->m_lldb_process_tmp_dir = FileSpec();
-    Log *log = GetLog(LLDBLog::Host);
+    Log *log = lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_HOST);
     LLDB_LOG(log, "process temp dir -> `{0}`",
              g_fields->m_lldb_process_tmp_dir);
   });
@@ -183,7 +182,7 @@ FileSpec HostInfoBase::GetGlobalTempDir() {
     if (!HostInfo::ComputeGlobalTempFileDirectory( g_fields->m_lldb_global_tmp_dir))
       g_fields->m_lldb_global_tmp_dir = FileSpec();
 
-    Log *log = GetLog(LLDBLog::Host);
+    Log *log = lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_HOST);
     LLDB_LOG(log, "global temp dir -> `{0}`", g_fields->m_lldb_global_tmp_dir);
   });
   return g_fields->m_lldb_global_tmp_dir;
@@ -212,7 +211,7 @@ ArchSpec HostInfoBase::GetAugmentedArchSpec(llvm::StringRef triple) {
 
 bool HostInfoBase::ComputePathRelativeToLibrary(FileSpec &file_spec,
                                                 llvm::StringRef dir) {
-  Log *log = GetLog(LLDBLog::Host);
+  Log *log = lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_HOST);
 
   FileSpec lldb_file_spec = GetShlibDir();
   if (!lldb_file_spec)

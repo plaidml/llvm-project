@@ -589,7 +589,7 @@ void LLJIT::PlatformSupport::setInitTransform(
   J.InitHelperTransformLayer->setTransform(std::move(T));
 }
 
-LLJIT::PlatformSupport::~PlatformSupport() = default;
+LLJIT::PlatformSupport::~PlatformSupport() {}
 
 Error LLJITBuilderState::prepareForConstruction() {
 

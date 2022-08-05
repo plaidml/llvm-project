@@ -234,7 +234,7 @@ Error EPCIndirectStubsManager::updatePointer(StringRef Name,
 namespace llvm {
 namespace orc {
 
-EPCIndirectionUtils::ABISupport::~ABISupport() = default;
+EPCIndirectionUtils::ABISupport::~ABISupport() {}
 
 Expected<std::unique_ptr<EPCIndirectionUtils>>
 EPCIndirectionUtils::Create(ExecutorProcessControl &EPC) {

@@ -23,7 +23,6 @@
 #include "lldb/Target/Target.h"
 #include "lldb/Utility/ArchSpec.h"
 #include "lldb/Utility/FileSpec.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/StreamString.h"
 
@@ -59,7 +58,7 @@ void PlatformRemoteMacOSX::Terminate() {
 
 PlatformSP PlatformRemoteMacOSX::CreateInstance(bool force,
                                                 const ArchSpec *arch) {
-  Log *log = GetLog(LLDBLog::Platform);
+  Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_PLATFORM));
   if (log) {
     const char *arch_name;
     if (arch && arch->GetArchitectureName())

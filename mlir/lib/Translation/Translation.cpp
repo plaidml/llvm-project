@@ -62,7 +62,7 @@ static void registerTranslateToMLIRFunction(
     StringRef name, const TranslateSourceMgrToMLIRFunction &function) {
   auto wrappedFn = [function](llvm::SourceMgr &sourceMgr, raw_ostream &output,
                               StringRef, MLIRContext *context) {
-    OwningOpRef<ModuleOp> module = function(sourceMgr, context);
+    OwningModuleRef module = function(sourceMgr, context);
     if (!module || failed(verify(*module)))
       return failure();
     module->print(output);
@@ -102,7 +102,7 @@ TranslateFromMLIRRegistration::TranslateFromMLIRRegistration(
     DialectRegistry registry;
     dialectRegistration(registry);
     context->appendDialectRegistry(registry);
-    auto module = OwningOpRef<ModuleOp>(parseSourceFile(sourceMgr, context));
+    auto module = OwningModuleRef(parseSourceFile(sourceMgr, context));
     if (!module || failed(verify(*module)))
       return failure();
     return function(module.get(), output, outputFileName);
@@ -140,11 +140,6 @@ LogicalResult mlir::mlirTranslateMain(int argc, char **argv,
   static llvm::cl::opt<std::string> outputFilename(
       "o", llvm::cl::desc("Output filename"), llvm::cl::value_desc("filename"),
       llvm::cl::init("-"));
-
-  static llvm::cl::opt<bool> allowUnregisteredDialects(
-      "allow-unregistered-dialect",
-      llvm::cl::desc("Allow operation with no registered dialects"),
-      llvm::cl::init(false));
 
   static llvm::cl::opt<bool> splitInputFile(
       "split-input-file",
@@ -185,10 +180,9 @@ LogicalResult mlir::mlirTranslateMain(int argc, char **argv,
   auto processBuffer = [&](std::unique_ptr<llvm::MemoryBuffer> ownedBuffer,
                            raw_ostream &os) {
     MLIRContext context;
-    context.allowUnregisteredDialects(allowUnregisteredDialects);
     context.printOpOnDiagnostic(!verifyDiagnostics);
     llvm::SourceMgr sourceMgr;
-    sourceMgr.AddNewSourceBuffer(std::move(ownedBuffer), SMLoc());
+    sourceMgr.AddNewSourceBuffer(std::move(ownedBuffer), llvm::SMLoc());
 
     if (!verifyDiagnostics) {
       SourceMgrDiagnosticHandler sourceMgrHandler(sourceMgr, &context);

@@ -15,8 +15,7 @@
 #define X87_FPU
 #endif
 
-// https://developer.apple.com/documentation/xcode/writing-arm64-code-for-apple-platforms
-#if defined(_WIN32) || (defined(__APPLE__) && defined(__aarch64__))
+#if defined(_WIN32)
 #define LONG_DOUBLE_IS_DOUBLE
 #endif
 

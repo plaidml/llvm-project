@@ -6,10 +6,7 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// Provide some utility classes for use in the demangler.
-// There are two copies of this file in the source tree.  The one in libcxxabi
-// is the original and the one in llvm is the copy.  Use cp-to-llvm.sh to update
-// the copy.  See README.txt for more details.
+// Provide some utility classes for use in the demangler(s).
 //
 //===----------------------------------------------------------------------===//
 
@@ -17,11 +14,10 @@
 #define DEMANGLE_UTILITY_H
 
 #include "StringView.h"
-#include <array>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <exception>
+#include <iterator>
 #include <limits>
 
 DEMANGLE_NAMESPACE_BEGIN
@@ -33,38 +29,37 @@ class OutputBuffer {
   size_t CurrentPosition = 0;
   size_t BufferCapacity = 0;
 
-  // Ensure there are at least N more positions in the buffer.
+  // Ensure there is at least n more positions in buffer.
   void grow(size_t N) {
-    size_t Need = N + CurrentPosition;
-    if (Need > BufferCapacity) {
-      // Avoid many reallocations during startup, with a bit of hysteresis.
-      constexpr size_t MinInitAlloc = 1024;
-      if (Need < MinInitAlloc)
-        Need = MinInitAlloc;
+    if (N + CurrentPosition >= BufferCapacity) {
       BufferCapacity *= 2;
-      if (BufferCapacity < Need)
-        BufferCapacity = Need;
+      if (BufferCapacity < N + CurrentPosition)
+        BufferCapacity = N + CurrentPosition;
       Buffer = static_cast<char *>(std::realloc(Buffer, BufferCapacity));
       if (Buffer == nullptr)
         std::terminate();
     }
   }
 
-  OutputBuffer &writeUnsigned(uint64_t N, bool isNeg = false) {
-    std::array<char, 21> Temp;
-    char *TempPtr = Temp.data() + Temp.size();
+  void writeUnsigned(uint64_t N, bool isNeg = false) {
+    // Handle special case...
+    if (N == 0) {
+      *this << '0';
+      return;
+    }
 
-    // Output at least one character.
-    do {
+    char Temp[21];
+    char *TempPtr = std::end(Temp);
+
+    while (N) {
       *--TempPtr = char('0' + N % 10);
       N /= 10;
-    } while (N);
+    }
 
-    // Add negative sign.
+    // Add negative sign...
     if (isNeg)
       *--TempPtr = '-';
-
-    return operator+=(StringView(TempPtr, Temp.data() + Temp.size()));
+    this->operator<<(StringView(TempPtr, std::end(Temp)));
   }
 
 public:
@@ -83,11 +78,12 @@ public:
   unsigned CurrentPackMax = std::numeric_limits<unsigned>::max();
 
   OutputBuffer &operator+=(StringView R) {
-    if (size_t Size = R.size()) {
-      grow(Size);
-      std::memcpy(Buffer + CurrentPosition, R.begin(), Size);
-      CurrentPosition += Size;
-    }
+    size_t Size = R.size();
+    if (Size == 0)
+      return *this;
+    grow(Size);
+    std::memmove(Buffer + CurrentPosition, R.begin(), Size);
+    CurrentPosition += Size;
     return *this;
   }
 
@@ -96,6 +92,8 @@ public:
     Buffer[CurrentPosition++] = C;
     return *this;
   }
+
+  OutputBuffer &operator<<(StringView R) { return (*this += R); }
 
   OutputBuffer prepend(StringView R) {
     size_t Size = R.size();
@@ -108,16 +106,19 @@ public:
     return *this;
   }
 
-  OutputBuffer &operator<<(StringView R) { return (*this += R); }
-
   OutputBuffer &operator<<(char C) { return (*this += C); }
 
   OutputBuffer &operator<<(long long N) {
-    return writeUnsigned(static_cast<unsigned long long>(std::abs(N)), N < 0);
+    if (N < 0)
+      writeUnsigned(static_cast<unsigned long long>(-N), true);
+    else
+      writeUnsigned(static_cast<unsigned long long>(N));
+    return *this;
   }
 
   OutputBuffer &operator<<(unsigned long long N) {
-    return writeUnsigned(N, false);
+    writeUnsigned(N, false);
+    return *this;
   }
 
   OutputBuffer &operator<<(long N) {

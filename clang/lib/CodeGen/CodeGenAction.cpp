@@ -1134,7 +1134,6 @@ void CodeGenAction::ExecuteAction() {
     TheModule->setTargetTriple(TargetOpts.Triple);
   }
 
-  EmbedObject(TheModule.get(), CodeGenOpts, Diagnostics);
   EmbedBitcode(TheModule.get(), CodeGenOpts, *MainFile);
 
   LLVMContext &Ctx = TheModule->getContext();

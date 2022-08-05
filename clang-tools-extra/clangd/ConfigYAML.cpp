@@ -229,10 +229,6 @@ private:
       if (auto Value = boolValue(N, "DeducedTypes"))
         F.DeducedTypes = *Value;
     });
-    Dict.handle("Designators", [&](Node &N) {
-      if (auto Value = boolValue(N, "Designators"))
-        F.Designators = *Value;
-    });
     Dict.parse(N);
   }
 
@@ -349,7 +345,8 @@ private:
     if (auto Scalar = scalarValue(N, Desc)) {
       if (auto Bool = llvm::yaml::parseBool(**Scalar))
         return Located<bool>(*Bool, Scalar->Range);
-      warning(Desc + " should be a boolean", N);
+      else
+        warning(Desc + " should be a boolean", N);
     }
     return llvm::None;
   }

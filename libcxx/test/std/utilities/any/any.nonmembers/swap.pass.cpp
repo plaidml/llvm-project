@@ -22,21 +22,24 @@
 
 #include "test_macros.h"
 
+using std::any;
+using std::any_cast;
+
 int main(int, char**)
 {
 
     { // test noexcept
-        std::any a;
+        any a;
         static_assert(noexcept(swap(a, a)), "swap(any&, any&) must be noexcept");
     }
     {
-        std::any a1 = 1;
-        std::any a2 = 2;
+        any a1(1);
+        any a2(2);
 
         swap(a1, a2);
 
-        assert(std::any_cast<int>(a1) == 2);
-        assert(std::any_cast<int>(a2) == 1);
+        assert(any_cast<int>(a1) == 2);
+        assert(any_cast<int>(a2) == 1);
     }
 
   return 0;

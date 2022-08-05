@@ -11,15 +11,14 @@
 #define _LIBCPP___MEMORY_UNINITIALIZED_ALGORITHMS_H
 
 #include <__config>
-#include <__iterator/iterator_traits.h>
 #include <__memory/addressof.h>
 #include <__memory/construct_at.h>
 #include <__memory/voidify.h>
-#include <__utility/move.h>
-#include <__utility/pair.h>
+#include <iterator>
+#include <utility>
 
 #if !defined(_LIBCPP_HAS_NO_PRAGMA_SYSTEM_HEADER)
-#  pragma GCC system_header
+#pragma GCC system_header
 #endif
 
 _LIBCPP_BEGIN_NAMESPACE_STD

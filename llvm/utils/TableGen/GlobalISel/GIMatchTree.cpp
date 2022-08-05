@@ -7,7 +7,6 @@
 //===----------------------------------------------------------------------===//
 
 #include "GIMatchTree.h"
-#include "GIMatchDagPredicate.h"
 
 #include "../CodeGenInstruction.h"
 

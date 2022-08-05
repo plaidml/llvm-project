@@ -25,7 +25,7 @@ NativeInlineSiteSymbol::NativeInlineSiteSymbol(
     : NativeRawSymbol(Session, PDB_SymType::InlineSite, Id), Sym(Sym),
       ParentAddr(ParentAddr) {}
 
-NativeInlineSiteSymbol::~NativeInlineSiteSymbol() = default;
+NativeInlineSiteSymbol::~NativeInlineSiteSymbol() {}
 
 void NativeInlineSiteSymbol::dump(raw_ostream &OS, int Indent,
                                   PdbSymbolIdField ShowIdFields,

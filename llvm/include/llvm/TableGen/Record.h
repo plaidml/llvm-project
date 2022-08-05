@@ -2015,7 +2015,7 @@ class Resolver {
 
 public:
   explicit Resolver(Record *CurRec) : CurRec(CurRec) {}
-  virtual ~Resolver() = default;
+  virtual ~Resolver() {}
 
   Record *getCurrentRecord() const { return CurRec; }
 

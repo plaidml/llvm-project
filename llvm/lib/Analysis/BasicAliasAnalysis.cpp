@@ -1010,22 +1010,19 @@ ModRefInfo BasicAAResult::getModRefInfo(const CallBase *Call,
       return ModRefInfo::NoModRef;
   }
 
-  // Ideally, there should be no need to special case for memcpy/memove
-  // intrinsics here since general machinery (based on memory attributes) should
-  // already handle it just fine. Unfortunately, it doesn't due to deficiency in
-  // operand bundles support. At the moment it's not clear if complexity behind
-  // enhancing general mechanism worths it.
-  // TODO: Consider improving operand bundles support in general mechanism.
-  if (auto *Inst = dyn_cast<AnyMemTransferInst>(Call)) {
+  // The semantics of memcpy intrinsics either exactly overlap or do not
+  // overlap, i.e., source and destination of any given memcpy are either
+  // no-alias or must-alias.
+  if (auto *Inst = dyn_cast<AnyMemCpyInst>(Call)) {
     AliasResult SrcAA =
         getBestAAResults().alias(MemoryLocation::getForSource(Inst), Loc, AAQI);
     AliasResult DestAA =
         getBestAAResults().alias(MemoryLocation::getForDest(Inst), Loc, AAQI);
     // It's also possible for Loc to alias both src and dest, or neither.
     ModRefInfo rv = ModRefInfo::NoModRef;
-    if (SrcAA != AliasResult::NoAlias || Call->hasReadingOperandBundles())
+    if (SrcAA != AliasResult::NoAlias)
       rv = setRef(rv);
-    if (DestAA != AliasResult::NoAlias || Call->hasClobberingOperandBundles())
+    if (DestAA != AliasResult::NoAlias)
       rv = setMod(rv);
     return rv;
   }

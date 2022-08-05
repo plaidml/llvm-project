@@ -19,7 +19,7 @@ struct S {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    ret i64 ptrtoint (i32* getelementptr inbounds ([[STRUCT_S:%.*]], %struct.S* null, i32 0, i32 1) to i64)
 //
-uintptr_t get_offset_of_y_naively(void) {
+uintptr_t get_offset_of_y_naively() {
   return ((uintptr_t)(&(((struct S *)0)->y)));
 }
 
@@ -27,7 +27,7 @@ uintptr_t get_offset_of_y_naively(void) {
 // CHECK-NEXT:  entry:
 // CHECK-NEXT:    ret i64 4
 //
-uintptr_t get_offset_of_y_via_builtin(void) {
+uintptr_t get_offset_of_y_via_builtin() {
   return __builtin_offsetof(struct S, y);
 }
 

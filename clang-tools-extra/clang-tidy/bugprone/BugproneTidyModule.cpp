@@ -42,7 +42,6 @@
 #include "PosixReturnCheck.h"
 #include "RedundantBranchConditionCheck.h"
 #include "ReservedIdentifierCheck.h"
-#include "SharedPtrArrayMismatchCheck.h"
 #include "SignalHandlerCheck.h"
 #include "SignedCharMisuseCheck.h"
 #include "SizeofContainerCheck.h"
@@ -144,8 +143,6 @@ public:
         "bugprone-posix-return");
     CheckFactories.registerCheck<ReservedIdentifierCheck>(
         "bugprone-reserved-identifier");
-    CheckFactories.registerCheck<SharedPtrArrayMismatchCheck>(
-        "bugprone-shared-ptr-array-mismatch");
     CheckFactories.registerCheck<SignalHandlerCheck>("bugprone-signal-handler");
     CheckFactories.registerCheck<SignedCharMisuseCheck>(
         "bugprone-signed-char-misuse");

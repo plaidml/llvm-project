@@ -30,6 +30,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <memory>
 #include <string>
 #include <system_error>
@@ -1173,4 +1174,5 @@ BigArchive::BigArchive(MemoryBufferRef Source, Error &Err)
   }
   setFirstRegular(*I);
   Err = Error::success();
+  return;
 }

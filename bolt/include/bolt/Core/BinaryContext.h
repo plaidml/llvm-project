@@ -28,12 +28,13 @@
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCCodeEmitter.h"
 #include "llvm/MC/MCContext.h"
+#include "llvm/MC/MCDwarf.h"
+#include "llvm/MC/MCInstrInfo.h"
 #include "llvm/MC/MCObjectFileInfo.h"
 #include "llvm/MC/MCObjectWriter.h"
 #include "llvm/MC/MCPseudoProbe.h"
 #include "llvm/MC/MCSectionELF.h"
 #include "llvm/MC/MCSectionMachO.h"
-#include "llvm/MC/MCStreamer.h"
 #include "llvm/MC/MCSymbol.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/ErrorOr.h"
@@ -211,7 +212,7 @@ class BinaryContext {
   std::map<unsigned, DwarfLineTable> DwarfLineTablesCUMap;
 
 public:
-  static Expected<std::unique_ptr<BinaryContext>>
+  static std::unique_ptr<BinaryContext>
   createBinaryContext(const ObjectFile *File, bool IsPIC,
                       std::unique_ptr<DWARFContext> DwCtx);
 
@@ -1192,14 +1193,14 @@ public:
                                           /*PIC=*/!HasFixedLoadAddress));
     MCEInstance.LocalCtx->setObjectFileInfo(MCEInstance.LocalMOFI.get());
     MCEInstance.MCE.reset(
-        TheTarget->createMCCodeEmitter(*MII, *MCEInstance.LocalCtx));
+        TheTarget->createMCCodeEmitter(*MII, *MRI, *MCEInstance.LocalCtx));
     return MCEInstance;
   }
 
   /// Creating MCStreamer instance.
   std::unique_ptr<MCStreamer>
   createStreamer(llvm::raw_pwrite_stream &OS) const {
-    MCCodeEmitter *MCE = TheTarget->createMCCodeEmitter(*MII, *Ctx);
+    MCCodeEmitter *MCE = TheTarget->createMCCodeEmitter(*MII, *MRI, *Ctx);
     MCAsmBackend *MAB =
         TheTarget->createMCAsmBackend(*STI, *MRI, MCTargetOptions());
     std::unique_ptr<MCObjectWriter> OW = MAB->createObjectWriter(OS);

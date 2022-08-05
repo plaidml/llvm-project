@@ -42,7 +42,6 @@
 // Avoid formatting to keep the changes with the original code minimal.
 // clang-format off
 
-#include <__assert>
 #include "__config"
 
 _LIBCPP_BEGIN_NAMESPACE_STD

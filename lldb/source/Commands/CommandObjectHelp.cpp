@@ -46,7 +46,8 @@ CommandObjectHelp::CommandObjectHelp(CommandInterpreter &interpreter)
                           "Show a list of all debugger "
                           "commands, or give details "
                           "about a specific command.",
-                          "help [<cmd-name>]") {
+                          "help [<cmd-name>]"),
+      m_options() {
   CommandArgumentEntry arg;
   CommandArgumentData command_arg;
 

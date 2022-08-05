@@ -789,6 +789,7 @@ HexagonMCCodeEmitter::getMachineOpValue(MCInst const &MI, MCOperand const &MO,
 }
 
 MCCodeEmitter *llvm::createHexagonMCCodeEmitter(MCInstrInfo const &MII,
+                                                MCRegisterInfo const &MRI,
                                                 MCContext &MCT) {
   return new HexagonMCCodeEmitter(MII, MCT);
 }

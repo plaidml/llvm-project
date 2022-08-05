@@ -54,7 +54,7 @@ public:
   bool isCombined() const;
 
   // Get the location of the predicate.
-  ArrayRef<SMLoc> getLoc() const;
+  ArrayRef<llvm::SMLoc> getLoc() const;
 
   // Records are pointer-comparable.
   bool operator==(const Pred &other) const { return def == other.def; }

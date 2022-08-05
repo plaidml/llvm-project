@@ -43,7 +43,8 @@ public:
             nullptr,
             eCommandRequiresFrame | eCommandRequiresRegContext |
                 eCommandProcessMustBeLaunched | eCommandProcessMustBePaused),
-        m_format_options(eFormatDefault) {
+        m_option_group(), m_format_options(eFormatDefault),
+        m_command_options() {
     CommandArgumentEntry arg;
     CommandArgumentData register_arg;
 
@@ -231,7 +232,8 @@ protected:
   class CommandOptions : public OptionGroup {
   public:
     CommandOptions()
-        : set_indexes(OptionValue::ConvertTypeToMask(OptionValue::eTypeUInt64)),
+        : OptionGroup(),
+          set_indexes(OptionValue::ConvertTypeToMask(OptionValue::eTypeUInt64)),
           dump_all_sets(false, false), // Initial and default values are false
           alternate_name(false, false) {}
 

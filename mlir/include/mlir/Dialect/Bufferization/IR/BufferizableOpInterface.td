@@ -124,7 +124,7 @@ def BufferizableOpInterface : OpInterface<"BufferizableOpInterface"> {
           bufferized in-place. This method will never be called on OpOperands
           that do not have a tensor type.
         }],
-        /*retType=*/"SmallVector<OpResult>",
+        /*retType=*/"OpResult",
         /*methodName=*/"getAliasingOpResult",
         /*args=*/(ins "OpOperand &":$opOperand,
                       "const BufferizationState &":$state),
@@ -146,7 +146,7 @@ def BufferizableOpInterface : OpInterface<"BufferizableOpInterface"> {
 
           Note: This method can return multiple OpOperands, indicating that the
           given OpResult may at runtime alias with any of the OpOperands. This
-          is useful for branches and for ops such as `arith.select`.
+          is useful for branches and for ops such as `std.select`.
         }],
         /*retType=*/"SmallVector<OpOperand *>",
         /*methodName=*/"getAliasingOpOperand",
@@ -162,10 +162,8 @@ def BufferizableOpInterface : OpInterface<"BufferizableOpInterface"> {
           for (OpOperand &opOperand : $_op.getOperation()->getOpOperands()) {
             if (!opOperand.get().getType().isa<TensorType>())
               continue;
-            SmallVector<OpResult> aliasingOpResults =
-                bufferizableOp.getAliasingOpResult(opOperand, state);
-            if (llvm::find(aliasingOpResults, opResult)
-                != aliasingOpResults.end())
+            if (bufferizableOp.getAliasingOpResult(opOperand, state) ==
+                    opResult)
               result.push_back(&opOperand);
           }
           return result;
@@ -306,7 +304,8 @@ def BufferizableOpInterface : OpInterface<"BufferizableOpInterface"> {
           cast<BufferizableOpInterface>(getOperation());
       return !bufferizableOp.bufferizesToMemoryRead(opOperand, state)
           && !bufferizableOp.bufferizesToMemoryWrite(opOperand, state)
-          && !bufferizableOp.getAliasingOpResult(opOperand, state).empty();
+          && static_cast<bool>(
+              bufferizableOp.getAliasingOpResult(opOperand, state));
     }
 
     // TODO: The following two attributes should belong to the tensor dialect.

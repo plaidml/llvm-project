@@ -30,7 +30,6 @@
 #include "lldb/Target/Platform.h"
 #include "lldb/Target/UnixSignals.h"
 #include "lldb/Utility/GDBRemote.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/StreamString.h"
 #include "lldb/Utility/StructuredData.h"
@@ -179,7 +178,7 @@ Status GDBRemoteCommunicationServerPlatform::LaunchGDBServer(
   if (hostname.empty())
     hostname = "127.0.0.1";
 
-  Log *log = GetLog(LLDBLog::Platform);
+  Log *log(GetLogIfAnyCategoriesSet(LIBLLDB_LOG_PLATFORM));
   LLDB_LOGF(log, "Launching debugserver with: %s:%u...", hostname.c_str(),
             *port);
 
@@ -229,7 +228,7 @@ GDBRemoteCommunicationServerPlatform::Handle_qLaunchGDBServer(
   // Spawn a local debugserver as a platform so we can then attach or launch a
   // process...
 
-  Log *log = GetLog(LLDBLog::Platform);
+  Log *log(GetLogIfAnyCategoriesSet(LIBLLDB_LOG_PLATFORM));
   LLDB_LOGF(log, "GDBRemoteCommunicationServerPlatform::%s() called",
             __FUNCTION__);
 

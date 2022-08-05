@@ -17,6 +17,7 @@ class ModuleOp;
 template <typename T>
 class OperationPass;
 class RewritePatternSet;
+using OwningRewritePatternList = RewritePatternSet;
 
 /// Populate the given list with patterns that convert from OpenMP to LLVM.
 void populateOpenMPToLLVMConversionPatterns(LLVMTypeConverter &converter,

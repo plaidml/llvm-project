@@ -18,10 +18,8 @@
 #include <cassert>
 #include <chrono> // for nanoseconds
 
-#include "test_macros.h"
-
-#ifndef TEST_HAS_NO_THREADS
-#  include <thread> // for thread_id
+#ifndef _LIBCPP_HAS_NO_THREADS
+#   include <thread> // for thread_id
 #endif
 
 struct TriviallyCopyable {
@@ -37,7 +35,7 @@ void test(T t) {
 int main(int, char**) {
   test(TriviallyCopyable(42));
   test(std::chrono::nanoseconds(2));
-#ifndef TEST_HAS_NO_THREADS
+#ifndef _LIBCPP_HAS_NO_THREADS
   test(std::this_thread::get_id());
 #endif
 

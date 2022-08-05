@@ -36,14 +36,14 @@ __attribute__((objc_subclassing_restricted))
 @interface Derived : Base
 @end
 
-int main(void) {
+int main() {
   [Base classMethod];
 }
 // CHECK-LABEL: define{{.*}} i32 @main()
 // CHECK-NEXT: entry:
 // CHECK-NEXT:   [[CLASS:%.*]] = call %struct._class_t* @objc_loadClassref(i8** @"OBJC_CLASSLIST_REFERENCES_$_")
-// CHECK-NEXT:   [[RECEIVER:%.*]] = bitcast %struct._class_t* [[CLASS]] to i8*
 // CHECK-NEXT:   [[SELECTOR:%.*]] = load i8*, i8** @OBJC_SELECTOR_REFERENCES_
+// CHECK-NEXT:   [[RECEIVER:%.*]] = bitcast %struct._class_t* [[CLASS]] to i8*
 // CHECK-NEXT:   call void bitcast (i8* (i8*, i8*, ...)* @objc_msgSend to void (i8*, i8*)*)(i8* noundef [[RECEIVER]], i8* noundef [[SELECTOR]])
 // CHECK-NEXT:   ret i32 0
 

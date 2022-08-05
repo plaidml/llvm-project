@@ -5,11 +5,10 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-///
-/// \file
-/// This file defines the PointerUnion class, which is a discriminated union of
-/// pointer types.
-///
+//
+// This file defines the PointerUnion class, which is a discriminated union of
+// pointer types.
+//
 //===----------------------------------------------------------------------===//
 
 #ifndef LLVM_ADT_POINTERUNION_H

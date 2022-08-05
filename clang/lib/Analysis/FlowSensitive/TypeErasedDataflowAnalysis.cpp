@@ -12,7 +12,6 @@
 //===----------------------------------------------------------------------===//
 
 #include <memory>
-#include <system_error>
 #include <utility>
 #include <vector>
 
@@ -24,35 +23,13 @@
 #include "clang/Analysis/FlowSensitive/Transfer.h"
 #include "clang/Analysis/FlowSensitive/TypeErasedDataflowAnalysis.h"
 #include "clang/Analysis/FlowSensitive/Value.h"
-#include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/None.h"
 #include "llvm/ADT/Optional.h"
-#include "llvm/Support/Error.h"
+#include "llvm/Support/raw_ostream.h"
 
 namespace clang {
 namespace dataflow {
-
-class StmtToEnvMapImpl : public StmtToEnvMap {
-public:
-  StmtToEnvMapImpl(
-      const ControlFlowContext &CFCtx,
-      llvm::ArrayRef<llvm::Optional<TypeErasedDataflowAnalysisState>>
-          BlockToState)
-      : CFCtx(CFCtx), BlockToState(BlockToState) {}
-
-  const Environment *getEnvironment(const Stmt &S) const override {
-    auto BlockIT = CFCtx.getStmtToBlock().find(&S);
-    assert(BlockIT != CFCtx.getStmtToBlock().end());
-    const auto &State = BlockToState[BlockIT->getSecond()->getBlockID()];
-    assert(State.hasValue());
-    return &State.getValue().Env;
-  }
-
-private:
-  const ControlFlowContext &CFCtx;
-  llvm::ArrayRef<llvm::Optional<TypeErasedDataflowAnalysisState>> BlockToState;
-};
 
 /// Computes the input state for a given basic block by joining the output
 /// states of its predecessors.
@@ -64,7 +41,7 @@ private:
 ///   `llvm::None` represent basic blocks that are not evaluated yet.
 static TypeErasedDataflowAnalysisState computeBlockInputState(
     const ControlFlowContext &CFCtx,
-    llvm::ArrayRef<llvm::Optional<TypeErasedDataflowAnalysisState>> BlockStates,
+    std::vector<llvm::Optional<TypeErasedDataflowAnalysisState>> &BlockStates,
     const CFGBlock &Block, const Environment &InitEnv,
     TypeErasedDataflowAnalysis &Analysis) {
   llvm::DenseSet<const CFGBlock *> Preds;
@@ -116,7 +93,7 @@ static TypeErasedDataflowAnalysisState computeBlockInputState(
         MaybePredState.getValue();
     if (MaybeState.hasValue()) {
       Analysis.joinTypeErased(MaybeState->Lattice, PredState.Lattice);
-      MaybeState->Env.join(PredState.Env, Analysis);
+      MaybeState->Env.join(PredState.Env);
     } else {
       MaybeState = PredState;
     }
@@ -133,19 +110,16 @@ static TypeErasedDataflowAnalysisState computeBlockInputState(
 /// Transfers `State` by evaluating `CfgStmt` in the context of `Analysis`.
 /// `HandleTransferredStmt` (if provided) will be applied to `CfgStmt`, after it
 /// is evaluated.
-static void transferCFGStmt(
-    const ControlFlowContext &CFCtx,
-    llvm::ArrayRef<llvm::Optional<TypeErasedDataflowAnalysisState>> BlockStates,
-    const CFGStmt &CfgStmt, TypeErasedDataflowAnalysis &Analysis,
-    TypeErasedDataflowAnalysisState &State,
-    std::function<void(const CFGStmt &,
-                       const TypeErasedDataflowAnalysisState &)>
-        HandleTransferredStmt) {
+static void
+transferCFGStmt(const CFGStmt &CfgStmt, TypeErasedDataflowAnalysis &Analysis,
+                TypeErasedDataflowAnalysisState &State,
+                std::function<void(const CFGStmt &,
+                                   const TypeErasedDataflowAnalysisState &)>
+                    HandleTransferredStmt) {
   const Stmt *S = CfgStmt.getStmt();
   assert(S != nullptr);
 
-  if (Analysis.applyBuiltinTransfer())
-    transfer(StmtToEnvMapImpl(CFCtx, BlockStates), *S, State.Env);
+  transfer(*S, State.Env);
   Analysis.transferTypeErased(S, State.Lattice, State.Env);
 
   if (HandleTransferredStmt != nullptr)
@@ -200,12 +174,11 @@ TypeErasedDataflowAnalysisState transferBlock(
   for (const CFGElement &Element : Block) {
     switch (Element.getKind()) {
     case CFGElement::Statement:
-      transferCFGStmt(CFCtx, BlockStates, *Element.getAs<CFGStmt>(), Analysis,
-                      State, HandleTransferredStmt);
+      transferCFGStmt(*Element.getAs<CFGStmt>(), Analysis, State,
+                      HandleTransferredStmt);
       break;
     case CFGElement::Initializer:
-      if (Analysis.applyBuiltinTransfer())
-        transferCFGInitializer(*Element.getAs<CFGInitializer>(), State);
+      transferCFGInitializer(*Element.getAs<CFGInitializer>(), State);
       break;
     default:
       // FIXME: Evaluate other kinds of `CFGElement`.
@@ -215,7 +188,7 @@ TypeErasedDataflowAnalysisState transferBlock(
   return State;
 }
 
-llvm::Expected<std::vector<llvm::Optional<TypeErasedDataflowAnalysisState>>>
+std::vector<llvm::Optional<TypeErasedDataflowAnalysisState>>
 runTypeErasedDataflowAnalysis(const ControlFlowContext &CFCtx,
                               TypeErasedDataflowAnalysis &Analysis,
                               const Environment &InitEnv) {
@@ -237,12 +210,12 @@ runTypeErasedDataflowAnalysis(const ControlFlowContext &CFCtx,
   // FIXME: Consider making the maximum number of iterations configurable.
   // FIXME: Set up statistics (see llvm/ADT/Statistic.h) to count average number
   // of iterations, number of functions that time out, etc.
-  uint32_t Iterations = 0;
-  static constexpr uint32_t MaxIterations = 1 << 16;
+  unsigned Iterations = 0;
+  static constexpr unsigned MaxIterations = 1 << 16;
   while (const CFGBlock *Block = Worklist.dequeue()) {
     if (++Iterations > MaxIterations) {
-      return llvm::createStringError(std::errc::timed_out,
-                                     "maximum number of iterations reached");
+      llvm::errs() << "Maximum number of iterations reached, giving up.\n";
+      break;
     }
 
     const llvm::Optional<TypeErasedDataflowAnalysisState> &OldBlockState =
@@ -253,7 +226,7 @@ runTypeErasedDataflowAnalysis(const ControlFlowContext &CFCtx,
     if (OldBlockState.hasValue() &&
         Analysis.isEqualTypeErased(OldBlockState.getValue().Lattice,
                                    NewBlockState.Lattice) &&
-        OldBlockState->Env.equivalentTo(NewBlockState.Env, Analysis)) {
+        OldBlockState->Env == NewBlockState.Env) {
       // The state of `Block` didn't change after transfer so there's no need to
       // revisit its successors.
       continue;

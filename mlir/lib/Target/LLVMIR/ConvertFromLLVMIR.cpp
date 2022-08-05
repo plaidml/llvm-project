@@ -10,13 +10,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Target/LLVMIR/Import.h"
-
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/MLIRContext.h"
+#include "mlir/Target/LLVMIR/Import.h"
 #include "mlir/Target/LLVMIR/TypeFromLLVM.h"
 #include "mlir/Translation.h"
 
@@ -812,9 +811,6 @@ LogicalResult Importer::processFunction(llvm::Function *f) {
     emitWarning(UnknownLoc::get(context),
                 "could not deduce personality, skipping it");
 
-  if (f->hasGC())
-    fop.setGarbageCollectorAttr(b.getStringAttr(f->getGC()));
-
   if (f->isDeclaration())
     return success();
 
@@ -858,11 +854,11 @@ LogicalResult Importer::processBasicBlock(llvm::BasicBlock *bb, Block *block) {
   return success();
 }
 
-OwningOpRef<ModuleOp>
+OwningModuleRef
 mlir::translateLLVMIRToModule(std::unique_ptr<llvm::Module> llvmModule,
                               MLIRContext *context) {
   context->loadDialect<LLVMDialect>();
-  OwningOpRef<ModuleOp> module(ModuleOp::create(
+  OwningModuleRef module(ModuleOp::create(
       FileLineColLoc::get(context, "", /*line=*/0, /*column=*/0)));
 
   Importer deserializer(context, module.get());
@@ -880,8 +876,8 @@ mlir::translateLLVMIRToModule(std::unique_ptr<llvm::Module> llvmModule,
 
 // Deserializes the LLVM bitcode stored in `input` into an MLIR module in the
 // LLVM dialect.
-OwningOpRef<ModuleOp> translateLLVMIRToModule(llvm::SourceMgr &sourceMgr,
-                                              MLIRContext *context) {
+OwningModuleRef translateLLVMIRToModule(llvm::SourceMgr &sourceMgr,
+                                        MLIRContext *context) {
   llvm::SMDiagnostic err;
   llvm::LLVMContext llvmContext;
   std::unique_ptr<llvm::Module> llvmModule = llvm::parseIR(

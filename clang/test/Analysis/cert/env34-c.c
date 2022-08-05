@@ -18,10 +18,10 @@ char *asctime(const tm *timeptr);
 
 int strcmp(const char*, const char*);
 extern void foo(char *e);
-extern char* bar(void);
+extern char* bar();
 
 
-void getenv_test1(void) {
+void getenv_test1() {
   char *p;
 
   p = getenv("VAR");
@@ -31,7 +31,7 @@ void getenv_test1(void) {
   *p; // no-warning, getenv result was assigned to the same pointer
 }
 
-void getenv_test2(void) {
+void getenv_test2() {
   char *p, *p2;
 
   p = getenv("VAR");
@@ -46,7 +46,7 @@ void getenv_test2(void) {
   // expected-note@-2{{dereferencing an invalid pointer}}
 }
 
-void getenv_test3(void) {
+void getenv_test3() {
   char *p, *p2, *p3;
 
   p = getenv("VAR");
@@ -64,7 +64,7 @@ void getenv_test3(void) {
   // expected-note@-2{{dereferencing an invalid pointer}}
 }
 
-void getenv_test4(void) {
+void getenv_test4() {
   char *p, *p2, *p3;
 
   p = getenv("VAR");
@@ -78,7 +78,7 @@ void getenv_test4(void) {
   // expected-note@-2{{dereferencing an invalid pointer}}
 }
 
-void getenv_test5(void) {
+void getenv_test5() {
   char *p, *p2, *p3;
 
   p = getenv("VAR");
@@ -92,7 +92,7 @@ void getenv_test5(void) {
   // expected-note@-2{{dereferencing an invalid pointer}}
 }
 
-void getenv_test6(void) {
+void getenv_test6() {
   char *p, *p2;
   p = getenv("VAR");
   *p; // no-warning
@@ -120,7 +120,7 @@ void getenv_test6(void) {
   // expected-note@-2{{dereferencing an invalid pointer}}
 }
 
-void getenv_test7(void) {
+void getenv_test7() {
   char *p, *p2;
   p = getenv("VAR");
   // expected-note@-1{{previous function call was here}}
@@ -134,7 +134,7 @@ void getenv_test7(void) {
   // expected-note@-2{{use of invalidated pointer 'p' in a function call}}
 }
 
-void getenv_test8(void) {
+void getenv_test8() {
   static const char *array[] = {
      0,
      0,
@@ -159,7 +159,7 @@ void getenv_test8(void) {
   // expected-note@-2{{dereferencing an invalid pointer}}
 }
 
-void getenv_test9(void) {
+void getenv_test9() {
   char *p, *p2;
   p = getenv("something");
   p = bar();
@@ -167,7 +167,7 @@ void getenv_test9(void) {
   *p; // no-warning: p does not point to getenv anymore
 }
 
-void getenv_test10(void) {
+void getenv_test10() {
   strcmp(getenv("VAR1"), getenv("VAR2"));
   // expected-note@-1{{'getenv' call may invalidate the the result of the previous 'getenv'}}
   // expected-note@-2{{previous function call was here}}
@@ -181,7 +181,7 @@ void dereference_pointer(char* a) {
   // expected-note@-2{{dereferencing an invalid pointer}}
 }
 
-void getenv_test11(void) {
+void getenv_test11() {
   char *p = getenv("VAR");
   // expected-note@-1{{previous function call was here}}
 
@@ -212,7 +212,7 @@ void getenv_test12(int flag1, int flag2) {
   }
 }
 
-void setlocale_test1(void) {
+void setlocale_test1() {
   char *p, *p2;
   p = setlocale(0, "VAR");
   *p; // no-warning
@@ -250,7 +250,7 @@ void setlocale_test2(int flag) {
   // expected-note@-2{{dereferencing an invalid pointer}}
 }
 
-void strerror_test1(void) {
+void strerror_test1() {
   char *p, *p2;
 
   p = strerror(0);
@@ -298,7 +298,7 @@ void strerror_test2(int errno) {
   // expected-note@-2{{dereferencing an invalid pointer}}
 }
 
-void asctime_test(void) {
+void asctime_test() {
   const tm *t;
   const tm *tt;
 
@@ -312,7 +312,7 @@ void asctime_test(void) {
   // expected-note@-2{{dereferencing an invalid pointer}}
 }
 
-void localeconv_test1(void) {
+void localeconv_test1() {
   lconv *lc1 = localeconv();
   // expected-note@-1{{previous function call was here}}
   lconv *lc2 = localeconv();
@@ -323,7 +323,7 @@ void localeconv_test1(void) {
   // expected-note@-2{{dereferencing an invalid pointer}}
 }
 
-void localeconv_test2(void) {
+void localeconv_test2() {
   // TODO: false negative
   lconv *lc1 = localeconv();
   lconv *lc2 = localeconv();

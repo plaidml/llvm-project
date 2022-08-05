@@ -24,7 +24,6 @@
 #include "lldb/Symbol/Function.h"
 #include "lldb/Symbol/SymbolContext.h"
 #include "lldb/Target/Target.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/Stream.h"
 #include "lldb/Utility/StreamString.h"
@@ -109,7 +108,8 @@ BreakpointResolverSP BreakpointResolver::CreateFromStructuredData(
     return result_sp;
   }
 
-  BreakpointResolver *resolver = nullptr;
+  BreakpointResolver *resolver;
+
   switch (resolver_type) {
   case FileLineResolver:
     resolver = BreakpointResolverFileLine::CreateFromStructuredData(
@@ -138,12 +138,13 @@ BreakpointResolverSP BreakpointResolver::CreateFromStructuredData(
     llvm_unreachable("Should never get an unresolvable resolver type.");
   }
 
-  if (!resolver || error.Fail())
+  if (!error.Success()) {
     return result_sp;
-
-  // Add on the global offset option:
-  resolver->SetOffset(offset);
-  return BreakpointResolverSP(resolver);
+  } else {
+    // Add on the global offset option:
+    resolver->SetOffset(offset);
+    return BreakpointResolverSP(resolver);
+  }
 }
 
 StructuredData::DictionarySP BreakpointResolver::WrapOptionsDict(
@@ -291,7 +292,7 @@ void BreakpointResolver::AddLocation(SearchFilter &filter,
                                      const SymbolContext &sc,
                                      bool skip_prologue,
                                      llvm::StringRef log_ident) {
-  Log *log = GetLog(LLDBLog::Breakpoints);
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_BREAKPOINTS));
   Address line_start = sc.line_entry.range.GetBaseAddress();
   if (!line_start.IsValid()) {
     LLDB_LOGF(log,

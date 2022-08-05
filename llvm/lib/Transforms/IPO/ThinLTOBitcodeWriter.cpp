@@ -535,7 +535,7 @@ void writeThinLTOBitcode(raw_ostream &OS, raw_ostream *ThinLinkOS,
   // the information that is needed by thin link will be written in the
   // given OS.
   if (ThinLinkOS && Index)
-    writeThinLinkBitcodeToFile(M, *ThinLinkOS, *Index, ModHash);
+    WriteThinLinkBitcodeToFile(M, *ThinLinkOS, *Index, ModHash);
 }
 
 class WriteThinLTOBitcode : public ModulePass {

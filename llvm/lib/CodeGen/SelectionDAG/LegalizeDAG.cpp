@@ -1212,7 +1212,7 @@ void SelectionDAGLegalize::LegalizeOp(SDNode *Node) {
     break;
   default:
     if (Node->getOpcode() >= ISD::BUILTIN_OP_END) {
-      Action = TLI.getCustomOperationAction(*Node);
+      Action = TargetLowering::Legal;
     } else {
       Action = TLI.getOperationAction(Node->getOpcode(), Node->getValueType(0));
     }

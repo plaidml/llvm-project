@@ -104,7 +104,7 @@ int main(int, char**)
         assert(err == ios.failbit);
         assert(b == false);
     }
-    std::boolalpha(ios);
+    boolalpha(ios);
     {
         const char str[] = "1";
         std::ios_base::iostate err = ios.goodbit;

@@ -59,7 +59,6 @@ TEST(Automemcpy, Codegen) {
 using llvm::libc_benchmarks::BzeroConfiguration;
 using llvm::libc_benchmarks::MemcmpOrBcmpConfiguration;
 using llvm::libc_benchmarks::MemcpyConfiguration;
-using llvm::libc_benchmarks::MemmoveConfiguration;
 using llvm::libc_benchmarks::MemsetConfiguration;
 
 namespace __llvm_libc {
@@ -211,10 +210,6 @@ llvm::ArrayRef<BzeroConfiguration> getBzeroConfigurations() {
     {Wrap<bzero_0x475977492C218AD4>, "bzero_0x475977492C218AD4"},
   };
   return llvm::makeArrayRef(kConfigurations);
-}
-
-llvm::ArrayRef<MemmoveConfiguration> getMemmoveConfigurations() {
-  return {};
 }
 // Functions : 6
 )");

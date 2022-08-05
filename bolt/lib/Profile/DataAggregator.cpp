@@ -21,7 +21,6 @@
 #include "llvm/ADT/ScopeExit.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Debug.h"
-#include "llvm/Support/Errc.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Process.h"
 #include "llvm/Support/Program.h"
@@ -1349,11 +1348,11 @@ std::error_code DataAggregator::printLBRHeatMap() {
     exit(1);
   }
 
-  HM.print(opts::OutputFilename);
-  if (opts::OutputFilename == "-")
-    HM.printCDF(opts::OutputFilename);
+  HM.print(opts::HeatmapFile);
+  if (opts::HeatmapFile == "-")
+    HM.printCDF(opts::HeatmapFile);
   else
-    HM.printCDF(opts::OutputFilename + ".csv");
+    HM.printCDF(opts::HeatmapFile + ".csv");
 
   return std::error_code();
 }

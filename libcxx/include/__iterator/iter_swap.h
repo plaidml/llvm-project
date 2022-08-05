@@ -14,20 +14,19 @@
 #include <__iterator/iter_move.h>
 #include <__iterator/iterator_traits.h>
 #include <__iterator/readable_traits.h>
+#include <__ranges/access.h>
 #include <__utility/forward.h>
 #include <__utility/move.h>
 #include <concepts>
 #include <type_traits>
 
 #if !defined(_LIBCPP_HAS_NO_PRAGMA_SYSTEM_HEADER)
-#  pragma GCC system_header
+#pragma GCC system_header
 #endif
 
 _LIBCPP_BEGIN_NAMESPACE_STD
 
-#if !defined(_LIBCPP_HAS_NO_CONCEPTS)
-
-// [iter.cust.swap]
+#if !defined(_LIBCPP_HAS_NO_RANGES)
 
 namespace ranges {
 namespace __iter_swap {
@@ -35,11 +34,9 @@ namespace __iter_swap {
   void iter_swap(_I1, _I2) = delete;
 
   template<class _T1, class _T2>
-  concept __unqualified_iter_swap =
-    (__class_or_enum<remove_cvref_t<_T1>> || __class_or_enum<remove_cvref_t<_T2>>) &&
-    requires (_T1&& __x, _T2&& __y) {
-      iter_swap(_VSTD::forward<_T1>(__x), _VSTD::forward<_T2>(__y));
-    };
+  concept __unqualified_iter_swap = requires(_T1&& __x, _T2&& __y) {
+    iter_swap(_VSTD::forward<_T1>(__x), _VSTD::forward<_T2>(__y));
+  };
 
   template<class _T1, class _T2>
   concept __readable_swappable =
@@ -82,11 +79,12 @@ namespace __iter_swap {
       *_VSTD::forward<_T1>(__x) = _VSTD::move(__old);
     }
   };
-} // namespace __iter_swap
+} // end namespace __iter_swap
 
 inline namespace __cpo {
   inline constexpr auto iter_swap = __iter_swap::__fn{};
 } // namespace __cpo
+
 } // namespace ranges
 
 template<class _I1, class _I2 = _I1>
@@ -99,7 +97,7 @@ concept indirectly_swappable =
     ranges::iter_swap(__i2, __i1);
   };
 
-#endif // !defined(_LIBCPP_HAS_NO_CONCEPTS)
+#endif // !defined(_LIBCPP_HAS_NO_RANGES)
 
 _LIBCPP_END_NAMESPACE_STD
 

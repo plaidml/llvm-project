@@ -33,7 +33,6 @@ public:
     kindMap = std::make_unique<fir::KindMapping>(&context);
     firBuilder = std::make_unique<fir::FirOpBuilder>(mod, *kindMap);
 
-    i1Ty = firBuilder->getI1Type();
     i8Ty = firBuilder->getI8Type();
     i16Ty = firBuilder->getIntegerType(16);
     i32Ty = firBuilder->getI32Type();
@@ -59,7 +58,6 @@ public:
   std::unique_ptr<fir::FirOpBuilder> firBuilder;
 
   // Commonly used types
-  mlir::Type i1Ty;
   mlir::Type i8Ty;
   mlir::Type i16Ty;
   mlir::Type i32Ty;
@@ -85,13 +83,13 @@ static inline void checkCallOp(mlir::Operation *op, llvm::StringRef fctName,
     unsigned nbArgs, bool addLocArgs = true) {
   EXPECT_TRUE(mlir::isa<fir::CallOp>(*op));
   auto callOp = mlir::dyn_cast<fir::CallOp>(*op);
-  EXPECT_TRUE(callOp.getCallee().hasValue());
-  mlir::SymbolRefAttr callee = *callOp.getCallee();
+  EXPECT_TRUE(callOp.callee().hasValue());
+  mlir::SymbolRefAttr callee = *callOp.callee();
   EXPECT_EQ(fctName, callee.getRootReference().getValue());
   // sourceFile and sourceLine are added arguments.
   if (addLocArgs)
     nbArgs += 2;
-  EXPECT_EQ(nbArgs, callOp.getArgs().size());
+  EXPECT_EQ(nbArgs, callOp.args().size());
 }
 
 /// Check the call operation from the \p result value. In some cases the
@@ -120,26 +118,6 @@ static inline void checkCallOpFromResultBox(mlir::Value result,
   auto convOp = mlir::dyn_cast<fir::ConvertOp>(*u);
   EXPECT_NE(nullptr, convOp);
   checkCallOpFromResultBox(convOp.getResult(), fctName, nbArgs, addLocArgs);
-}
-
-/// Check the operations in \p block for a `fir::CallOp` operation where the
-/// function being called shares its function name with \p fctName and the
-/// number of arguments is equal to \p nbArgs. Note that this check only cares
-/// if the operation exists, and not the order in when the operation is called.
-/// This results in exiting the test as soon as the first correct instance of
-/// `fir::CallOp` is found).
-static inline void checkBlockForCallOp(
-    mlir::Block *block, llvm::StringRef fctName, unsigned nbArgs) {
-  assert(block && "mlir::Block given is a nullptr");
-  for (auto &op : block->getOperations()) {
-    if (auto callOp = mlir::dyn_cast<fir::CallOp>(op)) {
-      if (fctName == callOp.getCallee()->getRootReference().getValue()) {
-        EXPECT_EQ(nbArgs, callOp.getArgs().size());
-        return;
-      }
-    }
-  }
-  FAIL() << "No calls to " << fctName << " were found!";
 }
 
 #endif // FORTRAN_OPTIMIZER_BUILDER_RUNTIME_RUNTIMECALLTESTBASE_H

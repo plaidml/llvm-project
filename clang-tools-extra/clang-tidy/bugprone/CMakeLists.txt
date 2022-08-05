@@ -37,8 +37,6 @@ add_clang_library(clangTidyBugproneModule
   PosixReturnCheck.cpp
   RedundantBranchConditionCheck.cpp
   ReservedIdentifierCheck.cpp
-  SharedPtrArrayMismatchCheck.cpp
-  SmartPtrArrayMismatchCheck.cpp
   SignalHandlerCheck.cpp
   SignedCharMisuseCheck.cpp
   SizeofContainerCheck.cpp

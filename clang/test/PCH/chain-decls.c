@@ -12,7 +12,7 @@
 // CHECK: void f();
 // CHECK: void g();
 
-int h(void) {
+int h() {
   f();
   g();
 

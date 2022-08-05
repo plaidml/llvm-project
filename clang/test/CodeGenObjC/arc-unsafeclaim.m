@@ -21,7 +21,7 @@
 
 A *makeA(void);
 
-void test_assign(void) {
+void test_assign() {
   __unsafe_unretained id x;
   x = makeA();
 }
@@ -49,7 +49,7 @@ void test_assign(void) {
 // ATTACHED-CALL:              [[T0:%.*]] = call [[A:.*]]* @makeA() [ "clang.arc.attachedcall"(i8* (i8*)* @llvm.objc.unsafeClaimAutoreleasedReturnValue) ],
 // ATTACHED-CALL:              call void (...) @llvm.objc.clang.arc.noop.use([[A]]* [[T0]])
 
-void test_assign_assign(void) {
+void test_assign_assign() {
   __unsafe_unretained id x, y;
   x = y = makeA();
 }
@@ -75,7 +75,7 @@ void test_assign_assign(void) {
 // ATTACHED-CALL:              [[T0:%.*]] = call [[A:.*]]* @makeA() [ "clang.arc.attachedcall"(i8* (i8*)* @llvm.objc.unsafeClaimAutoreleasedReturnValue) ],
 // ATTACHED-CALL:              call void (...) @llvm.objc.clang.arc.noop.use([[A]]* [[T0]])
 
-void test_strong_assign_assign(void) {
+void test_strong_assign_assign() {
   __strong id x;
   __unsafe_unretained id y;
   x = y = makeA();
@@ -106,7 +106,7 @@ void test_strong_assign_assign(void) {
 // ATTACHED-CALL:              [[T0:%.*]] = call [[A:.*]]* @makeA() [ "clang.arc.attachedcall"(i8* (i8*)* @llvm.objc.retainAutoreleasedReturnValue) ],
 // ATTACHED-CALL:              call void (...) @llvm.objc.clang.arc.noop.use([[A]]* [[T0]])
 
-void test_assign_strong_assign(void) {
+void test_assign_strong_assign() {
   __unsafe_unretained id x;
   __strong id y;
   x = y = makeA();
@@ -137,7 +137,7 @@ void test_assign_strong_assign(void) {
 // ATTACHED-CALL:              [[T0:%.*]] = call [[A:.*]]* @makeA() [ "clang.arc.attachedcall"(i8* (i8*)* @llvm.objc.retainAutoreleasedReturnValue) ],
 // ATTACHED-CALL:              call void (...) @llvm.objc.clang.arc.noop.use([[A]]* [[T0]])
 
-void test_init(void) {
+void test_init() {
   __unsafe_unretained id x = makeA();
 }
 // CHECK-LABEL:        define{{.*}} void @test_init()
@@ -158,7 +158,7 @@ void test_init(void) {
 // ATTACHED-CALL:              [[T0:%.*]] = call [[A:.*]]* @makeA() [ "clang.arc.attachedcall"(i8* (i8*)* @llvm.objc.unsafeClaimAutoreleasedReturnValue) ],
 // ATTACHED-CALL:              call void (...) @llvm.objc.clang.arc.noop.use([[A]]* [[T0]])
 
-void test_init_assignment(void) {
+void test_init_assignment() {
   __unsafe_unretained id x;
   __unsafe_unretained id y = x = makeA();
 }
@@ -184,7 +184,7 @@ void test_init_assignment(void) {
 // ATTACHED-CALL:              [[T0:%.*]] = call [[A:.*]]* @makeA() [ "clang.arc.attachedcall"(i8* (i8*)* @llvm.objc.unsafeClaimAutoreleasedReturnValue) ],
 // ATTACHED-CALL:              call void (...) @llvm.objc.clang.arc.noop.use([[A]]* [[T0]])
 
-void test_strong_init_assignment(void) {
+void test_strong_init_assignment() {
   __unsafe_unretained id x;
   __strong id y = x = makeA();
 }
@@ -212,7 +212,7 @@ void test_strong_init_assignment(void) {
 // ATTACHED-CALL:              [[T0:%.*]] = call [[A:.*]]* @makeA() [ "clang.arc.attachedcall"(i8* (i8*)* @llvm.objc.retainAutoreleasedReturnValue) ],
 // ATTACHED-CALL:              call void (...) @llvm.objc.clang.arc.noop.use([[A]]* [[T0]])
 
-void test_init_strong_assignment(void) {
+void test_init_strong_assignment() {
   __strong id x;
   __unsafe_unretained id y = x = makeA();
 }
@@ -242,7 +242,7 @@ void test_init_strong_assignment(void) {
 // ATTACHED-CALL:              [[T0:%.*]] = call [[A:.*]]* @makeA() [ "clang.arc.attachedcall"(i8* (i8*)* @llvm.objc.retainAutoreleasedReturnValue) ],
 // ATTACHED-CALL:              call void (...) @llvm.objc.clang.arc.noop.use([[A]]* [[T0]])
 
-void test_ignored(void) {
+void test_ignored() {
   makeA();
 }
 // CHECK-LABEL:     define{{.*}} void @test_ignored()
@@ -258,7 +258,7 @@ void test_ignored(void) {
 // ATTACHED-CALL:              [[T0:%.*]] = call [[A:.*]]* @makeA() [ "clang.arc.attachedcall"(i8* (i8*)* @llvm.objc.unsafeClaimAutoreleasedReturnValue) ],
 // ATTACHED-CALL:              call void (...) @llvm.objc.clang.arc.noop.use([[A]]* [[T0]])
 
-void test_cast_to_void(void) {
+void test_cast_to_void() {
   (void) makeA();
 }
 // CHECK-LABEL:     define{{.*}} void @test_cast_to_void()

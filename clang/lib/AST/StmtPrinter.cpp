@@ -1030,12 +1030,7 @@ void StmtPrinter::VisitDeclRefExpr(DeclRefExpr *Node) {
     Qualifier->print(OS, Policy);
   if (Node->hasTemplateKeyword())
     OS << "template ";
-  if (Policy.CleanUglifiedParameters &&
-      isa<ParmVarDecl, NonTypeTemplateParmDecl>(Node->getDecl()) &&
-      Node->getDecl()->getIdentifier())
-    OS << Node->getDecl()->getIdentifier()->deuglifiedName();
-  else
-    Node->getNameInfo().printName(OS, Policy);
+  OS << Node->getNameInfo();
   if (Node->hasExplicitTemplateArgs()) {
     const TemplateParameterList *TPL = nullptr;
     if (!Node->hadMultipleCandidates())
@@ -1736,16 +1731,21 @@ void StmtPrinter::VisitCXXOperatorCallExpr(CXXOperatorCallExpr *Node) {
     }
   } else if (Kind == OO_Arrow) {
     PrintExpr(Node->getArg(0));
-  } else if (Kind == OO_Call || Kind == OO_Subscript) {
+  } else if (Kind == OO_Call) {
     PrintExpr(Node->getArg(0));
-    OS << (Kind == OO_Call ? '(' : '[');
+    OS << '(';
     for (unsigned ArgIdx = 1; ArgIdx < Node->getNumArgs(); ++ArgIdx) {
       if (ArgIdx > 1)
         OS << ", ";
       if (!isa<CXXDefaultArgExpr>(Node->getArg(ArgIdx)))
         PrintExpr(Node->getArg(ArgIdx));
     }
-    OS << (Kind == OO_Call ? ')' : ']');
+    OS << ')';
+  } else if (Kind == OO_Subscript) {
+    PrintExpr(Node->getArg(0));
+    OS << '[';
+    PrintExpr(Node->getArg(1));
+    OS << ']';
   } else if (Node->getNumArgs() == 1) {
     OS << getOperatorSpelling(Kind) << ' ';
     PrintExpr(Node->getArg(0));
@@ -2069,10 +2069,7 @@ void StmtPrinter::VisitLambdaExpr(LambdaExpr *Node) {
       } else {
         NeedComma = true;
       }
-      std::string ParamStr =
-          (Policy.CleanUglifiedParameters && P->getIdentifier())
-              ? P->getIdentifier()->deuglifiedName().str()
-              : P->getNameAsString();
+      std::string ParamStr = P->getNameAsString();
       P->getOriginalType().print(OS, Policy, ParamStr);
     }
     if (Method->isVariadic()) {

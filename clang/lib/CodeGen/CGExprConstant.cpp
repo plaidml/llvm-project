@@ -851,7 +851,6 @@ bool ConstStructBuilder::Build(const APValue &Val, const RecordDecl *RD,
 }
 
 llvm::Constant *ConstStructBuilder::Finalize(QualType Type) {
-  Type = Type.getNonReferenceType();
   RecordDecl *RD = Type->castAs<RecordType>()->getDecl();
   llvm::Type *ValTy = CGM.getTypes().ConvertType(Type);
   return Builder.build(ValTy, RD->hasFlexibleArrayMember());

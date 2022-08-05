@@ -257,6 +257,7 @@ public:
   void emitNotCStringBug(CheckerContext &C, ProgramStateRef State,
                          const Stmt *S, StringRef WarningMsg) const;
   void emitAdditionOverflowBug(CheckerContext &C, ProgramStateRef State) const;
+
   ProgramStateRef checkAdditionOverflow(CheckerContext &C,
                                             ProgramStateRef state,
                                             NonLoc left,
@@ -419,6 +420,7 @@ ProgramStateRef CStringChecker::CheckBufferAccess(CheckerContext &C,
 
     SVal BufEnd =
         svalBuilder.evalBinOpLN(State, BO_Add, *BufLoc, LastOffset, PtrTy);
+
     State = CheckLocation(C, State, Buffer, BufEnd, Access);
 
     // If the buffer isn't large enough, abort.
@@ -620,8 +622,8 @@ void CStringChecker::emitNotCStringBug(CheckerContext &C, ProgramStateRef State,
 void CStringChecker::emitAdditionOverflowBug(CheckerContext &C,
                                              ProgramStateRef State) const {
   if (ExplodedNode *N = C.generateErrorNode(State)) {
-    if (!BT_AdditionOverflow)
-      BT_AdditionOverflow.reset(
+    if (!BT_NotCString)
+      BT_NotCString.reset(
           new BuiltinBug(Filter.CheckNameCStringOutOfBounds, "API",
                          "Sum of expressions causes overflow."));
 
@@ -632,8 +634,8 @@ void CStringChecker::emitAdditionOverflowBug(CheckerContext &C,
         "This expression will create a string whose length is too big to "
         "be represented as a size_t";
 
-    auto Report = std::make_unique<PathSensitiveBugReport>(*BT_AdditionOverflow,
-                                                           WarningMsg, N);
+    auto Report =
+        std::make_unique<PathSensitiveBugReport>(*BT_NotCString, WarningMsg, N);
     C.emitReport(std::move(Report));
   }
 }

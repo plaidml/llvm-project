@@ -66,7 +66,7 @@ public:
   };
 
 private:
-  const LiveInterval *const Parent;
+  LiveInterval *Parent;
   SmallVectorImpl<Register> &NewRegs;
   MachineRegisterInfo &MRI;
   LiveIntervals &LIS;
@@ -129,7 +129,7 @@ public:
   ///            be done.  This could be the case if called before Regalloc.
   /// @param deadRemats The collection of all the instructions defining an
   ///                   original reg and are dead after remat.
-  LiveRangeEdit(const LiveInterval *parent, SmallVectorImpl<Register> &newRegs,
+  LiveRangeEdit(LiveInterval *parent, SmallVectorImpl<Register> &newRegs,
                 MachineFunction &MF, LiveIntervals &lis, VirtRegMap *vrm,
                 Delegate *delegate = nullptr,
                 SmallPtrSet<MachineInstr *, 32> *deadRemats = nullptr)
@@ -141,7 +141,7 @@ public:
 
   ~LiveRangeEdit() override { MRI.resetDelegate(this); }
 
-  const LiveInterval &getParent() const {
+  LiveInterval &getParent() const {
     assert(Parent && "No parent LiveInterval");
     return *Parent;
   }
@@ -193,11 +193,11 @@ public:
 
   /// Remat - Information needed to rematerialize at a specific location.
   struct Remat {
-    const VNInfo *const ParentVNI;  // parent_'s value at the remat location.
+    VNInfo *ParentVNI;              // parent_'s value at the remat location.
     MachineInstr *OrigMI = nullptr; // Instruction defining OrigVNI. It contains
                                     // the real expr for remat.
 
-    explicit Remat(const VNInfo *ParentVNI) : ParentVNI(ParentVNI) {}
+    explicit Remat(VNInfo *ParentVNI) : ParentVNI(ParentVNI) {}
   };
 
   /// allUsesAvailableAt - Return true if all registers used by OrigMI at

@@ -1418,8 +1418,7 @@ void TypePrinter::printTemplateTypeParmBefore(const TemplateTypeParmType *T,
     }
     OS << "auto";
   } else if (IdentifierInfo *Id = T->getIdentifier())
-    OS << (Policy.CleanUglifiedParameters ? Id->deuglifiedName()
-                                          : Id->getName());
+    OS << Id->getName();
   else
     OS << "type-parameter-" << T->getDepth() << '-' << T->getIndex();
 

@@ -4,6 +4,8 @@
 //      expression after the target line has been stepped on a given number of
 //      times.
 //
+// REQUIRES: system-linux
+//
 // RUN: %dexter_regression_test -- %s | FileCheck %s
 // CHECK: address_hit_count.cpp
 

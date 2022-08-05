@@ -11,6 +11,7 @@
 
 #include "llvm/ADT/APInt.h"
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 
 #include <string>
@@ -72,7 +73,7 @@ public:
     return R;
   }
 
-  bool isConditionImplied(SmallVector<int64_t, 8> R) const;
+  bool isConditionImplied(SmallVector<int64_t, 8> R);
 
   void popLastConstraint() { Constraints.pop_back(); }
 

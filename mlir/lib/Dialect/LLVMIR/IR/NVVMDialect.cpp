@@ -46,7 +46,8 @@ static void printNVVMIntrinsicOp(OpAsmPrinter &p, Operation *op) {
 }
 
 // <operation> ::= `llvm.nvvm.vote.ballot.sync %mask, %pred` : result_type
-ParseResult VoteBallotOp::parse(OpAsmParser &parser, OperationState &result) {
+static ParseResult parseNVVMVoteBallotOp(OpAsmParser &parser,
+                                         OperationState &result) {
   MLIRContext *context = parser.getContext();
   auto int32Ty = IntegerType::get(context, 32);
   auto int1Ty = IntegerType::get(context, 1);
@@ -61,16 +62,8 @@ ParseResult VoteBallotOp::parse(OpAsmParser &parser, OperationState &result) {
                                         parser.getNameLoc(), result.operands));
 }
 
-void VoteBallotOp::print(OpAsmPrinter &p) { printNVVMIntrinsicOp(p, *this); }
-
-LogicalResult CpAsyncOp::verify() {
-  if (size() != 4 && size() != 8 && size() != 16)
-    return emitError("expected byte size to be either 4, 8 or 16.");
-  return success();
-}
-
-LogicalResult MmaOp::verify() {
-  MLIRContext *context = getContext();
+static LogicalResult verify(MmaOp op) {
+  MLIRContext *context = op.getContext();
   auto f16Ty = Float16Type::get(context);
   auto f16x2Ty = LLVM::getFixedVectorType(f16Ty, 2);
   auto f32Ty = Float32Type::get(context);
@@ -79,55 +72,44 @@ LogicalResult MmaOp::verify() {
   auto f32x8StructTy = LLVM::LLVMStructType::getLiteral(
       context, {f32Ty, f32Ty, f32Ty, f32Ty, f32Ty, f32Ty, f32Ty, f32Ty});
 
-  auto operandTypes = getOperandTypes();
+  SmallVector<Type, 12> operandTypes(op.getOperandTypes().begin(),
+                                     op.getOperandTypes().end());
   if (operandTypes != SmallVector<Type, 8>(8, f16x2Ty) &&
-      operandTypes != ArrayRef<Type>{f16x2Ty, f16x2Ty, f16x2Ty, f16x2Ty, f32Ty,
-                                     f32Ty, f32Ty, f32Ty, f32Ty, f32Ty, f32Ty,
-                                     f32Ty}) {
-    return emitOpError("expected operands to be 4 <halfx2>s followed by either "
-                       "4 <halfx2>s or 8 floats");
+      operandTypes != SmallVector<Type, 12>{f16x2Ty, f16x2Ty, f16x2Ty, f16x2Ty,
+                                            f32Ty, f32Ty, f32Ty, f32Ty, f32Ty,
+                                            f32Ty, f32Ty, f32Ty}) {
+    return op.emitOpError(
+        "expected operands to be 4 <halfx2>s followed by either "
+        "4 <halfx2>s or 8 floats");
   }
-  if (getType() != f32x8StructTy && getType() != f16x2x4StructTy) {
-    return emitOpError("expected result type to be a struct of either 4 "
-                       "<halfx2>s or 8 floats");
+  if (op.getType() != f32x8StructTy && op.getType() != f16x2x4StructTy) {
+    return op.emitOpError("expected result type to be a struct of either 4 "
+                          "<halfx2>s or 8 floats");
   }
 
-  auto alayout = (*this)->getAttrOfType<StringAttr>("alayout");
-  auto blayout = (*this)->getAttrOfType<StringAttr>("blayout");
+  auto alayout = op->getAttrOfType<StringAttr>("alayout");
+  auto blayout = op->getAttrOfType<StringAttr>("blayout");
 
   if (!(alayout && blayout) ||
       !(alayout.getValue() == "row" || alayout.getValue() == "col") ||
       !(blayout.getValue() == "row" || blayout.getValue() == "col")) {
-    return emitOpError("alayout and blayout attributes must be set to either "
-                       "\"row\" or \"col\"");
+    return op.emitOpError(
+        "alayout and blayout attributes must be set to either "
+        "\"row\" or \"col\"");
   }
 
-  if (operandTypes == ArrayRef<Type>{f16x2Ty, f16x2Ty, f16x2Ty, f16x2Ty, f32Ty,
-                                     f32Ty, f32Ty, f32Ty, f32Ty, f32Ty, f32Ty,
-                                     f32Ty} &&
-      getType() == f32x8StructTy && alayout.getValue() == "row" &&
+  if (operandTypes == SmallVector<Type, 12>{f16x2Ty, f16x2Ty, f16x2Ty, f16x2Ty,
+                                            f32Ty, f32Ty, f32Ty, f32Ty, f32Ty,
+                                            f32Ty, f32Ty, f32Ty} &&
+      op.getType() == f32x8StructTy && alayout.getValue() == "row" &&
       blayout.getValue() == "col") {
     return success();
   }
-  return emitOpError("unimplemented mma.sync variant");
+  return op.emitOpError("unimplemented mma.sync variant");
 }
 
-LogicalResult ShflOp::verify() {
-  if (!(*this)->getAttrOfType<UnitAttr>("return_value_and_is_valid"))
-    return success();
-  auto type = getType().dyn_cast<LLVM::LLVMStructType>();
-  auto elementType = (type && type.getBody().size() == 2)
-                         ? type.getBody()[1].dyn_cast<IntegerType>()
-                         : nullptr;
-  if (!elementType || elementType.getWidth() != 1)
-    return emitError("expected return type to be a two-element struct with "
-                     "i1 as the second element");
-  return success();
-}
-
-std::pair<mlir::Type, unsigned> NVVM::inferMMAType(NVVM::MMATypes type,
-                                                   NVVM::MMAFrag frag,
-                                                   MLIRContext *context) {
+std::pair<mlir::Type, unsigned>
+inferMMAType(NVVM::MMATypes type, NVVM::MMAFrag frag, MLIRContext *context) {
   unsigned numberElements = 0;
   Type elementType;
   OpBuilder builder(context);
@@ -149,72 +131,76 @@ std::pair<mlir::Type, unsigned> NVVM::inferMMAType(NVVM::MMATypes type,
   return std::make_pair(elementType, numberElements);
 }
 
-LogicalResult NVVM::WMMALoadOp::verify() {
+static LogicalResult verify(NVVM::WMMALoadOp op) {
   unsigned addressSpace =
-      ptr().getType().cast<LLVM::LLVMPointerType>().getAddressSpace();
+      op.ptr().getType().cast<LLVM::LLVMPointerType>().getAddressSpace();
   if (addressSpace != 0 && addressSpace != 1 && addressSpace != 3)
-    return emitOpError("expected source pointer in memory "
-                       "space 0, 1, 3");
+    return op.emitOpError("expected source pointer in memory "
+                          "space 0, 1, 3");
 
-  if (NVVM::WMMALoadOp::getIntrinsicID(m(), n(), k(), layout(), eltype(),
-                                       frag()) == 0)
-    return emitOpError() << "invalid attribute combination";
+  if (NVVM::WMMALoadOp::getIntrinsicID(op.m(), op.n(), op.k(), op.layout(),
+                                       op.eltype(), op.frag()) == 0)
+    return op.emitOpError() << "invalid attribute combination";
   std::pair<Type, unsigned> typeInfo =
-      inferMMAType(eltype(), frag(), getContext());
+      inferMMAType(op.eltype(), op.frag(), op.getContext());
   Type dstType = LLVM::LLVMStructType::getLiteral(
-      getContext(), SmallVector<Type, 8>(typeInfo.second, typeInfo.first));
-  if (getType() != dstType)
-    return emitOpError("expected destination type is a structure of ")
+      op.getContext(), SmallVector<Type, 8>(typeInfo.second, typeInfo.first));
+  if (op.getType() != dstType)
+    return op.emitOpError("expected destination type is a structure of ")
            << typeInfo.second << " elements of type " << typeInfo.first;
   return success();
 }
 
-LogicalResult NVVM::WMMAStoreOp::verify() {
+static LogicalResult verify(NVVM::WMMAStoreOp op) {
   unsigned addressSpace =
-      ptr().getType().cast<LLVM::LLVMPointerType>().getAddressSpace();
+      op.ptr().getType().cast<LLVM::LLVMPointerType>().getAddressSpace();
   if (addressSpace != 0 && addressSpace != 1 && addressSpace != 3)
-    return emitOpError("expected operands to be a source pointer in memory "
-                       "space 0, 1, 3");
+    return op.emitOpError("expected operands to be a source pointer in memory "
+                          "space 0, 1, 3");
 
-  if (NVVM::WMMAStoreOp::getIntrinsicID(m(), n(), k(), layout(), eltype()) == 0)
-    return emitOpError() << "invalid attribute combination";
+  if (NVVM::WMMAStoreOp::getIntrinsicID(op.m(), op.n(), op.k(), op.layout(),
+                                        op.eltype()) == 0)
+    return op.emitOpError() << "invalid attribute combination";
   std::pair<Type, unsigned> typeInfo =
-      inferMMAType(eltype(), NVVM::MMAFrag::c, getContext());
-  if (args().size() != typeInfo.second)
-    return emitOpError() << "expected " << typeInfo.second << " data operands";
-  if (llvm::any_of(args(), [&typeInfo](Value operands) {
+      inferMMAType(op.eltype(), NVVM::MMAFrag::c, op.getContext());
+  if (op.args().size() != typeInfo.second)
+    return op.emitOpError()
+           << "expected " << typeInfo.second << " data operands";
+  if (llvm::any_of(op.args(), [&typeInfo](Value operands) {
         return operands.getType() != typeInfo.first;
       }))
-    return emitOpError() << "expected data operands of type " << typeInfo.first;
+    return op.emitOpError()
+           << "expected data operands of type " << typeInfo.first;
   return success();
 }
 
-LogicalResult NVVM::WMMAMmaOp::verify() {
-  if (NVVM::WMMAMmaOp::getIntrinsicID(m(), n(), k(), layoutA(), layoutB(),
-                                      eltypeA(), eltypeB()) == 0)
-    return emitOpError() << "invalid attribute combination";
+static LogicalResult verify(NVVM::WMMAMmaOp op) {
+  if (NVVM::WMMAMmaOp::getIntrinsicID(op.m(), op.n(), op.k(), op.layoutA(),
+                                      op.layoutB(), op.eltypeA(),
+                                      op.eltypeB()) == 0)
+    return op.emitOpError() << "invalid attribute combination";
   std::pair<Type, unsigned> typeInfoA =
-      inferMMAType(eltypeA(), NVVM::MMAFrag::a, getContext());
+      inferMMAType(op.eltypeA(), NVVM::MMAFrag::a, op.getContext());
   std::pair<Type, unsigned> typeInfoB =
-      inferMMAType(eltypeA(), NVVM::MMAFrag::b, getContext());
+      inferMMAType(op.eltypeA(), NVVM::MMAFrag::b, op.getContext());
   std::pair<Type, unsigned> typeInfoC =
-      inferMMAType(eltypeB(), NVVM::MMAFrag::c, getContext());
+      inferMMAType(op.eltypeB(), NVVM::MMAFrag::c, op.getContext());
   SmallVector<Type, 32> arguments;
   arguments.append(typeInfoA.second, typeInfoA.first);
   arguments.append(typeInfoB.second, typeInfoB.first);
   arguments.append(typeInfoC.second, typeInfoC.first);
   unsigned numArgs = arguments.size();
-  if (args().size() != numArgs)
-    return emitOpError() << "expected " << numArgs << " arguments";
+  if (op.args().size() != numArgs)
+    return op.emitOpError() << "expected " << numArgs << " arguments";
   for (unsigned i = 0; i < numArgs; i++) {
-    if (args()[i].getType() != arguments[i])
-      return emitOpError() << "expected argument " << i << " to be of type "
-                           << arguments[i];
+    if (op.args()[i].getType() != arguments[i])
+      return op.emitOpError()
+             << "expected argument " << i << " to be of type " << arguments[i];
   }
   Type dstType = LLVM::LLVMStructType::getLiteral(
-      getContext(), SmallVector<Type, 8>(typeInfoC.second, typeInfoC.first));
-  if (getType() != dstType)
-    return emitOpError("expected destination type is a structure of ")
+      op.getContext(), SmallVector<Type, 8>(typeInfoC.second, typeInfoC.first));
+  if (op.getType() != dstType)
+    return op.emitOpError("expected destination type is a structure of ")
            << typeInfoC.second << " elements of type " << typeInfoC.first;
   return success();
 }

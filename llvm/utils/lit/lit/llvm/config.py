@@ -119,8 +119,6 @@ class LLVMConfig(object):
                 features.add('target-x86_64')
             elif re.match(r'^aarch64.*', target_triple):
                 features.add('target-aarch64')
-            elif re.match(r'^arm64.*', target_triple):
-                features.add('target-aarch64')
             elif re.match(r'^arm.*', target_triple):
                 features.add('target-arm')
 

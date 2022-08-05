@@ -1,5 +1,6 @@
 add_mlir_dialect_library(MLIRStandard
   IR/Ops.cpp
+  Utils/Utils.cpp
 
   ADDITIONAL_HEADER_DIRS
   ${MLIR_MAIN_INCLUDE_DIR}/mlir/Dialect/StandardOps
@@ -11,7 +12,6 @@ add_mlir_dialect_library(MLIRStandard
   MLIRArithmetic
   MLIRCallInterfaces
   MLIRCastInterfaces
-  MLIRControlFlow
   MLIRControlFlowInterfaces
   MLIRInferTypeOpInterface
   MLIRIR

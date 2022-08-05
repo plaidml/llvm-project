@@ -1618,7 +1618,7 @@ SCCPSolver::SCCPSolver(
     LLVMContext &Ctx)
     : Visitor(new SCCPInstVisitor(DL, std::move(GetTLI), Ctx)) {}
 
-SCCPSolver::~SCCPSolver() = default;
+SCCPSolver::~SCCPSolver() {}
 
 void SCCPSolver::addAnalysis(Function &F, AnalysisResultsForFn A) {
   return Visitor->addAnalysis(F, std::move(A));

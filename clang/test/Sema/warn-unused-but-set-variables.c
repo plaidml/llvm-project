@@ -4,7 +4,7 @@ struct S {
   int i;
 };
 
-int f0(void) {
+int f0() {
   int y; // expected-warning{{variable 'y' set but not used}}
   y = 0;
 

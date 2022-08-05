@@ -23,8 +23,6 @@ namespace llvm {
 
 AIXException::AIXException(AsmPrinter *A) : DwarfCFIExceptionBase(A) {}
 
-void AIXException::markFunctionEnd() { endFragment(); }
-
 void AIXException::emitExceptionInfoTable(const MCSymbol *LSDA,
                                           const MCSymbol *PerSym) {
   // Generate EH Info Table.

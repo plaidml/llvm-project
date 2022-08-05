@@ -16,6 +16,8 @@
 
 #include "test_macros.h"
 
+TEST_SAFE_STATIC std::suspend_always safe_sa;
+
 constexpr bool check_suspend_constexpr() {
   std::suspend_always s{};
   const std::suspend_always scopy(s);

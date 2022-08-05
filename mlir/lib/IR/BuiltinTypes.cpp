@@ -172,8 +172,8 @@ FunctionType FunctionType::getWithArgsAndResults(
 
 /// Returns a new function type without the specified arguments and results.
 FunctionType
-FunctionType::getWithoutArgsAndResults(const BitVector &argIndices,
-                                       const BitVector &resultIndices) {
+FunctionType::getWithoutArgsAndResults(ArrayRef<unsigned> argIndices,
+                                       ArrayRef<unsigned> resultIndices) {
   SmallVector<Type> argStorage, resultStorage;
   TypeRange newArgTypes = function_interface_impl::filterTypesOut(
       getInputs(), argIndices, argStorage);

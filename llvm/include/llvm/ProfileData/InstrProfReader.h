@@ -39,36 +39,25 @@ namespace llvm {
 class InstrProfReader;
 
 /// A file format agnostic iterator over profiling data.
-template <class record_type = NamedInstrProfRecord,
-          class reader_type = InstrProfReader>
 class InstrProfIterator {
 public:
   using iterator_category = std::input_iterator_tag;
-  using value_type = record_type;
+  using value_type = NamedInstrProfRecord;
   using difference_type = std::ptrdiff_t;
   using pointer = value_type *;
   using reference = value_type &;
 
 private:
-  reader_type *Reader = nullptr;
+  InstrProfReader *Reader = nullptr;
   value_type Record;
 
-  void increment() {
-    if (Error E = Reader->readNextRecord(Record)) {
-      // Handle errors in the reader.
-      InstrProfError::take(std::move(E));
-      *this = InstrProfIterator();
-    }
-  }
+  void Increment();
 
 public:
   InstrProfIterator() = default;
-  InstrProfIterator(reader_type *Reader) : Reader(Reader) { increment(); }
+  InstrProfIterator(InstrProfReader *Reader) : Reader(Reader) { Increment(); }
 
-  InstrProfIterator &operator++() {
-    increment();
-    return *this;
-  }
+  InstrProfIterator &operator++() { Increment(); return *this; }
   bool operator==(const InstrProfIterator &RHS) const {
     return Reader == RHS.Reader;
   }
@@ -99,8 +88,8 @@ public:
   virtual Error printBinaryIds(raw_ostream &OS) { return success(); };
 
   /// Iterator over profile data.
-  InstrProfIterator<> begin() { return InstrProfIterator<>(this); }
-  InstrProfIterator<> end() { return InstrProfIterator<>(); }
+  InstrProfIterator begin() { return InstrProfIterator(this); }
+  InstrProfIterator end() { return InstrProfIterator(); }
 
   virtual bool isIRLevelProfile() const = 0;
 
@@ -110,16 +99,6 @@ public:
 
   /// Return true if we must provide debug info to create PGO profiles.
   virtual bool useDebugInfoCorrelate() const { return false; }
-
-  /// Return true if the profile has single byte counters representing coverage.
-  virtual bool hasSingleByteCoverage() const = 0;
-
-  /// Return true if the profile only instruments function entries.
-  virtual bool functionEntryOnly() const = 0;
-
-  /// Returns a BitsetEnum describing the attributes of the profile. To check
-  /// individual attributes prefer using the helpers above.
-  virtual InstrProfKind getProfileKind() const = 0;
 
   /// Return the PGO symtab. There are three different readers:
   /// Raw, Text, and Indexed profile readers. The first two types
@@ -197,8 +176,9 @@ private:
   std::unique_ptr<MemoryBuffer> DataBuffer;
   /// Iterator over the profile data.
   line_iterator Line;
-  /// The attributes of the current profile.
-  InstrProfKind ProfileKind = InstrProfKind::Unknown;
+  bool IsIRLevelProfile = false;
+  bool HasCSIRLevelProfile = false;
+  bool InstrEntryBBEnabled = false;
 
   Error readValueProfileData(InstrProfRecord &Record);
 
@@ -211,27 +191,11 @@ public:
   /// Return true if the given buffer is in text instrprof format.
   static bool hasFormat(const MemoryBuffer &Buffer);
 
-  bool isIRLevelProfile() const override {
-    return static_cast<bool>(ProfileKind & InstrProfKind::IR);
-  }
+  bool isIRLevelProfile() const override { return IsIRLevelProfile; }
 
-  bool hasCSIRLevelProfile() const override {
-    return static_cast<bool>(ProfileKind & InstrProfKind::CS);
-  }
+  bool hasCSIRLevelProfile() const override { return HasCSIRLevelProfile; }
 
-  bool instrEntryBBEnabled() const override {
-    return static_cast<bool>(ProfileKind & InstrProfKind::BB);
-  }
-
-  bool hasSingleByteCoverage() const override {
-    return static_cast<bool>(ProfileKind & InstrProfKind::SingleByteCoverage);
-  }
-
-  bool functionEntryOnly() const override {
-    return static_cast<bool>(ProfileKind & InstrProfKind::FunctionEntryOnly);
-  }
-
-  InstrProfKind getProfileKind() const override { return ProfileKind; }
+  bool instrEntryBBEnabled() const override { return InstrEntryBBEnabled; }
 
   /// Read the header.
   Error readHeader() override;
@@ -312,17 +276,6 @@ public:
     return (Version & VARIANT_MASK_DBG_CORRELATE) != 0;
   }
 
-  bool hasSingleByteCoverage() const override {
-    return (Version & VARIANT_MASK_BYTE_COVERAGE) != 0;
-  }
-
-  bool functionEntryOnly() const override {
-    return (Version & VARIANT_MASK_FUNCTION_ENTRY_ONLY) != 0;
-  }
-
-  /// Returns a BitsetEnum describing the attributes of the raw instr profile.
-  InstrProfKind getProfileKind() const override;
-
   InstrProfSymtab &getSymtab() override {
     assert(Symtab.get());
     return *Symtab.get();
@@ -380,9 +333,7 @@ private:
     return Symtab->getFuncName(swap(NameRef));
   }
 
-  int getCounterTypeSize() const {
-    return hasSingleByteCoverage() ? sizeof(uint8_t) : sizeof(uint64_t);
-  }
+  int getCounterTypeSize() const { return sizeof(uint64_t); }
 };
 
 using RawInstrProfReader32 = RawInstrProfReader<uint32_t>;
@@ -462,9 +413,6 @@ struct InstrProfReaderIndexBase {
   virtual bool isIRLevelProfile() const = 0;
   virtual bool hasCSIRLevelProfile() const = 0;
   virtual bool instrEntryBBEnabled() const = 0;
-  virtual bool hasSingleByteCoverage() const = 0;
-  virtual bool functionEntryOnly() const = 0;
-  virtual InstrProfKind getProfileKind() const = 0;
   virtual Error populateSymtab(InstrProfSymtab &) = 0;
 };
 
@@ -517,16 +465,6 @@ public:
     return (FormatVersion & VARIANT_MASK_INSTR_ENTRY) != 0;
   }
 
-  bool hasSingleByteCoverage() const override {
-    return (FormatVersion & VARIANT_MASK_BYTE_COVERAGE) != 0;
-  }
-
-  bool functionEntryOnly() const override {
-    return (FormatVersion & VARIANT_MASK_FUNCTION_ENTRY_ONLY) != 0;
-  }
-
-  InstrProfKind getProfileKind() const override;
-
   Error populateSymtab(InstrProfSymtab &Symtab) override {
     return Symtab.create(HashTable->keys());
   }
@@ -535,7 +473,7 @@ public:
 /// Name matcher supporting fuzzy matching of symbol names to names in profiles.
 class InstrProfReaderRemapper {
 public:
-  virtual ~InstrProfReaderRemapper() = default;
+  virtual ~InstrProfReaderRemapper() {}
   virtual Error populateRemappings() { return Error::success(); }
   virtual Error getRecords(StringRef FuncName,
                            ArrayRef<NamedInstrProfRecord> &Data) = 0;
@@ -583,18 +521,6 @@ public:
 
   bool instrEntryBBEnabled() const override {
     return Index->instrEntryBBEnabled();
-  }
-
-  bool hasSingleByteCoverage() const override {
-    return Index->hasSingleByteCoverage();
-  }
-
-  bool functionEntryOnly() const override { return Index->functionEntryOnly(); }
-
-  /// Returns a BitsetEnum describing the attributes of the indexed instr
-  /// profile.
-  InstrProfKind getProfileKind() const override {
-    return Index->getProfileKind();
   }
 
   /// Return true if the given buffer is in an indexed instrprof format.

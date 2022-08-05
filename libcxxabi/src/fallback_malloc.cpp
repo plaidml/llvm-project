@@ -33,9 +33,10 @@ namespace {
 
 // When POSIX threads are not available, make the mutex operations a nop
 #ifndef _LIBCXXABI_HAS_NO_THREADS
-static _LIBCPP_CONSTINIT std::__libcpp_mutex_t heap_mutex = _LIBCPP_MUTEX_INITIALIZER;
+_LIBCPP_SAFE_STATIC
+static std::__libcpp_mutex_t heap_mutex = _LIBCPP_MUTEX_INITIALIZER;
 #else
-static _LIBCPP_CONSTINIT void* heap_mutex = 0;
+static void* heap_mutex = 0;
 #endif
 
 class mutexor {

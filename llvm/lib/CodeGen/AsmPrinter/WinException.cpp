@@ -46,7 +46,7 @@ WinException::WinException(AsmPrinter *A) : EHStreamer(A) {
   isThumb = Asm->TM.getTargetTriple().isThumb();
 }
 
-WinException::~WinException() = default;
+WinException::~WinException() {}
 
 /// endModule - Emit all exception information that should come after the
 /// content.

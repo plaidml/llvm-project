@@ -42,8 +42,6 @@ struct Iter {
 
     constexpr Iter(double value): m_value(value) {}
     double m_value;
-
-    reference operator*() const;
 private:
     friend constexpr bool operator==(const Iter& l, const Iter& r) = default;
     friend constexpr std::partial_ordering operator<=>(const Iter& l, const Iter& r) = default;
@@ -59,8 +57,6 @@ struct ConstIter {
     constexpr ConstIter(double value): m_value(value) {}
     constexpr ConstIter(Iter it): m_value(it.m_value) {}
     double m_value;
-
-    reference operator*() const;
 private:
     friend constexpr bool operator==(const ConstIter& l, const ConstIter& r) = default;
     friend constexpr std::partial_ordering operator<=>(const ConstIter& l, const ConstIter& r) = default;

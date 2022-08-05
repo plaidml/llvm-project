@@ -42,21 +42,21 @@ inline bool hasAttachedCallOpBundle(const CallBase *CB) {
 /// which is the address of the ARC runtime function.
 inline Optional<Function *> getAttachedARCFunction(const CallBase *CB) {
   auto B = CB->getOperandBundle(LLVMContext::OB_clang_arc_attachedcall);
-  if (!B)
+  if (!B.hasValue() || B->Inputs.size() == 0)
     return None;
 
   return cast<Function>(B->Inputs[0]);
 }
 
-/// Check whether the function is retainRV/unsafeClaimRV.
+/// Check whether the function is retainRV/claimRV.
 inline bool isRetainOrClaimRV(ARCInstKind Kind) {
-  return Kind == ARCInstKind::RetainRV || Kind == ARCInstKind::UnsafeClaimRV;
+  return Kind == ARCInstKind::RetainRV || Kind == ARCInstKind::ClaimRV;
 }
 
 /// This function returns the ARCInstKind of the function attached to operand
 /// bundle clang_arc_attachedcall. It returns None if the call doesn't have the
 /// operand bundle or the operand is null. Otherwise it returns either RetainRV
-/// or UnsafeClaimRV.
+/// or ClaimRV.
 inline ARCInstKind getAttachedARCFunctionKind(const CallBase *CB) {
   Optional<Function *> Fn = getAttachedARCFunction(CB);
   if (!Fn.hasValue())

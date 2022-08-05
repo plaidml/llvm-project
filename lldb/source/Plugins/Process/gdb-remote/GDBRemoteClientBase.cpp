@@ -40,7 +40,7 @@ StateType GDBRemoteClientBase::SendContinuePacketAndWaitForResponse(
     ContinueDelegate &delegate, const UnixSignals &signals,
     llvm::StringRef payload, std::chrono::seconds interrupt_timeout,
     StringExtractorGDBRemote &response) {
-  Log *log = GetLog(GDBRLog::Process);
+  Log *log(ProcessGDBRemoteLog::GetLogIfAllCategoriesSet(GDBR_LOG_PROCESS));
   response.Clear();
 
   {
@@ -184,7 +184,8 @@ GDBRemoteClientBase::SendPacketAndWaitForResponse(
     std::chrono::seconds interrupt_timeout) {
   Lock lock(*this, interrupt_timeout);
   if (!lock) {
-    if (Log *log = GetLog(GDBRLog::Process))
+    if (Log *log =
+            ProcessGDBRemoteLog::GetLogIfAllCategoriesSet(GDBR_LOG_PROCESS))
       LLDB_LOGF(log,
                 "GDBRemoteClientBase::%s failed to get mutex, not sending "
                 "packet '%.*s'",
@@ -202,7 +203,8 @@ GDBRemoteClientBase::SendPacketAndReceiveResponseWithOutputSupport(
     llvm::function_ref<void(llvm::StringRef)> output_callback) {
   Lock lock(*this, interrupt_timeout);
   if (!lock) {
-    if (Log *log = GetLog(GDBRLog::Process))
+    if (Log *log =
+            ProcessGDBRemoteLog::GetLogIfAllCategoriesSet(GDBR_LOG_PROCESS))
       LLDB_LOGF(log,
                 "GDBRemoteClientBase::%s failed to get mutex, not sending "
                 "packet '%.*s'",
@@ -235,7 +237,7 @@ GDBRemoteClientBase::SendPacketAndWaitForResponseNoLock(
     if (response.ValidateResponse())
       return packet_result;
     // Response says it wasn't valid
-    Log *log = GetLog(GDBRLog::Packets);
+    Log *log = ProcessGDBRemoteLog::GetLogIfAllCategoriesSet(GDBR_LOG_PACKETS);
     LLDB_LOGF(
         log,
         "error: packet with payload \"%.*s\" got invalid response \"%s\": %s",
@@ -309,7 +311,7 @@ void GDBRemoteClientBase::ContinueLock::unlock() {
 
 GDBRemoteClientBase::ContinueLock::LockResult
 GDBRemoteClientBase::ContinueLock::lock() {
-  Log *log = GetLog(GDBRLog::Process);
+  Log *log = ProcessGDBRemoteLog::GetLogIfAllCategoriesSet(GDBR_LOG_PROCESS);
   LLDB_LOGF(log, "GDBRemoteClientBase::ContinueLock::%s() resuming with %s",
             __FUNCTION__, m_comm.m_continue_packet.c_str());
 
@@ -347,7 +349,7 @@ GDBRemoteClientBase::Lock::Lock(GDBRemoteClientBase &comm,
 }
 
 void GDBRemoteClientBase::Lock::SyncWithContinueThread() {
-  Log *log = GetLog(GDBRLog::Process);
+  Log *log(ProcessGDBRemoteLog::GetLogIfAllCategoriesSet(GDBR_LOG_PROCESS));
   std::unique_lock<std::mutex> lock(m_comm.m_mutex);
   if (m_comm.m_is_running && m_interrupt_timeout == std::chrono::seconds(0))
     return; // We were asked to avoid interrupting the sender. Lock is not

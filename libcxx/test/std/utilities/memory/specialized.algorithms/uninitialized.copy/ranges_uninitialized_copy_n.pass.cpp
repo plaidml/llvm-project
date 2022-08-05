@@ -7,8 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 // UNSUPPORTED: c++03, c++11, c++14, c++17
-// UNSUPPORTED: libcpp-no-concepts
-// UNSUPPORTED: libcpp-has-no-incomplete-ranges
+// UNSUPPORTED: libcpp-no-concepts, libcpp-has-no-incomplete-ranges
 
 // <memory>
 //
@@ -123,8 +122,8 @@ int main(int, char**) {
   // Conversions.
   {
     constexpr int N = 3;
-    int in[N] = {1, 2, 3};
-    Buffer<double, N> out;
+    double in[N] = {1.0, 2.0, 3.0};
+    Buffer<int, N> out;
 
     std::ranges::uninitialized_copy_n(in, N, out.begin(), out.end());
     assert(std::equal(in, in + N, out.begin(), out.end()));

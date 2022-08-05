@@ -59,7 +59,7 @@ class VPBuilder {
   }
 
 public:
-  VPBuilder() = default;
+  VPBuilder() {}
 
   /// Clear the insertion point: created instructions will not be inserted into
   /// a block.

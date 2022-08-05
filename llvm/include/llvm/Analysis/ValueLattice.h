@@ -10,6 +10,7 @@
 #define LLVM_ANALYSIS_VALUELATTICE_H
 
 #include "llvm/IR/ConstantRange.h"
+#include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
 //
 //===----------------------------------------------------------------------===//
@@ -17,8 +18,6 @@
 //===----------------------------------------------------------------------===//
 
 namespace llvm {
-
-class Constant;
 
 /// This class represents lattice values for constants.
 ///

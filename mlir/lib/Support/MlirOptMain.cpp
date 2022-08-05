@@ -37,6 +37,7 @@
 
 using namespace mlir;
 using namespace llvm;
+using llvm::SMLoc;
 
 /// Perform the actions on the input file indicated by the command line flags
 /// within the specified context.
@@ -59,7 +60,7 @@ static LogicalResult performActions(raw_ostream &os, bool verifyDiagnostics,
 
   // Parse the input file and reset the context threading state.
   TimingScope parserTiming = timing.nest("Parser");
-  OwningOpRef<ModuleOp> module(parseSourceFile(sourceMgr, context));
+  OwningModuleRef module(parseSourceFile(sourceMgr, context));
   context->enableMultithreading(wasThreadingEnabled);
   if (!module)
     return failure();

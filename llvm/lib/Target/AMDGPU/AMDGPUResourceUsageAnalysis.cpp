@@ -87,7 +87,9 @@ int32_t AMDGPUResourceUsageAnalysis::SIFunctionResourceInfo::getTotalNumSGPRs(
 
 int32_t AMDGPUResourceUsageAnalysis::SIFunctionResourceInfo::getTotalNumVGPRs(
     const GCNSubtarget &ST, int32_t ArgNumAGPR, int32_t ArgNumVGPR) const {
-  return AMDGPU::getTotalNumVGPRs(ST.hasGFX90AInsts(), ArgNumAGPR, ArgNumVGPR);
+  if (ST.hasGFX90AInsts() && ArgNumAGPR)
+    return alignTo(ArgNumVGPR, 4) + ArgNumAGPR;
+  return std::max(ArgNumVGPR, ArgNumAGPR);
 }
 
 int32_t AMDGPUResourceUsageAnalysis::SIFunctionResourceInfo::getTotalNumVGPRs(
@@ -95,27 +97,28 @@ int32_t AMDGPUResourceUsageAnalysis::SIFunctionResourceInfo::getTotalNumVGPRs(
   return getTotalNumVGPRs(ST, NumAGPR, NumVGPR);
 }
 
-bool AMDGPUResourceUsageAnalysis::runOnModule(Module &M) {
+bool AMDGPUResourceUsageAnalysis::runOnSCC(CallGraphSCC &SCC) {
   auto *TPC = getAnalysisIfAvailable<TargetPassConfig>();
   if (!TPC)
     return false;
 
-  MachineModuleInfo &MMI = getAnalysis<MachineModuleInfoWrapperPass>().getMMI();
   const TargetMachine &TM = TPC->getTM<TargetMachine>();
   bool HasIndirectCall = false;
 
-  for (Function &F : M) {
-    if (F.isDeclaration())
+  for (CallGraphNode *I : SCC) {
+    Function *F = I->getFunction();
+    if (!F || F->isDeclaration())
       continue;
 
-    MachineFunction *MF = MMI.getMachineFunction(F);
-    assert(MF && "function must have been generated already");
+    MachineModuleInfo &MMI =
+        getAnalysis<MachineModuleInfoWrapperPass>().getMMI();
+    MachineFunction &MF = MMI.getOrCreateMachineFunction(*F);
 
     auto CI = CallGraphResourceInfo.insert(
-        std::make_pair(&F, SIFunctionResourceInfo()));
+        std::make_pair(&MF.getFunction(), SIFunctionResourceInfo()));
     SIFunctionResourceInfo &Info = CI.first->second;
     assert(CI.second && "should only be called once per function");
-    Info = analyzeResourceUsage(*MF, TM);
+    Info = analyzeResourceUsage(MF, TM);
     HasIndirectCall |= Info.HasIndirectCall;
   }
 

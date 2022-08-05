@@ -444,7 +444,8 @@ public:
       // A little beautification.
       // For conditional operator "cond ? true : false" point at the "?"
       // symbol.
-      Location = cast<ConditionalOperator>(Node)->getQuestionLoc();
+      ConditionalOperator *COp = dyn_cast<ConditionalOperator>(Node);
+      Location = COp->getQuestionLoc();
     }
 
     // If we have found any reasons, let's account it.

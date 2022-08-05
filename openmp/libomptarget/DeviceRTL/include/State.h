@@ -40,61 +40,56 @@ enum ValueKind {
 };
 
 /// TODO
-void enterDataEnvironment(IdentTy *Ident);
+void enterDataEnvironment();
 
 /// TODO
 void exitDataEnvironment();
 
 /// TODO
 struct DateEnvironmentRAII {
-  DateEnvironmentRAII(IdentTy *Ident) { enterDataEnvironment(Ident); }
+  DateEnvironmentRAII() { enterDataEnvironment(); }
   ~DateEnvironmentRAII() { exitDataEnvironment(); }
 };
 
 /// TODO
 void resetStateForThread(uint32_t TId);
 
-uint32_t &lookup32(ValueKind VK, bool IsReadonly, IdentTy *Ident);
+uint32_t &lookup32(ValueKind VK, bool IsReadonly);
 void *&lookupPtr(ValueKind VK, bool IsReadonly);
 
 /// A class without actual state used to provide a nice interface to lookup and
 /// update ICV values we can declare in global scope.
 template <typename Ty, ValueKind Kind> struct Value {
   __attribute__((flatten, always_inline)) operator Ty() {
-    return lookup(/* IsReadonly */ true, /* IdentTy */ nullptr);
+    return lookup(/* IsReadonly */ true);
   }
 
   __attribute__((flatten, always_inline)) Value &operator=(const Ty &Other) {
-    set(Other, /* IdentTy */ nullptr);
+    set(Other);
     return *this;
   }
 
   __attribute__((flatten, always_inline)) Value &operator++() {
-    inc(1, /* IdentTy */ nullptr);
+    inc(1);
     return *this;
   }
 
   __attribute__((flatten, always_inline)) Value &operator--() {
-    inc(-1, /* IdentTy */ nullptr);
+    inc(-1);
     return *this;
   }
 
 private:
-  __attribute__((flatten, always_inline)) Ty &lookup(bool IsReadonly,
-                                                     IdentTy *Ident) {
-    Ty &t = lookup32(Kind, IsReadonly, Ident);
+  Ty &lookup(bool IsReadonly) {
+    Ty &t = lookup32(Kind, IsReadonly);
     return t;
   }
 
-  __attribute__((flatten, always_inline)) Ty &inc(int UpdateVal,
-                                                  IdentTy *Ident) {
-    return (lookup(/* IsReadonly */ false, Ident) += UpdateVal);
+  Ty &inc(int UpdateVal) {
+    return (lookup(/* IsReadonly */ false) += UpdateVal);
   }
 
-  __attribute__((flatten, always_inline)) Ty &set(Ty UpdateVal,
-                                                  IdentTy *Ident) {
-    return (lookup(/* IsReadonly */ false, Ident) = UpdateVal);
-  }
+  Ty &set(Ty UpdateVal) { return (lookup(/* IsReadonly */ false) = UpdateVal); }
 
   template <typename VTy, typename Ty2> friend struct ValueRAII;
 };
@@ -104,7 +99,7 @@ private:
 /// we can declare in global scope.
 template <typename Ty, ValueKind Kind> struct PtrValue {
   __attribute__((flatten, always_inline)) operator Ty() {
-    return lookup(/* IsReadonly */ true, /* IdentTy */ nullptr);
+    return lookup(/* IsReadonly */ true);
   }
 
   __attribute__((flatten, always_inline)) PtrValue &operator=(const Ty Other) {
@@ -113,32 +108,29 @@ template <typename Ty, ValueKind Kind> struct PtrValue {
   }
 
 private:
-  Ty &lookup(bool IsReadonly, IdentTy *) { return lookupPtr(Kind, IsReadonly); }
+  Ty &lookup(bool IsReadonly) { return lookupPtr(Kind, IsReadonly); }
 
-  Ty &set(Ty UpdateVal) {
-    return (lookup(/* IsReadonly */ false, /* IdentTy */ nullptr) = UpdateVal);
-  }
+  Ty &set(Ty UpdateVal) { return (lookup(/* IsReadonly */ false) = UpdateVal); }
 
   template <typename VTy, typename Ty2> friend struct ValueRAII;
 };
 
 template <typename VTy, typename Ty> struct ValueRAII {
-  ValueRAII(VTy &V, Ty NewValue, Ty OldValue, bool Active, IdentTy *Ident)
-      : Ptr(Active ? &V.lookup(/* IsReadonly */ false, Ident) : nullptr),
-        Val(OldValue), Active(Active) {
+  ValueRAII(VTy &V, Ty NewValue, Ty OldValue, bool Active)
+      : Ptr(Active ? V.lookup(/* IsReadonly */ false) : Val), Val(OldValue),
+        Active(Active) {
     if (!Active)
       return;
-    ASSERT(*Ptr == OldValue &&
-           "ValueRAII initialization with wrong old value!");
-    *Ptr = NewValue;
+    ASSERT(Ptr == OldValue && "ValueRAII initialization with wrong old value!");
+    Ptr = NewValue;
   }
   ~ValueRAII() {
     if (Active)
-      *Ptr = Val;
+      Ptr = Val;
   }
 
 private:
-  Ty *Ptr;
+  Ty &Ptr;
   Ty Val;
   bool Active;
 };

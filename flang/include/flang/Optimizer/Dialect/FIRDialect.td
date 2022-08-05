@@ -24,7 +24,7 @@ include "mlir/Interfaces/SideEffectInterfaces.td"
 def fir_Dialect : Dialect {
   let name = "fir";
   let cppNamespace = "::fir";
-  let emitAccessorPrefix = kEmitAccessorPrefix_Prefixed;
+  let emitAccessorPrefix = kEmitAccessorPrefix_Both;
   let useDefaultTypePrinterParser = 0;
   let useDefaultAttributePrinterParser = 0;
 }

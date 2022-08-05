@@ -34,7 +34,7 @@ PDBFileBuilder::PDBFileBuilder(BumpPtrAllocator &Allocator)
     : Allocator(Allocator), InjectedSourceHashTraits(Strings),
       InjectedSourceTable(2) {}
 
-PDBFileBuilder::~PDBFileBuilder() = default;
+PDBFileBuilder::~PDBFileBuilder() {}
 
 Error PDBFileBuilder::initialize(uint32_t BlockSize) {
   auto ExpectedMsf = MSFBuilder::create(Allocator, BlockSize);

@@ -24,7 +24,6 @@
 #include "lldb/Target/ThreadPlan.h"
 #include "lldb/Target/ThreadPlanCallFunction.h"
 #include "lldb/Utility/DataExtractor.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/State.h"
 
@@ -219,7 +218,7 @@ bool FunctionCaller::InsertFunction(ExecutionContext &exe_ctx,
   if (!WriteFunctionArguments(exe_ctx, args_addr_ref, diagnostic_manager))
     return false;
 
-  Log *log = GetLog(LLDBLog::Step);
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_STEP));
   LLDB_LOGF(log, "Call Address: 0x%" PRIx64 " Struct Address: 0x%" PRIx64 ".\n",
             m_jit_start_addr, args_addr_ref);
 
@@ -230,7 +229,8 @@ lldb::ThreadPlanSP FunctionCaller::GetThreadPlanToCallFunction(
     ExecutionContext &exe_ctx, lldb::addr_t args_addr,
     const EvaluateExpressionOptions &options,
     DiagnosticManager &diagnostic_manager) {
-  Log *log(GetLog(LLDBLog::Expressions | LLDBLog::Step));
+  Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_EXPRESSIONS |
+                                                  LIBLLDB_LOG_STEP));
 
   LLDB_LOGF(log,
             "-- [FunctionCaller::GetThreadPlanToCallFunction] Creating "
@@ -269,7 +269,8 @@ bool FunctionCaller::FetchFunctionResults(ExecutionContext &exe_ctx,
   // then use GetReturnValueObject
   // to fetch the value.  That way we can fetch any values we need.
 
-  Log *log(GetLog(LLDBLog::Expressions | LLDBLog::Step));
+  Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_EXPRESSIONS |
+                                                  LIBLLDB_LOG_STEP));
 
   LLDB_LOGF(log,
             "-- [FunctionCaller::FetchFunctionResults] Fetching function "
@@ -342,7 +343,8 @@ lldb::ExpressionResults FunctionCaller::ExecuteFunction(
       return lldb::eExpressionSetupError;
   }
 
-  Log *log(GetLog(LLDBLog::Expressions | LLDBLog::Step));
+  Log *log(lldb_private::GetLogIfAnyCategoriesSet(LIBLLDB_LOG_EXPRESSIONS |
+                                                  LIBLLDB_LOG_STEP));
 
   LLDB_LOGF(log,
             "== [FunctionCaller::ExecuteFunction] Executing function \"%s\" ==",

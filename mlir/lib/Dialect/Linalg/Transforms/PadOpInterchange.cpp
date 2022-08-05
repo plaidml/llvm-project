@@ -38,9 +38,9 @@ namespace {
 /// ```
 ///
 /// if the `linalg.generic` has all parallel iterator types.
-struct FusePadOp : OpRewritePattern<tensor::PadOp> {
-  using OpRewritePattern<tensor::PadOp>::OpRewritePattern;
-  LogicalResult matchAndRewrite(tensor::PadOp padOp,
+struct FusePadTensorOp : OpRewritePattern<PadTensorOp> {
+  using OpRewritePattern<PadTensorOp>::OpRewritePattern;
+  LogicalResult matchAndRewrite(PadTensorOp padOp,
                                 PatternRewriter &rewriter) const override {
     // Only works on padding op that sets the padded value to a constant.
     Value padValue = padOp.getConstantPaddingValue();
@@ -61,10 +61,7 @@ struct FusePadOp : OpRewritePattern<tensor::PadOp> {
           padOp, "only supported for ops with all parallel iterator types");
     }
     ReifiedRankedShapedTypeDims resultShape;
-    ReifyRankedShapedTypeOpInterface reifyShapedTypeInterface =
-        dyn_cast<ReifyRankedShapedTypeOpInterface>(padOp.getOperation());
-    if (failed(reifyShapedTypeInterface.reifyResultShapes(rewriter,
-                                                          resultShape)) ||
+    if (failed(padOp.reifyResultShapes(rewriter, resultShape)) ||
         resultShape.size() != 1) {
       return rewriter.notifyMatchFailure(
           padOp, "failed to get shape of pad op result");
@@ -121,5 +118,5 @@ struct FusePadOp : OpRewritePattern<tensor::PadOp> {
 
 void mlir::linalg::populateFusePadTensorWithProducerLinalgOpPatterns(
     RewritePatternSet &patterns) {
-  patterns.add<FusePadOp>(patterns.getContext());
+  patterns.add<FusePadTensorOp>(patterns.getContext());
 }

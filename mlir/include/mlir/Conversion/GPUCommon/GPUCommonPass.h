@@ -10,7 +10,6 @@
 
 #include "mlir/Support/LLVM.h"
 #include "llvm/ADT/StringRef.h"
-#include <functional>
 #include <vector>
 
 namespace llvm {
@@ -26,6 +25,7 @@ struct LogicalResult;
 class ModuleOp;
 class Operation;
 class RewritePatternSet;
+using OwningRewritePatternList = RewritePatternSet;
 
 template <typename T>
 class OperationPass;
@@ -55,7 +55,7 @@ std::unique_ptr<OperationPass<ModuleOp>> createGpuToLLVMConversionPass();
 /// Collect a set of patterns to convert from the GPU dialect to LLVM and
 /// populate converter for gpu types.
 void populateGpuToLLVMConversionPatterns(LLVMTypeConverter &converter,
-                                         RewritePatternSet &patterns,
+                                         OwningRewritePatternList &patterns,
                                          StringRef gpuBinaryAnnotation = {});
 
 } // namespace mlir

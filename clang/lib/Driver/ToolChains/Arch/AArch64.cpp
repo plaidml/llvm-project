@@ -11,7 +11,6 @@
 #include "clang/Driver/DriverDiagnostic.h"
 #include "clang/Driver/Options.h"
 #include "llvm/Option/ArgList.h"
-#include "llvm/Support/AArch64TargetParser.h"
 #include "llvm/Support/TargetParser.h"
 #include "llvm/Support/Host.h"
 
@@ -222,6 +221,7 @@ getAArch64MicroArchFeaturesFromMcpu(const Driver &D, StringRef Mcpu,
 void aarch64::getAArch64TargetFeatures(const Driver &D,
                                        const llvm::Triple &Triple,
                                        const ArgList &Args,
+                                       llvm::opt::ArgStringList &CmdArgs,
                                        std::vector<StringRef> &Features,
                                        bool ForAS) {
   Arg *A;
@@ -465,10 +465,16 @@ fp16_fml_fallthrough:
 
   if (Arg *A = Args.getLastArg(options::OPT_mno_unaligned_access,
                                options::OPT_munaligned_access)) {
-    if (A->getOption().matches(options::OPT_mno_unaligned_access))
+    if (A->getOption().matches(options::OPT_mno_unaligned_access)) {
       Features.push_back("+strict-align");
-  } else if (Triple.isOSOpenBSD())
+      if (!ForAS)
+        CmdArgs.push_back("-Wunaligned-access");
+    }
+  } else if (Triple.isOSOpenBSD()) {
     Features.push_back("+strict-align");
+    if (!ForAS)
+      CmdArgs.push_back("-Wunaligned-access");
+  }
 
   if (Args.hasArg(options::OPT_ffixed_x1))
     Features.push_back("+reserve-x1");

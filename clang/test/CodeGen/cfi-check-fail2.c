@@ -9,7 +9,7 @@
 // RUN:     -fsanitize=cfi-vcall -fsanitize-ignorelist=%t-all.ignorelist \
 // RUN:     -emit-llvm -o - %s | FileCheck %s
 
-void caller(void (*f)(void)) {
+void caller(void (*f)()) {
   f();
 }
 

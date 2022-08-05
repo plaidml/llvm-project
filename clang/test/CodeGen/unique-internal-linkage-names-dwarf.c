@@ -19,7 +19,7 @@ static int bar(a) int a;
   return glob + a;
 }
 
-void baz(void) {
+void baz() {
   foo();
   bar(1);
 }

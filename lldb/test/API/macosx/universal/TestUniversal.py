@@ -142,7 +142,7 @@ class UniversalTestCase(TestBase):
         empty_listener = lldb.SBListener()
         process = target.AttachToProcessWithID(
             empty_listener, popen.pid, error)
-        self.assertSuccess(error, "Attached to process.")
+        self.assertTrue(error.Success(), "Attached to process.")
 
         self.expect("image list -A -b", substrs=["x86_64h testit"])
 

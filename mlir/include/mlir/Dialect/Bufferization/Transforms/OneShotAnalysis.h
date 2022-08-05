@@ -20,25 +20,35 @@ class AnalysisBufferizationState;
 class BufferizationAliasInfo;
 struct AnalysisBufferizationOptions;
 
-/// PostAnalysisStepFns can be registered with `BufferizationOptions` and are
+/// PostAnalysisSteps can be registered with `BufferizationOptions` and are
 /// executed after the analysis, but before bufferization. They can be used to
-/// implement custom dialect-specific optimizations. They may modify the IR, but
-/// must keep `aliasInfo` consistent. Newly created operations and operations
-/// that should be re-analyzed must be added to `newOps`.
-using PostAnalysisStepFn = std::function<LogicalResult(
-    Operation *, BufferizationState &, BufferizationAliasInfo &,
-    SmallVector<Operation *> &)>;
+/// implement custom dialect-specific optimizations.
+struct PostAnalysisStep {
+  virtual ~PostAnalysisStep() = default;
 
-using PostAnalysisStepList = SmallVector<PostAnalysisStepFn>;
+  /// Run the post analysis step. This function may modify the IR, but must keep
+  /// `aliasInfo` consistent. Newly created operations and operations that
+  /// should be re-analyzed must be added to `newOps`.
+  virtual LogicalResult run(Operation *op, BufferizationState &state,
+                            BufferizationAliasInfo &aliasInfo,
+                            SmallVector<Operation *> &newOps) = 0;
+};
+
+using PostAnalysisStepList = std::vector<std::unique_ptr<PostAnalysisStep>>;
 
 /// Options for analysis-enabled bufferization.
 struct AnalysisBufferizationOptions : public BufferizationOptions {
   AnalysisBufferizationOptions() = default;
 
+  // AnalysisBufferizationOptions cannot be copied.
+  AnalysisBufferizationOptions(const AnalysisBufferizationOptions &) = delete;
+
   /// Register a "post analysis" step. Such steps are executed after the
   /// analysis, but before bufferization.
-  void addPostAnalysisStep(PostAnalysisStepFn fn) {
-    postAnalysisSteps.push_back(fn);
+  template <typename Step, typename... Args>
+  void addPostAnalysisStep(Args... args) {
+    postAnalysisSteps.emplace_back(
+        std::make_unique<Step>(std::forward<Args>(args)...));
   }
 
   /// Registered post analysis steps.

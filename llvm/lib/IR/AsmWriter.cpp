@@ -587,7 +587,7 @@ void TypePrinting::print(Type *Ty, raw_ostream &OS) {
         OS << " addrspace(" << AddressSpace << ')';
       return;
     }
-    print(PTy->getNonOpaquePointerElementType(), OS);
+    print(PTy->getElementType(), OS);
     if (unsigned AddressSpace = PTy->getAddressSpace())
       OS << " addrspace(" << AddressSpace << ')';
     OS << '*';
@@ -641,7 +641,7 @@ void TypePrinting::printStructBody(StructType *STy, raw_ostream &OS) {
     OS << '>';
 }
 
-AbstractSlotTrackerStorage::~AbstractSlotTrackerStorage() = default;
+AbstractSlotTrackerStorage::~AbstractSlotTrackerStorage() {}
 
 namespace llvm {
 
@@ -1290,7 +1290,7 @@ struct AsmWriterContext {
   /// prints a Metadata as operand.
   virtual void onWriteMetadataAsOperand(const Metadata *) {}
 
-  virtual ~AsmWriterContext() = default;
+  virtual ~AsmWriterContext() {}
 };
 } // end anonymous namespace
 
@@ -1986,8 +1986,6 @@ static void writeDIStringType(raw_ostream &Out, const DIStringType *N,
   Printer.printString("name", N->getName());
   Printer.printMetadata("stringLength", N->getRawStringLength());
   Printer.printMetadata("stringLengthExpression", N->getRawStringLengthExp());
-  Printer.printMetadata("stringLocationExpression",
-                        N->getRawStringLocationExp());
   Printer.printInt("size", N->getSizeInBits());
   Printer.printInt("align", N->getAlignInBits());
   Printer.printDwarfEnum("encoding", N->getEncoding(),

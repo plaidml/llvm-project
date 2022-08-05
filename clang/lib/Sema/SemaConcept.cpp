@@ -18,6 +18,7 @@
 #include "clang/Sema/Template.h"
 #include "clang/Sema/Overload.h"
 #include "clang/Sema/Initialization.h"
+#include "clang/Sema/SemaInternal.h"
 #include "clang/AST/ExprConcepts.h"
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/Basic/OperatorPrecedence.h"

@@ -39,9 +39,7 @@ InternalDescriptorUnit<DIR>::InternalDescriptorUnit(
 
 template <Direction DIR> void InternalDescriptorUnit<DIR>::EndIoStatement() {
   if constexpr (DIR == Direction::Output) {
-    // Clear the remainder of the current record if anything was written
-    // to it, or if it is the only record.
-    if (endfileRecordNumber.value_or(-1) == 2 || furthestPositionInRecord > 0) {
+    if (furthestPositionInRecord > 0) {
       BlankFillOutputRecord();
     }
   }

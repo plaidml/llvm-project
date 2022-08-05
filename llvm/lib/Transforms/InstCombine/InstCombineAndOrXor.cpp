@@ -1872,9 +1872,6 @@ Instruction *InstCombinerImpl::visitAnd(BinaryOperator &I) {
   if (Instruction *X = foldVectorBinop(I))
     return X;
 
-  if (Instruction *Phi = foldBinopWithPhiOperands(I))
-    return Phi;
-
   // See if we can simplify any instructions used by the instruction whose sole
   // purpose is to compute bits we don't care about.
   if (SimplifyDemandedInstructionBits(I))
@@ -2667,9 +2664,6 @@ Instruction *InstCombinerImpl::visitOr(BinaryOperator &I) {
 
   if (Instruction *X = foldVectorBinop(I))
     return X;
-
-  if (Instruction *Phi = foldBinopWithPhiOperands(I))
-    return Phi;
 
   // See if we can simplify any instructions used by the instruction whose sole
   // purpose is to compute bits we don't care about.
@@ -3559,9 +3553,6 @@ Instruction *InstCombinerImpl::visitXor(BinaryOperator &I) {
   if (Instruction *X = foldVectorBinop(I))
     return X;
 
-  if (Instruction *Phi = foldBinopWithPhiOperands(I))
-    return Phi;
-
   if (Instruction *NewXor = foldXorToXor(I, Builder))
     return NewXor;
 
@@ -3677,8 +3668,9 @@ Instruction *InstCombinerImpl::visitXor(BinaryOperator &I) {
       APInt FoldConst = C1->getValue().lshr(C2->getValue());
       FoldConst ^= C3->getValue();
       // Prepare the two operands.
-      auto *Opnd0 = Builder.CreateLShr(X, C2);
-      Opnd0->takeName(Op0);
+      auto *Opnd0 = cast<Instruction>(Builder.CreateLShr(X, C2));
+      Opnd0->takeName(cast<Instruction>(Op0));
+      Opnd0->setDebugLoc(I.getDebugLoc());
       return BinaryOperator::CreateXor(Opnd0, ConstantInt::get(Ty, FoldConst));
     }
   }

@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "llvm/ADT/Optional.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/Twine.h"
@@ -30,13 +31,13 @@
 #include "llvm/MC/MCStreamer.h"
 #include "llvm/MC/MCSymbolXCOFF.h"
 #include "llvm/MC/TargetRegistry.h"
-#include "llvm/Support/Casting.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/Format.h"
 #include "llvm/Support/FormattedStream.h"
 #include "llvm/Support/LEB128.h"
 #include "llvm/Support/MathExtras.h"
 #include "llvm/Support/Path.h"
+#include <cctype>
 
 using namespace llvm;
 
@@ -196,8 +197,6 @@ public:
                                             MCSymbolAttr Visibility) override;
   void emitXCOFFRenameDirective(const MCSymbol *Name,
                                 StringRef Rename) override;
-
-  void emitXCOFFRefDirective(StringRef Name) override;
 
   void emitELFSize(MCSymbol *Symbol, const MCExpr *Value) override;
   void emitCommonSymbol(MCSymbol *Symbol, uint64_t Size,
@@ -789,7 +788,7 @@ void MCAsmStreamer::emitSyntaxDirective() {
 }
 
 void MCAsmStreamer::BeginCOFFSymbolDef(const MCSymbol *Symbol) {
-  OS << "\t.def\t";
+  OS << "\t.def\t ";
   Symbol->print(OS, MAI);
   OS << ';';
   EmitEOL();
@@ -929,11 +928,6 @@ void MCAsmStreamer::emitXCOFFRenameDirective(const MCSymbol *Name,
     OS << C;
   }
   OS << DQ;
-  EmitEOL();
-}
-
-void MCAsmStreamer::emitXCOFFRefDirective(StringRef Name) {
-  OS << "\t.ref " << Name;
   EmitEOL();
 }
 

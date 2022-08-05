@@ -20,16 +20,11 @@
 #include <__filesystem/operations.h>
 #include <__filesystem/path.h>
 #include <__filesystem/perms.h>
-#include <__utility/unreachable.h>
 #include <chrono>
 #include <cstdint>
 #include <cstdlib>
 #include <iosfwd>
 #include <system_error>
-
-#if !defined(_LIBCPP_HAS_NO_PRAGMA_SYSTEM_HEADER)
-#  pragma GCC system_header
-#endif
 
 _LIBCPP_PUSH_MACROS
 #include <__undef_macros>
@@ -363,7 +358,7 @@ private:
         __ec->clear();
       return __data_.__type_;
     }
-    __libcpp_unreachable();
+    _LIBCPP_UNREACHABLE();
   }
 
   _LIBCPP_INLINE_VISIBILITY
@@ -384,7 +379,7 @@ private:
       return __data_.__type_;
     }
     }
-    __libcpp_unreachable();
+    _LIBCPP_UNREACHABLE();
   }
 
   _LIBCPP_INLINE_VISIBILITY
@@ -399,7 +394,7 @@ private:
     case _RefreshSymlink:
       return file_status(__get_ft(__ec), __data_.__non_sym_perms_);
     }
-    __libcpp_unreachable();
+    _LIBCPP_UNREACHABLE();
   }
 
   _LIBCPP_INLINE_VISIBILITY
@@ -415,7 +410,7 @@ private:
     case _RefreshSymlinkUnresolved:
       return file_status(__get_sym_ft(__ec), __data_.__sym_perms_);
     }
-    __libcpp_unreachable();
+    _LIBCPP_UNREACHABLE();
   }
 
   _LIBCPP_INLINE_VISIBILITY
@@ -440,7 +435,7 @@ private:
       return __data_.__size_;
     }
     }
-    __libcpp_unreachable();
+    _LIBCPP_UNREACHABLE();
   }
 
   _LIBCPP_INLINE_VISIBILITY
@@ -459,7 +454,7 @@ private:
       return __data_.__nlink_;
     }
     }
-    __libcpp_unreachable();
+    _LIBCPP_UNREACHABLE();
   }
 
   _LIBCPP_INLINE_VISIBILITY
@@ -482,7 +477,7 @@ private:
       return __data_.__write_time_;
     }
     }
-    __libcpp_unreachable();
+    _LIBCPP_UNREACHABLE();
   }
 
 private:

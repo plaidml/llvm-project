@@ -2842,12 +2842,6 @@ TEST_F(FormatTestComments, AlignTrailingComments) {
              "#define FOO_NODELOCAL 4  // Loopback\n\n"
              "} // namespace m\n",
              getLLVMStyleWithColumns(80)));
-
-  // https://llvm.org/PR53441
-  verifyFormat("/* */  //\n"
-               "int a; //\n");
-  verifyFormat("/**/   //\n"
-               "int a; //\n");
 }
 
 TEST_F(FormatTestComments, AlignsBlockCommentDecorations) {
@@ -3322,18 +3316,6 @@ TEST_F(FormatTestComments, SpaceAtLineCommentBegin) {
       "\n"
       "///   Free Doxygen with 3 spaces\n"
       "\n"
-      "//🐉 A nice dragon\n"
-      "\n"
-      "//\t abccba\n"
-      "\n"
-      "//\\t deffed\n"
-      "\n"
-      "//   🐉 Another nice dragon\n"
-      "\n"
-      "//   \t Three leading spaces following tab\n"
-      "\n"
-      "//   \\t Three leading spaces following backslash\n"
-      "\n"
       "/// A Doxygen Comment with a nested list:\n"
       "/// - Foo\n"
       "/// - Bar\n"
@@ -3392,18 +3374,6 @@ TEST_F(FormatTestComments, SpaceAtLineCommentBegin) {
             "/// Free Doxygen without space\n"
             "\n"
             "///   Free Doxygen with 3 spaces\n"
-            "\n"
-            "// 🐉 A nice dragon\n"
-            "\n"
-            "//\t abccba\n"
-            "\n"
-            "//\\t deffed\n"
-            "\n"
-            "//   🐉 Another nice dragon\n"
-            "\n"
-            "//   \t Three leading spaces following tab\n"
-            "\n"
-            "//   \\t Three leading spaces following backslash\n"
             "\n"
             "/// A Doxygen Comment with a nested list:\n"
             "/// - Foo\n"
@@ -3466,18 +3436,6 @@ TEST_F(FormatTestComments, SpaceAtLineCommentBegin) {
             "\n"
             "///Free Doxygen with 3 spaces\n"
             "\n"
-            "//🐉 A nice dragon\n"
-            "\n"
-            "//\t abccba\n"
-            "\n"
-            "//\\t deffed\n"
-            "\n"
-            "//🐉 Another nice dragon\n"
-            "\n"
-            "//\t Three leading spaces following tab\n"
-            "\n"
-            "//\\t Three leading spaces following backslash\n"
-            "\n"
             "///A Doxygen Comment with a nested list:\n"
             "///- Foo\n"
             "///- Bar\n"
@@ -3538,18 +3496,6 @@ TEST_F(FormatTestComments, SpaceAtLineCommentBegin) {
             "///  Free Doxygen without space\n"
             "\n"
             "///   Free Doxygen with 3 spaces\n"
-            "\n"
-            "//  🐉 A nice dragon\n"
-            "\n"
-            "//\t abccba\n"
-            "\n"
-            "//\\t deffed\n"
-            "\n"
-            "//   🐉 Another nice dragon\n"
-            "\n"
-            "//   \t Three leading spaces following tab\n"
-            "\n"
-            "//   \\t Three leading spaces following backslash\n"
             "\n"
             "///  A Doxygen Comment with a nested list:\n"
             "///  - Foo\n"
@@ -3645,18 +3591,6 @@ TEST_F(FormatTestComments, SpaceAtLineCommentBegin) {
             "           // World\n"
             "}",
             format(WrapCode, Style));
-  EXPECT_EQ("// x\n"
-            "// y",
-            format("//   x\n"
-                   "// y",
-                   Style));
-  EXPECT_EQ(
-      "// loooooooooooooooooooooooooooooong\n"
-      "// commentcomments\n"
-      "// normal comments",
-      format("//            loooooooooooooooooooooooooooooong commentcomments\n"
-             "// normal comments",
-             Style));
 
   Style.SpacesInLineCommentPrefix = {3, 3};
   EXPECT_EQ("//   Lorem ipsum\n"
@@ -3672,17 +3606,17 @@ TEST_F(FormatTestComments, SpaceAtLineCommentBegin) {
             format(WrapCode, Style));
 
   Style = getLLVMStyleWithColumns(20);
-  StringRef LotsOfSpaces = "//                      This are more spaces "
-                           "than the ColumnLimit, what now?\n"
-                           "\n"
-                           "//   Comment\n"
-                           "\n"
-                           "// This is a text to split in multiple "
-                           "lines, please. Thank you very much!\n"
-                           "\n"
-                           "// A comment with\n"
-                           "//   some indentation that has to be split.\n"
-                           "// And now without";
+  StringRef AShitloadOfSpaces = "//                      This are more spaces "
+                                "than the ColumnLimit, what now?\n"
+                                "\n"
+                                "//   Comment\n"
+                                "\n"
+                                "// This is a text to split in multiple "
+                                "lines, please. Thank you very much!\n"
+                                "\n"
+                                "// A comment with\n"
+                                "//   some indentation that has to be split.\n"
+                                "// And now without";
   EXPECT_EQ("//                      This are more spaces "
             "than the ColumnLimit, what now?\n"
             "\n"
@@ -3700,7 +3634,7 @@ TEST_F(FormatTestComments, SpaceAtLineCommentBegin) {
             "//   that has to be\n"
             "//   split.\n"
             "// And now without",
-            format(LotsOfSpaces, Style));
+            format(AShitloadOfSpaces, Style));
 
   Style.SpacesInLineCommentPrefix = {0, 0};
   EXPECT_EQ("//This are more\n"
@@ -3721,7 +3655,7 @@ TEST_F(FormatTestComments, SpaceAtLineCommentBegin) {
             "//  that has to be\n"
             "//  split.\n"
             "//And now without",
-            format(LotsOfSpaces, Style));
+            format(AShitloadOfSpaces, Style));
 
   Style.SpacesInLineCommentPrefix = {3, 3};
   EXPECT_EQ("//   This are more\n"
@@ -3743,7 +3677,7 @@ TEST_F(FormatTestComments, SpaceAtLineCommentBegin) {
             "//     that has to\n"
             "//     be split.\n"
             "//   And now without",
-            format(LotsOfSpaces, Style));
+            format(AShitloadOfSpaces, Style));
 
   Style.SpacesInLineCommentPrefix = {30, -1u};
   EXPECT_EQ("//                              This are more spaces than the "
@@ -3758,7 +3692,7 @@ TEST_F(FormatTestComments, SpaceAtLineCommentBegin) {
             "//                                some indentation that has to be "
             "split.\n"
             "//                              And now without",
-            format(LotsOfSpaces, Style));
+            format(AShitloadOfSpaces, Style));
 
   Style.SpacesInLineCommentPrefix = {2, 4};
   EXPECT_EQ("//  A Comment to be\n"
@@ -3869,18 +3803,6 @@ TEST_F(FormatTestComments, SpaceAtLineCommentBegin) {
             "\n"
             "///   Free Doxygen with 3 spaces\n"
             "\n"
-            "// 🐉 A nice dragon\n"
-            "\n"
-            "//\t abccba\n"
-            "\n"
-            "//\\t deffed\n"
-            "\n"
-            "//   🐉 Another nice dragon\n"
-            "\n"
-            "//   \t Three leading spaces following tab\n"
-            "\n"
-            "//   \\t Three leading spaces following backslash\n"
-            "\n"
             "/// A Doxygen Comment with a nested list:\n"
             "/// - Foo\n"
             "/// - Bar\n"
@@ -3942,18 +3864,6 @@ TEST_F(FormatTestComments, SpaceAtLineCommentBegin) {
             "\n"
             "///Free Doxygen with 3 spaces\n"
             "\n"
-            "//🐉 A nice dragon\n"
-            "\n"
-            "//\t abccba\n"
-            "\n"
-            "//\\t deffed\n"
-            "\n"
-            "//🐉 Another nice dragon\n"
-            "\n"
-            "//\t Three leading spaces following tab\n"
-            "\n"
-            "//\\t Three leading spaces following backslash\n"
-            "\n"
             "///A Doxygen Comment with a nested list:\n"
             "///- Foo\n"
             "///- Bar\n"
@@ -4014,18 +3924,6 @@ TEST_F(FormatTestComments, SpaceAtLineCommentBegin) {
             "///  Free Doxygen without space\n"
             "\n"
             "///   Free Doxygen with 3 spaces\n"
-            "\n"
-            "//  🐉 A nice dragon\n"
-            "\n"
-            "//\t abccba\n"
-            "\n"
-            "//\\t deffed\n"
-            "\n"
-            "//   🐉 Another nice dragon\n"
-            "\n"
-            "//   \t Three leading spaces following tab\n"
-            "\n"
-            "//   \\t Three leading spaces following backslash\n"
             "\n"
             "///  A Doxygen Comment with a nested list:\n"
             "///  - Foo\n"

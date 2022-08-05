@@ -48,7 +48,7 @@ public:
 
   MachODebugObjectSynthesizerBase(LinkGraph &G, ExecutorAddr RegisterActionAddr)
       : G(G), RegisterActionAddr(RegisterActionAddr) {}
-  virtual ~MachODebugObjectSynthesizerBase() = default;
+  virtual ~MachODebugObjectSynthesizerBase() {}
 
   Error preserveDebugSections() {
     if (G.findSectionByName(SynthDebugSectionName)) {

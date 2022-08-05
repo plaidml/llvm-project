@@ -450,8 +450,6 @@ public:
           ElseLoc(ElseLoc) {}
   };
 
-  using IncludedFilesSet = llvm::DenseSet<const FileEntry *>;
-
 private:
   friend class ASTReader;
   friend class MacroArgs;
@@ -517,7 +515,7 @@ private:
   ///
   /// This allows us to implement \#include_next and find directory-specific
   /// properties.
-  ConstSearchDirIterator CurDirLookup = nullptr;
+  const DirectoryLookup *CurDirLookup = nullptr;
 
   /// The current macro we are expanding, if we are expanding a macro.
   ///
@@ -545,7 +543,7 @@ private:
     std::unique_ptr<Lexer>      TheLexer;
     PreprocessorLexer          *ThePPLexer;
     std::unique_ptr<TokenLexer> TheTokenLexer;
-    ConstSearchDirIterator      TheDirLookup;
+    const DirectoryLookup      *TheDirLookup;
 
     // The following constructors are completely useless copies of the default
     // versions, only needed to pacify MSVC.
@@ -553,7 +551,7 @@ private:
                      std::unique_ptr<Lexer> &&TheLexer,
                      PreprocessorLexer *ThePPLexer,
                      std::unique_ptr<TokenLexer> &&TheTokenLexer,
-                     ConstSearchDirIterator TheDirLookup)
+                     const DirectoryLookup *TheDirLookup)
         : CurLexerKind(std::move(CurLexerKind)),
           TheSubmodule(std::move(TheSubmodule)), TheLexer(std::move(TheLexer)),
           ThePPLexer(std::move(ThePPLexer)),
@@ -766,9 +764,6 @@ private:
   /// The current submodule state. Will be \p NullSubmoduleState if we're not
   /// in a submodule.
   SubmoduleState *CurSubmoduleState;
-
-  /// The files that have been included.
-  IncludedFilesSet IncludedFiles;
 
   /// The set of known macros exported from modules.
   llvm::FoldingSet<ModuleMacro> ModuleMacros;
@@ -1229,22 +1224,6 @@ public:
 
   /// \}
 
-  /// Mark the file as included.
-  /// Returns true if this is the first time the file was included.
-  bool markIncluded(const FileEntry *File) {
-    HeaderInfo.getFileInfo(File);
-    return IncludedFiles.insert(File).second;
-  }
-
-  /// Return true if this header has already been included.
-  bool alreadyIncluded(const FileEntry *File) const {
-    return IncludedFiles.count(File);
-  }
-
-  /// Get the set of included files.
-  IncludedFilesSet &getIncludedFiles() { return IncludedFiles; }
-  const IncludedFilesSet &getIncludedFiles() const { return IncludedFiles; }
-
   /// Return the name of the macro defined before \p Loc that has
   /// spelling \p Tokens.  If there are multiple macros with same spelling,
   /// return the last one defined.
@@ -1388,7 +1367,7 @@ public:
   /// start lexing tokens from it instead of the current buffer.
   ///
   /// Emits a diagnostic, doesn't enter the file, and returns true on error.
-  bool EnterSourceFile(FileID FID, ConstSearchDirIterator Dir,
+  bool EnterSourceFile(FileID FID, const DirectoryLookup *Dir,
                        SourceLocation Loc, bool IsFirstIncludeOfFile = true);
 
   /// Add a Macro to the top of the include stack and start lexing
@@ -2071,11 +2050,18 @@ public:
   /// reference is for system \#include's or not (i.e. using <> instead of "").
   Optional<FileEntryRef>
   LookupFile(SourceLocation FilenameLoc, StringRef Filename, bool isAngled,
-             ConstSearchDirIterator FromDir, const FileEntry *FromFile,
-             ConstSearchDirIterator *CurDir, SmallVectorImpl<char> *SearchPath,
+             const DirectoryLookup *FromDir, const FileEntry *FromFile,
+             const DirectoryLookup **CurDir, SmallVectorImpl<char> *SearchPath,
              SmallVectorImpl<char> *RelativePath,
              ModuleMap::KnownHeader *SuggestedModule, bool *IsMapped,
              bool *IsFrameworkFound, bool SkipCache = false);
+
+  /// Get the DirectoryLookup structure used to find the current
+  /// FileEntry, if CurLexer is non-null and if applicable.
+  ///
+  /// This allows us to implement \#include_next and find directory-specific
+  /// properties.
+  const DirectoryLookup *GetCurDirLookup() { return CurDirLookup; }
 
   /// Return true if we're in the top-level file, not in a \#include.
   bool isInPrimaryFile() const;
@@ -2190,20 +2176,6 @@ private:
   /// If the expression is equivalent to "!defined(X)" return X in IfNDefMacro.
   DirectiveEvalResult EvaluateDirectiveExpression(IdentifierInfo *&IfNDefMacro);
 
-  /// Process a '__has_include("path")' expression.
-  ///
-  /// Returns true if successful.
-  bool EvaluateHasInclude(Token &Tok, IdentifierInfo *II);
-
-  /// Process '__has_include_next("path")' expression.
-  ///
-  /// Returns true if successful.
-  bool EvaluateHasIncludeNext(Token &Tok, IdentifierInfo *II);
-
-  /// Get the directory and file from which to start \#include_next lookup.
-  std::pair<ConstSearchDirIterator, const FileEntry *>
-  getIncludeNextStart(const Token &IncludeNextTok) const;
-
   /// Install the standard preprocessor pragmas:
   /// \#pragma GCC poison/system_header/dependency and \#pragma once.
   void RegisterBuiltinPragmas();
@@ -2251,7 +2223,7 @@ private:
 
   /// Add a lexer to the top of the include stack and
   /// start lexing tokens from it instead of the current buffer.
-  void EnterSourceFileWithLexer(Lexer *TheLexer, ConstSearchDirIterator Dir);
+  void EnterSourceFileWithLexer(Lexer *TheLexer, const DirectoryLookup *Dir);
 
   /// Set the FileID for the preprocessor predefines.
   void setPredefinesFileID(FileID FID) {
@@ -2328,22 +2300,22 @@ private:
   };
 
   Optional<FileEntryRef> LookupHeaderIncludeOrImport(
-      ConstSearchDirIterator *CurDir, StringRef &Filename,
+      const DirectoryLookup **CurDir, StringRef &Filename,
       SourceLocation FilenameLoc, CharSourceRange FilenameRange,
       const Token &FilenameTok, bool &IsFrameworkFound, bool IsImportDecl,
-      bool &IsMapped, ConstSearchDirIterator LookupFrom,
+      bool &IsMapped, const DirectoryLookup *LookupFrom,
       const FileEntry *LookupFromFile, StringRef &LookupFilename,
       SmallVectorImpl<char> &RelativePath, SmallVectorImpl<char> &SearchPath,
       ModuleMap::KnownHeader &SuggestedModule, bool isAngled);
 
   // File inclusion.
   void HandleIncludeDirective(SourceLocation HashLoc, Token &Tok,
-                              ConstSearchDirIterator LookupFrom = nullptr,
+                              const DirectoryLookup *LookupFrom = nullptr,
                               const FileEntry *LookupFromFile = nullptr);
   ImportAction
   HandleHeaderIncludeOrImport(SourceLocation HashLoc, Token &IncludeTok,
                               Token &FilenameTok, SourceLocation EndLoc,
-                              ConstSearchDirIterator LookupFrom = nullptr,
+                              const DirectoryLookup *LookupFrom = nullptr,
                               const FileEntry *LookupFromFile = nullptr);
   void HandleIncludeNextDirective(SourceLocation HashLoc, Token &Tok);
   void HandleIncludeMacrosDirective(SourceLocation HashLoc, Token &Tok);

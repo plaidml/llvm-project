@@ -27,11 +27,15 @@
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Endian.h"
 #include "llvm/Support/ErrorHandling.h"
+#include "llvm/Support/FileSystem.h"
+#include "llvm/Support/Parallel.h"
+#include "llvm/Support/Path.h"
 #include "llvm/Support/TimeProfiler.h"
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <iterator>
 #include <limits>
 #include <string>
 #include <vector>
@@ -306,7 +310,7 @@ void LinkerScript::processInsertCommands() {
   for (const InsertCommand &cmd : insertCommands) {
     for (StringRef name : cmd.names) {
       // If base is empty, it may have been discarded by
-      // adjustOutputSections(). We do not handle such output sections.
+      // adjustSectionsBeforeSorting(). We do not handle such output sections.
       auto from = llvm::find_if(sectionCommands, [&](SectionCommand *subCmd) {
         return isa<OutputSection>(subCmd) &&
                cast<OutputSection>(subCmd)->name == name;
@@ -1110,7 +1114,7 @@ static void maybePropagatePhdrs(OutputSection &sec,
   }
 }
 
-void LinkerScript::adjustOutputSections() {
+void LinkerScript::adjustSectionsBeforeSorting() {
   // If the output section contains only symbol assignments, create a
   // corresponding output section. The issue is what to do with linker script
   // like ".foo : { symbol = 42; }". One option would be to convert it to
@@ -1144,16 +1148,14 @@ void LinkerScript::adjustOutputSections() {
       sec->alignment =
           std::max<uint32_t>(sec->alignment, sec->alignExpr().getValue());
 
-    bool isEmpty = (getFirstInputSection(sec) == nullptr);
-    bool discardable = isEmpty && isDiscardable(*sec);
-    // If sec has at least one input section and not discarded, remember its
-    // flags to be inherited by subsequent output sections. (sec may contain
-    // just one empty synthetic section.)
-    if (sec->hasInputSections && !discardable)
+    // The input section might have been removed (if it was an empty synthetic
+    // section), but we at least know the flags.
+    if (sec->hasInputSections)
       flags = sec->flags;
 
     // We do not want to keep any special flags for output section
     // in case it is empty.
+    bool isEmpty = (getFirstInputSection(sec) == nullptr);
     if (isEmpty)
       sec->flags = flags & ((sec->nonAlloc ? 0 : (uint64_t)SHF_ALLOC) |
                             SHF_WRITE | SHF_EXECINSTR);
@@ -1170,7 +1172,7 @@ void LinkerScript::adjustOutputSections() {
     if (sec->sectionIndex != UINT32_MAX)
       maybePropagatePhdrs(*sec, defPhdrs);
 
-    if (discardable) {
+    if (isEmpty && isDiscardable(*sec)) {
       sec->markDead();
       cmd = nullptr;
     }

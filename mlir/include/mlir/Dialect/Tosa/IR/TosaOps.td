@@ -82,7 +82,8 @@ def Tosa_AvgPool2dOp : Tosa_Op<"avg_pool2d", [
   );
 
   let builders = [Tosa_AvgPool2dOpQuantInfoBuilder];
-  let hasVerifier = 1;
+
+  let verifier = [{ return verifyAveragePoolOp(*this); }];
 }
 
 //===----------------------------------------------------------------------===//
@@ -115,7 +116,8 @@ def Tosa_Conv2DOp : Tosa_Op<"conv2d", [
   );
 
   let builders = [Tosa_ConvOpQuantInfoBuilder];
-  let hasVerifier = 1;
+
+  let verifier = [{ return verifyConvOp(*this); }];
 }
 
 //===----------------------------------------------------------------------===//
@@ -147,7 +149,8 @@ def Tosa_Conv3DOp : Tosa_Op<"conv3d", [
   );
 
   let builders = [Tosa_ConvOpQuantInfoBuilder];
-  let hasVerifier = 1;
+
+  let verifier = [{ return verifyConvOp(*this); }];
 }
 
 //===----------------------------------------------------------------------===//
@@ -180,7 +183,8 @@ def Tosa_DepthwiseConv2DOp : Tosa_Op<"depthwise_conv2d", [
   );
 
   let builders = [Tosa_ConvOpQuantInfoBuilder];
-  let hasVerifier = 1;
+
+  let verifier = [{ return verifyConvOp(*this); }];
 }
 
 //===----------------------------------------------------------------------===//
@@ -208,7 +212,8 @@ def Tosa_FullyConnectedOp : Tosa_Op<"fully_connected", [
   );
 
   let builders = [Tosa_FCOpQuantInfoBuilder];
-  let hasVerifier = 1;
+
+  let verifier = [{ return verifyConvOp(*this); }];
 }
 
 //===----------------------------------------------------------------------===//

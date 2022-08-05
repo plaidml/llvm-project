@@ -6,12 +6,14 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "InputFiles.h"
 #include "OutputSections.h"
 #include "Symbols.h"
 #include "SyntheticSections.h"
 #include "Target.h"
+#include "Thunks.h"
 #include "lld/Common/ErrorHandler.h"
-#include "llvm/BinaryFormat/ELF.h"
+#include "llvm/Object/ELF.h"
 
 using namespace llvm;
 using namespace llvm::object;

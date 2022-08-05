@@ -6,6 +6,46 @@ include "spec/llvm_libc_ext.td"
 include "spec/posix.td"
 include "spec/stdc.td"
 
+// TODO: Eliminate all TypeDecl specializations. Since we define all public
+// types in their own self contained header files, the header generator can
+// produce the boiler plate which pulls in the type definitions.
+
+def SizeT : TypeDecl<"size_t"> {
+  let Decl = [{
+    #include <llvm-libc-types/size_t.h>
+  }];
+}
+
+def SSizeT : TypeDecl<"ssize_t"> {
+  let Decl = [{
+    #include <llvm-libc-types/ssize_t.h>
+  }];
+}
+
+def StructTm: TypeDecl<"struct tm"> {
+  let Decl = [{
+    #include <llvm-libc-types/struct_tm.h>
+  }];
+}
+
+def TimeT: TypeDecl<"time_t"> {
+  let Decl = [{
+    #include <llvm-libc-types/time_t.h>
+  }];
+}
+
+def OffT : TypeDecl<"off_t"> {
+  let Decl = [{
+    #include <llvm-libc-types/off_t.h>
+  }];
+}
+
+def FILE : TypeDecl<"FILE"> {
+  let Decl = [{
+    #include <llvm-libc-types/FILE.h>
+  }];
+}
+
 def AssertMacro : MacroDef<"assert"> {
   let Defn = [{
     #undef assert
@@ -62,12 +102,16 @@ def AssertAPI : PublicAPI<"assert.h"> {
 def CTypeAPI : PublicAPI<"ctype.h"> {
 }
 
-def FCntlAPI : PublicAPI<"fcntl.h"> {
-  let Types = ["mode_t"];
+def IMaxDivT : TypeDecl<"imaxdiv_t"> {
+  let Decl = [{
+    #include <llvm-libc-types/imaxdiv_t.h>
+  }];
 }
 
 def IntTypesAPI : PublicAPI<"inttypes.h"> {
-  let Types = ["imaxdiv_t"];
+  let TypeDeclarations = [
+    IMaxDivT,
+  ];
 }
 
 def MathErrHandlingMacro : MacroDef<"math_errhandling"> {
@@ -102,6 +146,18 @@ def IsNanMacro : MacroDef<"isnan"> {
   }];
 }
 
+def FloatT : TypeDecl<"float_t"> {
+  let Decl = [{
+    #include <llvm-libc-types/float_t.h>
+  }];
+}
+
+def DoubleT : TypeDecl<"double_t"> {
+  let Decl = [{
+    #include <llvm-libc-types/double_t.h>
+  }];
+}
+
 def MathAPI : PublicAPI<"math.h"> {
   let Macros = [
     SimpleMacroDef<"MATH_ERRNO", "1">,
@@ -118,7 +174,22 @@ def MathAPI : PublicAPI<"math.h"> {
     IsInfMacro,
     IsNanMacro,
   ];
-  let Types = ["double_t", "float_t"];
+  let TypeDeclarations = [
+    DoubleT,
+    FloatT,
+  ];
+}
+
+def FEnvT : TypeDecl<"fenv_t"> {
+  let Decl = [{
+    #include <llvm-libc-types/fenv_t.h>
+  }];
+}
+
+def FExceptT : TypeDecl<"fexcept_t"> {
+  let Decl = [{
+    #include <llvm-libc-types/fexcept_t.h>
+  }];
 }
 
 def FenvAPI: PublicAPI<"fenv.h"> {
@@ -137,11 +208,16 @@ def FenvAPI: PublicAPI<"fenv.h"> {
 
     SimpleMacroDef<"FE_DFL_ENV", "((fenv_t *)-1)">,
   ];
-  let Types = ["fenv_t", "fexcept_t"];
+  let TypeDeclarations = [
+    FEnvT,
+    FExceptT,
+  ];
 }
 
 def StringAPI : PublicAPI<"string.h"> {
-  let Types = ["size_t"];
+  let TypeDeclarations = [
+    SizeT,
+  ];
 
   let Macros = [
     NullMacro,
@@ -149,22 +225,66 @@ def StringAPI : PublicAPI<"string.h"> {
 }
 
 def StdIOAPI : PublicAPI<"stdio.h"> {
-  let Types = ["size_t", "FILE"];
+  let TypeDeclarations = [
+    SizeT,
+    FILE,
+  ];
+}
+
+def DivT : TypeDecl<"div_t"> {
+  let Decl = [{
+    #include <llvm-libc-types/div_t.h>
+  }];
+}
+
+def LDivT : TypeDecl<"ldiv_t"> {
+  let Decl = [{
+    #include <llvm-libc-types/ldiv_t.h>
+  }];
+}
+
+def LLDivT : TypeDecl<"lldiv_t"> {
+  let Decl = [{
+    #include <llvm-libc-types/lldiv_t.h>
+  }];
+}
+
+def BSearchCompareTDefn : TypeDecl<"__bsearchcompare_t"> {
+  let Decl = [{
+    #include <llvm-libc-types/__bsearchcompare_t.h>
+  }];
+}
+
+def QSortCompareTDefn : TypeDecl<"__qsortcompare_t"> {
+  let Decl = [{
+    #include <llvm-libc-types/__qsortcompare_t.h>
+  }];
 }
 
 def StdlibAPI : PublicAPI<"stdlib.h"> {
-  let Types = [
-    "div_t",
-    "ldiv_t",
-    "lldiv_t",
-    "size_t",
-    "__bsearchcompare_t",
-    "__qsortcompare_t"
+  let TypeDeclarations = [
+    DivT,
+    LDivT,
+    LLDivT,
+    SizeT,
+    BSearchCompareTDefn,
+    QSortCompareTDefn,
   ];
 }
 
 def TimeAPI : PublicAPI<"time.h"> {
-  let Types = ["time_t", "struct tm"];
+  let TypeDeclarations = [
+    StructTm,
+    TimeT,
+  ];
+
+  let Functions = [
+    "asctime",
+    "asctime_r",
+    "gmtime",
+    "gmtime_r",
+    "mktime",
+  ];
 }
 
 def ErrnoAPI : PublicAPI<"errno.h"> {
@@ -187,7 +307,6 @@ def ErrnoAPI : PublicAPI<"errno.h"> {
 }
 
 def SysMManAPI : PublicAPI<"sys/mman.h"> {
-  let Types = ["off_t", "size_t"];
   let Macros = [
     SimpleMacroDef<"PROT_NONE", "0">,
     SimpleMacroDef<"PROT_READ", "1">,
@@ -207,10 +326,65 @@ def SysMManAPI : PublicAPI<"sys/mman.h"> {
     // TODO: Add other MAP_* macros used by Linux.
   ];
 
+  let TypeDeclarations = [
+    SizeT,
+    OffT,
+  ];
+}
+
+def StructSigactionDefn : TypeDecl<"struct sigaction"> {
+  let Decl = [{
+    #include <llvm-libc-types/struct_sigaction.h>
+  }];
+}
+
+def SighandlerTDefn : TypeDecl<"__sighandler_t"> {
+  let Decl = [{
+    #include <llvm-libc-types/__sighandler_t.h>
+  }];
 }
 
 def SignalAPI : PublicAPI<"signal.h"> {
-  let Types = ["struct sigaction", "__sighandler_t"];
+  let TypeDeclarations = [
+    StructSigactionDefn,
+    SighandlerTDefn,
+  ];
+}
+
+def OnceFlag : TypeDecl<"once_flag"> {
+  let Decl = [{
+    #include <llvm-libc-types/once_flag.h>
+  }];
+}
+
+def MtxT : TypeDecl<"mtx_t"> {
+  let Decl = [{
+    #include <llvm-libc-types/mtx_t.h>
+  }];
+}
+
+def CndT : TypeDecl<"cnd_t"> {
+  let Decl = [{
+    #include <llvm-libc-types/cnd_t.h>
+  }];
+}
+
+def ThrdT : TypeDecl<"thrd_t"> {
+  let Decl = [{
+    #include <llvm-libc-types/thrd_t.h>
+  }];
+}
+
+def ThreadStartT : TypeDecl<"thrd_start_t"> {
+  let Decl = [{
+    #include <llvm-libc-types/thrd_start_t.h>
+  }];
+}
+
+def CallOnceFuncT : TypeDecl<"__call_once_func_t"> {
+  let Decl = [{
+    #include <llvm-libc-types/__call_once_func_t.h>
+  }];
 }
 
 def ThreadsAPI : PublicAPI<"threads.h"> {
@@ -218,13 +392,13 @@ def ThreadsAPI : PublicAPI<"threads.h"> {
     SimpleMacroDef<"ONCE_FLAG_INIT", "0">,
   ];
 
-  let Types = [
-    "__call_once_func_t",
-    "once_flag",
-    "cnd_t",
-    "mtx_t",
-    "thrd_t",
-    "thrd_start_t",
+  let TypeDeclarations = [
+    OnceFlag,
+    CallOnceFuncT,
+    MtxT,
+    CndT,
+    ThrdT,
+    ThreadStartT,
   ];
 
   let Enumerations = [
@@ -240,9 +414,8 @@ def ThreadsAPI : PublicAPI<"threads.h"> {
 }
 
 def UniStdAPI : PublicAPI<"unistd.h"> {
-  let Types = ["size_t", "ssize_t"];
-}
-
-def SysStatAPI : PublicAPI<"sys/stat.h"> {
-  let Types = ["mode_t"];
+  let TypeDeclarations = [
+    SSizeT,
+    SizeT,
+  ];
 }

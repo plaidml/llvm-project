@@ -66,7 +66,7 @@ PreprocessorLexer *Preprocessor::getCurrentFileLexer() const {
 
 /// EnterSourceFile - Add a source file to the top of the include stack and
 /// start lexing tokens from it instead of the current buffer.
-bool Preprocessor::EnterSourceFile(FileID FID, ConstSearchDirIterator CurDir,
+bool Preprocessor::EnterSourceFile(FileID FID, const DirectoryLookup *CurDir,
                                    SourceLocation Loc,
                                    bool IsFirstIncludeOfFile) {
   assert(!CurTokenLexer && "Cannot #include a file inside a macro!");
@@ -100,7 +100,7 @@ bool Preprocessor::EnterSourceFile(FileID FID, ConstSearchDirIterator CurDir,
 /// EnterSourceFileWithLexer - Add a source file to the top of the include stack
 ///  and start lexing tokens from it instead of the current buffer.
 void Preprocessor::EnterSourceFileWithLexer(Lexer *TheLexer,
-                                            ConstSearchDirIterator CurDir) {
+                                            const DirectoryLookup *CurDir) {
 
   // Add the current lexer to the include stack.
   if (CurPPLexer || CurTokenLexer)

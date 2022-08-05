@@ -23,7 +23,6 @@
 #include "lldb/Target/Target.h"
 #include "lldb/Utility/DataBufferHeap.h"
 #include "lldb/Utility/LLDBAssert.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/StreamString.h"
 #include "llvm/Support/MathExtras.h"
@@ -187,7 +186,7 @@ void JITLoaderGDB::SetJITBreakpoint(lldb_private::ModuleList &module_list) {
   if (DidSetJITBreakpoint())
     return;
 
-  Log *log = GetLog(LLDBLog::JITLoader);
+  Log *log(GetLogIfAnyCategoriesSet(LIBLLDB_LOG_JIT_LOADER));
   LLDB_LOGF(log, "JITLoaderGDB::%s looking for JIT register hook",
             __FUNCTION__);
 
@@ -219,7 +218,7 @@ bool JITLoaderGDB::JITDebugBreakpointHit(void *baton,
                                          StoppointCallbackContext *context,
                                          user_id_t break_id,
                                          user_id_t break_loc_id) {
-  Log *log = GetLog(LLDBLog::JITLoader);
+  Log *log(GetLogIfAnyCategoriesSet(LIBLLDB_LOG_JIT_LOADER));
   LLDB_LOGF(log, "JITLoaderGDB::%s hit JIT breakpoint", __FUNCTION__);
   JITLoaderGDB *instance = static_cast<JITLoaderGDB *>(baton);
   return instance->ReadJITDescriptor(false);
@@ -283,7 +282,7 @@ bool JITLoaderGDB::ReadJITDescriptorImpl(bool all_entries) {
   if (m_jit_descriptor_addr == LLDB_INVALID_ADDRESS)
     return false;
 
-  Log *log = GetLog(LLDBLog::JITLoader);
+  Log *log(GetLogIfAnyCategoriesSet(LIBLLDB_LOG_JIT_LOADER));
   Target &target = m_process->GetTarget();
   ModuleList &module_list = target.GetImages();
 

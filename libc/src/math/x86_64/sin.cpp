@@ -12,8 +12,9 @@
 namespace __llvm_libc {
 
 LLVM_LIBC_FUNCTION(double, sin, (double x)) {
-  __asm__ __volatile__("fsin" : "+t"(x));
-  return x;
+  double result;
+  __asm__ __volatile__("fsin" : "=t"(result) : "f"(x));
+  return result;
 }
 
 } // namespace __llvm_libc

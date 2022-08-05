@@ -54,11 +54,13 @@ def HasOnlyGraphRegion : NativeOpTrait<"HasOnlyGraphRegion">;
 
 // Op's regions that don't need a terminator: requires some other traits
 // so it defines a list that must be concatenated.
-def GraphRegionNoTerminator : TraitList<[
+def GraphRegionNoTerminator {
+  list<OpTrait> traits = [
     NoTerminator,
     SingleBlock,
     RegionKindInterface,
     HasOnlyGraphRegion
-  ]>;
+  ];
+}
 
 #endif // MLIR_IR_REGIONKINDINTERFACE

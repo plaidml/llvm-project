@@ -115,7 +115,7 @@ public:
                 typedValue[j].emplace(component, std::move(*value));
               }
             }
-          } else if (!IsAllocatable(component)) {
+          } else {
             auto componentType{DynamicType::From(component)};
             CHECK(componentType.has_value());
             auto componentExtents{GetConstantExtents(context_, component)};

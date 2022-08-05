@@ -161,19 +161,19 @@ template <> struct MappingTraits<SymbolLocation> {
 };
 
 template <> struct MappingTraits<SymbolInfo> {
-  static void mapping(IO &IO, SymbolInfo &SymInfo) {
+  static void mapping(IO &io, SymbolInfo &SymInfo) {
     // FIXME: expose other fields?
-    IO.mapRequired("Kind", SymInfo.Kind);
-    IO.mapRequired("Lang", SymInfo.Lang);
+    io.mapRequired("Kind", SymInfo.Kind);
+    io.mapRequired("Lang", SymInfo.Lang);
   }
 };
 
 template <>
 struct MappingTraits<clang::clangd::Symbol::IncludeHeaderWithReferences> {
-  static void mapping(IO &IO,
+  static void mapping(IO &io,
                       clang::clangd::Symbol::IncludeHeaderWithReferences &Inc) {
-    IO.mapRequired("Header", Inc.IncludeHeader);
-    IO.mapRequired("References", Inc.References);
+    io.mapRequired("Header", Inc.IncludeHeader);
+    io.mapRequired("References", Inc.References);
   }
 };
 

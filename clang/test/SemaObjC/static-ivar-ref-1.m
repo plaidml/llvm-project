@@ -12,7 +12,7 @@
 
 current *pc;
 
-int foo(void)
+int foo()
 {
   return pc->ivar2 + (*pc).ivar + pc->ivar1;
 }

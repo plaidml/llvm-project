@@ -198,7 +198,7 @@ class CallAnalyzer : public InstVisitor<CallAnalyzer, bool> {
   friend class InstVisitor<CallAnalyzer, bool>;
 
 protected:
-  virtual ~CallAnalyzer() = default;
+  virtual ~CallAnalyzer() {}
   /// The TargetTransformInfo available for this compilation.
   const TargetTransformInfo &TTI;
 
@@ -361,10 +361,10 @@ protected:
   /// Model the elimination of repeated loads that is expected to happen
   /// whenever we simplify away the stores that would otherwise cause them to be
   /// loads.
-  bool EnableLoadElimination = true;
+  bool EnableLoadElimination;
 
   /// Whether we allow inlining for recursive call.
-  bool AllowRecursiveCall = false;
+  bool AllowRecursiveCall;
 
   SmallPtrSet<Value *, 16> LoadAddrSet;
 
@@ -455,7 +455,8 @@ public:
                OptimizationRemarkEmitter *ORE = nullptr)
       : TTI(TTI), GetAssumptionCache(GetAssumptionCache), GetBFI(GetBFI),
         PSI(PSI), F(Callee), DL(F.getParent()->getDataLayout()), ORE(ORE),
-        CandidateCall(Call) {}
+        CandidateCall(Call), EnableLoadElimination(true),
+        AllowRecursiveCall(false) {}
 
   InlineResult analyze();
 
@@ -1020,7 +1021,7 @@ public:
     return None;
   }
 
-  virtual ~InlineCostCallAnalyzer() = default;
+  virtual ~InlineCostCallAnalyzer() {}
   int getThreshold() const { return Threshold; }
   int getCost() const { return Cost; }
   Optional<CostBenefitPair> getCostBenefitPair() { return CostBenefit; }
@@ -2864,9 +2865,6 @@ Optional<InlineResult> llvm::getAttributeBasedInliningDecision(
   // Calls to functions with always-inline attributes should be inlined
   // whenever possible.
   if (Call.hasFnAttr(Attribute::AlwaysInline)) {
-    if (Call.getAttributes().hasFnAttr(Attribute::NoInline))
-      return InlineResult::failure("noinline call site attribute");
-
     auto IsViable = isInlineViable(*Callee);
     if (IsViable.isSuccess())
       return InlineResult::success();

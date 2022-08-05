@@ -50,7 +50,7 @@ void checkWrap(int i) {
 // CHECK-NEXT:   4: asm ("" : "=r" ([B1.3]));
 // CHECK-NEXT:   5: arg
 // CHECK-NEXT:   6: asm ("" : "=r" ([B1.5]));
-void checkGCCAsmRValueOutput(void) {
+void checkGCCAsmRValueOutput() {
   int arg;
   __asm__("" : "=r"((int)arg));  // rvalue output operand
   __asm__("" : "=r"(arg));       // lvalue output operand

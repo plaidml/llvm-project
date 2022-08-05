@@ -612,7 +612,7 @@ public:
   PDLPatternModule() = default;
 
   /// Construct a PDL pattern with the given module.
-  PDLPatternModule(OwningOpRef<ModuleOp> pdlModule)
+  PDLPatternModule(OwningModuleRef pdlModule)
       : pdlModule(std::move(pdlModule)) {}
 
   /// Merge the state in `other` into this pattern module.
@@ -669,7 +669,7 @@ public:
 
 private:
   /// The module containing the `pdl.pattern` operations.
-  OwningOpRef<ModuleOp> pdlModule;
+  OwningModuleRef pdlModule;
 
   /// The external functions referenced from within the PDL module.
   llvm::StringMap<PDLConstraintFunction> constraintFunctions;

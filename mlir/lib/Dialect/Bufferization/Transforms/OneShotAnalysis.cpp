@@ -140,7 +140,7 @@ bool BufferizationAliasInfo::isInPlace(OpOperand &operand) const {
 void BufferizationAliasInfo::bufferizeInPlace(OpOperand &operand,
                                               BufferizationState &state) {
   markInPlace(operand);
-  for (OpResult result : state.getAliasingOpResult(operand))
+  if (OpResult result = state.getAliasingOpResult(operand))
     aliasInfo.unionSets(result, operand.get());
 }
 
@@ -196,8 +196,8 @@ AnalysisBufferizationState::AnalysisBufferizationState(
     for (OpOperand &opOperand : bufferizableOp->getOpOperands()) {
       if (opOperand.get().getType().isa<TensorType>())
         if (bufferizableOp.mustBufferizeInPlace(opOperand, *this)) {
-          for (OpResult opResult :
-               bufferizableOp.getAliasingOpResult(opOperand, *this))
+          if (OpResult opResult =
+                  bufferizableOp.getAliasingOpResult(opOperand, *this))
             aliasInfo.unionAliasSets(opOperand.get(), opResult);
           aliasInfo.markInPlace(opOperand);
         }
@@ -404,9 +404,7 @@ static bool hasReadAfterWriteInterference(
 
         // No conflict if the conflicting write and the last write are the same
         // use.
-        SmallVector<OpResult> aliasingOpResult =
-            state.getAliasingOpResult(*uConflictingWrite);
-        if (aliasingOpResult.size() == 1 && aliasingOpResult[0] == lastWrite)
+        if (state.getAliasingOpResult(*uConflictingWrite) == lastWrite)
           continue;
 
         // All requirements are met. Conflict found!
@@ -479,7 +477,7 @@ static bool wouldCreateReadAfterWriteInterference(
   DenseSet<OpOperand *> usesRead, usesWrite;
   getAliasingReads(usesRead, operand.get());
   getAliasingInplaceWrites(usesWrite, operand.get());
-  for (OpResult result : state.getAliasingOpResult(operand)) {
+  if (OpResult result = state.getAliasingOpResult(operand)) {
     getAliasingReads(usesRead, result);
     getAliasingInplaceWrites(usesWrite, result);
   }
@@ -508,7 +506,7 @@ wouldCreateWriteToNonWritableBuffer(OpOperand &opOperand,
   bool hasWrite = aliasesInPlaceWrite(opOperand.get(), aliasInfo, state) ||
                   state.bufferizesToMemoryWrite(opOperand);
 
-  for (OpResult opResult : state.getAliasingOpResult(opOperand))
+  if (OpResult opResult = state.getAliasingOpResult(opOperand))
     hasWrite |= aliasesInPlaceWrite(opResult, aliasInfo, state);
 
   return hasWrite;
@@ -700,51 +698,52 @@ annotateOpsWithBufferizationMarkers(Operation *op,
 // aliasing values, which is stricter than needed. We can currently not check
 // for aliasing values because the analysis is a maybe-alias analysis and we
 // need a must-alias analysis here.
-static LogicalResult
-assertDestinationPassingStyle(Operation *op, BufferizationState &state,
-                              BufferizationAliasInfo &aliasInfo,
-                              SmallVector<Operation *> &newOps) {
-  LogicalResult status = success();
-  DominanceInfo domInfo(op);
-  op->walk([&](Operation *returnOp) {
-    if (!isRegionReturnLike(returnOp))
+struct AssertDestinationPassingStyle : public PostAnalysisStep {
+  LogicalResult run(Operation *op, BufferizationState &state,
+                    BufferizationAliasInfo &aliasInfo,
+                    SmallVector<Operation *> &newOps) override {
+    LogicalResult status = success();
+    DominanceInfo domInfo(op);
+    op->walk([&](Operation *returnOp) {
+      if (!isRegionReturnLike(returnOp))
+        return WalkResult::advance();
+
+      for (OpOperand &returnValOperand : returnOp->getOpOperands()) {
+        Value returnVal = returnValOperand.get();
+        // Skip non-tensor values.
+        if (!returnVal.getType().isa<TensorType>())
+          continue;
+
+        bool foundEquivValue = false;
+        aliasInfo.applyOnEquivalenceClass(returnVal, [&](Value equivVal) {
+          if (auto bbArg = equivVal.dyn_cast<BlockArgument>()) {
+            Operation *definingOp = bbArg.getOwner()->getParentOp();
+            if (definingOp->isProperAncestor(returnOp))
+              foundEquivValue = true;
+            return;
+          }
+
+          Operation *definingOp = equivVal.getDefiningOp();
+          if (definingOp->getBlock()->findAncestorOpInBlock(
+                  *returnOp->getParentOp()))
+            // Skip ops that happen after `returnOp` and parent ops.
+            if (happensBefore(definingOp, returnOp, domInfo))
+              foundEquivValue = true;
+        });
+
+        if (!foundEquivValue)
+          status =
+              returnOp->emitError()
+              << "operand #" << returnValOperand.getOperandNumber()
+              << " of ReturnLike op does not satisfy destination passing style";
+      }
+
       return WalkResult::advance();
+    });
 
-    for (OpOperand &returnValOperand : returnOp->getOpOperands()) {
-      Value returnVal = returnValOperand.get();
-      // Skip non-tensor values.
-      if (!returnVal.getType().isa<TensorType>())
-        continue;
-
-      bool foundEquivValue = false;
-      aliasInfo.applyOnEquivalenceClass(returnVal, [&](Value equivVal) {
-        if (auto bbArg = equivVal.dyn_cast<BlockArgument>()) {
-          Operation *definingOp = bbArg.getOwner()->getParentOp();
-          if (definingOp->isProperAncestor(returnOp))
-            foundEquivValue = true;
-          return;
-        }
-
-        Operation *definingOp = equivVal.getDefiningOp();
-        if (definingOp->getBlock()->findAncestorOpInBlock(
-                *returnOp->getParentOp()))
-          // Skip ops that happen after `returnOp` and parent ops.
-          if (happensBefore(definingOp, returnOp, domInfo))
-            foundEquivValue = true;
-      });
-
-      if (!foundEquivValue)
-        status =
-            returnOp->emitError()
-            << "operand #" << returnValOperand.getOperandNumber()
-            << " of ReturnLike op does not satisfy destination passing style";
-    }
-
-    return WalkResult::advance();
-  });
-
-  return status;
-}
+    return status;
+  }
+};
 
 LogicalResult bufferization::analyzeOp(Operation *op,
                                        AnalysisBufferizationState &state) {
@@ -762,11 +761,12 @@ LogicalResult bufferization::analyzeOp(Operation *op,
     return failure();
   equivalenceAnalysis(op, aliasInfo, state);
 
-  for (const PostAnalysisStepFn &fn : options.postAnalysisSteps) {
+  for (const std::unique_ptr<PostAnalysisStep> &step :
+       options.postAnalysisSteps) {
     SmallVector<Operation *> newOps;
-    if (failed(fn(op, state, aliasInfo, newOps)))
+    if (failed(step->run(op, state, aliasInfo, newOps)))
       return failure();
-    // Analyze ops that were created by the PostAnalysisStepFn.
+    // Analyze ops that were created by the PostAnalysisStep.
     if (failed(inPlaceAnalysis(newOps, aliasInfo, state, domInfo)))
       return failure();
     equivalenceAnalysis(newOps, aliasInfo, state);
@@ -774,7 +774,8 @@ LogicalResult bufferization::analyzeOp(Operation *op,
 
   if (!options.allowReturnMemref) {
     SmallVector<Operation *> newOps;
-    if (failed(assertDestinationPassingStyle(op, state, aliasInfo, newOps)))
+    if (failed(
+            AssertDestinationPassingStyle().run(op, state, aliasInfo, newOps)))
       return failure();
   }
 

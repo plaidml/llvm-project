@@ -21,8 +21,8 @@ namespace __internal
 {
 
 template <typename _Fp>
-auto
-__except_handler(_Fp __f) -> decltype(__f())
+typename std::result_of<_Fp()>::type
+__except_handler(_Fp __f)
 {
     try
     {

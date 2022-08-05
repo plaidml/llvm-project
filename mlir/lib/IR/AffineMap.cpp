@@ -299,17 +299,22 @@ unsigned AffineMap::getNumSymbols() const {
   assert(map && "uninitialized map storage");
   return map->numSymbols;
 }
-unsigned AffineMap::getNumResults() const { return getResults().size(); }
+unsigned AffineMap::getNumResults() const {
+  assert(map && "uninitialized map storage");
+  return map->results.size();
+}
 unsigned AffineMap::getNumInputs() const {
   assert(map && "uninitialized map storage");
   return map->numDims + map->numSymbols;
 }
+
 ArrayRef<AffineExpr> AffineMap::getResults() const {
   assert(map && "uninitialized map storage");
-  return map->results();
+  return map->results;
 }
 AffineExpr AffineMap::getResult(unsigned idx) const {
-  return getResults()[idx];
+  assert(map && "uninitialized map storage");
+  return map->results[idx];
 }
 
 unsigned AffineMap::getDimPosition(unsigned idx) const {
@@ -529,7 +534,7 @@ AffineMap AffineMap::getMajorSubMap(unsigned numResults) const {
     return AffineMap();
   if (numResults > getNumResults())
     return *this;
-  return getSliceMap(0, numResults);
+  return getSubMap(llvm::to_vector<4>(llvm::seq<unsigned>(0, numResults)));
 }
 
 AffineMap AffineMap::getMinorSubMap(unsigned numResults) const {
@@ -537,17 +542,18 @@ AffineMap AffineMap::getMinorSubMap(unsigned numResults) const {
     return AffineMap();
   if (numResults > getNumResults())
     return *this;
-  return getSliceMap(getNumResults() - numResults, numResults);
+  return getSubMap(llvm::to_vector<4>(
+      llvm::seq<unsigned>(getNumResults() - numResults, getNumResults())));
 }
 
 AffineMap mlir::compressDims(AffineMap map,
-                             const llvm::SmallBitVector &unusedDims) {
+                             const llvm::SmallDenseSet<unsigned> &unusedDims) {
   unsigned numDims = 0;
   SmallVector<AffineExpr> dimReplacements;
   dimReplacements.reserve(map.getNumDims());
   MLIRContext *context = map.getContext();
   for (unsigned dim = 0, e = map.getNumDims(); dim < e; ++dim) {
-    if (unusedDims.test(dim))
+    if (unusedDims.contains(dim))
       dimReplacements.push_back(getAffineConstantExpr(0, context));
     else
       dimReplacements.push_back(getAffineDimExpr(numDims++, context));
@@ -560,11 +566,15 @@ AffineMap mlir::compressDims(AffineMap map,
 }
 
 AffineMap mlir::compressUnusedDims(AffineMap map) {
-  llvm::SmallBitVector unusedDims(map.getNumDims(), true);
+  llvm::SmallDenseSet<unsigned> usedDims;
   map.walkExprs([&](AffineExpr expr) {
     if (auto dimExpr = expr.dyn_cast<AffineDimExpr>())
-      unusedDims.reset(dimExpr.getPosition());
+      usedDims.insert(dimExpr.getPosition());
   });
+  llvm::SmallDenseSet<unsigned> unusedDims;
+  for (unsigned d = 0, e = map.getNumDims(); d != e; ++d)
+    if (!usedDims.contains(d))
+      unusedDims.insert(d);
   return compressDims(map, unusedDims);
 }
 
@@ -603,14 +613,15 @@ SmallVector<AffineMap> mlir::compressUnusedDims(ArrayRef<AffineMap> maps) {
                             [](AffineMap m) { return compressUnusedDims(m); });
 }
 
-AffineMap mlir::compressSymbols(AffineMap map,
-                                const llvm::SmallBitVector &unusedSymbols) {
+AffineMap
+mlir::compressSymbols(AffineMap map,
+                      const llvm::SmallDenseSet<unsigned> &unusedSymbols) {
   unsigned numSymbols = 0;
   SmallVector<AffineExpr> symReplacements;
   symReplacements.reserve(map.getNumSymbols());
   MLIRContext *context = map.getContext();
   for (unsigned sym = 0, e = map.getNumSymbols(); sym < e; ++sym) {
-    if (unusedSymbols.test(sym))
+    if (unusedSymbols.contains(sym))
       symReplacements.push_back(getAffineConstantExpr(0, context));
     else
       symReplacements.push_back(getAffineSymbolExpr(numSymbols++, context));
@@ -623,11 +634,15 @@ AffineMap mlir::compressSymbols(AffineMap map,
 }
 
 AffineMap mlir::compressUnusedSymbols(AffineMap map) {
-  llvm::SmallBitVector unusedSymbols(map.getNumSymbols(), true);
+  llvm::SmallDenseSet<unsigned> usedSymbols;
   map.walkExprs([&](AffineExpr expr) {
     if (auto symExpr = expr.dyn_cast<AffineSymbolExpr>())
-      unusedSymbols.reset(symExpr.getPosition());
+      usedSymbols.insert(symExpr.getPosition());
   });
+  llvm::SmallDenseSet<unsigned> unusedSymbols;
+  for (unsigned d = 0, e = map.getNumSymbols(); d != e; ++d)
+    if (!usedSymbols.contains(d))
+      unusedSymbols.insert(d);
   return compressSymbols(map, unusedSymbols);
 }
 
@@ -717,8 +732,9 @@ AffineMap mlir::concatAffineMaps(ArrayRef<AffineMap> maps) {
                         maps.front().getContext());
 }
 
-AffineMap mlir::getProjectedMap(AffineMap map,
-                                const llvm::SmallBitVector &unusedDims) {
+AffineMap
+mlir::getProjectedMap(AffineMap map,
+                      const llvm::SmallDenseSet<unsigned> &unusedDims) {
   return compressUnusedSymbols(compressDims(map, unusedDims));
 }
 

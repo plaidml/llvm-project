@@ -66,8 +66,9 @@ public:
   }
 
   ~AnnotatedLine() {
-    for (AnnotatedLine *Child : Children)
-      delete Child;
+    for (unsigned i = 0, e = Children.size(); i != e; ++i) {
+      delete Children[i];
+    }
     FormatToken *Current = First;
     while (Current) {
       Current->Children.clear();

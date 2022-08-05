@@ -11,6 +11,7 @@
 #include "mlir/Dialect/ArmSVE/ArmSVEDialect.h"
 #include "mlir/Dialect/ArmSVE/Transforms.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
+#include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/PatternMatch.h"
 
@@ -27,6 +28,19 @@ class ForwardOperands : public OpConversionPattern<OpTy> {
     if (adaptor.getOperands().getTypes() == op->getOperands().getTypes())
       return rewriter.notifyMatchFailure(op, "operand types already match");
 
+    rewriter.updateRootInPlace(
+        op, [&]() { op->setOperands(adaptor.getOperands()); });
+    return success();
+  }
+};
+
+class ReturnOpTypeConversion : public OpConversionPattern<ReturnOp> {
+public:
+  using OpConversionPattern<ReturnOp>::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(ReturnOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const final {
     rewriter.updateRootInPlace(
         op, [&]() { op->setOperands(adaptor.getOperands()); });
     return success();
@@ -67,7 +81,7 @@ using ScalableMaskedDivFOpLowering =
 
 /// Populate the given list with patterns that convert from ArmSVE to LLVM.
 void mlir::populateArmSVELegalizeForLLVMExportPatterns(
-    LLVMTypeConverter &converter, RewritePatternSet &patterns) {
+    LLVMTypeConverter &converter, OwningRewritePatternList &patterns) {
   // Populate conversion patterns
 
   // clang-format off

@@ -1,10 +1,8 @@
 // RUN: %clang_cc1 -verify=expected,omp45 -fopenmp -fopenmp-version=45 -ferror-limit 100 %s -Wuninitialized
 // RUN: %clang_cc1 -verify=expected,omp50 -fopenmp -ferror-limit 100 %s -Wuninitialized
-// RUN: %clang_cc1 -DOMP51 -verify=expected,omp50,omp51 -fopenmp -fopenmp-version=51 -ferror-limit 100 %s -Wuninitialized
 
 // RUN: %clang_cc1 -verify=expected,omp45 -fopenmp-simd -fopenmp-version=45 -ferror-limit 100 %s -Wuninitialized
 // RUN: %clang_cc1 -verify=expected,omp50 -fopenmp-simd -ferror-limit 100 %s -Wuninitialized
-// RUN: %clang_cc1 -DOMP51 -verify=expected,omp50,omp51 -fopenmp-simd -fopenmp-version=51 -ferror-limit 100 %s -Wuninitialized
 
 void xxx(int argc) {
   int x; // expected-note {{initialize the variable 'x' to silence this warning}}
@@ -12,7 +10,7 @@ void xxx(int argc) {
   argc = x; // expected-warning {{variable 'x' is uninitialized when used here}}
 }
 
-int foo(void) {
+int foo() {
 L1:
   foo();
 #pragma omp atomic
@@ -39,7 +37,7 @@ struct S {
   int a;
 };
 
-int readint(void) {
+int readint() {
   int a = 0, b = 0;
 // Test for atomic read
 #pragma omp atomic read
@@ -67,7 +65,7 @@ int readint(void) {
   return 0;
 }
 
-int readS(void) {
+int readS() {
   struct S a, b;
   // expected-error@+1 {{directive '#pragma omp atomic' cannot contain more than one 'read' clause}} expected-error@+1 {{unexpected OpenMP clause 'allocate' in directive '#pragma omp atomic'}}
 #pragma omp atomic read read allocate(a)
@@ -78,7 +76,7 @@ int readS(void) {
   return a.a;
 }
 
-int writeint(void) {
+int writeint() {
   int a = 0, b = 0;
 // Test for atomic write
 #pragma omp atomic write
@@ -104,7 +102,7 @@ int writeint(void) {
   return 0;
 }
 
-int writeS(void) {
+int writeS() {
   struct S a, b;
   // expected-error@+1 {{directive '#pragma omp atomic' cannot contain more than one 'write' clause}}
 #pragma omp atomic write write
@@ -115,7 +113,7 @@ int writeS(void) {
   return a.a;
 }
 
-int updateint(void) {
+int updateint() {
   int a = 0, b = 0;
 // Test for atomic update
 #pragma omp atomic update
@@ -205,7 +203,7 @@ int updateint(void) {
   return 0;
 }
 
-int captureint(void) {
+int captureint() {
   int a = 0, b = 0, c = 0;
 // Test for atomic capture
 #pragma omp atomic capture
@@ -381,7 +379,7 @@ int captureint(void) {
   return 0;
 }
 
-void hint(void) {
+void hint() {
   int a = 0;
 #pragma omp atomic hint // omp45-error {{unexpected OpenMP clause 'hint' in directive '#pragma omp atomic'}} expected-error {{expected '(' after 'hint'}}
   a += 1;
@@ -396,92 +394,3 @@ void hint(void) {
 #pragma omp atomic hint(1) hint(1) // omp45-error 2 {{unexpected OpenMP clause 'hint' in directive '#pragma omp atomic'}} expected-error {{directive '#pragma omp atomic' cannot contain more than one 'hint' clause}}
   a += 1;
 }
-
-#ifdef OMP51
-extern void bbar(void);
-extern int ffoo(void);
-
-void compare(void) {
-  int x = 0;
-  int d = 0;
-  int e = 0;
-// omp51-error@+3 {{the statement for 'atomic compare' must be a compound statement of form '{x = expr ordop x ? expr : x;}', '{x = x ordop expr? expr : x;}', '{x = x == e ? d : x;}', '{x = e == x ? d : x;}', or 'if(expr ordop x) {x = expr;}', 'if(x ordop expr) {x = expr;}', 'if(x == e) {x = d;}', 'if(e == x) {x = d;}' where 'x' is an lvalue expression with scalar type, 'expr', 'e', and 'd' are expressions with scalar type, and 'ordop' is one of '<' or '>'.}}
-// omp51-note@+2 {{expected compound statement}}
-#pragma omp atomic compare
-  {}
-// omp51-error@+3 {{the statement for 'atomic compare' must be a compound statement of form '{x = expr ordop x ? expr : x;}', '{x = x ordop expr? expr : x;}', '{x = x == e ? d : x;}', '{x = e == x ? d : x;}', or 'if(expr ordop x) {x = expr;}', 'if(x ordop expr) {x = expr;}', 'if(x == e) {x = d;}', 'if(e == x) {x = d;}' where 'x' is an lvalue expression with scalar type, 'expr', 'e', and 'd' are expressions with scalar type, and 'ordop' is one of '<' or '>'.}}
-// omp51-note@+2 {{expected exactly one expression statement}}
-#pragma omp atomic compare
-  {
-    x = d;
-    x = e;
-  }
-// omp51-error@+3 {{the statement for 'atomic compare' must be a compound statement of form '{x = expr ordop x ? expr : x;}', '{x = x ordop expr? expr : x;}', '{x = x == e ? d : x;}', '{x = e == x ? d : x;}', or 'if(expr ordop x) {x = expr;}', 'if(x ordop expr) {x = expr;}', 'if(x == e) {x = d;}', 'if(e == x) {x = d;}' where 'x' is an lvalue expression with scalar type, 'expr', 'e', and 'd' are expressions with scalar type, and 'ordop' is one of '<' or '>'.}}
-// omp51-note@+2 {{expected assignment statement}}
-#pragma omp atomic compare
-  { x += d; }
-// omp51-error@+3 {{the statement for 'atomic compare' must be a compound statement of form '{x = expr ordop x ? expr : x;}', '{x = x ordop expr? expr : x;}', '{x = x == e ? d : x;}', '{x = e == x ? d : x;}', or 'if(expr ordop x) {x = expr;}', 'if(x ordop expr) {x = expr;}', 'if(x == e) {x = d;}', 'if(e == x) {x = d;}' where 'x' is an lvalue expression with scalar type, 'expr', 'e', and 'd' are expressions with scalar type, and 'ordop' is one of '<' or '>'.}}
-// omp51-note@+2 {{expected assignment statement}}
-#pragma omp atomic compare
-  { bbar(); }
-// omp51-error@+3 {{the statement for 'atomic compare' must be a compound statement of form '{x = expr ordop x ? expr : x;}', '{x = x ordop expr? expr : x;}', '{x = x == e ? d : x;}', '{x = e == x ? d : x;}', or 'if(expr ordop x) {x = expr;}', 'if(x ordop expr) {x = expr;}', 'if(x == e) {x = d;}', 'if(e == x) {x = d;}' where 'x' is an lvalue expression with scalar type, 'expr', 'e', and 'd' are expressions with scalar type, and 'ordop' is one of '<' or '>'.}}
-// omp51-note@+2 {{expected conditional operator}}
-#pragma omp atomic compare
-  { x = d; }
-// omp51-error@+3 {{the statement for 'atomic compare' must be a compound statement of form '{x = expr ordop x ? expr : x;}', '{x = x ordop expr? expr : x;}', '{x = x == e ? d : x;}', '{x = e == x ? d : x;}', or 'if(expr ordop x) {x = expr;}', 'if(x ordop expr) {x = expr;}', 'if(x == e) {x = d;}', 'if(e == x) {x = d;}' where 'x' is an lvalue expression with scalar type, 'expr', 'e', and 'd' are expressions with scalar type, and 'ordop' is one of '<' or '>'.}}
-// omp51-note@+2 {{expect binary operator in conditional expression}}
-#pragma omp atomic compare
-  { x = ffoo() ? e : x; }
-// omp51-error@+3 {{the statement for 'atomic compare' must be a compound statement of form '{x = expr ordop x ? expr : x;}', '{x = x ordop expr? expr : x;}', '{x = x == e ? d : x;}', '{x = e == x ? d : x;}', or 'if(expr ordop x) {x = expr;}', 'if(x ordop expr) {x = expr;}', 'if(x == e) {x = d;}', 'if(e == x) {x = d;}' where 'x' is an lvalue expression with scalar type, 'expr', 'e', and 'd' are expressions with scalar type, and 'ordop' is one of '<' or '>'.}}
-// omp51-note@+2 {{expect '<', '>' or '==' as order operator}}
-#pragma omp atomic compare
-  { x = x >= e ? e : x; }
-// omp51-error@+3 {{the statement for 'atomic compare' must be a compound statement of form '{x = expr ordop x ? expr : x;}', '{x = x ordop expr? expr : x;}', '{x = x == e ? d : x;}', '{x = e == x ? d : x;}', or 'if(expr ordop x) {x = expr;}', 'if(x ordop expr) {x = expr;}', 'if(x == e) {x = d;}', 'if(e == x) {x = d;}' where 'x' is an lvalue expression with scalar type, 'expr', 'e', and 'd' are expressions with scalar type, and 'ordop' is one of '<' or '>'.}}
-// omp51-note@+2 {{expect comparison in a form of 'x == e', 'e == x', 'x ordop expr', or 'expr ordop x'}}
-#pragma omp atomic compare
-  { x = d > e ? e : x; }
-// omp51-error@+3 {{the statement for 'atomic compare' must be a compound statement of form '{x = expr ordop x ? expr : x;}', '{x = x ordop expr? expr : x;}', '{x = x == e ? d : x;}', '{x = e == x ? d : x;}', or 'if(expr ordop x) {x = expr;}', 'if(x ordop expr) {x = expr;}', 'if(x == e) {x = d;}', 'if(e == x) {x = d;}' where 'x' is an lvalue expression with scalar type, 'expr', 'e', and 'd' are expressions with scalar type, and 'ordop' is one of '<' or '>'.}}
-// omp51-note@+2 {{expect result value to be at false expression}}
-#pragma omp atomic compare
-  { x = d > x ? e : d; }
-// omp51-error@+4 {{the statement for 'atomic compare' must be a compound statement of form '{x = expr ordop x ? expr : x;}', '{x = x ordop expr? expr : x;}', '{x = x == e ? d : x;}', '{x = e == x ? d : x;}', or 'if(expr ordop x) {x = expr;}', 'if(x ordop expr) {x = expr;}', 'if(x == e) {x = d;}', 'if(e == x) {x = d;}' where 'x' is an lvalue expression with scalar type, 'expr', 'e', and 'd' are expressions with scalar type, and 'ordop' is one of '<' or '>'.}}
-// omp51-note@+3 {{expect binary operator in conditional expression}}
-#pragma omp atomic compare
-  {
-    if (foo())
-      x = d;
-  }
-// omp51-error@+4 {{the statement for 'atomic compare' must be a compound statement of form '{x = expr ordop x ? expr : x;}', '{x = x ordop expr? expr : x;}', '{x = x == e ? d : x;}', '{x = e == x ? d : x;}', or 'if(expr ordop x) {x = expr;}', 'if(x ordop expr) {x = expr;}', 'if(x == e) {x = d;}', 'if(e == x) {x = d;}' where 'x' is an lvalue expression with scalar type, 'expr', 'e', and 'd' are expressions with scalar type, and 'ordop' is one of '<' or '>'.}}
-// omp51-note@+3 {{expect '<', '>' or '==' as order operator}}
-#pragma omp atomic compare
-  {
-    if (x >= d)
-      x = d;
-  }
-// omp51-error@+4 {{the statement for 'atomic compare' must be a compound statement of form '{x = expr ordop x ? expr : x;}', '{x = x ordop expr? expr : x;}', '{x = x == e ? d : x;}', '{x = e == x ? d : x;}', or 'if(expr ordop x) {x = expr;}', 'if(x ordop expr) {x = expr;}', 'if(x == e) {x = d;}', 'if(e == x) {x = d;}' where 'x' is an lvalue expression with scalar type, 'expr', 'e', and 'd' are expressions with scalar type, and 'ordop' is one of '<' or '>'.}}
-// omp51-note@+3 {{expect comparison in a form of 'x == e', 'e == x', 'x ordop expr', or 'expr ordop x'}}
-#pragma omp atomic compare
-  {
-    if (e > d)
-      x = d;
-  }
-// omp51-error@+3 {{the statement for 'atomic compare' must be a compound statement of form '{x = expr ordop x ? expr : x;}', '{x = x ordop expr? expr : x;}', '{x = x == e ? d : x;}', '{x = e == x ? d : x;}', or 'if(expr ordop x) {x = expr;}', 'if(x ordop expr) {x = expr;}', 'if(x == e) {x = d;}', 'if(e == x) {x = d;}' where 'x' is an lvalue expression with scalar type, 'expr', 'e', and 'd' are expressions with scalar type, and 'ordop' is one of '<' or '>'.}}
-// omp51-note@+2 {{expected exactly one expression statement}}
-#pragma omp atomic compare
-  {
-    if (x > d)
-      x = e;
-    d = e;
-  }
-  float fx = 0.0f;
-  float fd = 0.0f;
-  float fe = 0.0f;
-// omp51-error@+5 {{the statement for 'atomic compare' must be a compound statement of form '{x = expr ordop x ? expr : x;}', '{x = x ordop expr? expr : x;}', '{x = x == e ? d : x;}', '{x = e == x ? d : x;}', or 'if(expr ordop x) {x = expr;}', 'if(x ordop expr) {x = expr;}', 'if(x == e) {x = d;}', 'if(e == x) {x = d;}' where 'x' is an lvalue expression with scalar type, 'expr', 'e', and 'd' are expressions with scalar type, and 'ordop' is one of '<' or '>'.}}
-// omp51-note@+4 {{expect integer value}}
-#pragma omp atomic compare
-  {
-    if (fx > fe)
-      fx = fe;
-  }
-}
-#endif

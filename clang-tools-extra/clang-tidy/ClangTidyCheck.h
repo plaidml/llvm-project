@@ -20,6 +20,7 @@
 
 namespace clang {
 
+class CompilerInstance;
 class SourceManager;
 
 namespace tidy {

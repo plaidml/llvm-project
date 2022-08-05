@@ -10,15 +10,16 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "llvm/TableGen/Record.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/FoldingSet.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/Statistic.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/StringSet.h"
 #include "llvm/Config/llvm-config.h"
 #include "llvm/Support/Allocator.h"
 #include "llvm/Support/Casting.h"
@@ -28,10 +29,11 @@
 #include "llvm/Support/SMLoc.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/TableGen/Error.h"
+#include "llvm/TableGen/Record.h"
 #include <cassert>
 #include <cstdint>
-#include <map>
 #include <memory>
+#include <map>
 #include <string>
 #include <utility>
 #include <vector>
@@ -2287,8 +2289,8 @@ bool RecordVal::setValue(Init *V, SMLoc NewLoc) {
   return false;
 }
 
-#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
 #include "llvm/TableGen/Record.h"
+#if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
 LLVM_DUMP_METHOD void RecordVal::dump() const { errs() << *this; }
 #endif
 

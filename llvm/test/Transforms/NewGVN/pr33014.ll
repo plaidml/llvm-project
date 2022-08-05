@@ -1,5 +1,6 @@
 ; Make sure we don't end up in an infinite recursion in singleReachablePHIPath().
-; RUN: opt < %s -passes=newgvn -S | FileCheck %s
+; REQUIRES: asserts
+; RUN: opt -newgvn -S %s | FileCheck %s
 
 @c = external global i64, align 8
 

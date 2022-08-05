@@ -31,16 +31,16 @@ static const Scope *FindScopeContaining(
     if (predicate(*scope)) {
       return scope;
     }
-    if (scope->IsTopLevel()) {
+    if (scope->IsGlobal()) {
       return nullptr;
     }
   }
 }
 
 const Scope &GetTopLevelUnitContaining(const Scope &start) {
-  CHECK(!start.IsTopLevel());
+  CHECK(!start.IsGlobal());
   return DEREF(FindScopeContaining(
-      start, [](const Scope &scope) { return scope.parent().IsTopLevel(); }));
+      start, [](const Scope &scope) { return scope.parent().IsGlobal(); }));
 }
 
 const Scope &GetTopLevelUnitContaining(const Symbol &symbol) {
@@ -58,7 +58,7 @@ const Scope *FindModuleFileContaining(const Scope &start) {
 }
 
 const Scope &GetProgramUnitContaining(const Scope &start) {
-  CHECK(!start.IsTopLevel());
+  CHECK(!start.IsGlobal());
   return DEREF(FindScopeContaining(start, [](const Scope &scope) {
     switch (scope.kind()) {
     case Scope::Kind::Module:
@@ -80,7 +80,7 @@ const Scope *FindPureProcedureContaining(const Scope &start) {
   // N.B. We only need to examine the innermost containing program unit
   // because an internal subprogram of a pure subprogram must also
   // be pure (C1592).
-  if (start.IsTopLevel()) {
+  if (start.IsGlobal()) {
     return nullptr;
   } else {
     const Scope &scope{GetProgramUnitContaining(start)};
@@ -203,7 +203,7 @@ bool IsUseAssociated(const Symbol &symbol, const Scope &scope) {
 
 bool DoesScopeContain(
     const Scope *maybeAncestor, const Scope &maybeDescendent) {
-  return maybeAncestor && !maybeDescendent.IsTopLevel() &&
+  return maybeAncestor && !maybeDescendent.IsGlobal() &&
       FindScopeContaining(maybeDescendent.parent(),
           [&](const Scope &scope) { return &scope == maybeAncestor; });
 }
@@ -558,13 +558,10 @@ bool HasDeclarationInitializer(const Symbol &symbol) {
   }
 }
 
-bool IsInitialized(
-    const Symbol &symbol, bool ignoreDataStatements, bool ignoreAllocatable) {
-  if (!ignoreAllocatable && IsAllocatable(symbol)) {
-    return true;
-  } else if (!ignoreDataStatements && symbol.test(Symbol::Flag::InDataStmt)) {
-    return true;
-  } else if (HasDeclarationInitializer(symbol)) {
+bool IsInitialized(const Symbol &symbol, bool ignoreDataStatements) {
+  if (IsAllocatable(symbol) ||
+      (!ignoreDataStatements && symbol.test(Symbol::Flag::InDataStmt)) ||
+      HasDeclarationInitializer(symbol)) {
     return true;
   } else if (IsNamedConstant(symbol) || IsFunctionResult(symbol) ||
       IsPointer(symbol)) {
@@ -572,7 +569,12 @@ bool IsInitialized(
   } else if (const auto *object{symbol.detailsIf<ObjectEntityDetails>()}) {
     if (!object->isDummy() && object->type()) {
       if (const auto *derived{object->type()->AsDerived()}) {
-        return derived->HasDefaultInitialization(ignoreAllocatable);
+        DirectComponentIterator directs{*derived};
+        return bool{std::find_if(
+            directs.begin(), directs.end(), [](const Symbol &component) {
+              return IsAllocatable(component) ||
+                  HasDeclarationInitializer(component);
+            })};
       }
     }
   }
@@ -1092,7 +1094,6 @@ ProcedureDefinitionClass ClassifyProcedure(const Symbol &symbol) { // 15.2.2
     }
     switch (ultimate.owner().kind()) {
     case Scope::Kind::Global:
-    case Scope::Kind::IntrinsicModules:
       return ProcedureDefinitionClass::External;
     case Scope::Kind::Module:
       return ProcedureDefinitionClass::Module;

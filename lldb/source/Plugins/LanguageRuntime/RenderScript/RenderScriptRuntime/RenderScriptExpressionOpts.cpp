@@ -22,7 +22,6 @@
 
 #include "lldb/Target/Process.h"
 #include "lldb/Target/Target.h"
-#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
 
 #include "RenderScriptExpressionOpts.h"
@@ -78,7 +77,8 @@ static bool registerRSDefaultTargetOpts(clang::TargetOptions &proto,
 
 bool RenderScriptRuntimeModulePass::runOnModule(llvm::Module &module) {
   bool changed_module = false;
-  Log *log = GetLog(LLDBLog::Language | LLDBLog::Expressions);
+  Log *log(
+      GetLogIfAllCategoriesSet(LIBLLDB_LOG_LANGUAGE | LIBLLDB_LOG_EXPRESSIONS));
 
   std::string err;
   llvm::StringRef real_triple =

@@ -429,12 +429,9 @@ void GCNScheduleDAGMILive::schedule() {
   RescheduleRegions[RegionIdx] = RegionsWithClusters[RegionIdx] ||
                                  (Stage + 1) != UnclusteredReschedule;
   RegionEnd = RegionBegin;
-  int SkippedDebugInstr = 0;
   for (MachineInstr *MI : Unsched) {
-    if (MI->isDebugInstr()) {
-      ++SkippedDebugInstr;
+    if (MI->isDebugInstr())
       continue;
-    }
 
     if (MI->getIterator() != RegionEnd) {
       BB->remove(MI);
@@ -462,31 +459,10 @@ void GCNScheduleDAGMILive::schedule() {
     ++RegionEnd;
     LLVM_DEBUG(dbgs() << "Scheduling " << *MI);
   }
-
-  // After reverting schedule, debug instrs will now be at the end of the block
-  // and RegionEnd will point to the first debug instr. Increment RegionEnd
-  // pass debug instrs to the actual end of the scheduling region.
-  while (SkippedDebugInstr-- > 0)
-    ++RegionEnd;
-
-  // If Unsched.front() instruction is a debug instruction, this will actually
-  // shrink the region since we moved all debug instructions to the end of the
-  // block. Find the first instruction that is not a debug instruction.
   RegionBegin = Unsched.front()->getIterator();
-  if (RegionBegin->isDebugInstr()) {
-    for (MachineInstr *MI : Unsched) {
-      if (MI->isDebugInstr())
-        continue;
-      RegionBegin = MI->getIterator();
-      break;
-    }
-  }
-
-  // Then move the debug instructions back into their correct place and set
-  // RegionBegin and RegionEnd if needed.
-  placeDebugValues();
-
   Regions[RegionIdx] = std::make_pair(RegionBegin, RegionEnd);
+
+  placeDebugValues();
 }
 
 GCNRegPressure GCNScheduleDAGMILive::getRealRegPressure() const {
@@ -517,14 +493,14 @@ void GCNScheduleDAGMILive::computeBlockPressure(const MachineBasicBlock *MBB) {
 
   auto I = MBB->begin();
   auto LiveInIt = MBBLiveIns.find(MBB);
-  auto &Rgn = Regions[CurRegion];
-  auto *NonDbgMI = &*skipDebugInstructionsForward(Rgn.first, Rgn.second);
   if (LiveInIt != MBBLiveIns.end()) {
     auto LiveIn = std::move(LiveInIt->second);
     RPTracker.reset(*MBB->begin(), &LiveIn);
     MBBLiveIns.erase(LiveInIt);
   } else {
+    auto &Rgn = Regions[CurRegion];
     I = Rgn.first;
+    auto *NonDbgMI = &*skipDebugInstructionsForward(Rgn.first, Rgn.second);
     auto LRS = BBLiveInMap.lookup(NonDbgMI);
 #ifdef EXPENSIVE_CHECKS
     assert(isEqual(getLiveRegsBefore(*NonDbgMI, *LIS), LRS));
@@ -535,7 +511,7 @@ void GCNScheduleDAGMILive::computeBlockPressure(const MachineBasicBlock *MBB) {
   for ( ; ; ) {
     I = RPTracker.getNext();
 
-    if (Regions[CurRegion].first == I || NonDbgMI == I) {
+    if (Regions[CurRegion].first == I) {
       LiveIns[CurRegion] = RPTracker.getLiveRegs();
       RPTracker.clearMaxPressure();
     }

@@ -23,11 +23,9 @@
 #include "llvm/Config/llvm-config.h"
 #include "llvm/IR/CFG.h"
 #include "llvm/IR/DIBuilder.h"
-#include "llvm/IR/DebugInfo.h"
 #include "llvm/IR/Dominators.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/InstIterator.h"
-#include "llvm/IR/IntrinsicInst.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/MathExtras.h"
@@ -810,7 +808,7 @@ static StringRef solveTypeName(Type *Ty) {
 
   if (Ty->isPointerTy()) {
     auto *PtrTy = cast<PointerType>(Ty);
-    Type *PointeeTy = PtrTy->getPointerElementType();
+    Type *PointeeTy = PtrTy->getElementType();
     auto Name = solveTypeName(PointeeTy);
     if (Name == "UnknownType")
       return "PointerType";
@@ -1572,7 +1570,7 @@ static Instruction *insertSpills(const FrameDataInfo &FrameData,
     // Create a store instruction storing the value into the
     // coroutine frame.
     Instruction *InsertPt = nullptr;
-    Type *ByValTy = nullptr;
+    bool NeedToCopyArgPtrValue = false;
     if (auto *Arg = dyn_cast<Argument>(Def)) {
       // For arguments, we will place the store instruction right after
       // the coroutine frame pointer instruction, i.e. bitcast of
@@ -1584,7 +1582,8 @@ static Instruction *insertSpills(const FrameDataInfo &FrameData,
       Arg->getParent()->removeParamAttr(Arg->getArgNo(), Attribute::NoCapture);
 
       if (Arg->hasByValAttr())
-        ByValTy = Arg->getParamByValType();
+        NeedToCopyArgPtrValue = true;
+
     } else if (auto *CSI = dyn_cast<AnyCoroSuspendInst>(Def)) {
       // Don't spill immediately after a suspend; splitting assumes
       // that the suspend will be followed by a branch.
@@ -1619,10 +1618,11 @@ static Instruction *insertSpills(const FrameDataInfo &FrameData,
     Builder.SetInsertPoint(InsertPt);
     auto *G = Builder.CreateConstInBoundsGEP2_32(
         FrameTy, FramePtr, 0, Index, Def->getName() + Twine(".spill.addr"));
-    if (ByValTy) {
+    if (NeedToCopyArgPtrValue) {
       // For byval arguments, we need to store the pointed value in the frame,
       // instead of the pointer itself.
-      auto *Value = Builder.CreateLoad(ByValTy, Def);
+      auto *Value =
+          Builder.CreateLoad(Def->getType()->getPointerElementType(), Def);
       Builder.CreateAlignedStore(Value, G, SpillAlignment);
     } else {
       Builder.CreateAlignedStore(Def, G, SpillAlignment);
@@ -1640,7 +1640,7 @@ static Instruction *insertSpills(const FrameDataInfo &FrameData,
 
         auto *GEP = GetFramePointer(E.first);
         GEP->setName(E.first->getName() + Twine(".reload.addr"));
-        if (ByValTy)
+        if (NeedToCopyArgPtrValue)
           CurrentReload = GEP;
         else
           CurrentReload = Builder.CreateAlignedLoad(
@@ -1661,12 +1661,6 @@ static Instruction *insertSpills(const FrameDataInfo &FrameData,
           // will be deleted in all coro-split functions.
           coro::salvageDebugInfo(DbgPtrAllocaCache, DDI, Shape.OptimizeFrame);
         }
-      }
-
-      // Salvage debug info on any dbg.addr that we see. We do not insert them
-      // into each block where we have a use though.
-      if (auto *DI = dyn_cast<DbgAddrIntrinsic>(U)) {
-        coro::salvageDebugInfo(DbgPtrAllocaCache, DI, Shape.OptimizeFrame);
       }
 
       // If we have a single edge PHINode, remove it and replace it with a
@@ -2284,7 +2278,7 @@ static void eliminateSwiftErrorArgument(Function &F, Argument &Arg,
   IRBuilder<> Builder(F.getEntryBlock().getFirstNonPHIOrDbg());
 
   auto ArgTy = cast<PointerType>(Arg.getType());
-  auto ValueTy = ArgTy->getPointerElementType();
+  auto ValueTy = ArgTy->getElementType();
 
   // Reduce to the alloca case:
 
@@ -2586,10 +2580,8 @@ void coro::salvageDebugInfo(
 
   DVI->replaceVariableLocationOp(OriginalStorage, Storage);
   DVI->setExpression(Expr);
-  // We only hoist dbg.declare today since it doesn't make sense to hoist
-  // dbg.value or dbg.addr since they do not have the same function wide
-  // guarantees that dbg.declare does.
-  if (!isa<DbgValueInst>(DVI) && !isa<DbgAddrIntrinsic>(DVI)) {
+  /// It makes no sense to move the dbg.value intrinsic.
+  if (!isa<DbgValueInst>(DVI)) {
     if (auto *II = dyn_cast<InvokeInst>(Storage))
       DVI->moveBefore(II->getNormalDest()->getFirstNonPHI());
     else if (auto *CBI = dyn_cast<CallBrInst>(Storage))

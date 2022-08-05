@@ -7,8 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 // UNSUPPORTED: c++03, c++11, c++14, c++17
-// UNSUPPORTED: libcpp-no-concepts
-// UNSUPPORTED: libcpp-has-no-incomplete-ranges
+// UNSUPPORTED: libcpp-no-concepts, libcpp-has-no-incomplete-ranges
 
 // <memory>
 //
@@ -219,7 +218,7 @@ int main(int, char**) {
     constexpr int N = 5;
     int in[N] = {1, 2, 3, 4, 5};
     int out[N] = {6, 7, 8, 9, 10};
-    assert(!std::equal(in, in + N, out, out + N));
+    assert(!std::equal(in, in + N, in, out + N));
 
     std::ranges::uninitialized_copy(in, in + 1, out, out + N);
     assert(out[0] == 1);
@@ -315,8 +314,8 @@ int main(int, char**) {
   // Conversions, (iter, sentinel) overload.
   {
     constexpr int N = 3;
-    int in[N] = {1, 2, 3};
-    Buffer<double, N> out;
+    double in[N] = {1.0, 2.0, 3.0};
+    Buffer<int, N> out;
 
     std::ranges::uninitialized_copy(in, in + N, out.begin(), out.end());
     assert(std::equal(in, in + N, out.begin(), out.end()));
@@ -325,8 +324,8 @@ int main(int, char**) {
   // Conversions, (range) overload.
   {
     constexpr int N = 3;
-    int in[N] = {1, 2, 3};
-    Buffer<double, N> out;
+    double in[N] = {1.0, 2.0, 3.0};
+    Buffer<int, N> out;
 
     std::ranges::uninitialized_copy(in, out);
     assert(std::equal(in, in + N, out.begin(), out.end()));

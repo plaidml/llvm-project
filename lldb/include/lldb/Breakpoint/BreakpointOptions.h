@@ -194,8 +194,8 @@ public:
   ///    The commands will be appended to this list.
   ///
   /// \return
-  ///    \b true if the command callback is a command-line callback,
-  ///    \b false otherwise.
+  ///    \btrue if the command callback is a command-line callback,
+  ///    \bfalse otherwise.
   bool GetCommandLineCallbacks(StringList &command_list);
 
   /// Remove the callback from this option set.

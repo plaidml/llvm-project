@@ -6,10 +6,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <__locale>
-#include <__std_stream>
-#include <new>
-#include <string>
+#include "__std_stream"
+#include "__locale"
+#include "string"
+#include "new"
 
 #define _str(s) #s
 #define str(s) _str(s)
