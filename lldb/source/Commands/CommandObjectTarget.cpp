@@ -50,7 +50,6 @@
 #include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/State.h"
 #include "lldb/Utility/Timer.h"
-#include "lldb/lldb-private-enumerations.h"
 
 #include "llvm/ADT/ScopeExit.h"
 #include "llvm/Support/FileSystem.h"
@@ -85,8 +84,8 @@ static void DumpTargetInfo(uint32_t target_idx, Target *target,
   }
   PlatformSP platform_sp(target->GetPlatform());
   if (platform_sp)
-    strm.Format("{0}platform={1}", properties++ > 0 ? ", " : " ( ",
-                platform_sp->GetName());
+    strm.Printf("%splatform=%s", properties++ > 0 ? ", " : " ( ",
+                platform_sp->GetName().GetCString());
 
   ProcessSP process_sp(target->GetProcessSP());
   bool show_process_status = false;
@@ -1430,8 +1429,7 @@ static bool DumpModuleSymbolFile(Stream &strm, Module *module) {
 }
 
 static void DumpAddress(ExecutionContextScope *exe_scope,
-                        const Address &so_addr, bool verbose, bool all_ranges,
-                        Stream &strm) {
+                        const Address &so_addr, bool verbose, Stream &strm) {
   strm.IndentMore();
   strm.Indent("    Address: ");
   so_addr.Dump(&strm, exe_scope, Address::DumpStyleModuleWithFileAddress);
@@ -1446,8 +1444,7 @@ static void DumpAddress(ExecutionContextScope *exe_scope,
   // Print out detailed address information when verbose is enabled
   if (verbose) {
     strm.EOL();
-    so_addr.Dump(&strm, exe_scope, Address::DumpStyleDetailedSymbolContext,
-                 Address::DumpStyleInvalid, UINT32_MAX, all_ranges);
+    so_addr.Dump(&strm, exe_scope, Address::DumpStyleDetailedSymbolContext);
   }
   strm.IndentLess();
 }
@@ -1455,7 +1452,7 @@ static void DumpAddress(ExecutionContextScope *exe_scope,
 static bool LookupAddressInModule(CommandInterpreter &interpreter, Stream &strm,
                                   Module *module, uint32_t resolve_mask,
                                   lldb::addr_t raw_addr, lldb::addr_t offset,
-                                  bool verbose, bool all_ranges) {
+                                  bool verbose) {
   if (module) {
     lldb::addr_t addr = raw_addr - offset;
     Address so_addr;
@@ -1473,7 +1470,7 @@ static bool LookupAddressInModule(CommandInterpreter &interpreter, Stream &strm,
 
     ExecutionContextScope *exe_scope =
         interpreter.GetExecutionContext().GetBestExecutionContextScope();
-    DumpAddress(exe_scope, so_addr, verbose, all_ranges, strm);
+    DumpAddress(exe_scope, so_addr, verbose, strm);
     //        strm.IndentMore();
     //        strm.Indent ("    Address: ");
     //        so_addr.Dump (&strm, exe_scope,
@@ -1505,7 +1502,7 @@ static bool LookupAddressInModule(CommandInterpreter &interpreter, Stream &strm,
 static uint32_t LookupSymbolInModule(CommandInterpreter &interpreter,
                                      Stream &strm, Module *module,
                                      const char *name, bool name_is_regex,
-                                     bool verbose, bool all_ranges) {
+                                     bool verbose) {
   if (!module)
     return 0;
 
@@ -1538,7 +1535,7 @@ static uint32_t LookupSymbolInModule(CommandInterpreter &interpreter,
       if (symbol && symbol->ValueIsAddress()) {
         DumpAddress(
             interpreter.GetExecutionContext().GetBestExecutionContextScope(),
-            symbol->GetAddressRef(), verbose, all_ranges, strm);
+            symbol->GetAddressRef(), verbose, strm);
       }
     }
     strm.IndentLess();
@@ -1548,7 +1545,7 @@ static uint32_t LookupSymbolInModule(CommandInterpreter &interpreter,
 
 static void DumpSymbolContextList(ExecutionContextScope *exe_scope,
                                   Stream &strm, SymbolContextList &sc_list,
-                                  bool verbose, bool all_ranges) {
+                                  bool verbose) {
   strm.IndentMore();
 
   const uint32_t num_matches = sc_list.GetSize();
@@ -1560,7 +1557,7 @@ static void DumpSymbolContextList(ExecutionContextScope *exe_scope,
 
       sc.GetAddressRange(eSymbolContextEverything, 0, true, range);
 
-      DumpAddress(exe_scope, range.GetBaseAddress(), verbose, all_ranges, strm);
+      DumpAddress(exe_scope, range.GetBaseAddress(), verbose, strm);
     }
   }
   strm.IndentLess();
@@ -1570,7 +1567,7 @@ static size_t LookupFunctionInModule(CommandInterpreter &interpreter,
                                      Stream &strm, Module *module,
                                      const char *name, bool name_is_regex,
                                      const ModuleFunctionSearchOptions &options,
-                                     bool verbose, bool all_ranges) {
+                                     bool verbose) {
   if (module && name && name[0]) {
     SymbolContextList sc_list;
     size_t num_matches = 0;
@@ -1591,7 +1588,7 @@ static size_t LookupFunctionInModule(CommandInterpreter &interpreter,
       strm.PutCString(":\n");
       DumpSymbolContextList(
           interpreter.GetExecutionContext().GetBestExecutionContextScope(),
-          strm, sc_list, verbose, all_ranges);
+          strm, sc_list, verbose);
     }
     return num_matches;
   }
@@ -1696,7 +1693,7 @@ static uint32_t LookupFileAndLineInModule(CommandInterpreter &interpreter,
                                           Stream &strm, Module *module,
                                           const FileSpec &file_spec,
                                           uint32_t line, bool check_inlines,
-                                          bool verbose, bool all_ranges) {
+                                          bool verbose) {
   if (module && file_spec) {
     SymbolContextList sc_list;
     const uint32_t num_matches = module->ResolveSymbolContextsForFileSpec(
@@ -1713,7 +1710,7 @@ static uint32_t LookupFileAndLineInModule(CommandInterpreter &interpreter,
       strm.PutCString(":\n");
       DumpSymbolContextList(
           interpreter.GetExecutionContext().GetBestExecutionContextScope(),
-          strm, sc_list, verbose, all_ranges);
+          strm, sc_list, verbose);
       return num_matches;
     }
   }
@@ -3601,10 +3598,6 @@ public:
       case 'r':
         m_use_regex = true;
         break;
-
-      case '\x01':
-        m_all_ranges = true;
-        break;
       default:
         llvm_unreachable("Unimplemented option");
       }
@@ -3621,18 +3614,8 @@ public:
       m_line_number = 0;
       m_use_regex = false;
       m_include_inlines = true;
-      m_all_ranges = false;
       m_verbose = false;
       m_print_all = false;
-    }
-
-    Status OptionParsingFinished(ExecutionContext *execution_context) override {
-      Status status;
-      if (m_all_ranges && !m_verbose) {
-        status.SetErrorString("--show-variable-ranges must be used in "
-                              "conjunction with --verbose.");
-      }
-      return status;
     }
 
     llvm::ArrayRef<OptionDefinition> GetDefinitions() override {
@@ -3649,7 +3632,6 @@ public:
     bool m_use_regex;       // Name lookups in m_str are regular expressions.
     bool m_include_inlines; // Check for inline entries when looking up by
                             // file/line.
-    bool m_all_ranges;      // Print all ranges or single range.
     bool m_verbose;         // Enable verbose lookup info
     bool m_print_all; // Print all matches, even in cases where there's a best
                       // match.
@@ -3732,8 +3714,7 @@ public:
                     (m_options.m_verbose
                          ? static_cast<int>(eSymbolContextVariable)
                          : 0),
-                m_options.m_addr, m_options.m_offset, m_options.m_verbose,
-                m_options.m_all_ranges)) {
+                m_options.m_addr, m_options.m_offset, m_options.m_verbose)) {
           result.SetStatus(eReturnStatusSuccessFinishResult);
           return true;
         }
@@ -3744,8 +3725,7 @@ public:
       if (!m_options.m_str.empty()) {
         if (LookupSymbolInModule(m_interpreter, result.GetOutputStream(),
                                  module, m_options.m_str.c_str(),
-                                 m_options.m_use_regex, m_options.m_verbose,
-                                 m_options.m_all_ranges)) {
+                                 m_options.m_use_regex, m_options.m_verbose)) {
           result.SetStatus(eReturnStatusSuccessFinishResult);
           return true;
         }
@@ -3757,8 +3737,7 @@ public:
         if (LookupFileAndLineInModule(
                 m_interpreter, result.GetOutputStream(), module,
                 m_options.m_file, m_options.m_line_number,
-                m_options.m_include_inlines, m_options.m_verbose,
-                m_options.m_all_ranges)) {
+                m_options.m_include_inlines, m_options.m_verbose)) {
           result.SetStatus(eReturnStatusSuccessFinishResult);
           return true;
         }
@@ -3776,8 +3755,7 @@ public:
         if (LookupFunctionInModule(m_interpreter, result.GetOutputStream(),
                                    module, m_options.m_str.c_str(),
                                    m_options.m_use_regex, function_options,
-                                   m_options.m_verbose,
-                                   m_options.m_all_ranges)) {
+                                   m_options.m_verbose)) {
           result.SetStatus(eReturnStatusSuccessFinishResult);
           return true;
         }

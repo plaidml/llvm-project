@@ -110,13 +110,8 @@ static cl::opt<bool> DisableOpenMPOptBarrierElimination(
     cl::Hidden, cl::init(false));
 
 static cl::opt<bool> PrintModuleAfterOptimizations(
-    "openmp-opt-print-module-after", cl::ZeroOrMore,
+    "openmp-opt-print-module", cl::ZeroOrMore,
     cl::desc("Print the current module after OpenMP optimizations."),
-    cl::Hidden, cl::init(false));
-
-static cl::opt<bool> PrintModuleBeforeOptimizations(
-    "openmp-opt-print-module-before", cl::ZeroOrMore,
-    cl::desc("Print the current module before OpenMP optimizations."),
     cl::Hidden, cl::init(false));
 
 static cl::opt<bool> AlwaysInlineDeviceFunctions(
@@ -2963,23 +2958,12 @@ struct AAHeapToSharedFunction : public AAHeapToShared {
   }
 
   void initialize(Attributor &A) override {
-    if (DisableOpenMPOptDeglobalization) {
-      indicatePessimisticFixpoint();
-      return;
-    }
-
     auto &OMPInfoCache = static_cast<OMPInformationCache &>(A.getInfoCache());
     auto &RFI = OMPInfoCache.RFIs[OMPRTL___kmpc_alloc_shared];
 
-    Attributor::SimplifictionCallbackTy SCB =
-        [](const IRPosition &, const AbstractAttribute *,
-           bool &) -> Optional<Value *> { return nullptr; };
     for (User *U : RFI.Declaration->users())
-      if (CallBase *CB = dyn_cast<CallBase>(U)) {
+      if (CallBase *CB = dyn_cast<CallBase>(U))
         MallocCalls.insert(CB);
-        A.registerSimplificationCallback(IRPosition::callsite_returned(*CB),
-                                         SCB);
-      }
 
     findPotentialRemovedFreeCalls(A);
   }
@@ -3744,9 +3728,9 @@ struct AAKernelInfoFunction : AAKernelInfo {
     //                         __kmpc_get_hardware_num_threads_in_block();
     //                       WarpSize = __kmpc_get_warp_size();
     //                       BlockSize = BlockHwSize - WarpSize;
-    // IsWorkerCheckBB:      bool IsWorker = InitCB != -1;
+    //                       if (InitCB >= BlockSize) return;
+    // IsWorkerCheckBB:      bool IsWorker = InitCB >= 0;
     //                       if (IsWorker) {
-    //                         if (InitCB >= BlockSize) return;
     // SMBeginBB:               __kmpc_barrier_simple_generic(...);
     //                         void *WorkFn;
     //                         bool Active = __kmpc_kernel_parallel(&WorkFn);
@@ -3803,13 +3787,6 @@ struct AAKernelInfoFunction : AAKernelInfo {
     ReturnInst::Create(Ctx, StateMachineFinishedBB)->setDebugLoc(DLoc);
     InitBB->getTerminator()->eraseFromParent();
 
-    Instruction *IsWorker =
-        ICmpInst::Create(ICmpInst::ICmp, llvm::CmpInst::ICMP_NE, KernelInitCB,
-                         ConstantInt::get(KernelInitCB->getType(), -1),
-                         "thread.is_worker", InitBB);
-    IsWorker->setDebugLoc(DLoc);
-    BranchInst::Create(IsWorkerCheckBB, UserCodeEntryBB, IsWorker, InitBB);
-
     Module &M = *Kernel->getParent();
     auto &OMPInfoCache = static_cast<OMPInformationCache &>(A.getInfoCache());
     FunctionCallee BlockHwSizeFn =
@@ -3819,22 +3796,29 @@ struct AAKernelInfoFunction : AAKernelInfo {
         OMPInfoCache.OMPBuilder.getOrCreateRuntimeFunction(
             M, OMPRTL___kmpc_get_warp_size);
     CallInst *BlockHwSize =
-        CallInst::Create(BlockHwSizeFn, "block.hw_size", IsWorkerCheckBB);
+        CallInst::Create(BlockHwSizeFn, "block.hw_size", InitBB);
     OMPInfoCache.setCallingConvention(BlockHwSizeFn, BlockHwSize);
     BlockHwSize->setDebugLoc(DLoc);
-    CallInst *WarpSize =
-        CallInst::Create(WarpSizeFn, "warp.size", IsWorkerCheckBB);
+    CallInst *WarpSize = CallInst::Create(WarpSizeFn, "warp.size", InitBB);
     OMPInfoCache.setCallingConvention(WarpSizeFn, WarpSize);
     WarpSize->setDebugLoc(DLoc);
-    Instruction *BlockSize = BinaryOperator::CreateSub(
-        BlockHwSize, WarpSize, "block.size", IsWorkerCheckBB);
+    Instruction *BlockSize =
+        BinaryOperator::CreateSub(BlockHwSize, WarpSize, "block.size", InitBB);
     BlockSize->setDebugLoc(DLoc);
-    Instruction *IsMainOrWorker = ICmpInst::Create(
-        ICmpInst::ICmp, llvm::CmpInst::ICMP_SLT, KernelInitCB, BlockSize,
-        "thread.is_main_or_worker", IsWorkerCheckBB);
+    Instruction *IsMainOrWorker =
+        ICmpInst::Create(ICmpInst::ICmp, llvm::CmpInst::ICMP_SLT, KernelInitCB,
+                         BlockSize, "thread.is_main_or_worker", InitBB);
     IsMainOrWorker->setDebugLoc(DLoc);
-    BranchInst::Create(StateMachineBeginBB, StateMachineFinishedBB,
-                       IsMainOrWorker, IsWorkerCheckBB);
+    BranchInst::Create(IsWorkerCheckBB, StateMachineFinishedBB, IsMainOrWorker,
+                       InitBB);
+
+    Instruction *IsWorker =
+        ICmpInst::Create(ICmpInst::ICmp, llvm::CmpInst::ICMP_NE, KernelInitCB,
+                         ConstantInt::get(KernelInitCB->getType(), -1),
+                         "thread.is_worker", IsWorkerCheckBB);
+    IsWorker->setDebugLoc(DLoc);
+    BranchInst::Create(StateMachineBeginBB, UserCodeEntryBB, IsWorker,
+                       IsWorkerCheckBB);
 
     // Create local storage for the work function pointer.
     const DataLayout &DL = M.getDataLayout();
@@ -4932,9 +4916,6 @@ PreservedAnalyses OpenMPOptPass::run(Module &M, ModuleAnalysisManager &AM) {
       AM.getResult<FunctionAnalysisManagerModuleProxy>(M).getManager();
   KernelSet Kernels = getDeviceKernels(M);
 
-  if (PrintModuleBeforeOptimizations)
-    LLVM_DEBUG(dbgs() << TAG << "Module before OpenMPOpt Module Pass:\n" << M);
-
   auto IsCalled = [&](Function &F) {
     if (Kernels.contains(&F))
       return true;
@@ -5036,9 +5017,6 @@ PreservedAnalyses OpenMPOptCGSCCPass::run(LazyCallGraph::SCC &C,
     return PreservedAnalyses::all();
 
   Module &M = *C.begin()->getFunction().getParent();
-
-  if (PrintModuleBeforeOptimizations)
-    LLVM_DEBUG(dbgs() << TAG << "Module before OpenMPOpt CGSCC Pass:\n" << M);
 
   KernelSet Kernels = getDeviceKernels(M);
 

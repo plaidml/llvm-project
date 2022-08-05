@@ -9,6 +9,7 @@
 #include "llvm/DebugInfo/DWARF/DWARFCompileUnit.h"
 #include "llvm/DebugInfo/DIContext.h"
 #include "llvm/DebugInfo/DWARF/DWARFDie.h"
+#include "llvm/DebugInfo/DWARF/DWARFUnitIndex.h"
 
 #include "llvm/Support/Format.h"
 #include "llvm/Support/raw_ostream.h"

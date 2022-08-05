@@ -76,7 +76,7 @@ def FuncOp : Builtin_Op<"func", [
   }];
 
   let arguments = (ins SymbolNameAttr:$sym_name,
-                       TypeAttrOf<FunctionType>:$type,
+                       TypeAttr:$type,
                        OptionalAttr<StrAttr>:$sym_visibility);
   let regions = (region AnyRegion:$body);
 
@@ -110,6 +110,12 @@ def FuncOp : Builtin_Op<"func", [
     /// compatible.
     void cloneInto(FuncOp dest, BlockAndValueMapping &mapper);
 
+    /// Returns the type of this function.
+    /// FIXME: We should drive this via the ODS `type` param.
+    FunctionType getType() { 
+      return getTypeAttr().getValue().cast<FunctionType>();
+    }
+
     //===------------------------------------------------------------------===//
     // CallableOpInterface
     //===------------------------------------------------------------------===//
@@ -138,7 +144,7 @@ def FuncOp : Builtin_Op<"func", [
     LogicalResult verifyType() {
       auto type = getTypeAttr().getValue();
       if (!type.isa<FunctionType>())
-        return emitOpError("requires '" + FunctionOpInterface::getTypeAttrName() +
+        return emitOpError("requires '" + getTypeAttrName() +
                            "' attribute of function type");
       return success();
     }
@@ -182,16 +188,16 @@ def ModuleOp : Builtin_Op<"module", [
 
   let arguments = (ins OptionalAttr<SymbolNameAttr>:$sym_name,
                        OptionalAttr<StrAttr>:$sym_visibility);
-  let regions = (region SizedRegion<1>:$bodyRegion);
+  let regions = (region SizedRegion<1>:$body);
 
-  let assemblyFormat = "($sym_name^)? attr-dict-with-keyword $bodyRegion";
+  let assemblyFormat = "($sym_name^)? attr-dict-with-keyword $body";
   let builders = [OpBuilder<(ins CArg<"Optional<StringRef>", "{}">:$name)>];
   let extraClassDeclaration = [{
     /// Construct a module from the given location with an optional name.
     static ModuleOp create(Location loc, Optional<StringRef> name = llvm::None);
 
     /// Return the name of this module if present.
-    Optional<StringRef> getName() { return getSymName(); }
+    Optional<StringRef> getName() { return sym_name(); }
 
     //===------------------------------------------------------------------===//
     // SymbolOpInterface Methods

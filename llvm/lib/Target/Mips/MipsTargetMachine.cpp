@@ -24,7 +24,6 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Analysis/TargetTransformInfo.h"
 #include "llvm/CodeGen/BasicTTIImpl.h"
-#include "llvm/CodeGen/GlobalISel/CSEInfo.h"
 #include "llvm/CodeGen/GlobalISel/IRTranslator.h"
 #include "llvm/CodeGen/GlobalISel/InstructionSelect.h"
 #include "llvm/CodeGen/GlobalISel/Legalizer.h"
@@ -277,7 +276,7 @@ void MipsPassConfig::addPreRegAlloc() {
 }
 
 TargetTransformInfo
-MipsTargetMachine::getTargetTransformInfo(const Function &F) const {
+MipsTargetMachine::getTargetTransformInfo(const Function &F) {
   if (Subtarget->allowMixed16_32()) {
     LLVM_DEBUG(errs() << "No Target Transform Info Pass Added\n");
     // FIXME: This is no longer necessary as the TTI returned is per-function.

@@ -14,7 +14,6 @@
 #include "PassDetail.h"
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/Affine/Utils.h"
-#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/MemRef/Transforms/Passes.h"
 #include "llvm/ADT/SmallSet.h"
@@ -126,7 +125,7 @@ void NormalizeMemRefs::setCalleesAndCallersNonNormalizable(
   }
 
   // Functions called by this function.
-  funcOp.walk([&](func::CallOp callOp) {
+  funcOp.walk([&](CallOp callOp) {
     StringAttr callee = callOp.getCalleeAttr().getAttr();
     for (FuncOp &funcOp : normalizableFuncs) {
       // We compare FuncOp and callee's name.
@@ -162,7 +161,7 @@ bool NormalizeMemRefs::areMemRefsNormalizable(FuncOp funcOp) {
     return false;
 
   if (funcOp
-          .walk([&](func::CallOp callOp) -> WalkResult {
+          .walk([&](CallOp callOp) -> WalkResult {
             for (unsigned resIndex :
                  llvm::seq<unsigned>(0, callOp.getNumResults())) {
               Value oldMemRef = callOp.getResult(resIndex);
@@ -207,7 +206,7 @@ void NormalizeMemRefs::updateFunctionSignature(FuncOp funcOp,
 
     // Traverse ReturnOps to check if an update to the return type in the
     // function signature is required.
-    funcOp.walk([&](func::ReturnOp returnOp) {
+    funcOp.walk([&](ReturnOp returnOp) {
       for (const auto &operandEn : llvm::enumerate(returnOp.getOperands())) {
         Type opType = operandEn.value().getType();
         MemRefType memrefType = opType.dyn_cast<MemRefType>();
@@ -250,12 +249,12 @@ void NormalizeMemRefs::updateFunctionSignature(FuncOp funcOp,
     // that the non-CallOp has no memrefs to be replaced.
     // TODO: Handle cases where a non-CallOp symbol use of a function deals with
     // memrefs.
-    auto callOp = dyn_cast<func::CallOp>(userOp);
+    auto callOp = dyn_cast<CallOp>(userOp);
     if (!callOp)
       continue;
     Operation *newCallOp =
-        builder.create<func::CallOp>(userOp->getLoc(), callOp.getCalleeAttr(),
-                                     resultTypes, userOp->getOperands());
+        builder.create<CallOp>(userOp->getLoc(), callOp.getCalleeAttr(),
+                               resultTypes, userOp->getOperands());
     bool replacingMemRefUsesFailed = false;
     bool returnTypeChanged = false;
     for (unsigned resIndex : llvm::seq<unsigned>(0, userOp->getNumResults())) {
@@ -392,8 +391,7 @@ void NormalizeMemRefs::normalizeFuncOpMemRefs(FuncOp funcOp,
   // `updateFunctionSignature()`.
   funcOp.walk([&](Operation *op) {
     if (op->hasTrait<OpTrait::MemRefsNormalizable>() &&
-        op->getNumResults() > 0 && !isa<func::CallOp>(op) &&
-        !funcOp.isExternal()) {
+        op->getNumResults() > 0 && !isa<CallOp>(op) && !funcOp.isExternal()) {
       // Create newOp containing normalized memref in the operation result.
       Operation *newOp = createOpResultsNormalized(funcOp, op);
       // When all of the operation results have no memrefs or memrefs without

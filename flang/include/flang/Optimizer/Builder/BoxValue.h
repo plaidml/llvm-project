@@ -24,15 +24,12 @@
 #include <utility>
 
 namespace fir {
-class FirOpBuilder;
-
 class CharBoxValue;
 class ArrayBoxValue;
-class BoxValue;
-class CharBoxValue;
 class CharArrayBoxValue;
-class MutableBoxValue;
 class ProcBoxValue;
+class MutableBoxValue;
+class BoxValue;
 
 llvm::raw_ostream &operator<<(llvm::raw_ostream &, const CharBoxValue &);
 llvm::raw_ostream &operator<<(llvm::raw_ostream &, const ArrayBoxValue &);
@@ -87,7 +84,6 @@ public:
   mlir::Value getBuffer() const { return getAddr(); }
 
   mlir::Value getLen() const { return len; }
-
   friend llvm::raw_ostream &operator<<(llvm::raw_ostream &,
                                        const CharBoxValue &);
   LLVM_DUMP_METHOD void dump() const { llvm::errs() << *this; }
@@ -114,7 +110,7 @@ public:
   }
 
   // An array expression may have user-defined lower bound values.
-  // If this vector is empty, the default in all dimensions in `1`.
+  // If this vector is empty, the default in all dimensions is `1`.
   const llvm::SmallVectorImpl<mlir::Value> &getLBounds() const {
     return lbounds;
   }
@@ -274,11 +270,6 @@ public:
   // TODO: check contiguous attribute of addr
   bool isContiguous() const { return false; }
 
-  // Replace the fir.box, keeping any non-deferred parameters.
-  BoxValue clone(mlir::Value newBox) const {
-    return {newBox, lbounds, explicitParams, extents};
-  }
-
   friend llvm::raw_ostream &operator<<(llvm::raw_ostream &, const BoxValue &);
   LLVM_DUMP_METHOD void dump() const { llvm::errs() << *this; }
 
@@ -355,11 +346,7 @@ public:
   bool isAllocatable() const {
     return getBoxTy().getEleTy().isa<fir::HeapType>();
   }
-  // Replace the fir.ref<fir.box>, keeping any non-deferred parameters.
-  MutableBoxValue clone(mlir::Value newBox) const {
-    return {newBox, lenParams, mutableProperties};
-  }
-  /// Does this entity has any non deferred length parameters ?
+  /// Does this entity have any non deferred length parameters ?
   bool hasNonDeferredLenParams() const { return !lenParams.empty(); }
   /// Return the non deferred length parameters.
   llvm::ArrayRef<mlir::Value> nonDeferredLenParams() const { return lenParams; }
@@ -367,7 +354,7 @@ public:
                                        const MutableBoxValue &);
   LLVM_DUMP_METHOD void dump() const { llvm::errs() << *this; }
 
-  /// Set of variable is used instead of a descriptor to hold the entity
+  /// Set of variables is used instead of a descriptor to hold the entity
   /// properties instead of a fir.ref<fir.box<>>.
   bool isDescribedByVariables() const { return !mutableProperties.isEmpty(); }
 
@@ -411,15 +398,6 @@ bool isArray(const ExtendedValue &exv);
 /// Get the type parameters for `exv`.
 llvm::SmallVector<mlir::Value> getTypeParams(const ExtendedValue &exv);
 
-// The generalized function to get a vector of extents is
-// fir::factory::getExtents(). See FIRBuilder.h.
-
-/// Get exactly one extent for any array-like extended value, \p exv. If \p exv
-/// is not an array or has rank less then \p dim, the result will be a nullptr.
-mlir::Value getExtentAtDimension(const ExtendedValue &exv,
-                                 FirOpBuilder &builder, mlir::Location loc,
-                                 unsigned dim);
-
 /// An extended value is a box of values pertaining to a discrete entity. It is
 /// used in lowering to track all the runtime values related to an entity. For
 /// example, an entity may have an address in memory that contains its value(s)
@@ -440,7 +418,10 @@ public:
         auto type = b->getType();
         if (type.template isa<fir::BoxCharType>())
           fir::emitFatalError(b->getLoc(), "BoxChar should be unboxed");
-        type = fir::unwrapSequenceType(fir::unwrapRefType(type));
+        if (auto refType = type.template dyn_cast<fir::ReferenceType>())
+          type = refType.getEleTy();
+        if (auto seqType = type.template dyn_cast<fir::SequenceType>())
+          type = seqType.getEleTy();
         if (fir::isa_char(type))
           fir::emitFatalError(b->getLoc(),
                               "character buffer should be in CharBoxValue");

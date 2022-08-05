@@ -136,7 +136,8 @@ bool Host::ResolveExecutableInBundle(FileSpec &file) {
 
 #if TARGET_OS_OSX
 
-static void *AcceptPIDFromInferior(const char *connect_url) {
+static void *AcceptPIDFromInferior(void *arg) {
+  const char *connect_url = (const char *)arg;
   ConnectionFileDescriptor file_conn;
   Status error;
   if (file_conn.Connect(connect_url, &error) == eConnectionStatusSuccess) {
@@ -285,7 +286,7 @@ LaunchInNewTerminalWithAppleScript(const char *exe_path,
   // to the process that we wanted to launch. So when our process actually
   // gets launched, we will handshake with it and get the process ID for it.
   llvm::Expected<HostThread> accept_thread = ThreadLauncher::LaunchThread(
-      unix_socket_name, [&] { return AcceptPIDFromInferior(connect_url); });
+      unix_socket_name, AcceptPIDFromInferior, connect_url);
 
   if (!accept_thread)
     return Status(accept_thread.takeError());
@@ -1305,12 +1306,15 @@ Status Host::LaunchProcess(ProcessLaunchInfo &launch_info) {
 
   lldb::pid_t pid = LLDB_INVALID_PROCESS_ID;
 
-  auto exe_path = exe_spec.GetPath();
+  // From now on we'll deal with the external (devirtualized) path.
+  auto exe_path = fs.GetExternalPath(exe_spec);
+  if (!exe_path)
+    return Status(exe_path.getError());
 
   if (ShouldLaunchUsingXPC(launch_info))
-    error = LaunchProcessXPC(exe_path.c_str(), launch_info, pid);
+    error = LaunchProcessXPC(exe_path->c_str(), launch_info, pid);
   else
-    error = LaunchProcessPosixSpawn(exe_path.c_str(), launch_info, pid);
+    error = LaunchProcessPosixSpawn(exe_path->c_str(), launch_info, pid);
 
   if (pid != LLDB_INVALID_PROCESS_ID) {
     // If all went well, then set the process ID into the launch info
@@ -1424,8 +1428,11 @@ Status Host::ShellExpandArguments(ProcessLaunchInfo &launch_info) {
 }
 
 llvm::Expected<HostThread> Host::StartMonitoringChildProcess(
-    const Host::MonitorChildProcessCallback &callback, lldb::pid_t pid) {
+    const Host::MonitorChildProcessCallback &callback, lldb::pid_t pid,
+    bool monitor_signals) {
   unsigned long mask = DISPATCH_PROC_EXIT;
+  if (monitor_signals)
+    mask |= DISPATCH_PROC_SIGNAL;
 
   Log *log(GetLog(LLDBLog::Host | LLDBLog::Process));
 
@@ -1434,8 +1441,11 @@ llvm::Expected<HostThread> Host::StartMonitoringChildProcess(
       ::dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0));
 
   LLDB_LOGF(log,
-            "Host::StartMonitoringChildProcess(callback, pid=%i) source = %p\n",
-            static_cast<int>(pid), static_cast<void *>(source));
+            "Host::StartMonitoringChildProcess "
+            "(callback, pid=%i, monitor_signals=%i) "
+            "source = %p\n",
+            static_cast<int>(pid), monitor_signals,
+            static_cast<void *>(source));
 
   if (source) {
     Host::MonitorChildProcessCallback callback_copy = callback;
@@ -1446,20 +1456,27 @@ llvm::Expected<HostThread> Host::StartMonitoringChildProcess(
 
       int status = 0;
       int wait_pid = 0;
+      bool cancel = false;
+      bool exited = false;
       wait_pid = llvm::sys::RetryAfterSignal(-1, ::waitpid, pid, &status, 0);
       if (wait_pid >= 0) {
         int signal = 0;
         int exit_status = 0;
         const char *status_cstr = NULL;
-        if (WIFEXITED(status)) {
+        if (WIFSTOPPED(status)) {
+          signal = WSTOPSIG(status);
+          status_cstr = "STOPPED";
+        } else if (WIFEXITED(status)) {
           exit_status = WEXITSTATUS(status);
           status_cstr = "EXITED";
+          exited = true;
         } else if (WIFSIGNALED(status)) {
           signal = WTERMSIG(status);
           status_cstr = "SIGNALED";
+          exited = true;
           exit_status = -1;
         } else {
-          llvm_unreachable("Unknown status");
+          status_cstr = "???";
         }
 
         LLDB_LOGF(log,
@@ -1468,9 +1485,11 @@ llvm::Expected<HostThread> Host::StartMonitoringChildProcess(
                   pid, wait_pid, status, status_cstr, signal, exit_status);
 
         if (callback_copy)
-          callback_copy(pid, signal, exit_status);
+          cancel = callback_copy(pid, exited, signal, exit_status);
 
-        ::dispatch_source_cancel(source);
+        if (exited || cancel) {
+          ::dispatch_source_cancel(source);
+        }
       }
     });
 

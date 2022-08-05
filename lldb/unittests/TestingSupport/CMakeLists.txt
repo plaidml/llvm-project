@@ -5,7 +5,7 @@ add_lldb_library(lldbUtilityHelpers
 
   LINK_LIBS
     lldbUtility
-    llvm_gtest
+    gtest
 
   LINK_COMPONENTS
     Support

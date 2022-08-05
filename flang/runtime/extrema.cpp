@@ -176,7 +176,7 @@ inline void TypedMaxOrMinLoc(const char *intrinsic, Descriptor &result,
     break;
   default:
     terminator.Crash(
-        "%s: bad data type code (%d) for array", intrinsic, x.type().raw());
+        "%s: Bad data type code (%d) for array", intrinsic, x.type().raw());
   }
 }
 
@@ -262,7 +262,7 @@ inline void TypedPartialMaxOrMinLoc(const char *intrinsic, Descriptor &result,
     break;
   default:
     terminator.Crash(
-        "%s: bad data type code (%d) for array", intrinsic, x.type().raw());
+        "%s: Bad data type code (%d) for array", intrinsic, x.type().raw());
   }
 }
 

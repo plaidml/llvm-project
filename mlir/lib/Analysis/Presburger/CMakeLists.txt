@@ -1,8 +1,8 @@
 add_mlir_library(MLIRPresburger
-  IntegerRelation.cpp
+  IntegerPolyhedron.cpp
   LinearTransform.cpp
   Matrix.cpp
-  PresburgerRelation.cpp
+  PresburgerSet.cpp
   PresburgerSpace.cpp
   PWMAFunction.cpp
   Simplex.cpp

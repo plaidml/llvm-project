@@ -73,8 +73,6 @@ public:
       llvm::unique_function<void(Operation *, OpAsmPrinter &, StringRef) const>;
   using VerifyInvariantsFn =
       llvm::unique_function<LogicalResult(Operation *) const>;
-  using VerifyRegionInvariantsFn =
-      llvm::unique_function<LogicalResult(Operation *) const>;
 
 protected:
   /// This class represents a type erased version of an operation. It contains
@@ -114,7 +112,6 @@ protected:
     ParseAssemblyFn parseAssemblyFn;
     PrintAssemblyFn printAssemblyFn;
     VerifyInvariantsFn verifyInvariantsFn;
-    VerifyRegionInvariantsFn verifyRegionInvariantsFn;
 
     /// A list of attribute names registered to this operation in StringAttr
     /// form. This allows for operation classes to use StringAttr for attribute
@@ -241,18 +238,16 @@ public:
   static void insert(Dialect &dialect) {
     insert(T::getOperationName(), dialect, TypeID::get<T>(),
            T::getParseAssemblyFn(), T::getPrintAssemblyFn(),
-           T::getVerifyInvariantsFn(), T::getVerifyRegionInvariantsFn(),
-           T::getFoldHookFn(), T::getGetCanonicalizationPatternsFn(),
-           T::getInterfaceMap(), T::getHasTraitFn(), T::getAttributeNames());
+           T::getVerifyInvariantsFn(), T::getFoldHookFn(),
+           T::getGetCanonicalizationPatternsFn(), T::getInterfaceMap(),
+           T::getHasTraitFn(), T::getAttributeNames());
   }
   /// The use of this method is in general discouraged in favor of
   /// 'insert<CustomOp>(dialect)'.
   static void
   insert(StringRef name, Dialect &dialect, TypeID typeID,
          ParseAssemblyFn &&parseAssembly, PrintAssemblyFn &&printAssembly,
-         VerifyInvariantsFn &&verifyInvariants,
-         VerifyRegionInvariantsFn &&verifyRegionInvariants,
-         FoldHookFn &&foldHook,
+         VerifyInvariantsFn &&verifyInvariants, FoldHookFn &&foldHook,
          GetCanonicalizationPatternsFn &&getCanonicalizationPatterns,
          detail::InterfaceMap &&interfaceMap, HasTraitFn &&hasTrait,
          ArrayRef<StringRef> attrNames);
@@ -277,14 +272,11 @@ public:
     return impl->printAssemblyFn(op, p, defaultDialect);
   }
 
-  /// These hooks implement the verifiers for this operation.  It should emits
-  /// an error message and returns failure if a problem is detected, or returns
+  /// This hook implements the verifier for this operation.  It should emits an
+  /// error message and returns failure if a problem is detected, or returns
   /// success if everything is ok.
   LogicalResult verifyInvariants(Operation *op) const {
     return impl->verifyInvariantsFn(op);
-  }
-  LogicalResult verifyRegionInvariants(Operation *op) const {
-    return impl->verifyRegionInvariantsFn(op);
   }
 
   /// This hook implements a generalized folder for this operation.  Operations
@@ -726,9 +718,6 @@ public:
   /// Always print operations in the generic form.
   OpPrintingFlags &printGenericOpForm();
 
-  /// Do not verify the operation when using custom operation printers.
-  OpPrintingFlags &assumeVerified();
-
   /// Use local scope when printing the operation. This allows for using the
   /// printer in a more localized and thread-safe setting, but may not
   /// necessarily be identical to what the IR will look like when dumping
@@ -750,9 +739,6 @@ public:
   /// Return if operations should be printed in the generic form.
   bool shouldPrintGenericOpForm() const;
 
-  /// Return if operation verification should be skipped.
-  bool shouldAssumeVerified() const;
-
   /// Return if the printer should use local scope when dumping the IR.
   bool shouldUseLocalScope() const;
 
@@ -767,9 +753,6 @@ private:
 
   /// Print operations in the generic form.
   bool printGenericOpFormFlag : 1;
-
-  /// Skip operation verification.
-  bool assumeVerifiedFlag : 1;
 
   /// Print operations with numberings local to the current operation.
   bool printLocalScope : 1;

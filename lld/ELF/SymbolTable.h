@@ -17,7 +17,6 @@ namespace lld {
 namespace elf {
 
 class InputFile;
-class SharedFile;
 
 // SymbolTable is a bucket of all known symbols, including defined,
 // undefined, or lazy symbols (the last one is symbols in archive
@@ -40,7 +39,6 @@ public:
   Symbol *insert(StringRef name);
 
   Symbol *addSymbol(const Symbol &newSym);
-  Symbol *addAndCheckDuplicate(const Defined &newSym);
 
   void scanVersionScript();
 

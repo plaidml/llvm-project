@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 // UNSUPPORTED: c++03, c++11, c++14, c++17
+// UNSUPPORTED: libcpp-no-concepts
 
 // This test checks that std::contiguous_iterator uses std::to_address, which is not SFINAE-friendly
 // when the type is missing the `T::element_type` typedef.

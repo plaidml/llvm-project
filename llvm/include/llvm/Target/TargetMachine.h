@@ -18,6 +18,7 @@
 #include "llvm/ADT/Triple.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/PassManager.h"
+#include "llvm/Pass.h"
 #include "llvm/Support/CodeGen.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/PGOOptions.h"
@@ -29,6 +30,8 @@
 namespace llvm {
 
 class AAManager;
+template <typename IRUnitT, typename AnalysisManagerT, typename... ExtraArgTs>
+class PassManager;
 using ModulePassManager = PassManager<Module>;
 
 class Function;
@@ -334,13 +337,13 @@ public:
   /// This is used to construct the new pass manager's target IR analysis pass,
   /// set up appropriately for this target machine. Even the old pass manager
   /// uses this to answer queries about the IR.
-  TargetIRAnalysis getTargetIRAnalysis() const;
+  TargetIRAnalysis getTargetIRAnalysis();
 
   /// Return a TargetTransformInfo for a given function.
   ///
   /// The returned TargetTransformInfo is specialized to the subtarget
   /// corresponding to \p F.
-  virtual TargetTransformInfo getTargetTransformInfo(const Function &F) const;
+  virtual TargetTransformInfo getTargetTransformInfo(const Function &F);
 
   /// Allow the target to modify the pass manager, e.g. by calling
   /// PassManagerBuilder::addExtension.
@@ -414,7 +417,7 @@ public:
   ///
   /// The TTI returned uses the common code generator to answer queries about
   /// the IR.
-  TargetTransformInfo getTargetTransformInfo(const Function &F) const override;
+  TargetTransformInfo getTargetTransformInfo(const Function &F) override;
 
   /// Create a pass configuration object to be used by addPassToEmitX methods
   /// for generating a pipeline of CodeGen passes.

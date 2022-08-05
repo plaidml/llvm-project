@@ -18,7 +18,7 @@ using namespace mlir;
 
 namespace {
 struct TestExpandTanhPass
-    : public PassWrapper<TestExpandTanhPass, OperationPass<>> {
+    : public PassWrapper<TestExpandTanhPass, OperationPass<FuncOp>> {
   void runOnOperation() override;
   StringRef getArgument() const final { return "test-expand-tanh"; }
   StringRef getDescription() const final { return "Test expanding tanh"; }

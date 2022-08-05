@@ -8,7 +8,7 @@ static const char A[] = "abc";
 
 int strcmp(const char *, const char *);
 
-int test_warning_patterns(void) {
+int test_warning_patterns() {
   if (strcmp(A, "a"))
     return 0;
   // CHECK-MESSAGES: [[@LINE-2]]:7: warning: function 'strcmp' is called without explicitly comparing result [bugprone-suspicious-string-compare]
@@ -42,7 +42,7 @@ int test_warning_patterns(void) {
   // CHECK-FIXES: if (strcmp(A, "a") == 0)
 }
 
-void test_structure_patterns(void) {
+void test_structure_patterns() {
   if (strcmp(A, "a")) {}
   // CHECK-MESSAGES: [[@LINE-1]]:7: warning: function 'strcmp' is called without explicitly comparing result
   // CHECK-FIXES: if (strcmp(A, "a") != 0) {}
@@ -56,7 +56,7 @@ void test_structure_patterns(void) {
   // CHECK-FIXES: for (;strcmp(A, "a") != 0;) {}
 }
 
-int test_valid_patterns(void) {
+int test_valid_patterns() {
   // The following cases are valid.
   if (strcmp(A, "a") < 0) return 0;
   if (strcmp(A, "a") == 0) return 0;

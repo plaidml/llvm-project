@@ -102,7 +102,7 @@ MCSectionMachO::MCSectionMachO(StringRef Segment, StringRef Section,
   }
 }
 
-void MCSectionMachO::printSwitchToSection(const MCAsmInfo &MAI, const Triple &T,
+void MCSectionMachO::PrintSwitchToSection(const MCAsmInfo &MAI, const Triple &T,
                                           raw_ostream &OS,
                                           const MCExpr *Subsection) const {
   OS << "\t.section\t" << getSegmentName() << ',' << getName();
@@ -166,7 +166,7 @@ void MCSectionMachO::printSwitchToSection(const MCAsmInfo &MAI, const Triple &T,
   OS << '\n';
 }
 
-bool MCSectionMachO::useCodeAlign() const {
+bool MCSectionMachO::UseCodeAlign() const {
   return hasAttribute(MachO::S_ATTR_PURE_INSTRUCTIONS);
 }
 

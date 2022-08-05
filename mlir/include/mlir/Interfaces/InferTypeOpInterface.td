@@ -64,8 +64,6 @@ def InferTypeOpInterface : OpInterface<"InferTypeOpInterface"> {
     >,
   ];
 
-  // Inferring result types may need to access the region operations.
-  let verifyWithRegions = 1;
   let verify = [{
     return detail::verifyInferredResultTypes($_op);
   }];

@@ -129,14 +129,6 @@ int64_t mlirIntegerAttrGetValueInt(MlirAttribute attr) {
   return unwrap(attr).cast<IntegerAttr>().getInt();
 }
 
-int64_t mlirIntegerAttrGetValueSInt(MlirAttribute attr) {
-  return unwrap(attr).cast<IntegerAttr>().getSInt();
-}
-
-uint64_t mlirIntegerAttrGetValueUInt(MlirAttribute attr) {
-  return unwrap(attr).cast<IntegerAttr>().getUInt();
-}
-
 //===----------------------------------------------------------------------===//
 // Bool attribute.
 //===----------------------------------------------------------------------===//

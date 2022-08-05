@@ -6,7 +6,8 @@ import itertools
 from mlir.ir import *
 from mlir.dialects import builtin
 from mlir.dialects import cf
-from mlir.dialects import func
+# Note: std dialect needed for terminators.
+from mlir.dialects import std
 
 
 def run(f):
@@ -38,7 +39,7 @@ def testBlockCreation():
       successor_block = entry_block.create_after(i32_arg.type)
       with InsertionPoint(successor_block) as successor_ip:
         assert successor_ip.block == successor_block
-        func.ReturnOp([])
+        std.ReturnOp([])
       middle_block = successor_block.create_before(i16_arg.type)
 
       with InsertionPoint(entry_block) as entry_ip:
@@ -62,11 +63,11 @@ def testFirstBlockCreation():
     module = Module.create()
     f32 = F32Type.get()
     with InsertionPoint(module.body):
-      f = builtin.FuncOp("test", ([f32], []))
-      entry_block = Block.create_at_start(f.operation.regions[0], [f32])
+      func = builtin.FuncOp("test", ([f32], []))
+      entry_block = Block.create_at_start(func.operation.regions[0], [f32])
       with InsertionPoint(entry_block):
-        func.ReturnOp([])
+        std.ReturnOp([])
 
     print(module)
     assert module.operation.verify()
-    assert f.body.blocks[0] == entry_block
+    assert func.body.blocks[0] == entry_block

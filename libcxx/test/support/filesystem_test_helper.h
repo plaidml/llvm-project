@@ -31,6 +31,9 @@
 # include <sys/un.h>
 #endif
 
+_LIBCPP_PUSH_MACROS
+#include <__undef_macros>
+
 namespace utils {
 #ifdef _WIN32
     inline int mkdir(const char* path, int mode) { (void)mode; return ::_mkdir(path); }
@@ -732,5 +735,7 @@ inline fs::path GetWindowsInaccessibleDir() {
                   "regarding it\n", dir.string().c_str());
   return fs::path();
 }
+
+_LIBCPP_POP_MACROS
 
 #endif /* FILESYSTEM_TEST_HELPER_H */

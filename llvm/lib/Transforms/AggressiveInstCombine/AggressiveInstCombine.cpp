@@ -23,6 +23,7 @@
 #include "llvm/Analysis/GlobalsModRef.h"
 #include "llvm/Analysis/TargetLibraryInfo.h"
 #include "llvm/Analysis/ValueTracking.h"
+#include "llvm/IR/DataLayout.h"
 #include "llvm/IR/Dominators.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IRBuilder.h"
@@ -34,10 +35,6 @@
 
 using namespace llvm;
 using namespace PatternMatch;
-
-namespace llvm {
-class DataLayout;
-}
 
 #define DEBUG_TYPE "aggressive-instcombine"
 

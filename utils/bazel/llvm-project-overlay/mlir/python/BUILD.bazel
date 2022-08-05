@@ -455,44 +455,44 @@ filegroup(
 )
 
 ##---------------------------------------------------------------------------##
-# Func dialect.
+# Standard dialect.
 ##---------------------------------------------------------------------------##
 
 td_library(
-    name = "FuncPyTdFiles",
+    name = "StandardOpsPyTdFiles",
     srcs = [
         "//mlir:include/mlir/Bindings/Python/Attributes.td",
     ],
     deps = [
-        "//mlir:FuncTdFiles",
         "//mlir:OpBaseTdFiles",
+        "//mlir:StdOpsTdFiles",
     ],
 )
 
 gentbl_filegroup(
-    name = "FuncPyGen",
+    name = "StandardOpsPyGen",
     tbl_outs = [
         (
             [
                 "-gen-python-op-bindings",
-                "-bind-dialect=func",
+                "-bind-dialect=std",
             ],
-            "mlir/dialects/_func_ops_gen.py",
+            "mlir/dialects/_std_ops_gen.py",
         ),
     ],
     tblgen = "//mlir:mlir-tblgen",
-    td_file = "mlir/dialects/FuncOps.td",
+    td_file = "mlir/dialects/StandardOps.td",
     deps = [
-        ":FuncPyTdFiles",
+        ":StandardOpsPyTdFiles",
     ],
 )
 
 filegroup(
-    name = "FuncPyFiles",
+    name = "StandardOpsPyFiles",
     srcs = [
-        "mlir/dialects/_func_ops_ext.py",
-        "mlir/dialects/func.py",
-        ":FuncPyGen",
+        "mlir/dialects/_std_ops_ext.py",
+        "mlir/dialects/std.py",
+        ":StandardOpsPyGen",
     ],
 )
 

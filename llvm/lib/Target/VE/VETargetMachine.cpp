@@ -92,8 +92,7 @@ VETargetMachine::VETargetMachine(const Target &T, const Triple &TT,
 
 VETargetMachine::~VETargetMachine() = default;
 
-TargetTransformInfo
-VETargetMachine::getTargetTransformInfo(const Function &F) const {
+TargetTransformInfo VETargetMachine::getTargetTransformInfo(const Function &F) {
   return TargetTransformInfo(VETTIImpl(this, F));
 }
 

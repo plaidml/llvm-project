@@ -24,6 +24,7 @@
 #include "llvm/ExecutionEngine/Orc/IRTransformLayer.h"
 #include "llvm/ExecutionEngine/Orc/JITTargetMachineBuilder.h"
 #include "llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h"
+#include "llvm/ExecutionEngine/SectionMemoryManager.h"
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/MC/SubtargetFeature.h"
 #include "llvm/MC/TargetRegistry.h"
@@ -97,11 +98,6 @@ void SimpleObjectCache::dumpToObjectFile(StringRef outputFilename) {
 }
 
 void ExecutionEngine::dumpToObjectFile(StringRef filename) {
-  if (cache == nullptr) {
-    llvm::errs() << "cannot dump ExecutionEngine object code to file: "
-                    "object cache is disabled\n";
-    return;
-  }
   cache->dumpToObjectFile(filename);
 }
 
@@ -231,16 +227,22 @@ ExecutionEngine::ExecutionEngine(bool enableObjectCache,
   }
 }
 
-Expected<std::unique_ptr<ExecutionEngine>>
-ExecutionEngine::create(ModuleOp m, const ExecutionEngineOptions &options) {
+Expected<std::unique_ptr<ExecutionEngine>> ExecutionEngine::create(
+    ModuleOp m,
+    llvm::function_ref<std::unique_ptr<llvm::Module>(ModuleOp,
+                                                     llvm::LLVMContext &)>
+        llvmModuleBuilder,
+    llvm::function_ref<Error(llvm::Module *)> transformer,
+    Optional<llvm::CodeGenOpt::Level> jitCodeGenOptLevel,
+    ArrayRef<StringRef> sharedLibPaths, bool enableObjectCache,
+    bool enableGDBNotificationListener, bool enablePerfNotificationListener) {
   auto engine = std::make_unique<ExecutionEngine>(
-      options.enableObjectCache, options.enableGDBNotificationListener,
-      options.enablePerfNotificationListener);
+      enableObjectCache, enableGDBNotificationListener,
+      enablePerfNotificationListener);
 
   std::unique_ptr<llvm::LLVMContext> ctx(new llvm::LLVMContext);
-  auto llvmModule = options.llvmModuleBuilder
-                        ? options.llvmModuleBuilder(m, *ctx)
-                        : translateModuleToLLVMIR(m, *ctx);
+  auto llvmModule = llvmModuleBuilder ? llvmModuleBuilder(m, *ctx)
+                                      : translateModuleToLLVMIR(m, *ctx);
   if (!llvmModule)
     return makeStringError("could not convert to LLVM IR");
   // FIXME: the triple should be passed to the translation or dialect conversion
@@ -256,9 +258,7 @@ ExecutionEngine::create(ModuleOp m, const ExecutionEngineOptions &options) {
   auto objectLinkingLayerCreator = [&](ExecutionSession &session,
                                        const Triple &tt) {
     auto objectLayer = std::make_unique<RTDyldObjectLinkingLayer>(
-        session, [sectionMemoryMapper = options.sectionMemoryMapper]() {
-          return std::make_unique<SectionMemoryManager>(sectionMemoryMapper);
-        });
+        session, []() { return std::make_unique<SectionMemoryManager>(); });
 
     // Register JIT event listeners if they are enabled.
     if (engine->gdbListener)
@@ -276,7 +276,7 @@ ExecutionEngine::create(ModuleOp m, const ExecutionEngineOptions &options) {
     }
 
     // Resolve symbols from shared libraries.
-    for (auto libPath : options.sharedLibPaths) {
+    for (auto libPath : sharedLibPaths) {
       auto mb = llvm::MemoryBuffer::getFile(libPath);
       if (!mb) {
         errs() << "Failed to create MemoryBuffer for: " << libPath
@@ -302,8 +302,8 @@ ExecutionEngine::create(ModuleOp m, const ExecutionEngineOptions &options) {
   // LLJITWithObjectCache example.
   auto compileFunctionCreator = [&](JITTargetMachineBuilder jtmb)
       -> Expected<std::unique_ptr<IRCompileLayer::IRCompiler>> {
-    if (options.jitCodeGenOptLevel)
-      jtmb.setCodeGenOptLevel(options.jitCodeGenOptLevel.getValue());
+    if (jitCodeGenOptLevel)
+      jtmb.setCodeGenOptLevel(jitCodeGenOptLevel.getValue());
     auto tm = jtmb.createTargetMachine();
     if (!tm)
       return tm.takeError();
@@ -320,9 +320,9 @@ ExecutionEngine::create(ModuleOp m, const ExecutionEngineOptions &options) {
 
   // Add a ThreadSafemodule to the engine and return.
   ThreadSafeModule tsm(std::move(llvmModule), std::move(ctx));
-  if (options.transformer)
+  if (transformer)
     cantFail(tsm.withModuleDo(
-        [&](llvm::Module &module) { return options.transformer(&module); }));
+        [&](llvm::Module &module) { return transformer(&module); }));
   cantFail(jit->addIRModule(std::move(tsm)));
   engine->jit = std::move(jit);
 

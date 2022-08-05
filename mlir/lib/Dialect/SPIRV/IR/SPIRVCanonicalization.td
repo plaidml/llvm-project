@@ -40,7 +40,8 @@ def ConvertLogicalNotOfLogicalNotEqual : Pat<
     (SPV_LogicalEqualOp $lhs, $rhs)>;
 
 //===----------------------------------------------------------------------===//
-// spv.Select -> spv.GLSL.*Clamp
+// Re-write spv.Select + spv.<less_than_op> to a suitable variant of
+// spv.<glsl_clamp_op>
 //===----------------------------------------------------------------------===//
 
 def ValuesAreEqual : Constraint<CPred<"$0 == $1">>;
@@ -52,9 +53,7 @@ foreach CmpClampPair = [
     [SPV_SLessThanEqualOp, SPV_GLSLSClampOp],
     [SPV_ULessThanOp, SPV_GLSLUClampOp],
     [SPV_ULessThanEqualOp, SPV_GLSLUClampOp]] in {
-
-// Detect: $min < $input, $input < $max
-def ConvertComparisonIntoClamp1_#CmpClampPair[0] : Pat<
+def ConvertComparisonIntoClamp#CmpClampPair[0] : Pat<
     (SPV_SelectOp
         (CmpClampPair[0]
             (SPV_SelectOp:$middle0
@@ -68,16 +67,4 @@ def ConvertComparisonIntoClamp1_#CmpClampPair[0] : Pat<
         $max),
     (CmpClampPair[1] $input, $min, $max),
     [(ValuesAreEqual $middle0, $middle1)]>;
-
-// Detect: $input < $min, $max < $input
-def ConvertComparisonIntoClamp2_#CmpClampPair[0] : Pat<
-    (SPV_SelectOp
-        (CmpClampPair[0] $max, $input),
-        $max,
-        (SPV_SelectOp
-            (CmpClampPair[0] $input, $min),
-            $min,
-            $input
-        )),
-    (CmpClampPair[1] $input, $min, $max)>;
 }

@@ -48,7 +48,6 @@ SIMachineFunctionInfo::SIMachineFunctionInfo(const MachineFunction &MF)
     ImplicitBufferPtr(false),
     ImplicitArgPtr(false),
     HostcallPtr(false),
-    HeapPtr(false),
     GITPtrHigh(0xffffffff),
     HighBitsOf32BitAddress(0),
     GDSSize(0) {
@@ -146,9 +145,6 @@ SIMachineFunctionInfo::SIMachineFunctionInfo(const MachineFunction &MF)
 
     if (!F.hasFnAttribute("amdgpu-no-hostcall-ptr"))
       HostcallPtr = true;
-
-    if (!F.hasFnAttribute("amdgpu-no-heap-ptr"))
-      HeapPtr = true;
   }
 
   // FIXME: This attribute is a hack, we just need an analysis on the function

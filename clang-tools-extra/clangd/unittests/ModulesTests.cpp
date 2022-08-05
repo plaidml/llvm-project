@@ -6,6 +6,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "Annotations.h"
 #include "TestFS.h"
 #include "TestTU.h"
 #include "gmock/gmock.h"

@@ -13,7 +13,7 @@ int printf(const char *, ...);
 typedef void (*sighandler_t)(int);
 sighandler_t signal(int signum, sighandler_t handler);
 
-void f_extern(void);
+void f_extern();
 
 void handler_printf(int) {
   printf("1234");
@@ -22,7 +22,7 @@ void handler_printf(int) {
   // CHECK-NOTES: :[[@LINE+4]]:18: note: function 'handler_printf' registered here as signal handler
 }
 
-void test_printf(void) {
+void test_printf() {
   signal(SIGINT, handler_printf);
 }
 
@@ -33,11 +33,11 @@ void handler_extern(int) {
   // CHECK-NOTES: :[[@LINE+4]]:18: note: function 'handler_extern' registered here as signal handler
 }
 
-void test_extern(void) {
+void test_extern() {
   signal(SIGINT, handler_extern);
 }
 
-void f_ok(void) {
+void f_ok() {
   abort();
 }
 
@@ -45,11 +45,11 @@ void handler_ok(int) {
   f_ok();
 }
 
-void test_ok(void) {
+void test_ok() {
   signal(SIGINT, handler_ok);
 }
 
-void f_bad(void) {
+void f_bad() {
   printf("1234");
   // CHECK-NOTES: :[[@LINE-1]]:3: warning: 'printf' may not be asynchronous-safe; calling it from a signal handler may be dangerous [bugprone-signal-handler]
   // CHECK-NOTES: :[[@LINE-2]]:3: note: function 'printf' called here from 'f_bad'
@@ -61,11 +61,11 @@ void handler_bad(int) {
   f_bad();
 }
 
-void test_bad(void) {
+void test_bad() {
   signal(SIGINT, handler_bad);
 }
 
-void f_bad1(void) {
+void f_bad1() {
   printf("1234");
   // CHECK-NOTES: :[[@LINE-1]]:3: warning: 'printf' may not be asynchronous-safe; calling it from a signal handler may be dangerous [bugprone-signal-handler]
   // CHECK-NOTES: :[[@LINE-2]]:3: note: function 'printf' called here from 'f_bad1'
@@ -74,7 +74,7 @@ void f_bad1(void) {
   // CHECK-NOTES: :[[@LINE+13]]:18: note: function 'handler_bad1' registered here as signal handler
 }
 
-void f_bad2(void) {
+void f_bad2() {
   f_bad1();
 }
 
@@ -83,7 +83,7 @@ void handler_bad1(int) {
   f_bad1();
 }
 
-void test_bad1(void) {
+void test_bad1() {
   signal(SIGINT, handler_bad1);
 }
 
@@ -104,7 +104,7 @@ void handler_false_condition(int) {
   // CHECK-NOTES: :[[@LINE+4]]:18: note: function 'handler_false_condition' registered here as signal handler
 }
 
-void test_false_condition(void) {
+void test_false_condition() {
   signal(SIGINT, handler_false_condition);
 }
 
@@ -121,11 +121,11 @@ void handler_multiple_calls(int) {
   // first 'f_extern' call found only
 }
 
-void test_multiple_calls(void) {
+void test_multiple_calls() {
   signal(SIGINT, handler_multiple_calls);
 }
 
-void f_recursive(void);
+void f_recursive();
 
 void handler_recursive(int) {
   f_recursive();
@@ -133,7 +133,7 @@ void handler_recursive(int) {
   // first 'printf' call (in other function) found only
 }
 
-void f_recursive(void) {
+void f_recursive() {
   f_extern();
   // CHECK-NOTES: :[[@LINE-1]]:3: warning: 'f_extern' may not be asynchronous-safe; calling it from a signal handler may be dangerous [bugprone-signal-handler]
   // CHECK-NOTES: :[[@LINE-2]]:3: note: function 'f_extern' called here from 'f_recursive'
@@ -147,11 +147,11 @@ void f_recursive(void) {
   handler_recursive(2);
 }
 
-void test_recursive(void) {
+void test_recursive() {
   signal(SIGINT, handler_recursive);
 }
 
-void f_multiple_paths(void) {
+void f_multiple_paths() {
   printf("");
   // CHECK-NOTES: :[[@LINE-1]]:3: warning: 'printf' may not be asynchronous-safe; calling it from a signal handler may be dangerous [bugprone-signal-handler]
   // CHECK-NOTES: :[[@LINE-2]]:3: note: function 'printf' called here from 'f_multiple_paths'
@@ -164,21 +164,21 @@ void handler_multiple_paths(int) {
   f_multiple_paths();
 }
 
-void test_multiple_paths(void) {
+void test_multiple_paths() {
   signal(SIGINT, handler_multiple_paths);
 }
 
 void handler_function_pointer(int) {
-  void (*fp)(void) = f_extern;
+  void (*fp)() = f_extern;
   // Call with function pointer is not evalauted by the check.
   (*fp)();
 }
 
-void test_function_pointer(void) {
+void test_function_pointer() {
   signal(SIGINT, handler_function_pointer);
 }
 
-void test_other(void) {
+void test_other() {
   signal(SIGINT, handler_abort);
   signal(SIGINT, handler_signal);
 

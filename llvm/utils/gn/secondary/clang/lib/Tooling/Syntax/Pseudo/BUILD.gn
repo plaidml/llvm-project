@@ -7,13 +7,8 @@ static_library("Pseudo") {
     "//llvm/lib/Support",
   ]
   sources = [
-    "DirectiveMap.cpp",
     "Grammar.cpp",
     "GrammarBNF.cpp",
     "LRGraph.cpp",
-    "LRTable.cpp",
-    "LRTableBuild.cpp",
-    "Lex.cpp",
-    "Token.cpp",
   ]
 }

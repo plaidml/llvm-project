@@ -108,6 +108,6 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeXCoreTarget() {
 }
 
 TargetTransformInfo
-XCoreTargetMachine::getTargetTransformInfo(const Function &F) const {
+XCoreTargetMachine::getTargetTransformInfo(const Function &F) {
   return TargetTransformInfo(XCoreTTIImpl(this, F));
 }

@@ -16,6 +16,7 @@
 #define LLVM_CLANG_TOOLS_EXTRA_CLANGD_COMPILER_H
 
 #include "FeatureModule.h"
+#include "GlobalCompilationDatabase.h"
 #include "TidyProvider.h"
 #include "index/Index.h"
 #include "support/ThreadsafeFS.h"

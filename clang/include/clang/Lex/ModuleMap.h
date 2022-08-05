@@ -456,11 +456,8 @@ public:
   /// is effectively internal, but is exposed so HeaderSearch can call it.
   void resolveHeaderDirectives(const FileEntry *File) const;
 
-  /// Resolve lazy header directives for the specified module. If File is
-  /// provided, only headers with same size and modtime are resolved. If File
-  /// is not set, all headers are resolved.
-  void resolveHeaderDirectives(Module *Mod,
-                               llvm::Optional<const FileEntry *> File) const;
+  /// Resolve all lazy header directives for the specified module.
+  void resolveHeaderDirectives(Module *Mod) const;
 
   /// Reports errors if a module must not include a specific file.
   ///
@@ -585,12 +582,6 @@ public:
     assert(!ExistingModule->Parent && "expected top-level module");
     assert(ModuleScopeIDs.count(ExistingModule) && "unknown module");
     return ModuleScopeIDs[ExistingModule] < CurrentModuleScopeID;
-  }
-
-  /// Check whether a framework module can be inferred in the given directory.
-  bool canInferFrameworkModule(const DirectoryEntry *Dir) const {
-    auto It = InferredDirectories.find(Dir);
-    return It != InferredDirectories.end() && It->getSecond().InferModules;
   }
 
   /// Retrieve the module map file containing the definition of the given

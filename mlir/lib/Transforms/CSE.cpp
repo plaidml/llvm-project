@@ -63,7 +63,8 @@ struct CSE : public CSEBase<CSE> {
   /// Represents a single entry in the depth first traversal of a CFG.
   struct CFGStackNode {
     CFGStackNode(ScopedMapTy &knownValues, DominanceInfoNode *node)
-        : scope(knownValues), node(node), childIterator(node->begin()) {}
+        : scope(knownValues), node(node), childIterator(node->begin()),
+          processed(false) {}
 
     /// Scope for the known values.
     ScopedMapTy::ScopeTy scope;
@@ -72,7 +73,7 @@ struct CSE : public CSEBase<CSE> {
     DominanceInfoNode::const_iterator childIterator;
 
     /// If this node has been fully processed yet or not.
-    bool processed = false;
+    bool processed;
   };
 
   /// Attempt to eliminate a redundant operation. Returns success if the

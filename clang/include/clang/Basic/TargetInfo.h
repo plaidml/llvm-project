@@ -726,11 +726,7 @@ public:
   }
 
   /// Return the value for the C99 FLT_EVAL_METHOD macro.
-  virtual LangOptions::FPEvalMethodKind getFPEvalMethod() const {
-    return LangOptions::FPEvalMethodKind::FEM_Source;
-  }
-
-  virtual bool supportSourceEvalMethod() const { return true; }
+  virtual unsigned getFloatEvalMethod() const { return 0; }
 
   // getLargeArrayMinWidth/Align - Return the minimum array size that is
   // 'large' and its alignment.
@@ -1195,12 +1191,12 @@ public:
   /// Microsoft C++ code using dllimport/export attributes?
   virtual bool shouldDLLImportComdatSymbols() const {
     return getTriple().isWindowsMSVCEnvironment() ||
-           getTriple().isWindowsItaniumEnvironment() || getTriple().isPS4();
+           getTriple().isWindowsItaniumEnvironment() || getTriple().isPS4CPU();
   }
 
   // Does this target have PS4 specific dllimport/export handling?
   virtual bool hasPS4DLLImportExport() const {
-    return getTriple().isPS4() ||
+    return getTriple().isPS4CPU() ||
            // Windows Itanium support allows for testing the SCEI flavour of
            // dllimport/export handling on a Windows system.
            (getTriple().isWindowsItaniumEnvironment() &&

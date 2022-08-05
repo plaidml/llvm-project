@@ -340,13 +340,17 @@ bool ThreadPlanStepInRange::FrameMatchesAvoidCriteria() {
           sc.GetFunctionName(Mangled::ePreferDemangledWithoutArguments)
               .GetCString();
       if (frame_function_name) {
-        bool return_value = avoid_regexp_to_use->Execute(frame_function_name);
-        if (return_value) {
+        llvm::SmallVector<llvm::StringRef, 2> matches;
+        bool return_value =
+            avoid_regexp_to_use->Execute(frame_function_name, &matches);
+        if (return_value && matches.size() > 1) {
+          std::string match = matches[1].str();
           LLDB_LOGF(GetLog(LLDBLog::Step),
-                    "Stepping out of function \"%s\" because it matches the "
-                    "avoid regexp \"%s\".",
+                    "Stepping out of function \"%s\" because it matches "
+                    "the avoid regexp \"%s\" - match substring: \"%s\".",
                     frame_function_name,
-                    avoid_regexp_to_use->GetText().str().c_str());
+                    avoid_regexp_to_use->GetText().str().c_str(),
+                    match.c_str());
         }
         return return_value;
       }

@@ -15,7 +15,6 @@
 
 using namespace lldb;
 using namespace lldb_private;
-using namespace lldb_private::dwarf;
 
 namespace {
 class DWARFASTParserClangTests : public testing::Test {};

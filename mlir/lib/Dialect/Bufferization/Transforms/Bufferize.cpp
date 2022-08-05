@@ -13,7 +13,7 @@
 #include "mlir/Dialect/Bufferization/Transforms/Bufferize.h"
 #include "mlir/Dialect/Bufferization/Transforms/OneShotAnalysis.h"
 #include "mlir/Dialect/Bufferization/Transforms/Passes.h"
-#include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
@@ -151,7 +151,7 @@ struct FinalizingBufferizePass
 
 struct OneShotBufferizePass
     : public OneShotBufferizeBase<OneShotBufferizePass> {
-  OneShotBufferizePass() : OneShotBufferizeBase<OneShotBufferizePass>() {}
+  using OneShotBufferizeBase<OneShotBufferizePass>::OneShotBufferizeBase;
 
   explicit OneShotBufferizePass(const AnalysisBufferizationOptions &options)
       : options(options) {}
@@ -175,9 +175,10 @@ struct OneShotBufferizePass
 
       BufferizationOptions::OpFilterEntry::FilterFn filterFn =
           [&](Operation *op) {
-            // Disallow non-func dialect ops. I.e., no ops related to function
+            // Disallow non-std dialect ops. I.e., no ops related to function
             // calls.
-            if (isa<func::FuncDialect>(op->getDialect()))
+            if (op->getDialect()->getNamespace() ==
+                StandardOpsDialect::getDialectNamespace())
               return false;
             // Filter may be specified via options.
             if (this->dialectFilter.hasValue())
@@ -302,17 +303,6 @@ LogicalResult bufferization::bufferizeOp(Operation *op,
   // Bufferize the op and its nested ops.
   RewritePatternSet patterns(op->getContext());
   populateBufferizationPattern(state, patterns);
-
-  // Bufferize ops top-to-bottom. When creating a new op, we should ideally
-  // know the exact memref type of all operands. Otherwise, we have to use a
-  // memref type with a fully dynamic layout map, which has to canonicalize
-  // away.
-  // Moreover, if "fullyDynamicLayoutMaps = false", we may otherwise have to
-  // insert buffer copies to fold ("finalize") to_memref(to_tensor(x)) ops with
-  // non-cast-compatible layout maps.
-  GreedyRewriteConfig config;
-  config.useTopDownTraversal = true;
-
   if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns))))
     return failure();
 

@@ -2,10 +2,12 @@
 // RUN: cp -r %S/Inputs/preserved-args/* %t
 // RUN: sed -e "s|DIR|%/t|g" %t/cdb.json.template > %t/cdb.json
 
-// RUN: clang-scan-deps -compilation-database %t/cdb.json -format experimental-full > %t/result.json
-// RUN: cat %t/result.json | sed 's:\\\\\?:/:g' | FileCheck %s -DPREFIX=%/t
+// RUN: echo -%t > %t/result.json
+// RUN: clang-scan-deps -compilation-database %t/cdb.json -format experimental-full >> %t/result.json
+// RUN: cat %t/result.json | sed 's:\\\\\?:/:g' | FileCheck %s
 
-// CHECK:      {
+// CHECK:      -[[PREFIX:.*]]
+// CHECK-NEXT: {
 // CHECK-NEXT:   "modules": [
 // CHECK-NEXT:     {
 // CHECK:            "command-line": [

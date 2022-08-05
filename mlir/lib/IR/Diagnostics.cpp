@@ -121,17 +121,6 @@ Diagnostic &Diagnostic::operator<<(OperationName val) {
   return *this;
 }
 
-/// Adjusts operation printing flags used in diagnostics for the given severity
-/// level.
-static OpPrintingFlags adjustPrintingFlags(OpPrintingFlags flags,
-                                           DiagnosticSeverity severity) {
-  flags.useLocalScope();
-  flags.elideLargeElementsAttrs();
-  if (severity == DiagnosticSeverity::Error)
-    flags.printGenericOpForm();
-  return flags;
-}
-
 /// Stream in an Operation.
 Diagnostic &Diagnostic::operator<<(Operation &val) {
   return appendOp(val, OpPrintingFlags());
@@ -139,7 +128,8 @@ Diagnostic &Diagnostic::operator<<(Operation &val) {
 Diagnostic &Diagnostic::appendOp(Operation &val, const OpPrintingFlags &flags) {
   std::string str;
   llvm::raw_string_ostream os(str);
-  val.print(os, adjustPrintingFlags(flags, severity));
+  val.print(os,
+            OpPrintingFlags(flags).useLocalScope().elideLargeElementsAttrs());
   return *this << os.str();
 }
 
@@ -147,7 +137,7 @@ Diagnostic &Diagnostic::appendOp(Operation &val, const OpPrintingFlags &flags) {
 Diagnostic &Diagnostic::operator<<(Value val) {
   std::string str;
   llvm::raw_string_ostream os(str);
-  val.print(os, adjustPrintingFlags(OpPrintingFlags(), severity));
+  val.print(os);
   return *this << os.str();
 }
 
@@ -854,7 +844,7 @@ struct ParallelDiagnosticHandlerImpl : public llvm::PrettyStackTraceEntry {
     Diagnostic diag;
   };
 
-  ParallelDiagnosticHandlerImpl(MLIRContext *ctx) : context(ctx) {
+  ParallelDiagnosticHandlerImpl(MLIRContext *ctx) : handlerID(0), context(ctx) {
     handlerID = ctx->getDiagEngine().registerHandler([this](Diagnostic &diag) {
       uint64_t tid = llvm::get_threadid();
       llvm::sys::SmartScopedLock<true> lock(mutex);
@@ -952,7 +942,7 @@ struct ParallelDiagnosticHandlerImpl : public llvm::PrettyStackTraceEntry {
   mutable std::vector<ThreadDiagnostic> diagnostics;
 
   /// The unique id for the parallel handler.
-  DiagnosticEngine::HandlerID handlerID = 0;
+  DiagnosticEngine::HandlerID handlerID;
 
   /// The context to emit the diagnostics to.
   MLIRContext *context;

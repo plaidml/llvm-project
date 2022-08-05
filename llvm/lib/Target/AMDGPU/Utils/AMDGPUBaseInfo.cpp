@@ -136,10 +136,6 @@ bool isHsaAbiVersion3AndAbove(const MCSubtargetInfo *STI) {
          isHsaAbiVersion5(STI);
 }
 
-unsigned getAmdhsaCodeObjectVersion() {
-  return AmdhsaCodeObjectVersion;
-}
-
 // FIXME: All such magic numbers about the ABI should be in a
 // central TD file.
 unsigned getHostcallImplicitArgPosition() {
@@ -154,20 +150,6 @@ unsigned getHostcallImplicitArgPosition() {
     llvm_unreachable("Unexpected code object version");
     return 0;
   }
-}
-
-unsigned getHeapPtrImplicitArgPosition() {
-  if (AmdhsaCodeObjectVersion == 5)
-    return 96;
-  llvm_unreachable("hidden_heap is supported only by code object version 5");
-  return 0;
-}
-
-unsigned getQueuePtrImplicitArgPosition() {
-  if (AmdhsaCodeObjectVersion == 5)
-    return 200;
-  llvm_unreachable("queue_ptr is supported only by code object version 5");
-  return 0;
 }
 
 #define GET_MIMGBaseOpcodesTable_IMPL
@@ -1535,10 +1517,6 @@ bool hasGFX10_3Insts(const MCSubtargetInfo &STI) {
 
 bool isGFX90A(const MCSubtargetInfo &STI) {
   return STI.getFeatureBits()[AMDGPU::FeatureGFX90AInsts];
-}
-
-bool isGFX940(const MCSubtargetInfo &STI) {
-  return STI.getFeatureBits()[AMDGPU::FeatureGFX940Insts];
 }
 
 bool hasArchitectedFlatScratch(const MCSubtargetInfo &STI) {

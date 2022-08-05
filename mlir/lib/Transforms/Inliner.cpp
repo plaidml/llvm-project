@@ -16,7 +16,6 @@
 #include "PassDetail.h"
 #include "mlir/Analysis/CallGraph.h"
 #include "mlir/IR/Threading.h"
-#include "mlir/Interfaces/CallInterfaces.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/InliningUtils.h"

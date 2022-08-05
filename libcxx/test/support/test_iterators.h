@@ -41,12 +41,13 @@ public:
     TEST_CONSTEXPR_CXX14 cpp17_output_iterator& operator++() {++it_; return *this;}
     TEST_CONSTEXPR_CXX14 cpp17_output_iterator operator++(int) {return cpp17_output_iterator(it_++);}
 
+    TEST_CONSTEXPR It base() const {return it_;} // TODO remove me
     friend TEST_CONSTEXPR It base(const cpp17_output_iterator& i) { return i.it_; }
 
     template <class T>
     void operator,(T const &) = delete;
 };
-#if _LIBCPP_STD_VER > 17
+#ifndef _LIBCPP_HAS_NO_CONCEPTS
    static_assert(std::output_iterator<cpp17_output_iterator<int*>, int>);
 #endif
 
@@ -71,6 +72,7 @@ public:
         TEST_CONSTEXPR cpp17_input_iterator(const cpp17_input_iterator<U, T>& u) : it_(u.it_) {}
 
     TEST_CONSTEXPR reference operator*() const {return *it_;}
+    TEST_CONSTEXPR pointer operator->() const {return it_;}
 
     TEST_CONSTEXPR_CXX14 cpp17_input_iterator& operator++() {++it_; return *this;}
     TEST_CONSTEXPR_CXX14 cpp17_input_iterator operator++(int) {return cpp17_input_iterator(it_++);}
@@ -78,12 +80,13 @@ public:
     friend TEST_CONSTEXPR bool operator==(const cpp17_input_iterator& x, const cpp17_input_iterator& y) {return x.it_ == y.it_;}
     friend TEST_CONSTEXPR bool operator!=(const cpp17_input_iterator& x, const cpp17_input_iterator& y) {return x.it_ != y.it_;}
 
+    TEST_CONSTEXPR It base() const {return it_;} // TODO remove me
     friend TEST_CONSTEXPR It base(const cpp17_input_iterator& i) { return i.it_; }
 
     template <class T>
     void operator,(T const &) = delete;
 };
-#if _LIBCPP_STD_VER > 17
+#ifndef _LIBCPP_HAS_NO_CONCEPTS
    static_assert(std::input_iterator<cpp17_input_iterator<int*>>);
 #endif
 
@@ -106,6 +109,7 @@ public:
         TEST_CONSTEXPR forward_iterator(const forward_iterator<U>& u) : it_(u.it_) {}
 
     TEST_CONSTEXPR reference operator*() const {return *it_;}
+    TEST_CONSTEXPR pointer operator->() const {return it_;}
 
     TEST_CONSTEXPR_CXX14 forward_iterator& operator++() {++it_; return *this;}
     TEST_CONSTEXPR_CXX14 forward_iterator operator++(int) {return forward_iterator(it_++);}
@@ -113,6 +117,7 @@ public:
     friend TEST_CONSTEXPR bool operator==(const forward_iterator& x, const forward_iterator& y) {return x.it_ == y.it_;}
     friend TEST_CONSTEXPR bool operator!=(const forward_iterator& x, const forward_iterator& y) {return x.it_ != y.it_;}
 
+    TEST_CONSTEXPR It base() const {return it_;} // TODO remove me
     friend TEST_CONSTEXPR It base(const forward_iterator& i) { return i.it_; }
 
     template <class T>
@@ -138,6 +143,7 @@ public:
         TEST_CONSTEXPR bidirectional_iterator(const bidirectional_iterator<U>& u) : it_(u.it_) {}
 
     TEST_CONSTEXPR reference operator*() const {return *it_;}
+    TEST_CONSTEXPR pointer operator->() const {return it_;}
 
     TEST_CONSTEXPR_CXX14 bidirectional_iterator& operator++() {++it_; return *this;}
     TEST_CONSTEXPR_CXX14 bidirectional_iterator& operator--() {--it_; return *this;}
@@ -147,6 +153,7 @@ public:
     friend TEST_CONSTEXPR bool operator==(const bidirectional_iterator& x, const bidirectional_iterator& y) {return x.it_ == y.it_;}
     friend TEST_CONSTEXPR bool operator!=(const bidirectional_iterator& x, const bidirectional_iterator& y) {return x.it_ != y.it_;}
 
+    TEST_CONSTEXPR It base() const {return it_;} // TODO remove me
     friend TEST_CONSTEXPR It base(const bidirectional_iterator& i) { return i.it_; }
 
     template <class T>
@@ -172,6 +179,7 @@ public:
         TEST_CONSTEXPR random_access_iterator(const random_access_iterator<U>& u) : it_(u.it_) {}
 
     TEST_CONSTEXPR_CXX14 reference operator*() const {return *it_;}
+    TEST_CONSTEXPR_CXX14 pointer operator->() const {return it_;}
     TEST_CONSTEXPR_CXX14 reference operator[](difference_type n) const {return it_[n];}
 
     TEST_CONSTEXPR_CXX14 random_access_iterator& operator++() {++it_; return *this;}
@@ -193,6 +201,7 @@ public:
     friend TEST_CONSTEXPR bool operator> (const random_access_iterator& x, const random_access_iterator& y) {return x.it_ >  y.it_;}
     friend TEST_CONSTEXPR bool operator>=(const random_access_iterator& x, const random_access_iterator& y) {return x.it_ >= y.it_;}
 
+    TEST_CONSTEXPR It base() const {return it_;} // TODO remove me
     friend TEST_CONSTEXPR It base(const random_access_iterator& i) { return i.it_; }
 
     template <class T>
@@ -482,7 +491,7 @@ private:
     const T *current_;
 };
 
-#if TEST_STD_VER > 17
+#if TEST_STD_VER > 17 && !defined(_LIBCPP_HAS_NO_CONCEPTS)
 
 template <class It>
 class cpp20_input_iterator
@@ -501,6 +510,7 @@ public:
     constexpr cpp20_input_iterator& operator++() { ++it_; return *this; }
     constexpr void operator++(int) { ++it_; }
 
+    constexpr const It& base() const& { return it_; } // TODO remove me
     friend constexpr It base(const cpp20_input_iterator& i) { return i.it_; }
 
     template <class T>
@@ -668,7 +678,7 @@ private:
     difference_type stride_displacement_ = 0;
 };
 
-#endif // TEST_STD_VER > 17
+#endif // TEST_STD_VER > 17 && !defined(_LIBCPP_HAS_NO_CONCEPTS)
 
 #if TEST_STD_VER > 17
 template <class It>

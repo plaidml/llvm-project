@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 // UNSUPPORTED: c++03, c++11, c++14, c++17
+// UNSUPPORTED: libcpp-no-concepts
 // UNSUPPORTED: libcpp-has-no-incomplete-ranges
 
 // class std::ranges::subrange;
@@ -22,7 +23,7 @@ constexpr bool test() {
 
   {
     std::ranges::subrange<MoveOnlyForwardIter, int*> a(MoveOnlyForwardIter(buff), buff + 5, 5);
-    assert(base(a.begin()) == buff);
+    assert(a.begin().base == buff);
     assert(!a.empty());
     assert(a.size() == 5);
   }

@@ -83,7 +83,7 @@ R600TargetMachine::getSubtargetImpl(const Function &F) const {
 }
 
 TargetTransformInfo
-R600TargetMachine::getTargetTransformInfo(const Function &F) const {
+R600TargetMachine::getTargetTransformInfo(const Function &F) {
   return TargetTransformInfo(R600TTIImpl(this, F));
 }
 

@@ -7673,7 +7673,7 @@ AST_MATCHER_P(FunctionDecl, hasExplicitSpecifier, internal::Matcher<Expr>,
   return InnerMatcher.matches(*ES.getExpr(), Finder, Builder);
 }
 
-/// Matches functions, variables and namespace declarations that are marked with
+/// Matches function and namespace declarations that are marked with
 /// the inline keyword.
 ///
 /// Given
@@ -7683,22 +7683,18 @@ AST_MATCHER_P(FunctionDecl, hasExplicitSpecifier, internal::Matcher<Expr>,
 ///   namespace n {
 ///   inline namespace m {}
 ///   }
-///   inline int Foo = 5;
 /// \endcode
 /// functionDecl(isInline()) will match ::f().
 /// namespaceDecl(isInline()) will match n::m.
-/// varDecl(isInline()) will match Foo;
-AST_POLYMORPHIC_MATCHER(isInline, AST_POLYMORPHIC_SUPPORTED_TYPES(NamespaceDecl,
-                                                                  FunctionDecl,
-                                                                  VarDecl)) {
+AST_POLYMORPHIC_MATCHER(isInline,
+                        AST_POLYMORPHIC_SUPPORTED_TYPES(NamespaceDecl,
+                                                        FunctionDecl)) {
   // This is required because the spelling of the function used to determine
   // whether inline is specified or not differs between the polymorphic types.
   if (const auto *FD = dyn_cast<FunctionDecl>(&Node))
     return FD->isInlineSpecified();
-  if (const auto *NSD = dyn_cast<NamespaceDecl>(&Node))
+  else if (const auto *NSD = dyn_cast<NamespaceDecl>(&Node))
     return NSD->isInline();
-  if (const auto *VD = dyn_cast<VarDecl>(&Node))
-    return VD->isInline();
   llvm_unreachable("Not a valid polymorphic type");
 }
 

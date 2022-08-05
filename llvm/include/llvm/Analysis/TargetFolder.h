@@ -20,7 +20,6 @@
 
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/Analysis/ConstantFolding.h"
-#include "llvm/IR/Constants.h"
 #include "llvm/IR/IRBuilderFolder.h"
 
 namespace llvm {

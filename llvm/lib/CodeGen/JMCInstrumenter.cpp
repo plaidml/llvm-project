@@ -7,17 +7,14 @@
 //===----------------------------------------------------------------------===//
 //
 // JMCInstrumenter pass:
+// - add "/alternatename:__CheckForDebuggerJustMyCode=__JustMyCode_Default" to
+//   "llvm.linker.options"
+// - create the dummy COMDAT function __JustMyCode_Default
 // - instrument each function with a call to __CheckForDebuggerJustMyCode. The
 //   sole argument should be defined in .msvcjmc. Each flag is 1 byte initilized
 //   to 1.
-// - create the dummy COMDAT function __JustMyCode_Default to prevent linking
-//   error if __CheckForDebuggerJustMyCode is not available.
-// - For MSVC:
-//   add "/alternatename:__CheckForDebuggerJustMyCode=__JustMyCode_Default" to
-//   "llvm.linker.options"
-//   For ELF:
-//   Rename __JustMyCode_Default to __CheckForDebuggerJustMyCode and mark it as
-//   weak symbol.
+// - (TODO) currently targeting MSVC, adds ELF debuggers support
+//
 //===----------------------------------------------------------------------===//
 
 #include "llvm/ADT/SmallString.h"
@@ -63,26 +60,15 @@ namespace {
 const char CheckFunctionName[] = "__CheckForDebuggerJustMyCode";
 
 std::string getFlagName(DISubprogram &SP, bool UseX86FastCall) {
-  // absolute windows path:           windows_backslash
-  // relative windows backslash path: windows_backslash
-  // relative windows slash path:     posix
-  // absolute posix path:             posix
-  // relative posix path:             posix
-  sys::path::Style PathStyle =
-      has_root_name(SP.getDirectory(), sys::path::Style::windows_backslash) ||
-              SP.getDirectory().find("\\") != StringRef::npos ||
-              SP.getFilename().find("\\") != StringRef::npos
-          ? sys::path::Style::windows_backslash
-          : sys::path::Style::posix;
   // Best effort path normalization. This is to guarantee an unique flag symbol
   // is produced for the same directory. Some builds may want to use relative
   // paths, or paths with a specific prefix (see the -fdebug-compilation-dir
   // flag), so only hash paths in debuginfo. Don't expand them to absolute
   // paths.
   SmallString<256> FilePath(SP.getDirectory());
-  sys::path::append(FilePath, PathStyle, SP.getFilename());
-  sys::path::native(FilePath, PathStyle);
-  sys::path::remove_dots(FilePath, /*remove_dot_dot=*/true, PathStyle);
+  sys::path::append(FilePath, SP.getFilename());
+  sys::path::native(FilePath);
+  sys::path::remove_dots(FilePath, /*remove_dot_dot=*/true);
 
   // The naming convention for the flag name is __<hash>_<file name> with '.' in
   // <file name> replaced with '@'. For example C:\file.any.c would have a flag
@@ -91,10 +77,10 @@ std::string getFlagName(DISubprogram &SP, bool UseX86FastCall) {
   // is different from MSVC's.
 
   std::string Suffix;
-  for (auto C : sys::path::filename(FilePath, PathStyle))
+  for (auto C : sys::path::filename(FilePath))
     Suffix.push_back(C == '.' ? '@' : C);
 
-  sys::path::remove_filename(FilePath, PathStyle);
+  sys::path::remove_filename(FilePath);
   return (UseX86FastCall ? "_" : "__") +
          utohexstr(djbHash(FilePath), /*LowerCase=*/false,
                    /*Width=*/8) +
@@ -124,7 +110,7 @@ FunctionType *getCheckFunctionType(LLVMContext &Ctx) {
   return FunctionType::get(VoidTy, VoidPtrTy, false);
 }
 
-Function *createDefaultCheckFunction(Module &M, bool UseX86FastCall) {
+void createDefaultCheckFunction(Module &M, bool UseX86FastCall) {
   LLVMContext &Ctx = M.getContext();
   const char *DefaultCheckFunctionName =
       UseX86FastCall ? "_JustMyCode_Default" : "__JustMyCode_Default";
@@ -136,10 +122,21 @@ Function *createDefaultCheckFunction(Module &M, bool UseX86FastCall) {
   DefaultCheckFunc->addParamAttr(0, Attribute::NoUndef);
   if (UseX86FastCall)
     DefaultCheckFunc->addParamAttr(0, Attribute::InReg);
-
+  appendToUsed(M, {DefaultCheckFunc});
+  Comdat *C = M.getOrInsertComdat(DefaultCheckFunctionName);
+  C->setSelectionKind(Comdat::Any);
+  DefaultCheckFunc->setComdat(C);
   BasicBlock *EntryBB = BasicBlock::Create(Ctx, "", DefaultCheckFunc);
   ReturnInst::Create(Ctx, EntryBB);
-  return DefaultCheckFunc;
+
+  // Add a linker option /alternatename to set the default implementation for
+  // the check function.
+  // https://devblogs.microsoft.com/oldnewthing/20200731-00/?p=104024
+  std::string AltOption = std::string("/alternatename:") + CheckFunctionName +
+                          "=" + DefaultCheckFunctionName;
+  llvm::Metadata *Ops[] = {llvm::MDString::get(Ctx, AltOption)};
+  MDTuple *N = MDNode::get(Ctx, Ops);
+  M.getOrInsertNamedMetadata("llvm.linker.options")->addOperand(N);
 }
 } // namespace
 
@@ -147,13 +144,10 @@ bool JMCInstrumenter::runOnModule(Module &M) {
   bool Changed = false;
   LLVMContext &Ctx = M.getContext();
   Triple ModuleTriple(M.getTargetTriple());
-  bool IsMSVC = ModuleTriple.isKnownWindowsMSVCEnvironment();
-  bool IsELF = ModuleTriple.isOSBinFormatELF();
-  assert((IsELF || IsMSVC) && "Unsupported triple for JMC");
-  bool UseX86FastCall = IsMSVC && ModuleTriple.getArch() == Triple::x86;
-  const char *const FlagSymbolSection = IsELF ? ".just.my.code" : ".msvcjmc";
+  bool UseX86FastCall =
+      ModuleTriple.isOSWindows() && ModuleTriple.getArch() == Triple::x86;
 
-  GlobalValue *CheckFunction = nullptr;
+  Function *CheckFunction = nullptr;
   DenseMap<DISubprogram *, Constant *> SavedFlags(8);
   for (auto &F : M) {
     if (F.isDeclaration())
@@ -172,7 +166,7 @@ bool JMCInstrumenter::runOnModule(Module &M) {
         GlobalVariable *GV = new GlobalVariable(
             M, FlagTy, /*isConstant=*/false, GlobalValue::InternalLinkage,
             ConstantInt::get(FlagTy, 1), FlagName);
-        GV->setSection(FlagSymbolSection);
+        GV->setSection(".msvcjmc");
         GV->setAlignment(Align(1));
         GV->setUnnamedAddr(GlobalValue::UnnamedAddr::Global);
         attachDebugInfo(*GV, *SP);
@@ -181,46 +175,22 @@ bool JMCInstrumenter::runOnModule(Module &M) {
     }
 
     if (!CheckFunction) {
-      Function *DefaultCheckFunc =
-          createDefaultCheckFunction(M, UseX86FastCall);
-      if (IsELF) {
-        DefaultCheckFunc->setName(CheckFunctionName);
-        DefaultCheckFunc->setLinkage(GlobalValue::WeakAnyLinkage);
-        CheckFunction = DefaultCheckFunc;
-      } else {
-        assert(!M.getFunction(CheckFunctionName) &&
-               "JMC instrument more than once?");
-        auto *CheckFunc = cast<Function>(
-            M.getOrInsertFunction(CheckFunctionName, getCheckFunctionType(Ctx))
-                .getCallee());
-        CheckFunc->setUnnamedAddr(GlobalValue::UnnamedAddr::Global);
-        CheckFunc->addParamAttr(0, Attribute::NoUndef);
-        if (UseX86FastCall) {
-          CheckFunc->setCallingConv(CallingConv::X86_FastCall);
-          CheckFunc->addParamAttr(0, Attribute::InReg);
-        }
-        CheckFunction = CheckFunc;
-
-        StringRef DefaultCheckFunctionName = DefaultCheckFunc->getName();
-        appendToUsed(M, {DefaultCheckFunc});
-        Comdat *C = M.getOrInsertComdat(DefaultCheckFunctionName);
-        C->setSelectionKind(Comdat::Any);
-        DefaultCheckFunc->setComdat(C);
-        // Add a linker option /alternatename to set the default implementation
-        // for the check function.
-        // https://devblogs.microsoft.com/oldnewthing/20200731-00/?p=104024
-        std::string AltOption = std::string("/alternatename:") +
-                                CheckFunctionName + "=" +
-                                DefaultCheckFunctionName.str();
-        llvm::Metadata *Ops[] = {llvm::MDString::get(Ctx, AltOption)};
-        MDTuple *N = MDNode::get(Ctx, Ops);
-        M.getOrInsertNamedMetadata("llvm.linker.options")->addOperand(N);
+      assert(!M.getFunction(CheckFunctionName) &&
+             "JMC instrument more than once?");
+      CheckFunction = cast<Function>(
+          M.getOrInsertFunction(CheckFunctionName, getCheckFunctionType(Ctx))
+              .getCallee());
+      CheckFunction->setUnnamedAddr(GlobalValue::UnnamedAddr::Global);
+      CheckFunction->addParamAttr(0, Attribute::NoUndef);
+      if (UseX86FastCall) {
+        CheckFunction->setCallingConv(CallingConv::X86_FastCall);
+        CheckFunction->addParamAttr(0, Attribute::InReg);
       }
     }
     // FIXME: it would be nice to make CI scheduling boundary, although in
     //        practice it does not matter much.
-    auto *CI = CallInst::Create(getCheckFunctionType(Ctx), CheckFunction,
-                                {Flag}, "", &*F.begin()->getFirstInsertionPt());
+    auto *CI = CallInst::Create(CheckFunction, {Flag}, "",
+                                &*F.begin()->getFirstInsertionPt());
     CI->addParamAttr(0, Attribute::NoUndef);
     if (UseX86FastCall) {
       CI->setCallingConv(CallingConv::X86_FastCall);
@@ -229,5 +199,9 @@ bool JMCInstrumenter::runOnModule(Module &M) {
 
     Changed = true;
   }
-  return Changed;
+  if (!Changed)
+    return false;
+
+  createDefaultCheckFunction(M, UseX86FastCall);
+  return true;
 }

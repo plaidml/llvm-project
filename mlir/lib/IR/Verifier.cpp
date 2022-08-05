@@ -217,11 +217,6 @@ LogicalResult OperationVerifier::verifyOperation(
     }
   }
 
-  // After the region ops are verified, run the verifiers that have additional
-  // region invariants need to veirfy.
-  if (registeredInfo && failed(registeredInfo->verifyRegionInvariants(&op)))
-    return failure();
-
   // If this is a registered operation, there is nothing left to do.
   if (registeredInfo)
     return success();

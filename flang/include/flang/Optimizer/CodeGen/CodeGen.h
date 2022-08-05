@@ -35,23 +35,8 @@ struct TargetRewriteOptions {
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>> createFirTargetRewritePass(
     const TargetRewriteOptions &options = TargetRewriteOptions());
 
-/// FIR to LLVM translation pass options.
-struct FIRToLLVMPassOptions {
-  // Do not fail when type descriptors are not found when translating
-  // operations that use them at the LLVM level like fir.embox. Instead,
-  // just use a null pointer.
-  // This is useful to test translating programs manually written where a
-  // frontend did not generate type descriptor data structures. However, note
-  // that such programs would crash at runtime if the derived type descriptors
-  // are required by the runtime, so this is only an option to help debugging.
-  bool ignoreMissingTypeDescriptors = false;
-};
-
-/// Convert FIR to the LLVM IR dialect with default options.
-std::unique_ptr<mlir::Pass> createFIRToLLVMPass();
-
 /// Convert FIR to the LLVM IR dialect
-std::unique_ptr<mlir::Pass> createFIRToLLVMPass(FIRToLLVMPassOptions options);
+std::unique_ptr<mlir::Pass> createFIRToLLVMPass();
 
 using LLVMIRLoweringPrinter =
     std::function<void(llvm::Module &, llvm::raw_ostream &)>;

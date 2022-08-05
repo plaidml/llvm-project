@@ -9,7 +9,6 @@ add_mlir_library(MLIRTestIR
   TestOpaqueLoc.cpp
   TestOperationEquals.cpp
   TestPrintDefUse.cpp
-  TestPrintInvalid.cpp
   TestPrintNesting.cpp
   TestSideEffects.cpp
   TestSlicing.cpp

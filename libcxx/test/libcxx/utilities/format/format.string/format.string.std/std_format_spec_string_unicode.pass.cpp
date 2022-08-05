@@ -6,7 +6,14 @@
 //===----------------------------------------------------------------------===//
 
 // UNSUPPORTED: c++03, c++11, c++14, c++17
+// UNSUPPORTED: libcpp-no-concepts
 // UNSUPPORTED: libcpp-has-no-incomplete-format
+
+// Fails for 32-bit builds on AIX.
+// UNSUPPORTED: LIBCXX-AIX-FIXME
+
+// UTF-32 doesn't work properly
+// XFAIL: windows
 
 // <format>
 

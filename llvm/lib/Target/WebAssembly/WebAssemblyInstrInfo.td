@@ -66,10 +66,6 @@ def HasReferenceTypes :
     Predicate<"Subtarget->hasReferenceTypes()">,
     AssemblerPredicate<(all_of FeatureReferenceTypes), "reference-types">;
 
-def HasExtendedConst :
-    Predicate<"Subtarget->hasExtendedConst()">,
-    AssemblerPredicate<(all_of FeatureExtendedConst), "extended-const">;
-
 //===----------------------------------------------------------------------===//
 // WebAssembly-specific DAG Node Types.
 //===----------------------------------------------------------------------===//

@@ -12,6 +12,7 @@ add_mlir_conversion_library(MLIRTosaToSCF
   LINK_LIBS PUBLIC
   MLIRIR
   MLIRSCF
+  MLIRStandard
   MLIRPass
   MLIRTensor
   MLIRTosa

@@ -151,7 +151,8 @@ const char *SBDebugger::GetProgressFromEvent(const lldb::SBEvent &event,
                                              uint64_t &completed,
                                              uint64_t &total,
                                              bool &is_debugger_specific) {
-  LLDB_INSTRUMENT_VA(event);
+  LLDB_INSTRUMENT_VA(event, progress_id, completed, total,
+                     is_debugger_specific);
   const Debugger::ProgressEventData *progress_data =
       Debugger::ProgressEventData::GetEventDataFromEvent(event.get());
   if (progress_data == nullptr)

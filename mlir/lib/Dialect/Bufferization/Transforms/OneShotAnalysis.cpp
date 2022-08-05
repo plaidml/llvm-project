@@ -773,27 +773,30 @@ LogicalResult bufferization::analyzeOp(Operation *op,
     equivalenceAnalysis(newOps, aliasInfo, state);
   }
 
-  bool failedAnalysis = false;
   if (!options.allowReturnMemref) {
     SmallVector<Operation *> newOps;
-    failedAnalysis |=
-        failed(assertDestinationPassingStyle(op, state, aliasInfo, newOps));
+    if (failed(assertDestinationPassingStyle(op, state, aliasInfo, newOps)))
+      return failure();
   }
 
   // Analysis verification: After setting up alias/equivalence sets, each op
   // can check for expected invariants/limitations and fail the analysis if
   // necessary.
+  bool passedAnalysis = true;
   op->walk([&](Operation *op) {
     if (BufferizableOpInterface bufferizableOp =
             options.dynCastBufferizableOp(op))
-      failedAnalysis |= failed(bufferizableOp.verifyAnalysis(state));
+      if (failed(bufferizableOp.verifyAnalysis(state)))
+        passedAnalysis = false;
   });
+  if (!passedAnalysis)
+    return failure();
 
   // Annotate operations if we only want to report the analysis.
   if (options.testAnalysisOnly)
     annotateOpsWithBufferizationMarkers(op, aliasInfo, state);
 
-  return success(!failedAnalysis);
+  return success();
 }
 
 LogicalResult bufferization::runOneShotBufferize(

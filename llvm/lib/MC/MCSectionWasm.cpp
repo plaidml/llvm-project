@@ -44,7 +44,7 @@ static void printName(raw_ostream &OS, StringRef Name) {
   OS << '"';
 }
 
-void MCSectionWasm::printSwitchToSection(const MCAsmInfo &MAI, const Triple &T,
+void MCSectionWasm::PrintSwitchToSection(const MCAsmInfo &MAI, const Triple &T,
                                          raw_ostream &OS,
                                          const MCExpr *Subsection) const {
 
@@ -101,6 +101,6 @@ void MCSectionWasm::printSwitchToSection(const MCAsmInfo &MAI, const Triple &T,
   }
 }
 
-bool MCSectionWasm::useCodeAlign() const { return false; }
+bool MCSectionWasm::UseCodeAlign() const { return false; }
 
 bool MCSectionWasm::isVirtualSection() const { return false; }

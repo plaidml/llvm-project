@@ -115,7 +115,7 @@ struct TestLinalgFusionTransforms
                          OperationPass<FuncOp>> {
   void getDependentDialects(DialectRegistry &registry) const override {
     registry.insert<AffineDialect, linalg::LinalgDialect, memref::MemRefDialect,
-                    scf::SCFDialect>();
+                    scf::SCFDialect, StandardOpsDialect>();
   }
   TestLinalgFusionTransforms() = default;
   TestLinalgFusionTransforms(const TestLinalgFusionTransforms &pass) {}

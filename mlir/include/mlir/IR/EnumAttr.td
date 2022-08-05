@@ -69,9 +69,6 @@ class EnumAttr<Dialect dialect, EnumAttrInfo enumInfo, string name = "",
     : AttrDef<dialect, enumInfo.className, traits> {
   let summary = enumInfo.summary;
 
-  // The backing enumeration.
-  EnumAttrInfo enum = enumInfo;
-
   // Inherit the C++ namespace from the enum.
   let cppNamespace = enumInfo.cppNamespace;
 

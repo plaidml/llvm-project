@@ -9,13 +9,15 @@
 #ifndef LLVM_LIBC_SRC_SUPPORT_FPUTIL_NEAREST_INTEGER_OPERATIONS_H
 #define LLVM_LIBC_SRC_SUPPORT_FPUTIL_NEAREST_INTEGER_OPERATIONS_H
 
-#include "FEnvImpl.h"
+#include "FEnvUtils.h"
 #include "FPBits.h"
 
 #include "src/__support/CPP/TypeTraits.h"
 
-#include <errno.h>
 #include <math.h>
+#if math_errhandling & MATH_ERRNO
+#include <errno.h>
+#endif
 
 namespace __llvm_libc {
 namespace fputil {
@@ -243,10 +245,12 @@ static inline I rounded_float_to_signed_integer(F x) {
   constexpr I INTEGER_MAX = -(INTEGER_MIN + 1);
   FPBits<F> bits(x);
   auto set_domain_error_and_raise_invalid = []() {
-    if (math_errhandling & MATH_ERRNO)
-      errno = EDOM;
-    if (math_errhandling & MATH_ERREXCEPT)
-      raise_except(FE_INVALID);
+#if math_errhandling & MATH_ERRNO
+    errno = EDOM;
+#endif
+#if math_errhandling & MATH_ERREXCEPT
+    raise_except(FE_INVALID);
+#endif
   };
 
   if (bits.is_inf_or_nan()) {

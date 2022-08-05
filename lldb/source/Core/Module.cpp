@@ -1025,9 +1025,7 @@ void Module::FindTypes(
     llvm::ArrayRef<CompilerContext> pattern, LanguageSet languages,
     llvm::DenseSet<lldb_private::SymbolFile *> &searched_symbol_files,
     TypeMap &types) {
-  // If a scoped timer is needed, place it in a SymbolFile::FindTypes override.
-  // A timer here is too high volume for some cases, for example when calling
-  // FindTypes on each object file.
+  LLDB_SCOPED_TIMER();
   if (SymbolFile *symbols = GetSymbolFile())
     symbols->FindTypes(pattern, languages, searched_symbol_files, types);
 }

@@ -11912,9 +11912,9 @@ TreeTransform<Derived>::TransformCXXNewExpr(CXXNewExpr *E) {
 
   // Transform the size of the array we're allocating (if any).
   Optional<Expr *> ArraySize;
-  if (E->isArray()) {
+  if (Optional<Expr *> OldArraySize = E->getArraySize()) {
     ExprResult NewArraySize;
-    if (Optional<Expr *> OldArraySize = E->getArraySize()) {
+    if (*OldArraySize) {
       NewArraySize = getDerived().TransformExpr(*OldArraySize);
       if (NewArraySize.isInvalid())
         return ExprError();
@@ -12748,9 +12748,6 @@ ExprResult TreeTransform<Derived>::TransformCXXInheritedCtorInitExpr(
 template<typename Derived>
 ExprResult
 TreeTransform<Derived>::TransformCXXBindTemporaryExpr(CXXBindTemporaryExpr *E) {
-  if (auto *Dtor = E->getTemporary()->getDestructor())
-    SemaRef.MarkFunctionReferenced(E->getBeginLoc(),
-                                   const_cast<CXXDestructorDecl *>(Dtor));
   return getDerived().TransformExpr(E->getSubExpr());
 }
 

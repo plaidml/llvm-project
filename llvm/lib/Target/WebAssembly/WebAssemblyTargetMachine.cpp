@@ -336,7 +336,7 @@ public:
 } // end anonymous namespace
 
 TargetTransformInfo
-WebAssemblyTargetMachine::getTargetTransformInfo(const Function &F) const {
+WebAssemblyTargetMachine::getTargetTransformInfo(const Function &F) {
   return TargetTransformInfo(WebAssemblyTTIImpl(this, F));
 }
 

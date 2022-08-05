@@ -784,12 +784,14 @@ void ContinuationIndenter::addTokenOnCurrentLine(LineState &State, bool DryRun,
     //   OuterFunction(InnerFunctionCall( // break
     //       ParameterToInnerFunction))   // break
     //       .SecondInnerFunctionCall();
+    bool HasTrailingCall = false;
     if (Previous.MatchingParen) {
       const FormatToken *Next = Previous.MatchingParen->getNextNonComment();
-      if (Next && Next->isMemberAccess() && State.Stack.size() > 1 &&
-          State.Stack[State.Stack.size() - 2].CallContinuation == 0)
-        CurrentState.LastSpace = State.Column;
+      HasTrailingCall = Next && Next->isMemberAccess();
     }
+    if (HasTrailingCall && State.Stack.size() > 1 &&
+        State.Stack[State.Stack.size() - 2].CallContinuation == 0)
+      CurrentState.LastSpace = State.Column;
   }
 }
 
@@ -1632,7 +1634,7 @@ void ContinuationIndenter::moveStatePastScopeOpener(LineState &State,
   NewState.HasMultipleNestedBlocks = (Current.BlockParameterCount > 1);
 
   if (Style.BraceWrapping.BeforeLambdaBody && Current.Next != nullptr &&
-      Current.is(tok::l_paren)) {
+      Current.Tok.is(tok::l_paren)) {
     // Search for any parameter that is a lambda
     FormatToken const *next = Current.Next;
     while (next != nullptr) {

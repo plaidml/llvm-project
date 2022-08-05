@@ -34,6 +34,12 @@ _LIBCPP_BEGIN_NAMESPACE_STD
 
 #if _LIBCPP_STD_VER > 17
 
+// TODO FMT Remove this once we require compilers with proper C++20 support.
+// If the compiler has no concepts support, the format header will be disabled.
+// Without concepts support enable_if needs to be used and that too much effort
+// to support compilers with partial C++20 support.
+# if !defined(_LIBCPP_HAS_NO_CONCEPTS)
+
 namespace __format_spec {
 
 /**
@@ -46,7 +52,6 @@ namespace __format_spec {
  * * The format-type filtering needs to be done post parsing in the parser
  *   derived from @ref __parser_std.
  */
-_LIBCPP_PACKED_BYTE_FOR_AIX
 class _LIBCPP_TYPE_VIS _Flags {
 public:
   enum class _LIBCPP_ENUM_VIS _Alignment : uint8_t {
@@ -104,7 +109,6 @@ public:
 
   _Type __type{_Type::__default};
 };
-_LIBCPP_PACKED_BYTE_FOR_AIX_END
 
 namespace __detail {
 template <class _CharT>
@@ -1267,7 +1271,7 @@ __estimate_column_width(const _CharT* __first, const _CharT* __last,
   size_t __result = 0;
 
   while (__first != __last) {
-    uint32_t __c = *__first;
+    wchar_t __c = *__first;
     __result += __column_width(__c);
 
     if (__result > __maximum)
@@ -1382,6 +1386,8 @@ __get_string_alignment(const _CharT* __first, const _CharT* __last,
 #endif // _LIBCPP_HAS_NO_UNICODE
 
 } // namespace __format_spec
+
+# endif // !defined(_LIBCPP_HAS_NO_CONCEPTS)
 
 #endif //_LIBCPP_STD_VER > 17
 

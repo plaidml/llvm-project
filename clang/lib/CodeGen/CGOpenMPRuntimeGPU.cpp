@@ -1716,8 +1716,7 @@ static llvm::Value *castValueToType(CodeGenFunction &CGF, llvm::Value *Val,
                                      CastTy->hasSignedIntegerRepresentation());
   Address CastItem = CGF.CreateMemTemp(CastTy);
   Address ValCastItem = CGF.Builder.CreatePointerBitCastOrAddrSpaceCast(
-      CastItem, Val->getType()->getPointerTo(CastItem.getAddressSpace()),
-      Val->getType());
+      CastItem, Val->getType()->getPointerTo(CastItem.getAddressSpace()));
   CGF.EmitStoreOfScalar(Val, ValCastItem, /*Volatile=*/false, ValTy,
                         LValueBaseInfo(AlignmentSource::Type),
                         TBAAAccessInfo());
@@ -1780,7 +1779,7 @@ static void shuffleAndStore(CodeGenFunction &CGF, Address SrcAddr,
   Address ElemPtr = DestAddr;
   Address Ptr = SrcAddr;
   Address PtrEnd = Bld.CreatePointerBitCastOrAddrSpaceCast(
-      Bld.CreateConstGEP(SrcAddr, 1), CGF.VoidPtrTy, CGF.Int8Ty);
+      Bld.CreateConstGEP(SrcAddr, 1), CGF.VoidPtrTy);
   for (int IntSize = 8; IntSize >= 1; IntSize /= 2) {
     if (Size < CharUnits::fromQuantity(IntSize))
       continue;
@@ -1788,10 +1787,9 @@ static void shuffleAndStore(CodeGenFunction &CGF, Address SrcAddr,
         CGF.getContext().toBits(CharUnits::fromQuantity(IntSize)),
         /*Signed=*/1);
     llvm::Type *IntTy = CGF.ConvertTypeForMem(IntType);
-    Ptr = Bld.CreatePointerBitCastOrAddrSpaceCast(Ptr, IntTy->getPointerTo(),
-                                                  IntTy);
-    ElemPtr = Bld.CreatePointerBitCastOrAddrSpaceCast(
-        ElemPtr, IntTy->getPointerTo(), IntTy);
+    Ptr = Bld.CreatePointerBitCastOrAddrSpaceCast(Ptr, IntTy->getPointerTo());
+    ElemPtr =
+        Bld.CreatePointerBitCastOrAddrSpaceCast(ElemPtr, IntTy->getPointerTo());
     if (Size.getQuantity() / IntSize > 1) {
       llvm::BasicBlock *PreCondBB = CGF.createBasicBlock(".shuffle.pre_cond");
       llvm::BasicBlock *ThenBB = CGF.createBasicBlock(".shuffle.then");
@@ -3547,7 +3545,7 @@ llvm::Function *CGOpenMPRuntimeGPU::createParallelDataSharingWrapper(
   if (isOpenMPLoopBoundSharingDirective(D.getDirectiveKind())) {
     Address Src = Bld.CreateConstInBoundsGEP(SharedArgListAddress, Idx);
     Address TypedAddress = Bld.CreatePointerBitCastOrAddrSpaceCast(
-        Src, CGF.SizeTy->getPointerTo(), CGF.SizeTy);
+        Src, CGF.SizeTy->getPointerTo());
     llvm::Value *LB = CGF.EmitLoadOfScalar(
         TypedAddress,
         /*Volatile=*/false,
@@ -3557,7 +3555,7 @@ llvm::Function *CGOpenMPRuntimeGPU::createParallelDataSharingWrapper(
     ++Idx;
     Src = Bld.CreateConstInBoundsGEP(SharedArgListAddress, Idx);
     TypedAddress = Bld.CreatePointerBitCastOrAddrSpaceCast(
-        Src, CGF.SizeTy->getPointerTo(), CGF.SizeTy);
+        Src, CGF.SizeTy->getPointerTo());
     llvm::Value *UB = CGF.EmitLoadOfScalar(
         TypedAddress,
         /*Volatile=*/false,
@@ -3572,8 +3570,7 @@ llvm::Function *CGOpenMPRuntimeGPU::createParallelDataSharingWrapper(
       QualType ElemTy = CurField->getType();
       Address Src = Bld.CreateConstInBoundsGEP(SharedArgListAddress, I + Idx);
       Address TypedAddress = Bld.CreatePointerBitCastOrAddrSpaceCast(
-          Src, CGF.ConvertTypeForMem(CGFContext.getPointerType(ElemTy)),
-          CGF.ConvertTypeForMem(ElemTy));
+          Src, CGF.ConvertTypeForMem(CGFContext.getPointerType(ElemTy)));
       llvm::Value *Arg = CGF.EmitLoadOfScalar(TypedAddress,
                                               /*Volatile=*/false,
                                               CGFContext.getPointerType(ElemTy),
@@ -3916,7 +3913,6 @@ void CGOpenMPRuntimeGPU::processRequiresDirective(
       case CudaArch::GFX909:
       case CudaArch::GFX90a:
       case CudaArch::GFX90c:
-      case CudaArch::GFX940:
       case CudaArch::GFX1010:
       case CudaArch::GFX1011:
       case CudaArch::GFX1012:
@@ -3927,7 +3923,6 @@ void CGOpenMPRuntimeGPU::processRequiresDirective(
       case CudaArch::GFX1033:
       case CudaArch::GFX1034:
       case CudaArch::GFX1035:
-      case CudaArch::GFX1036:
       case CudaArch::Generic:
       case CudaArch::UNUSED:
       case CudaArch::UNKNOWN:

@@ -20,7 +20,8 @@ using namespace mlir;
 
 namespace {
 struct TestMathAlgebraicSimplificationPass
-    : public PassWrapper<TestMathAlgebraicSimplificationPass, OperationPass<>> {
+    : public PassWrapper<TestMathAlgebraicSimplificationPass,
+                         OperationPass<FuncOp>> {
   void runOnOperation() override;
   void getDependentDialects(DialectRegistry &registry) const override {
     registry.insert<vector::VectorDialect, math::MathDialect>();

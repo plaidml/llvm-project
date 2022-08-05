@@ -14,8 +14,8 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-using namespace mlir;
-using namespace presburger;
+namespace mlir {
+using namespace presburger_utils;
 
 /// Take a snapshot, add constraints making the set empty, and rollback.
 /// The set should not be empty after rolling back. We add additional
@@ -503,10 +503,12 @@ TEST(SimplexTest, isRedundantEquality) {
 }
 
 TEST(SimplexTest, IsRationalSubsetOf) {
-  IntegerPolyhedron univ = parsePoly("(x) : ()");
-  IntegerPolyhedron empty = parsePoly("(x) : (x + 0 >= 0, -x - 1 >= 0)");
-  IntegerPolyhedron s1 = parsePoly("(x) : ( x >= 0, -x + 4 >= 0)");
-  IntegerPolyhedron s2 = parsePoly("(x) : (x - 1 >= 0, -x + 3 >= 0)");
+  MLIRContext context;
+  IntegerPolyhedron univ = parsePoly("(x) : ()", &context);
+  IntegerPolyhedron empty =
+      parsePoly("(x) : (x + 0 >= 0, -x - 1 >= 0)", &context);
+  IntegerPolyhedron s1 = parsePoly("(x) : ( x >= 0, -x + 4 >= 0)", &context);
+  IntegerPolyhedron s2 = parsePoly("(x) : (x - 1 >= 0, -x + 3 >= 0)", &context);
 
   Simplex simUniv(univ);
   Simplex simEmpty(empty);
@@ -538,3 +540,5 @@ TEST(SimplexTest, IsRationalSubsetOf) {
   EXPECT_TRUE(sim2.isRationalSubsetOf(s2));
   EXPECT_FALSE(sim2.isRationalSubsetOf(empty));
 }
+
+} // namespace mlir

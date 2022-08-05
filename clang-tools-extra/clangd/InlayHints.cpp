@@ -254,28 +254,15 @@ public:
   }
 
   bool VisitFunctionDecl(FunctionDecl *D) {
-    if (auto *FPT =
-            llvm::dyn_cast<FunctionProtoType>(D->getType().getTypePtr())) {
-      if (!FPT->hasTrailingReturn())
-        addReturnTypeHint(D, D->getFunctionTypeLoc().getRParenLoc());
+    if (auto *AT = D->getReturnType()->getContainedAutoType()) {
+      QualType Deduced = AT->getDeducedType();
+      if (!Deduced.isNull()) {
+        addTypeHint(D->getFunctionTypeLoc().getRParenLoc(), D->getReturnType(),
+                    /*Prefix=*/"-> ");
+      }
     }
-    return true;
-  }
 
-  bool VisitLambdaExpr(LambdaExpr *E) {
-    FunctionDecl *D = E->getCallOperator();
-    if (!E->hasExplicitResultType())
-      addReturnTypeHint(D, E->hasExplicitParameters()
-                               ? D->getFunctionTypeLoc().getRParenLoc()
-                               : E->getIntroducerRange().getEnd());
     return true;
-  }
-
-  void addReturnTypeHint(FunctionDecl *D, SourceLocation Loc) {
-    auto *AT = D->getReturnType()->getContainedAutoType();
-    if (!AT || AT->getDeducedType().isNull())
-      return;
-    addTypeHint(Loc, D->getReturnType(), /*Prefix=*/"-> ");
   }
 
   bool VisitVarDecl(VarDecl *D) {

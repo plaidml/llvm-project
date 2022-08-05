@@ -12,7 +12,6 @@
 
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
 #include "mlir/Dialect/SCF/SCF.h"
-#include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/Dialect/Tensor/Transforms/Transforms.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
@@ -21,7 +20,7 @@ using namespace mlir;
 
 namespace {
 struct TestTensorTransforms
-    : public PassWrapper<TestTensorTransforms, OperationPass<>> {
+    : public PassWrapper<TestTensorTransforms, OperationPass<FuncOp>> {
   TestTensorTransforms() = default;
   TestTensorTransforms(const TestTensorTransforms &pass) : PassWrapper(pass) {}
 
@@ -42,42 +41,19 @@ struct TestTensorTransforms
       *this, "test-split-padding-patterns",
       llvm::cl::desc("Test patterns to split tensor.pad ops"),
       llvm::cl::init(false)};
-
-  Option<bool> testFoldConstantExtractSlice{
-      *this, "test-fold-constant-extract-slice",
-      llvm::cl::desc("Test folding arith.constant and tensor.extract_slice"),
-      llvm::cl::init(false)};
 };
 } // namespace
 
-static void applySplitPaddingPatterns(Operation *rootOp) {
-  RewritePatternSet patterns(rootOp->getContext());
+static void applySplitPaddingPatterns(FuncOp funcOp) {
+  RewritePatternSet patterns(funcOp.getContext());
   tensor::populateSplitPaddingPatterns(patterns);
-  (void)applyPatternsAndFoldGreedily(rootOp, std::move(patterns));
-}
-
-static void applyFoldConstantExtractSlicePatterns(Operation *rootOp) {
-  RewritePatternSet patterns(rootOp->getContext());
-  tensor::ControlConstantExtractSliceFusionFn controlFn =
-      [](tensor::ExtractSliceOp op) {
-        if (!op.source().hasOneUse())
-          return false;
-
-        auto resultType = op.result().getType().cast<ShapedType>();
-        constexpr int64_t kConstantFoldingMaxNumElements = 1024;
-        return resultType.getNumElements() <= kConstantFoldingMaxNumElements;
-      };
-
-  tensor::populateFoldConstantExtractSlicePatterns(patterns, controlFn);
-  (void)applyPatternsAndFoldGreedily(rootOp, std::move(patterns));
+  (void)applyPatternsAndFoldGreedily(funcOp, std::move(patterns));
 }
 
 void TestTensorTransforms::runOnOperation() {
-  Operation *rootOp = getOperation();
+  FuncOp func = getOperation();
   if (testSplitPaddingPatterns)
-    applySplitPaddingPatterns(rootOp);
-  if (testFoldConstantExtractSlice)
-    applyFoldConstantExtractSlicePatterns(rootOp);
+    applySplitPaddingPatterns(func);
 }
 
 namespace mlir {

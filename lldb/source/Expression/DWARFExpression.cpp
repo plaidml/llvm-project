@@ -43,7 +43,6 @@
 
 using namespace lldb;
 using namespace lldb_private;
-using namespace lldb_private::dwarf;
 
 static lldb::addr_t
 ReadAddressFromDebugAddrSection(const DWARFUnit *dwarf_cu,
@@ -130,6 +129,7 @@ private:
 }
 
 void DWARFExpression::GetDescription(Stream *s, lldb::DescriptionLevel level,
+                                     addr_t location_list_base_addr,
                                      ABI *abi) const {
   if (IsLocationList()) {
     // We have a location list
@@ -2673,50 +2673,14 @@ static DataExtractor ToDataExtractor(const llvm::DWARFLocationExpression &loc,
   return DataExtractor(buffer_sp, byte_order, addr_size);
 }
 
-bool DWARFExpression::DumpLocations(Stream *s, lldb::DescriptionLevel level,
-                                    addr_t load_function_start, addr_t addr,
-                                    ABI *abi) {
-  if (!IsLocationList()) {
-    DumpLocation(s, m_data, level, abi);
-    return true;
-  }
-  bool dump_all = addr == LLDB_INVALID_ADDRESS;
-  llvm::ListSeparator separator;
-  auto callback = [&](llvm::DWARFLocationExpression loc) -> bool {
-    if (loc.Range &&
-        (dump_all || (loc.Range->LowPC <= addr && addr < loc.Range->HighPC))) {
-      uint32_t addr_size = m_data.GetAddressByteSize();
-      DataExtractor data = ToDataExtractor(loc, m_data.GetByteOrder(),
-                                           m_data.GetAddressByteSize());
-      s->AsRawOstream() << separator;
-      s->PutCString("[");
-      s->AsRawOstream() << llvm::format_hex(loc.Range->LowPC,
-                                            2 + 2 * addr_size);
-      s->PutCString(", ");
-      s->AsRawOstream() << llvm::format_hex(loc.Range->HighPC,
-                                            2 + 2 * addr_size);
-      s->PutCString(") -> ");
-      DumpLocation(s, data, level, abi);
-      return dump_all;
-    }
-    return true;
-  };
-  if (!GetLocationExpressions(load_function_start, callback))
-    return false;
-  return true;
-}
-
-bool DWARFExpression::GetLocationExpressions(
-    addr_t load_function_start,
-    llvm::function_ref<bool(llvm::DWARFLocationExpression)> callback) const {
-  if (load_function_start == LLDB_INVALID_ADDRESS)
-    return false;
-
+llvm::Optional<DataExtractor>
+DWARFExpression::GetLocationExpression(addr_t load_function_start,
+                                       addr_t addr) const {
   Log *log = GetLog(LLDBLog::Expressions);
 
   std::unique_ptr<llvm::DWARFLocationTable> loctable_up =
       m_dwarf_cu->GetLocationTable(m_data);
-
+  llvm::Optional<DataExtractor> result;
   uint64_t offset = 0;
   auto lookup_addr =
       [&](uint32_t index) -> llvm::Optional<llvm::object::SectionedAddress> {
@@ -2736,32 +2700,19 @@ bool DWARFExpression::GetLocationExpressions(
       addr_t slide = load_function_start - m_loclist_addresses->func_file_addr;
       loc->Range->LowPC += slide;
       loc->Range->HighPC += slide;
+
+      if (loc->Range->LowPC <= addr && addr < loc->Range->HighPC)
+        result = ToDataExtractor(*loc, m_data.GetByteOrder(),
+                                 m_data.GetAddressByteSize());
     }
-    return callback(*loc);
+    return !result;
   };
-  llvm::Error error = loctable_up->visitAbsoluteLocationList(
+  llvm::Error E = loctable_up->visitAbsoluteLocationList(
       offset, llvm::object::SectionedAddress{m_loclist_addresses->cu_file_addr},
       lookup_addr, process_list);
-  if (error) {
-    LLDB_LOG_ERROR(log, std::move(error), "{0}");
-    return false;
-  }
-  return true;
-}
-
-llvm::Optional<DataExtractor>
-DWARFExpression::GetLocationExpression(addr_t load_function_start,
-                                       addr_t addr) const {
-  llvm::Optional<DataExtractor> data;
-  auto callback = [&](llvm::DWARFLocationExpression loc) {
-    if (loc.Range && loc.Range->LowPC <= addr && addr < loc.Range->HighPC) {
-      data = ToDataExtractor(loc, m_data.GetByteOrder(),
-                             m_data.GetAddressByteSize());
-    }
-    return !data;
-  };
-  GetLocationExpressions(load_function_start, callback);
-  return data;
+  if (E)
+    LLDB_LOG_ERROR(log, std::move(E), "{0}");
+  return result;
 }
 
 bool DWARFExpression::MatchesOperand(StackFrame &frame,
@@ -2787,8 +2738,7 @@ bool DWARFExpression::MatchesOperand(StackFrame &frame,
     addr_t pc = frame.GetFrameCodeAddress().GetLoadAddress(
         frame.CalculateTarget().get());
 
-    if (llvm::Optional<DataExtractor> expr =
-            GetLocationExpression(load_function_start, pc))
+    if (llvm::Optional<DataExtractor> expr = GetLocationExpression(load_function_start, pc))
       opcodes = std::move(*expr);
     else
       return false;

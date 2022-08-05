@@ -125,16 +125,8 @@ MLIR_CAPI_EXPORTED MlirAttribute mlirIntegerAttrGet(MlirType type,
                                                     int64_t value);
 
 /// Returns the value stored in the given integer attribute, assuming the value
-/// is of signless type and fits into a signed 64-bit integer.
+/// fits into a 64-bit integer.
 MLIR_CAPI_EXPORTED int64_t mlirIntegerAttrGetValueInt(MlirAttribute attr);
-
-/// Returns the value stored in the given integer attribute, assuming the value
-/// is of signed type and fits into a signed 64-bit integer.
-MLIR_CAPI_EXPORTED int64_t mlirIntegerAttrGetValueSInt(MlirAttribute attr);
-
-/// Returns the value stored in the given integer attribute, assuming the value
-/// is of unsigned type and fits into an unsigned 64-bit integer.
-MLIR_CAPI_EXPORTED uint64_t mlirIntegerAttrGetValueUInt(MlirAttribute attr);
 
 //===----------------------------------------------------------------------===//
 // Bool attribute.

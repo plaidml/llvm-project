@@ -26,7 +26,6 @@
 
 namespace llvm {
 namespace orc {
-class LLJIT;
 class ThreadSafeContext;
 }
 } // namespace llvm
@@ -57,7 +56,6 @@ public:
   static llvm::Expected<std::unique_ptr<Interpreter>>
   create(std::unique_ptr<CompilerInstance> CI);
   const CompilerInstance *getCompilerInstance() const;
-  const llvm::orc::LLJIT *getExecutionEngine() const;
   llvm::Expected<PartialTranslationUnit &> Parse(llvm::StringRef Code);
   llvm::Error Execute(PartialTranslationUnit &T);
   llvm::Error ParseAndExecute(llvm::StringRef Code) {

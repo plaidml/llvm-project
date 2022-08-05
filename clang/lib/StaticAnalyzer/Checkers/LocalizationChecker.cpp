@@ -1145,8 +1145,8 @@ void EmptyLocalizationContextChecker::MethodCrawler::VisitObjCMessageExpr(
       Mgr.getSourceManager().getBufferOrNone(SLInfo.first, SL);
   if (!BF)
     return;
-  LangOptions LangOpts;
-  Lexer TheLexer(SL, LangOpts, BF->getBufferStart(),
+
+  Lexer TheLexer(SL, LangOptions(), BF->getBufferStart(),
                  BF->getBufferStart() + SLInfo.second, BF->getBufferEnd());
 
   Token I;

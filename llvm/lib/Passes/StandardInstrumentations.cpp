@@ -19,7 +19,6 @@
 #include "llvm/Analysis/CallGraphSCCPass.h"
 #include "llvm/Analysis/LazyCallGraph.h"
 #include "llvm/Analysis/LoopInfo.h"
-#include "llvm/IR/Constants.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Module.h"
@@ -440,11 +439,19 @@ const Module *getModuleForComparison(Any IR) {
   return nullptr;
 }
 
-bool isInterestingFunction(const Function &F) {
+} // namespace
+
+template <typename T> ChangeReporter<T>::~ChangeReporter() {
+  assert(BeforeStack.empty() && "Problem with Change Printer stack.");
+}
+
+template <typename T>
+bool ChangeReporter<T>::isInterestingFunction(const Function &F) {
   return isFunctionInPrintList(F.getName());
 }
 
-bool isInterestingPass(StringRef PassID) {
+template <typename T>
+bool ChangeReporter<T>::isInterestingPass(StringRef PassID) {
   if (isIgnored(PassID))
     return false;
 
@@ -455,18 +462,13 @@ bool isInterestingPass(StringRef PassID) {
 
 // Return true when this is a pass on IR for which printing
 // of changes is desired.
-bool isInteresting(Any IR, StringRef PassID) {
+template <typename T>
+bool ChangeReporter<T>::isInteresting(Any IR, StringRef PassID) {
   if (!isInterestingPass(PassID))
     return false;
   if (any_isa<const Function *>(IR))
     return isInterestingFunction(*any_cast<const Function *>(IR));
   return true;
-}
-
-} // namespace
-
-template <typename T> ChangeReporter<T>::~ChangeReporter<T>() {
-  assert(BeforeStack.empty() && "Problem with Change Printer stack.");
 }
 
 template <typename T>

@@ -28,6 +28,7 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/MDBuilder.h"
+#include "llvm/IR/Metadata.h"
 #include "llvm/IR/PatternMatch.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/CommandLine.h"
@@ -37,10 +38,12 @@
 #include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/Transforms/Utils/LoopSimplify.h"
 #include "llvm/Transforms/Utils/LoopUtils.h"
+#include "llvm/Transforms/Utils/UnrollLoop.h"
 #include "llvm/Transforms/Utils/ValueMapper.h"
 #include <algorithm>
 #include <cassert>
 #include <cstdint>
+#include <limits>
 
 using namespace llvm;
 using namespace llvm::PatternMatch;
@@ -904,10 +907,8 @@ bool llvm::peelLoop(Loop *L, unsigned PeelCount, LoopInfo *LI,
   // We modified the loop, update SE.
   SE->forgetTopmostLoop(L);
 
-#ifdef EXPENSIVE_CHECKS
   // Finally DomtTree must be correct.
   assert(DT.verify(DominatorTree::VerificationLevel::Fast));
-#endif
 
   // FIXME: Incrementally update loop-simplify
   simplifyLoop(L, &DT, LI, SE, AC, nullptr, PreserveLCSSA);

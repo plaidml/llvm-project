@@ -143,23 +143,23 @@ def HasSMEF64        : Predicate<"Subtarget->hasSMEF64()">,
 def HasSMEI64        : Predicate<"Subtarget->hasSMEI64()">,
                                  AssemblerPredicate<(all_of FeatureSMEI64), "sme-i64">;
 def HasStreamingSVE  : Predicate<"Subtarget->hasStreamingSVE()">,
-                                 AssemblerPredicate<(all_of FeatureStreamingSVE), "sme">;
+                                 AssemblerPredicate<(all_of FeatureStreamingSVE), "streaming-sve">;
 // A subset of SVE(2) instructions are legal in Streaming SVE execution mode,
 // they should be enabled if either has been specified.
 def HasSVEorStreamingSVE
     : Predicate<"Subtarget->hasSVE() || Subtarget->hasStreamingSVE()">,
                 AssemblerPredicate<(any_of FeatureSVE, FeatureStreamingSVE),
-                "sve or sme">;
+                "streaming-sve or sve">;
 def HasSVE2orStreamingSVE
     : Predicate<"Subtarget->hasSVE2() || Subtarget->hasStreamingSVE()">,
                 AssemblerPredicate<(any_of FeatureSVE2, FeatureStreamingSVE),
-                "sve2 or sme">;
+                "streaming-sve or sve2">;
 // A subset of NEON instructions are legal in Streaming SVE execution mode,
 // they should be enabled if either has been specified.
 def HasNEONorStreamingSVE
     : Predicate<"Subtarget->hasNEON() || Subtarget->hasStreamingSVE()">,
                 AssemblerPredicate<(any_of FeatureNEON, FeatureStreamingSVE),
-                "neon or sme">;
+                "streaming-sve or neon">;
 def HasRCPC          : Predicate<"Subtarget->hasRCPC()">,
                                  AssemblerPredicate<(all_of FeatureRCPC), "rcpc">;
 def HasAltNZCV       : Predicate<"Subtarget->hasAlternativeNZCV()">,
@@ -1023,15 +1023,6 @@ def : EOR3_pattern<v16i8>;
 def : EOR3_pattern<v8i16>;
 def : EOR3_pattern<v4i32>;
 def : EOR3_pattern<v2i64>;
-
-class BCAX_pattern<ValueType VecTy>
-  : Pat<(xor (VecTy V128:$Vn), (and (VecTy V128:$Vm), (vnot (VecTy V128:$Va)))),
-        (BCAX (VecTy V128:$Vn), (VecTy V128:$Vm), (VecTy V128:$Va))>;
-
-def : BCAX_pattern<v16i8>;
-def : BCAX_pattern<v8i16>;
-def : BCAX_pattern<v4i32>;
-def : BCAX_pattern<v2i64>;
 
 def : SHA3_pattern<BCAX, int_aarch64_crypto_bcaxu, v16i8>;
 def : SHA3_pattern<BCAX, int_aarch64_crypto_bcaxu, v8i16>;
@@ -5345,22 +5336,19 @@ defm FMAXP   : SIMDFPPairwiseScalar<0, 0b01111, "fmaxp">;
 defm FMINNMP : SIMDFPPairwiseScalar<1, 0b01100, "fminnmp">;
 defm FMINP   : SIMDFPPairwiseScalar<1, 0b01111, "fminp">;
 
-// Only the lower half of the result of the inner FADDP is used in the patterns
-// below, so the second operand does not matter. Re-use the first input
-// operand, so no additional dependencies need to be introduced.
 let Predicates = [HasFullFP16] in {
 def : Pat<(f16 (vecreduce_fadd (v8f16 V128:$Rn))),
             (FADDPv2i16p
               (EXTRACT_SUBREG
-                 (FADDPv8f16 (FADDPv8f16 V128:$Rn, V128:$Rn), V128:$Rn),
+                 (FADDPv8f16 (FADDPv8f16 V128:$Rn, (v8f16 (IMPLICIT_DEF))), (v8f16 (IMPLICIT_DEF))),
                dsub))>;
 def : Pat<(f16 (vecreduce_fadd (v4f16 V64:$Rn))),
-          (FADDPv2i16p (FADDPv4f16 V64:$Rn, V64:$Rn))>;
+          (FADDPv2i16p (FADDPv4f16 V64:$Rn, (v4f16 (IMPLICIT_DEF))))>;
 }
 def : Pat<(f32 (vecreduce_fadd (v4f32 V128:$Rn))),
           (FADDPv2i32p
             (EXTRACT_SUBREG
-              (FADDPv4f32 V128:$Rn, V128:$Rn),
+              (FADDPv4f32 V128:$Rn, (v4f32 (IMPLICIT_DEF))),
              dsub))>;
 def : Pat<(f32 (vecreduce_fadd (v2f32 V64:$Rn))),
           (FADDPv2i32p V64:$Rn)>;
@@ -6144,14 +6132,6 @@ def : Pat<(v8i8  immAllOnesV), (EXTRACT_SUBREG (MOVIv2d_ns (i32 255)), dsub)>;
 // EDIT per word & halfword: 2s, 4h, 4s, & 8h
 let isReMaterializable = 1, isAsCheapAsAMove = 1 in
 defm MOVI      : SIMDModifiedImmVectorShift<0, 0b10, 0b00, "movi">;
-
-let Predicates = [HasNEON] in {
-  // Using the MOVI to materialize fp constants.
-  def : Pat<(f32 fpimm32SIMDModImmType4:$in),
-            (EXTRACT_SUBREG (MOVIv2i32 (fpimm32SIMDModImmType4XForm f32:$in),
-                                       (i32 24)),
-                            ssub)>;
-}
 
 def : InstAlias<"movi $Vd.4h, $imm", (MOVIv4i16 V64:$Vd,  imm0_255:$imm, 0), 0>;
 def : InstAlias<"movi $Vd.8h, $imm", (MOVIv8i16 V128:$Vd, imm0_255:$imm, 0), 0>;

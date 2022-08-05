@@ -1,4 +1,4 @@
-// RUN: %clang_cc1 -fsyntax-only -verify %s -Wno-unreachable-code -Wno-strict-prototypes
+// RUN: %clang_cc1 -fsyntax-only -verify %s -Wno-unreachable-code
 
 int foo(int X, int Y);
 

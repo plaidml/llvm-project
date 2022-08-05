@@ -1,4 +1,4 @@
-// RUN: %check_clang_tidy %s misc-unused-parameters %t -- -- -Wno-strict-prototypes -xc
+// RUN: %check_clang_tidy %s misc-unused-parameters %t -- -- -xc
 
 // Basic removal
 // =============

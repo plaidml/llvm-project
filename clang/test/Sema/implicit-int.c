@@ -1,6 +1,6 @@
-// RUN: %clang_cc1 -fsyntax-only %s -verify -pedantic -Wno-strict-prototypes
+// RUN: %clang_cc1 -fsyntax-only %s -verify -pedantic
 
-foo(void) { // expected-warning {{type specifier missing, defaults to 'int'}}
+foo() { // expected-warning {{type specifier missing, defaults to 'int'}}
   return 0;
 }
 

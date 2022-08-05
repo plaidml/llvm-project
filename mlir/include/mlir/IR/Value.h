@@ -24,7 +24,6 @@ class Block;
 class BlockArgument;
 class Operation;
 class OpOperand;
-class OpPrintingFlags;
 class OpResult;
 class Region;
 class Value;
@@ -216,7 +215,6 @@ public:
   // Utilities
 
   void print(raw_ostream &os);
-  void print(raw_ostream &os, const OpPrintingFlags &flags);
   void print(raw_ostream &os, AsmState &state);
   void dump();
 

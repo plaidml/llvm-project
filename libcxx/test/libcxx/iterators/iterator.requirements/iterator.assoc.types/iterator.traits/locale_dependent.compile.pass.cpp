@@ -8,6 +8,7 @@
 
 // UNSUPPORTED: c++03, c++11, c++14, c++17
 // UNSUPPORTED: libcpp-has-no-localization
+// UNSUPPORTED: libcpp-no-concepts
 
 #include <iterator>
 

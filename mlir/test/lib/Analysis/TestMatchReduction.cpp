@@ -11,7 +11,6 @@
 //===----------------------------------------------------------------------===//
 
 #include "mlir/Analysis/SliceAnalysis.h"
-#include "mlir/IR/FunctionInterfaces.h"
 #include "mlir/Pass/Pass.h"
 
 using namespace mlir;
@@ -35,19 +34,18 @@ void printReductionResult(Operation *redRegionOp, unsigned numOutput,
 }
 
 struct TestMatchReductionPass
-    : public PassWrapper<TestMatchReductionPass,
-                         InterfacePass<FunctionOpInterface>> {
+    : public PassWrapper<TestMatchReductionPass, OperationPass<FuncOp>> {
   StringRef getArgument() const final { return "test-match-reduction"; }
   StringRef getDescription() const final {
     return "Test the match reduction utility.";
   }
 
   void runOnOperation() override {
-    FunctionOpInterface func = getOperation();
+    FuncOp func = getOperation();
     func->emitRemark("Testing function");
 
     func.walk<WalkOrder::PreOrder>([](Operation *op) {
-      if (isa<FunctionOpInterface>(op))
+      if (isa<FuncOp>(op))
         return;
 
       // Limit testing to ops with only one region.

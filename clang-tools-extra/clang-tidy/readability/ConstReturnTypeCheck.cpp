@@ -97,9 +97,7 @@ void ConstReturnTypeCheck::registerMatchers(MatchFinder *Finder) {
   // Find all function definitions for which the return types are `const`
   // qualified.
   Finder->addMatcher(
-      functionDecl(returns(isConstQualified()),
-                   anyOf(isDefinition(), cxxMethodDecl(isPure())))
-          .bind("func"),
+      functionDecl(returns(isConstQualified()), isDefinition()).bind("func"),
       this);
 }
 
@@ -117,12 +115,6 @@ void ConstReturnTypeCheck::check(const MatchFinder::MatchResult &Result) {
         << Def->getReturnType();
     if (CR.ConstRange.isValid())
       Diagnostic << CR.ConstRange;
-
-    // Do not propose fixes for virtual function.
-    const auto *Method = dyn_cast<CXXMethodDecl>(Def);
-    if (Method && Method->isVirtual())
-      return;
-
     for (auto &Hint : CR.Hints)
       Diagnostic << Hint;
   }

@@ -31,13 +31,15 @@ struct CompressedData {
 // It is composed of multiple InputSections.
 // The writer creates multiple OutputSections and assign them unique,
 // non-overlapping file offsets and VAs.
-class OutputSection final : public SectionBase {
+class OutputSection final : public SectionCommand, public SectionBase {
 public:
   OutputSection(StringRef name, uint32_t type, uint64_t flags);
 
   static bool classof(const SectionBase *s) {
     return s->kind() == SectionBase::Output;
   }
+
+  static bool classof(const SectionCommand *c);
 
   uint64_t getLMA() const { return ptLoad ? addr + ptLoad->lmaOffset : addr; }
   template <typename ELFT> void writeHeaderTo(typename ELFT::Shdr *sHdr);
@@ -115,16 +117,6 @@ private:
   CompressedData compressed;
 
   std::array<uint8_t, 4> getFiller();
-};
-
-struct OutputDesc final : SectionCommand {
-  OutputSection osec;
-  OutputDesc(StringRef name, uint32_t type, uint64_t flags)
-      : SectionCommand(OutputSectionKind), osec(name, type, flags) {}
-
-  static bool classof(const SectionCommand *c) {
-    return c->kind == OutputSectionKind;
-  }
 };
 
 int getPriority(StringRef s);

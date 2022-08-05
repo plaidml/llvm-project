@@ -73,7 +73,7 @@ public:
 };
 
 constexpr const int BS = 16;
-constexpr const int N = 256;
+constexpr const int N = 16;
 
 int BlockMatMul_TargetNowait(BlockMatrix &A, BlockMatrix &B, BlockMatrix &C) {
 #pragma omp parallel

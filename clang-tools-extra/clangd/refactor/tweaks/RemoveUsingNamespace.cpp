@@ -8,6 +8,7 @@
 #include "AST.h"
 #include "FindTarget.h"
 #include "Selection.h"
+#include "SourceCode.h"
 #include "refactor/Tweak.h"
 #include "support/Logger.h"
 #include "clang/AST/Decl.h"
@@ -16,6 +17,8 @@
 #include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/Basic/SourceLocation.h"
 #include "clang/Tooling/Core/Replacement.h"
+#include "clang/Tooling/Refactoring/RecursiveSymbolVisitor.h"
+#include "llvm/ADT/ScopeExit.h"
 
 namespace clang {
 namespace clangd {

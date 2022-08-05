@@ -25,7 +25,6 @@
 using namespace lldb;
 using namespace lldb_private;
 using namespace lldb_private::npdb;
-using namespace lldb_private::dwarf;
 using namespace llvm::pdb;
 
 static std::unique_ptr<IPDBFrameData>

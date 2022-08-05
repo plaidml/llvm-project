@@ -10,6 +10,7 @@
 #define LLVM_DWARFLINKER_DWARFSTREAMER_H
 
 #include "llvm/BinaryFormat/Swift.h"
+#include "llvm/CodeGen/AccelTable.h"
 #include "llvm/CodeGen/AsmPrinter.h"
 #include "llvm/DWARFLinker/DWARFLinker.h"
 #include "llvm/MC/MCAsmInfo.h"
@@ -21,7 +22,6 @@
 #include "llvm/Target/TargetMachine.h"
 
 namespace llvm {
-template <typename DataT> class AccelTable;
 
 enum class OutputFileType {
   Object,

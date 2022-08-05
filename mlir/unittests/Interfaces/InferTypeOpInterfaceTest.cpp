@@ -8,7 +8,7 @@
 
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
-#include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Dialect.h"
@@ -16,7 +16,7 @@
 #include "mlir/IR/ImplicitLocOpBuilder.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/OpImplementation.h"
-#include "mlir/Parser/Parser.h"
+#include "mlir/Parser.h"
 
 #include <gtest/gtest.h>
 
@@ -33,15 +33,15 @@ protected:
       }
     )MLIR";
 
-    registry.insert<func::FuncDialect, arith::ArithmeticDialect>();
+    registry.insert<StandardOpsDialect, arith::ArithmeticDialect>();
     ctx.appendDialectRegistry(registry);
-    module = parseSourceString<ModuleOp>(ir, &ctx);
+    module = parseSourceString(ir, &ctx);
     mapFn = cast<FuncOp>(module->front());
   }
 
   // Create ValueShapeRange on the arith.addi operation.
   ValueShapeRange addiRange() {
-    auto &fnBody = mapFn.getBody();
+    auto &fnBody = mapFn.body();
     return std::next(fnBody.front().begin())->getOperands();
   }
 

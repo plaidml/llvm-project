@@ -20,7 +20,7 @@
 
 _LIBCPP_BEGIN_NAMESPACE_STD
 
-#if _LIBCPP_STD_VER > 17
+#ifndef _LIBCPP_HAS_NO_CONCEPTS
 
 namespace ranges {
 template <class _I1, class _O1, class _O2>
@@ -45,7 +45,7 @@ struct in_out_out_result {
 };
 } // namespace ranges
 
-#endif // _LIBCPP_STD_VER > 17
+#endif // _LIBCPP_HAS_NO_CONCEPTS
 
 _LIBCPP_END_NAMESPACE_STD
 

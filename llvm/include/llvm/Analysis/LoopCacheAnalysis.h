@@ -16,6 +16,7 @@
 
 #include "llvm/Analysis/LoopAnalysisManager.h"
 #include "llvm/IR/PassManager.h"
+#include "llvm/Support/raw_ostream.h"
 
 namespace llvm {
 
@@ -23,9 +24,6 @@ class AAResults;
 class DependenceInfo;
 class Instruction;
 class LPMUpdater;
-class raw_ostream;
-class LoopInfo;
-class Loop;
 class ScalarEvolution;
 class SCEV;
 class TargetTransformInfo;

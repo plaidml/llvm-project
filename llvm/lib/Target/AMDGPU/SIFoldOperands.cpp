@@ -490,8 +490,6 @@ static bool isUseSafeToFold(const SIInstrInfo *TII,
   case AMDGPU::V_MOV_B32_e32:
   case AMDGPU::V_MOV_B32_e64:
   case AMDGPU::V_MOV_B64_PSEUDO:
-  case AMDGPU::V_MOV_B64_e32:
-  case AMDGPU::V_MOV_B64_e64:
     // Do not fold into an indirect mov.
     return !MI.hasRegisterImplicitUseOperand(AMDGPU::M0);
   }
@@ -1602,9 +1600,8 @@ bool SIFoldOperands::tryFoldRegSequence(MachineInstr &MI) {
 
   unsigned OpIdx = Op - &UseMI->getOperand(0);
   const MCInstrDesc &InstDesc = UseMI->getDesc();
-  const TargetRegisterClass *OpRC =
-      TII->getRegClass(InstDesc, OpIdx, TRI, *MI.getMF());
-  if (!OpRC || !TRI->isVectorSuperClass(OpRC))
+  if (!TRI->isVectorSuperClass(
+          TRI->getRegClass(InstDesc.OpInfo[OpIdx].RegClass)))
     return false;
 
   const auto *NewDstRC = TRI->getEquivalentAGPRClass(MRI->getRegClass(Reg));

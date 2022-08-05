@@ -9,10 +9,9 @@
 #ifndef LLVM_ANALYSIS_VALUELATTICE_H
 #define LLVM_ANALYSIS_VALUELATTICE_H
 
-#include "llvm/IR/Constants.h"
 #include "llvm/IR/ConstantRange.h"
 #include "llvm/IR/Instructions.h"
-
+//
 //===----------------------------------------------------------------------===//
 //                               ValueLatticeElement
 //===----------------------------------------------------------------------===//

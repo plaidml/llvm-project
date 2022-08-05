@@ -10,7 +10,6 @@
 //
 //===---------------------------------------------------------------------===//
 
-#include "InputFiles.h"
 #include "SymbolTable.h"
 #include "Writer.h"
 

@@ -167,9 +167,7 @@ MachineOperand *GCNDPPCombine::getOldOpndValue(MachineOperand &OldOpnd) const {
     return nullptr;
   case AMDGPU::COPY:
   case AMDGPU::V_MOV_B32_e32:
-  case AMDGPU::V_MOV_B64_PSEUDO:
-  case AMDGPU::V_MOV_B64_e32:
-  case AMDGPU::V_MOV_B64_e64: {
+  case AMDGPU::V_MOV_B64_PSEUDO: {
     auto &Op1 = Def->getOperand(1);
     if (Op1.isImm())
       return &Op1;
@@ -185,7 +183,6 @@ MachineInstr *GCNDPPCombine::createDPPInst(MachineInstr &OrigMI,
                                            bool CombBCZ,
                                            bool IsShrinkable) const {
   assert(MovMI.getOpcode() == AMDGPU::V_MOV_B32_dpp ||
-         MovMI.getOpcode() == AMDGPU::V_MOV_B64_dpp ||
          MovMI.getOpcode() == AMDGPU::V_MOV_B64_DPP_PSEUDO);
 
   auto OrigOp = OrigMI.getOpcode();
@@ -386,7 +383,6 @@ bool GCNDPPCombine::hasNoImmOrEqual(MachineInstr &MI, unsigned OpndName,
 
 bool GCNDPPCombine::combineDPPMov(MachineInstr &MovMI) const {
   assert(MovMI.getOpcode() == AMDGPU::V_MOV_B32_dpp ||
-         MovMI.getOpcode() == AMDGPU::V_MOV_B64_dpp ||
          MovMI.getOpcode() == AMDGPU::V_MOV_B64_DPP_PSEUDO);
   LLVM_DEBUG(dbgs() << "\nDPP combine: " << MovMI);
 
@@ -403,8 +399,7 @@ bool GCNDPPCombine::combineDPPMov(MachineInstr &MovMI) const {
     return false;
   }
 
-  if (MovMI.getOpcode() == AMDGPU::V_MOV_B64_DPP_PSEUDO ||
-      MovMI.getOpcode() == AMDGPU::V_MOV_B64_dpp) {
+  if (MovMI.getOpcode() == AMDGPU::V_MOV_B64_DPP_PSEUDO) {
     auto *DppCtrl = TII->getNamedOperand(MovMI, AMDGPU::OpName::dpp_ctrl);
     assert(DppCtrl && DppCtrl->isImm());
     if (!AMDGPU::isLegal64BitDPPControl(DppCtrl->getImm())) {
@@ -621,8 +616,7 @@ bool GCNDPPCombine::runOnMachineFunction(MachineFunction &MF) {
       if (MI.getOpcode() == AMDGPU::V_MOV_B32_dpp && combineDPPMov(MI)) {
         Changed = true;
         ++NumDPPMovsCombined;
-      } else if (MI.getOpcode() == AMDGPU::V_MOV_B64_DPP_PSEUDO ||
-                 MI.getOpcode() == AMDGPU::V_MOV_B64_dpp) {
+      } else if (MI.getOpcode() == AMDGPU::V_MOV_B64_DPP_PSEUDO) {
         if (ST->has64BitDPP() && combineDPPMov(MI)) {
           Changed = true;
           ++NumDPPMovsCombined;

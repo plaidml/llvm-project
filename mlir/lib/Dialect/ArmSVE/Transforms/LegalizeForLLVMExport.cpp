@@ -10,7 +10,6 @@
 #include "mlir/Conversion/LLVMCommon/Pattern.h"
 #include "mlir/Dialect/ArmSVE/ArmSVEDialect.h"
 #include "mlir/Dialect/ArmSVE/Transforms.h"
-#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/PatternMatch.h"
@@ -72,9 +71,9 @@ void mlir::populateArmSVELegalizeForLLVMExportPatterns(
   // Populate conversion patterns
 
   // clang-format off
-  patterns.add<ForwardOperands<func::CallOp>,
-               ForwardOperands<func::CallIndirectOp>,
-               ForwardOperands<func::ReturnOp>>(converter,
+  patterns.add<ForwardOperands<CallOp>,
+               ForwardOperands<CallIndirectOp>,
+               ForwardOperands<ReturnOp>>(converter,
                                           &converter.getContext());
   patterns.add<SdotOpLowering,
                SmmlaOpLowering,

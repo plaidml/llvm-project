@@ -10,7 +10,6 @@
 #include "mlir/Analysis/Presburger/Simplex.h"
 
 using namespace mlir;
-using namespace presburger;
 
 // Return the result of subtracting the two given vectors pointwise.
 // The vectors must be of the same size.
@@ -28,9 +27,9 @@ static SmallVector<int64_t, 8> subtract(ArrayRef<int64_t> vecA,
 
 PresburgerSet PWMAFunction::getDomain() const {
   PresburgerSet domain =
-      PresburgerSet::getEmpty(getNumDimIds(), getNumSymbolIds());
+      PresburgerSet::getEmptySet(getNumDimIds(), getNumSymbolIds());
   for (const MultiAffineFunction &piece : pieces)
-    domain.unionInPlace(piece.getDomain());
+    domain.unionPolyInPlace(piece.getDomain());
   return domain;
 }
 
@@ -77,15 +76,13 @@ void MultiAffineFunction::print(raw_ostream &os) const {
 void MultiAffineFunction::dump() const { print(llvm::errs()); }
 
 bool MultiAffineFunction::isEqual(const MultiAffineFunction &other) const {
-  return PresburgerSpace::isEqual(other) &&
+  return hasCompatibleDimensions(other) &&
          getDomain().isEqual(other.getDomain()) &&
          isEqualWhereDomainsOverlap(other);
 }
 
 unsigned MultiAffineFunction::insertId(IdKind kind, unsigned pos,
                                        unsigned num) {
-  assert((kind != IdKind::Domain || num == 0) &&
-         "Domain has to be zero in a set");
   unsigned absolutePos = getIdKindOffset(kind) + pos;
   output.insertColumns(absolutePos, num);
   return IntegerPolyhedron::insertId(kind, pos, num);
@@ -96,9 +93,8 @@ void MultiAffineFunction::swapId(unsigned posA, unsigned posB) {
   IntegerPolyhedron::swapId(posA, posB);
 }
 
-void MultiAffineFunction::removeIdRange(IdKind kind, unsigned idStart,
-                                        unsigned idLimit) {
-  output.removeColumns(idStart + getIdKindOffset(kind), idLimit - idStart);
+void MultiAffineFunction::removeIdRange(unsigned idStart, unsigned idLimit) {
+  output.removeColumns(idStart, idLimit - idStart);
   IntegerPolyhedron::removeIdRange(idStart, idLimit);
 }
 
@@ -110,7 +106,7 @@ void MultiAffineFunction::eliminateRedundantLocalId(unsigned posA,
 
 bool MultiAffineFunction::isEqualWhereDomainsOverlap(
     MultiAffineFunction other) const {
-  if (!PresburgerSpace::isEqual(other))
+  if (!hasCompatibleDimensions(other))
     return false;
 
   // `commonFunc` has the same output as `this`.
@@ -143,7 +139,7 @@ bool MultiAffineFunction::isEqualWhereDomainsOverlap(
 /// Two PWMAFunctions are equal if they have the same dimensionalities,
 /// the same domain, and take the same value at every point in the domain.
 bool PWMAFunction::isEqual(const PWMAFunction &other) const {
-  if (!PresburgerSpace::isEqual(other))
+  if (!hasCompatibleDimensions(other))
     return false;
 
   if (!this->getDomain().isEqual(other.getDomain()))
@@ -161,7 +157,7 @@ bool PWMAFunction::isEqual(const PWMAFunction &other) const {
 }
 
 void PWMAFunction::addPiece(const MultiAffineFunction &piece) {
-  assert(piece.isSpaceEqual(*this) &&
+  assert(hasCompatibleDimensions(piece) &&
          "Piece to be added is not compatible with this PWMAFunction!");
   assert(piece.isConsistent() && "Piece is internally inconsistent!");
   assert(this->getDomain()
@@ -180,4 +176,23 @@ void PWMAFunction::print(raw_ostream &os) const {
   os << pieces.size() << " pieces:\n";
   for (const MultiAffineFunction &piece : pieces)
     piece.print(os);
+}
+
+/// The hasCompatibleDimensions functions don't check the number of local ids;
+/// functions are still compatible if they have differing number of locals.
+bool MultiAffineFunction::hasCompatibleDimensions(
+    const MultiAffineFunction &f) const {
+  return getNumDimIds() == f.getNumDimIds() &&
+         getNumSymbolIds() == f.getNumSymbolIds() &&
+         getNumOutputs() == f.getNumOutputs();
+}
+bool PWMAFunction::hasCompatibleDimensions(const MultiAffineFunction &f) const {
+  return getNumDimIds() == f.getNumDimIds() &&
+         getNumSymbolIds() == f.getNumSymbolIds() &&
+         getNumOutputs() == f.getNumOutputs();
+}
+bool PWMAFunction::hasCompatibleDimensions(const PWMAFunction &f) const {
+  return getNumDimIds() == f.getNumDimIds() &&
+         getNumSymbolIds() == f.getNumSymbolIds() &&
+         getNumOutputs() == f.getNumOutputs();
 }

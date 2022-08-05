@@ -262,13 +262,6 @@ void SystemZAsmPrinter::emitInstruction(const MachineInstr *MI) {
     emitCallInformation(CallType::BASR76);
     return;
 
-  case SystemZ::CallBASR_STACKEXT:
-    EmitToStreamer(*OutStreamer, MCInstBuilder(SystemZ::BASR)
-                                     .addReg(SystemZ::R3D)
-                                     .addReg(MI->getOperand(0).getReg()));
-    emitCallInformation(CallType::BASR33);
-    return;
-
   case SystemZ::CallBRASL:
     LoweredMI = MCInstBuilder(SystemZ::BRASL)
       .addReg(SystemZ::R14D)

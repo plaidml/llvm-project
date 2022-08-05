@@ -26,10 +26,10 @@ translating the following operations:
 *   'cf' Dialect
     *   `cf.br`
     *   `cf.cond_br`
-*   'func' Dialect
-    *   `func.call`
-    *   `func.constant`
-    *   `func.return`
+*   'std' Dialect
+    *   `std.call`
+    *   `std.constant`
+    *   `std.return`
 *   'scf' Dialect
     *   `scf.for`
     *   `scf.if`

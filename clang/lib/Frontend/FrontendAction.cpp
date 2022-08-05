@@ -331,7 +331,7 @@ static std::error_code collectModuleHeaderIncludes(
     return std::error_code();
 
   // Resolve all lazy header directives to header files.
-  ModMap.resolveHeaderDirectives(Module, /*File=*/llvm::None);
+  ModMap.resolveHeaderDirectives(Module);
 
   // If any headers are missing, we can't build this module. In most cases,
   // diagnostics for this should have already been produced; we only get here
@@ -464,15 +464,6 @@ static bool loadModuleMapForModuleBuild(CompilerInstance &CI, bool IsSystem,
 
   if (SrcMgr.getBufferOrFake(ModuleMapID).getBufferSize() == Offset)
     Offset = 0;
-
-  // Infer framework module if possible.
-  if (HS.getModuleMap().canInferFrameworkModule(ModuleMap->getDir())) {
-    SmallString<128> InferredFrameworkPath = ModuleMap->getDir()->getName();
-    llvm::sys::path::append(InferredFrameworkPath,
-                            CI.getLangOpts().ModuleName + ".framework");
-    if (auto Dir = CI.getFileManager().getDirectory(InferredFrameworkPath))
-      (void)HS.getModuleMap().inferFrameworkModule(*Dir, IsSystem, nullptr);
-  }
 
   return false;
 }

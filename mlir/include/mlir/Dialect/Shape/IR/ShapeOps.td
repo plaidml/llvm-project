@@ -865,6 +865,7 @@ def Shape_AssumingOp : Shape_Op<"assuming", [
 
   let hasCanonicalizer = 1;
   let hasCustomAssemblyFormat = 1;
+  let hasVerifier = 1;
 }
 
 def Shape_AssumingYieldOp : Shape_Op<"assuming_yield",

@@ -565,48 +565,12 @@ _additional_ verification, you can use
 
 ```tablegen
 let hasVerifier = 1;
-let hasRegionVerifier = 1;
 ```
 
-This will generate `LogicalResult verify()`/`LogicalResult verifyRegions()`
-method declarations on the op class that can be defined with any additional
-verification constraints. For verificaiton which needs to access the nested
-operations, you should use `hasRegionVerifier` to ensure that it won't access
-any ill-formed operation. Except that, The other verifications can be
-implemented with `hasVerifier`. Check the next section for the execution order
-of these verification methods.
-
-#### Verification Ordering
-
-The verification of an operation involves several steps,
-
-1. StructuralOpTrait will be verified first, they can be run independently.
-1. `verifyInvariants` which is constructed by ODS, it verifies the type,
-   attributes, .etc.
-1. Other Traits/Interfaces that have marked their verifier as `verifyTrait` or
-   `verifyWithRegions=0`.
-1. Custom verifier which is defined in the op and has marked `hasVerifier=1`
-
-If an operation has regions, then it may have the second phase,
-
-1. Traits/Interfaces that have marked their verifier as `verifyRegionTrait` or
-   `verifyWithRegions=1`. This implies the verifier needs to access the
-   operations in its regions.
-1. Custom verifier which is defined in the op and has marked
-   `hasRegionVerifier=1`
-
-Note that the second phase will be run after the operations in the region are
-verified. Verifiers further down the order can rely on certain invariants being
-verified by a previous verifier and do not need to re-verify them.
-
-#### Emitting diagnostics in custom verifiers
-
-Custom verifiers should avoid printing operations using custom operation
-printers, because they require the printed operation (and sometimes its parent
-operation) to be verified first. In particular, when emitting diagnostics,
-custom verifiers should use the `Error` severity level, which prints operations
-in generic form by default, and avoid using lower severity levels (`Note`,
-`Remark`, `Warning`).
+This will generate a `LogicalResult verify()` method declaration on the op class
+that can be defined with any additional verification constraints. This method
+will be invoked after the auto-generated verification code. The order of trait
+verification excluding those of `hasVerifier` should not be relied upon.
 
 ### Declarative Assembly Format
 
@@ -868,7 +832,7 @@ The `elements` of an optional group have the following requirements:
     -   All region variables can be used. When a non-variable length region is
         used, if the group is not present the region is empty.
 
-An example of an operation with an optional group is `func.return`, which has a
+An example of an operation with an optional group is `std.return`, which has a
 variadic number of operands.
 
 ```tablegen

@@ -61,6 +61,7 @@
 #include <algorithm>
 #include <cassert>
 #include <forward_list>
+#include <set>
 #include <tuple>
 #include <utility>
 

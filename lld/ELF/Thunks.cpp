@@ -22,7 +22,6 @@
 
 #include "Thunks.h"
 #include "Config.h"
-#include "InputFiles.h"
 #include "InputSection.h"
 #include "OutputSections.h"
 #include "Symbols.h"

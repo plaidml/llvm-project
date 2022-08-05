@@ -19,7 +19,6 @@
 #include "mlir/Interfaces/LoopLikeInterface.h"
 #include "mlir/Pass/Pass.h"
 #include "llvm/ADT/SetOperations.h"
-#include "llvm/ADT/SmallString.h"
 
 using namespace mlir;
 using namespace mlir::bufferization;
@@ -78,7 +77,7 @@ void BufferPlacementAllocs::build(Operation *op) {
     // Get allocation result.
     Value allocValue = allocateResultEffects[0].getValue();
     // Find the associated dealloc value and register the allocation entry.
-    llvm::Optional<Operation *> dealloc = memref::findDealloc(allocValue);
+    llvm::Optional<Operation *> dealloc = findDealloc(allocValue);
     // If the allocation has > 1 dealloc associated with it, skip handling it.
     if (!dealloc.hasValue())
       return;

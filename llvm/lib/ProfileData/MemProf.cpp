@@ -1,5 +1,4 @@
 #include "llvm/ProfileData/MemProf.h"
-#include "llvm/ProfileData/InstrProf.h"
 #include "llvm/Support/Endian.h"
 #include "llvm/Support/EndianStream.h"
 

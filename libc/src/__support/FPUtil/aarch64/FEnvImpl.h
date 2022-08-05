@@ -11,7 +11,7 @@
 
 #include "src/__support/architectures.h"
 
-#if !defined(LLVM_LIBC_ARCH_AARCH64) || defined(__APPLE__)
+#if !defined(LLVM_LIBC_ARCH_AARCH64)
 #error "Invalid include"
 #endif
 
@@ -118,7 +118,7 @@ static inline int test_except(int excepts) {
 }
 
 static inline int set_except(int excepts) {
-  uint32_t statusWord = FEnv::getStatusWord();
+  uint32_t statusWord = FEnv::getControlWord();
   uint32_t statusValue = FEnv::getStatusValueForExcept(excepts);
   statusWord |= (statusValue << FEnv::ExceptionStatusFlagsBitPosition);
   FEnv::writeStatusWord(statusWord);
@@ -140,14 +140,13 @@ static inline int raise_except(int excepts) {
   };
 
   uint32_t toRaise = FEnv::getStatusValueForExcept(excepts);
-  int result = 0;
 
   if (toRaise & FEnv::INVALID) {
     divfunc(zero, zero);
     uint32_t statusWord = FEnv::getStatusWord();
     if (!((statusWord >> FEnv::ExceptionStatusFlagsBitPosition) &
           FEnv::INVALID))
-      result = -1;
+      return -1;
   }
 
   if (toRaise & FEnv::DIVBYZERO) {
@@ -155,21 +154,21 @@ static inline int raise_except(int excepts) {
     uint32_t statusWord = FEnv::getStatusWord();
     if (!((statusWord >> FEnv::ExceptionStatusFlagsBitPosition) &
           FEnv::DIVBYZERO))
-      result = -1;
+      return -1;
   }
   if (toRaise & FEnv::OVERFLOW) {
     divfunc(largeValue, smallValue);
     uint32_t statusWord = FEnv::getStatusWord();
     if (!((statusWord >> FEnv::ExceptionStatusFlagsBitPosition) &
           FEnv::OVERFLOW))
-      result = -1;
+      return -1;
   }
   if (toRaise & FEnv::UNDERFLOW) {
     divfunc(smallValue, largeValue);
     uint32_t statusWord = FEnv::getStatusWord();
     if (!((statusWord >> FEnv::ExceptionStatusFlagsBitPosition) &
           FEnv::UNDERFLOW))
-      result = -1;
+      return -1;
   }
   if (toRaise & FEnv::INEXACT) {
     float two = 2.0f;
@@ -180,9 +179,9 @@ static inline int raise_except(int excepts) {
     uint32_t statusWord = FEnv::getStatusWord();
     if (!((statusWord >> FEnv::ExceptionStatusFlagsBitPosition) &
           FEnv::INEXACT))
-      result = -1;
+      return -1;
   }
-  return result;
+  return 0;
 }
 
 static inline int get_round() {

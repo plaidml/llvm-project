@@ -21,7 +21,7 @@ namespace {
 /// a greedy mapping strategy.
 class TestGpuGreedyParallelLoopMappingPass
     : public PassWrapper<TestGpuGreedyParallelLoopMappingPass,
-                         OperationPass<>> {
+                         OperationPass<FuncOp>> {
   StringRef getArgument() const final {
     return "test-gpu-greedy-parallel-loop-mapping";
   }
@@ -29,7 +29,8 @@ class TestGpuGreedyParallelLoopMappingPass
     return "Greedily maps all parallel loops to gpu hardware ids.";
   }
   void runOnOperation() override {
-    for (Region &region : getOperation()->getRegions())
+    Operation *op = getOperation();
+    for (Region &region : op->getRegions())
       greedilyMapParallelSCFToGPU(region);
   }
 };

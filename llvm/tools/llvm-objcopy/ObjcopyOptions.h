@@ -41,9 +41,7 @@ parseInstallNameToolOptions(ArrayRef<const char *> ArgsArr);
 // ParseBitcodeStripOptions returns the config and sets the input arguments.
 // If a help flag is set then ParseBitcodeStripOptions will print the help
 // messege and exit.
-Expected<DriverConfig>
-parseBitcodeStripOptions(ArrayRef<const char *> ArgsArr,
-                         llvm::function_ref<Error(Error)> ErrorCallback);
+Expected<DriverConfig> parseBitcodeStripOptions(ArrayRef<const char *> ArgsArr);
 
 // ParseStripOptions returns the config and sets the input arguments. If a
 // help flag is set then ParseStripOptions will print the help messege and

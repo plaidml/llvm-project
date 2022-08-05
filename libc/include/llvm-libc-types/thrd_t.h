@@ -9,10 +9,8 @@
 #ifndef __LLVM_LIBC_TYPES_THRD_T_H__
 #define __LLVM_LIBC_TYPES_THRD_T_H__
 
-#include <llvm-libc-types/__futex_word.h>
-
 typedef struct {
-  __futex_word __clear_tid;
+  unsigned char __clear_tid[4];
   int __tid;
   void *__stack;
   int __stack_size;

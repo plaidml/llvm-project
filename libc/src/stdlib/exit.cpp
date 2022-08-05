@@ -13,11 +13,11 @@
 namespace __llvm_libc {
 
 namespace internal {
-void call_exit_callbacks();
+void call_exit_handlers();
 }
 
 LLVM_LIBC_FUNCTION(void, exit, (int status)) {
-  internal::call_exit_callbacks();
+  internal::call_exit_handlers();
   _Exit(status);
 }
 

@@ -18,6 +18,7 @@
 #include "mlir/Dialect/Affine/Utils.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/SCF/SCF.h"
+#include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/Dialect/Vector/IR/VectorOps.h"
 #include "mlir/IR/BlockAndValueMapping.h"
 #include "mlir/IR/IntegerSet.h"
@@ -552,8 +553,9 @@ class LowerAffinePass : public ConvertAffineToStandardBase<LowerAffinePass> {
     populateAffineToStdConversionPatterns(patterns);
     populateAffineToVectorConversionPatterns(patterns);
     ConversionTarget target(getContext());
-    target.addLegalDialect<arith::ArithmeticDialect, memref::MemRefDialect,
-                           scf::SCFDialect, VectorDialect>();
+    target
+        .addLegalDialect<arith::ArithmeticDialect, memref::MemRefDialect,
+                         scf::SCFDialect, StandardOpsDialect, VectorDialect>();
     if (failed(applyPartialConversion(getOperation(), target,
                                       std::move(patterns))))
       signalPassFailure();

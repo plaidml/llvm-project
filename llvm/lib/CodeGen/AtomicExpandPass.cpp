@@ -621,10 +621,6 @@ bool AtomicExpand::tryExpandAtomicRMW(AtomicRMWInst *AI) {
     expandAtomicRMWToMaskedIntrinsic(AI);
     return true;
   }
-  case TargetLoweringBase::AtomicExpansionKind::BitTestIntrinsic: {
-    TLI->emitBitTestAtomicRMWIntrinsic(AI);
-    return true;
-  }
   default:
     llvm_unreachable("Unhandled case in tryExpandAtomicRMW");
   }

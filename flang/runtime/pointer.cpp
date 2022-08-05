@@ -147,22 +147,16 @@ bool RTNAME(PointerIsAssociated)(const Descriptor &pointer) {
 }
 
 bool RTNAME(PointerIsAssociatedWith)(
-    const Descriptor &pointer, const Descriptor *target) {
-  if (!target) {
-    return pointer.raw().base_addr != nullptr;
-  }
-  if (!target->raw().base_addr || target->ElementBytes() == 0) {
-    return false;
-  }
+    const Descriptor &pointer, const Descriptor &target) {
   int rank{pointer.rank()};
-  if (pointer.raw().base_addr != target->raw().base_addr ||
-      pointer.ElementBytes() != target->ElementBytes() ||
-      rank != target->rank()) {
+  if (pointer.raw().base_addr != target.raw().base_addr ||
+      pointer.ElementBytes() != target.ElementBytes() ||
+      rank != target.rank()) {
     return false;
   }
   for (int j{0}; j < rank; ++j) {
     const Dimension &pDim{pointer.GetDimension(j)};
-    const Dimension &tDim{target->GetDimension(j)};
+    const Dimension &tDim{target.GetDimension(j)};
     if (pDim.Extent() != tDim.Extent() ||
         pDim.ByteStride() != tDim.ByteStride()) {
       return false;

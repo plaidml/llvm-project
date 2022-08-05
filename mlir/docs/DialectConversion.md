@@ -100,9 +100,9 @@ struct MyTarget : public ConversionTarget {
     /// constraints.
     addDynamicallyLegalDialect<AffineDialect>([](Operation *op) { ... });
 
-    /// Mark `func.return` as dynamically legal, but provide a specific legality
+    /// Mark `std.return` as dynamically legal, but provide a specific legality
     /// callback.
-    addDynamicallyLegalOp<func::ReturnOp>([](func::ReturnOp op) { ... });
+    addDynamicallyLegalOp<ReturnOp>([](ReturnOp op) { ... });
 
     /// Treat unknown operations, i.e. those without a legalization action
     /// directly set, as dynamically legal.
@@ -424,15 +424,15 @@ Example output is shown below:
 
 ```
 //===-------------------------------------------===//
-Legalizing operation : 'func.return'(0x608000002e20) {
-  "func.return"() : () -> ()
+Legalizing operation : 'std.return'(0x608000002e20) {
+  "std.return"() : () -> ()
 
   * Fold {
   } -> FAILURE : unable to fold
 
-  * Pattern : 'func.return -> ()' {
+  * Pattern : 'std.return -> ()' {
     ** Insert  : 'spv.Return'(0x6070000453e0)
-    ** Replace : 'func.return'(0x608000002e20)
+    ** Replace : 'std.return'(0x608000002e20)
 
     //===-------------------------------------------===//
     Legalizing operation : 'spv.Return'(0x6070000453e0) {
@@ -445,8 +445,8 @@ Legalizing operation : 'func.return'(0x608000002e20) {
 //===-------------------------------------------===//
 ```
 
-This output is describing the legalization of an `func.return` operation. We
+This output is describing the legalization of an `std.return` operation. We
 first try to legalize by folding the operation, but that is unsuccessful for
-`func.return`. From there, a pattern is applied that replaces the `func.return`
+`std.return`. From there, a pattern is applied that replaces the `std.return`
 with a `spv.Return`. The newly generated `spv.Return` is then processed for
 legalization, but is found to already legal as per the target.

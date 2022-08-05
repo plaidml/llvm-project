@@ -100,6 +100,7 @@
 #include "llvm/Support/AtomicOrdering.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/CommandLine.h"
+#include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/MathExtras.h"
 #include "llvm/Support/raw_ostream.h"
@@ -835,19 +836,13 @@ void Verifier::visitGlobalAlias(const GlobalAlias &GA) {
 }
 
 void Verifier::visitGlobalIFunc(const GlobalIFunc &GI) {
-  Assert(GlobalIFunc::isValidLinkage(GI.getLinkage()),
-         "IFunc should have private, internal, linkonce, weak, linkonce_odr, "
-         "weak_odr, or external linkage!",
-         &GI);
   // Pierce through ConstantExprs and GlobalAliases and check that the resolver
-  // is a Function definition.
+  // has a Function 
   const Function *Resolver = GI.getResolverFunction();
   Assert(Resolver, "IFunc must have a Function resolver", &GI);
-  Assert(!Resolver->isDeclarationForLinker(),
-         "IFunc resolver must be a definition", &GI);
 
   // Check that the immediate resolver operand (prior to any bitcasts) has the
-  // correct type.
+  // correct type
   const Type *ResolverTy = GI.getResolver()->getType();
   const Type *ResolverFuncTy =
       GlobalIFunc::getResolverFunctionType(GI.getValueType());
@@ -2165,7 +2160,7 @@ void Verifier::verifyInlineAsmCall(const CallBase &Call) {
              "Operand for indirect constraint must have pointer type",
              &Call);
 
-      Assert(Call.getParamElementType(ArgNo),
+      Assert(Call.getAttributes().getParamElementType(ArgNo),
              "Operand for indirect constraint must have elementtype attribute",
              &Call);
     } else {
@@ -2198,7 +2193,7 @@ void Verifier::verifyStatepoint(const CallBase &Call) {
          "positive",
          Call);
 
-  Type *TargetElemType = Call.getParamElementType(2);
+  Type *TargetElemType = Call.getAttributes().getParamElementType(2);
   Assert(TargetElemType,
          "gc.statepoint callee argument must have elementtype attribute", Call);
   FunctionType *TargetFuncType = dyn_cast<FunctionType>(TargetElemType);
@@ -3874,10 +3869,6 @@ void Verifier::visitAllocaInst(AllocaInst &AI) {
   }
 
   if (AI.isSwiftError()) {
-    Assert(AI.getAllocatedType()->isPointerTy(),
-           "swifterror alloca must have pointer type", &AI);
-    Assert(!AI.isArrayAllocation(),
-           "swifterror alloca must not be array allocation", &AI);
     verifySwiftErrorValue(&AI);
   }
 
@@ -5053,8 +5044,8 @@ void Verifier::visitIntrinsicCall(Intrinsic::ID ID, CallBase &Call) {
            Call.getArgOperand(0));
 
     // Assert that result type matches wrapped callee.
-    auto *TargetFuncType =
-        cast<FunctionType>(StatepointCall->getParamElementType(2));
+    auto *TargetFuncType = cast<FunctionType>(
+        StatepointCall->getAttributes().getParamElementType(2));
     Assert(Call.getType() == TargetFuncType->getReturnType(),
            "gc.result result type does not match wrapped callee", Call);
     break;
@@ -5499,7 +5490,7 @@ void Verifier::visitIntrinsicCall(Intrinsic::ID ID, CallBase &Call) {
   }
   case Intrinsic::preserve_array_access_index:
   case Intrinsic::preserve_struct_access_index: {
-    Type *ElemTy = Call.getParamElementType(0);
+    Type *ElemTy = Call.getAttributes().getParamElementType(0);
     Assert(ElemTy,
            "Intrinsic requires elementtype attribute on first argument.",
            &Call);

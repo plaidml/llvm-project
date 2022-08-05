@@ -29,19 +29,21 @@ TEST(LlvmLibcSinfTest, SpecialNumbers) {
   errno = 0;
 
   EXPECT_FP_EQ(aNaN, __llvm_libc::sinf(aNaN));
-  EXPECT_MATH_ERRNO(0);
+  EXPECT_EQ(errno, 0);
 
   EXPECT_FP_EQ(0.0f, __llvm_libc::sinf(0.0f));
-  EXPECT_MATH_ERRNO(0);
+  EXPECT_EQ(errno, 0);
 
   EXPECT_FP_EQ(-0.0f, __llvm_libc::sinf(-0.0f));
-  EXPECT_MATH_ERRNO(0);
+  EXPECT_EQ(errno, 0);
 
+  errno = 0;
   EXPECT_FP_EQ(aNaN, __llvm_libc::sinf(inf));
-  EXPECT_MATH_ERRNO(EDOM);
+  EXPECT_EQ(errno, EDOM);
 
+  errno = 0;
   EXPECT_FP_EQ(aNaN, __llvm_libc::sinf(neg_inf));
-  EXPECT_MATH_ERRNO(EDOM);
+  EXPECT_EQ(errno, EDOM);
 }
 
 TEST(LlvmLibcSinfTest, InFloatRange) {

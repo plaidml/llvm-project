@@ -3849,7 +3849,7 @@ CodeGenFunction::GenerateObjCAtomicGetterCopyHelperFunction(
       getContext().getTypeAlignInChars(TheCXXConstructExpr->getType());
   EmitAggExpr(TheCXXConstructExpr,
               AggValueSlot::forAddr(
-                  Address(DV.getScalarVal(), ConvertTypeForMem(Ty), Alignment),
+                  Address::deprecated(DV.getScalarVal(), Alignment),
                   Qualifiers(), AggValueSlot::IsDestructed,
                   AggValueSlot::DoesNotNeedGCBarriers,
                   AggValueSlot::IsNotAliased, AggValueSlot::DoesNotOverlap));

@@ -18,6 +18,8 @@
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/GlobalVariable.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/Value.h"
 #include "llvm/Support/Casting.h"
 #include <cassert>
 #include <deque>
@@ -25,7 +27,6 @@
 
 namespace llvm {
 
-class CallBase;
 class DataLayout;
 class Function;
 class TargetLibraryInfo;

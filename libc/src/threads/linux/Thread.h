@@ -11,6 +11,7 @@
 
 #include "thread_start_args.h"
 
+#include <stdatomic.h>
 #include <stdint.h>
 
 namespace __llvm_libc {

@@ -7,9 +7,9 @@
 //===----------------------------------------------------------------------===//
 
 #include "Annotations.h"
+#include "ClangdLSPServer.h"
 #include "ClangdServer.h"
 #include "CodeComplete.h"
-#include "CompileCommands.h"
 #include "ConfigFragment.h"
 #include "GlobalCompilationDatabase.h"
 #include "Matchers.h"
@@ -17,6 +17,7 @@
 #include "TestFS.h"
 #include "TestTU.h"
 #include "TidyProvider.h"
+#include "URI.h"
 #include "refactor/Tweak.h"
 #include "support/MemoryTree.h"
 #include "support/Path.h"
@@ -31,6 +32,7 @@
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Allocator.h"
+#include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/Regex.h"

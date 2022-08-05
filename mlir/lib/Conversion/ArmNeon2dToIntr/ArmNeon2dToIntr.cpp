@@ -49,23 +49,27 @@ public:
 class ConvertArmNeon2dToIntr
     : public ConvertArmNeon2dToIntrBase<ConvertArmNeon2dToIntr> {
   void runOnOperation() override {
+    auto func = getOperation();
     auto *context = &getContext();
 
     RewritePatternSet patterns(context);
     populateConvertArmNeon2dToIntrPatterns(patterns);
 
-    if (failed(
-            applyPatternsAndFoldGreedily(getOperation(), std::move(patterns))))
+    if (failed(applyPatternsAndFoldGreedily(func, std::move(patterns))))
       return signalPassFailure();
   }
 };
 
 } // namespace
 
-void mlir::populateConvertArmNeon2dToIntrPatterns(RewritePatternSet &patterns) {
+namespace mlir {
+
+void populateConvertArmNeon2dToIntrPatterns(RewritePatternSet &patterns) {
   patterns.add<Sdot2dLoweringPattern>(patterns.getContext());
 }
 
-std::unique_ptr<Pass> mlir::createConvertArmNeon2dToIntrPass() {
+std::unique_ptr<OperationPass<FuncOp>> createConvertArmNeon2dToIntrPass() {
   return std::make_unique<ConvertArmNeon2dToIntr>();
 }
+
+} // namespace mlir

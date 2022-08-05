@@ -20,11 +20,10 @@
 //     async(launch policy, F&& f, Args&&... args);
 
 
-#include <atomic>
-#include <cassert>
-#include <chrono>
 #include <future>
+#include <atomic>
 #include <memory>
+#include <cassert>
 
 #include "test_macros.h"
 

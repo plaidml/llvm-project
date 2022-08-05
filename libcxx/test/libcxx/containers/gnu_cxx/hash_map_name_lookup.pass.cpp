@@ -6,8 +6,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-// UNSUPPORTED: modules-build
-
 // Poison the std:: names we might use inside __gnu_cxx to ensure they're
 // properly qualified.
 struct allocator;

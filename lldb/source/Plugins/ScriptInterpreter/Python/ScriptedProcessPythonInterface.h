@@ -49,7 +49,7 @@ public:
   lldb::DataExtractorSP ReadMemoryAtAddress(lldb::addr_t address, size_t size,
                                             Status &error) override;
 
-  StructuredData::ArraySP GetLoadedImages() override;
+  StructuredData::DictionarySP GetLoadedImages() override;
 
   lldb::pid_t GetProcessID() override;
 

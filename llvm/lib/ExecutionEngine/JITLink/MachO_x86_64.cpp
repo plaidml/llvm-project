@@ -504,7 +504,7 @@ void link_MachO_x86_64(std::unique_ptr<LinkGraph> G,
 }
 
 LinkGraphPassFunction createEHFrameSplitterPass_MachO_x86_64() {
-  return DWARFRecordSectionSplitter("__TEXT,__eh_frame");
+  return EHFrameSplitter("__TEXT,__eh_frame");
 }
 
 LinkGraphPassFunction createEHFrameEdgeFixerPass_MachO_x86_64() {

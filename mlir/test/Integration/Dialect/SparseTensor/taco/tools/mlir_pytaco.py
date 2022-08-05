@@ -30,13 +30,12 @@ import os
 import threading
 
 # Import MLIR related modules.
-from mlir import execution_engine
 from mlir import ir
 from mlir import runtime
 from mlir.dialects import arith
 from mlir.dialects import builtin
-from mlir.dialects import func
 from mlir.dialects import linalg
+from mlir.dialects import std
 from mlir.dialects import sparse_tensor
 from mlir.dialects.linalg.opdsl import lang
 
@@ -53,7 +52,6 @@ _INDEX_BIT_WIDTH = 0
 _ENTRY_NAME = "main"
 
 # Type aliases for type annotation.
-_UnaryOp = Callable[[Any], Any]
 _BinaryOp = Callable[[Any, Any], Any]
 _ExprVisitor = Callable[..., None]
 _ExprInfoDict = Dict["IndexExpr", "_ExprInfo"]
@@ -98,7 +96,7 @@ class DType:
     kind: A Type enum representing the data type.
     value: The numpy data type for the TACO data type.
   """
-  kind: Type = Type.FLOAT32
+  kind: Type = Type.FLOAT64
 
   def is_float(self) -> bool:
     """Returns whether the data type represents a floating point value."""
@@ -114,30 +112,6 @@ class DType:
     return self.kind.value
 
 
-def _dtype_to_mlir_str(dtype: DType) -> str:
-  """Returns the MLIR string for the given dtype."""
-  dtype_to_str = {
-      Type.INT16: "i16",
-      Type.INT32: "i32",
-      Type.INT64: "i64",
-      Type.FLOAT32: "f32",
-      Type.FLOAT64: "f64"
-  }
-  return dtype_to_str[dtype.kind]
-
-
-def _nptype_to_taco_type(ty: np.dtype) -> DType:
-  """Returns the TACO type for the given numpy type."""
-  nptype_to_dtype = {
-      np.int16: Type.INT16,
-      np.int32: Type.INT32,
-      np.int64: Type.INT64,
-      np.float32: Type.FLOAT32,
-      np.float64: Type.FLOAT64
-  }
-  return DType(nptype_to_dtype[ty])
-
-
 def _mlir_type_from_taco_type(dtype: DType) -> ir.Type:
   """Returns the MLIR type corresponding to the given TACO type."""
   dtype_to_irtype = {
@@ -148,6 +122,7 @@ def _mlir_type_from_taco_type(dtype: DType) -> ir.Type:
       Type.FLOAT64: ir.F64Type.get()
   }
   return dtype_to_irtype[dtype.kind]
+
 
 def _ctype_pointer_from_array(array: np.ndarray) -> ctypes.pointer:
   """Returns the ctype pointer for the given numpy array."""
@@ -327,13 +302,6 @@ class Format:
     """Returns the number of dimensions represented by the format."""
     return self.format_pack.rank()
 
-  def get_permutation_and_sparsity(self) -> Tuple[np.ndarray, np.ndarray]:
-    """Constructs the numpy arrays for the permutation and sparsity."""
-    perm = np.array(self.ordering.ordering, dtype=np.ulonglong)
-    a = [0 if s == ModeFormat.DENSE else 1 for s in self.format_pack.formats]
-    sparse = np.array(a, dtype=np.uint8)
-    return (perm, sparse)
-
   def mlir_tensor_attr(self) -> Optional[sparse_tensor.EncodingAttr]:
     """Constructs the MLIR attributes for the tensor format."""
     order = (
@@ -456,6 +424,27 @@ def _mlir_tensor_type(
   return ir.RankedTensorType.get(shape, ir_type, attr)
 
 
+def _verify_and_normalize_indices(indices) -> Tuple[IndexVar, ...]:
+  """Verifies and normalizes the indices for a tensor access.
+
+  Args:
+    indices: The index expression used to access a tensor, which could be any
+      Python object from user inputs.
+
+  Returns:
+    A tuple of IndexVar.
+
+  Raises:
+    ValueError: If indices is not an IndexVar or a tuple of IndexVar.
+  """
+  if isinstance(indices, IndexVar):
+    return (indices,)
+  elif isinstance(indices, tuple) and _all_instance_of(indices, IndexVar):
+    return indices
+
+  raise ValueError(f"Expected IndexVars: {indices}")
+
+
 @dataclasses.dataclass(frozen=True)
 class _StructOpInfo:
   """Information for generating a structured op in the linalg dialect.
@@ -486,7 +475,7 @@ class _StructOpInfo:
 
   def emit_tensor_init(self) -> ir.RankedTensorType:
     """Returns an initialization for the destination tensor."""
-    if self.dst_format is None or self.dst_format.rank() == 0:
+    if self.dst_format is None:
       # Initialize the dense tensor.
       ir_type = _mlir_type_from_taco_type(self.dst_dtype)
       tensor = linalg.InitTensorOp(self.dst_dims, ir_type).result
@@ -643,10 +632,9 @@ class Tensor:
     """
     # Take care of the argument default values common to both sparse tensors
     # and dense tensors.
-    dtype = dtype or DType(Type.FLOAT32)
+    dtype = dtype or DType(Type.FLOAT64)
     self._name = name or self._get_unique_name()
     self._assignment = None
-    self._engine = None
     self._sparse_value_location = _SparseValueInfo._UNPACKED
     self._dense_storage = None
     self._dtype = dtype
@@ -700,9 +688,9 @@ class Tensor:
     # Use the output MLIR sparse tensor pointer to retrieve the COO-flavored
     # values and verify the values.
     rank, nse, shape, values, indices = utils.sparse_tensor_to_coo_tensor(
-        self._packed_sparse_value, self._dtype.value)
+        self._packed_sparse_value, np.float64)
     assert rank == self.order
-    assert np.array_equal(self.shape, shape)
+    assert np.allclose(self.shape, shape)
     assert nse == len(values)
     self._coords = indices
     self._values = values
@@ -750,7 +738,7 @@ class Tensor:
 
   def is_dense(self) -> bool:
     """Returns true if the tensor doesn't have sparsity annotation."""
-    return self.order == 0 or self._format is None
+    return self._format is None
 
   def to_array(self) -> np.ndarray:
     """Returns the numpy array for the Tensor.
@@ -769,8 +757,7 @@ class Tensor:
   def from_array(array: np.ndarray) -> "Tensor":
     """Returns a dense tensor with the value copied from the input array.
 
-    We currently only support the conversion of float32 and float64 numpy arrays
-    to Tensor.
+    We currently only support the conversion of float64 numpy arrays to Tensor.
 
     Args:
       array: The numpy array that provides the data type, shape and value for
@@ -780,14 +767,11 @@ class Tensor:
       A Tensor object.
 
     Raises:
-      ValueError if the data type of the numpy array is not supported.
+      ValueError if the data type of the numpy array is not float64.
     """
-    if array.dtype != np.float32 and array.dtype != np.float64:
-      raise ValueError(f"Expected floating point value type: {array.dtype}.")
-    tensor = Tensor(
-        array.shape,
-        dtype=_nptype_to_taco_type(array.dtype.type),
-        is_dense=True)
+    if array.dtype != np.float64:
+      raise ValueError(f"Expected float64 value type: {array.dtype}.")
+    tensor = Tensor(array.shape, is_dense=True)
     tensor._dense_storage = np.copy(array)
     return tensor
 
@@ -824,7 +808,7 @@ class Tensor:
     # The size of each dimension is one more that such a maximum coordinate
     # value.
     shape = [c + 1 for c in max_coordinate]
-    tensor = Tensor(shape, fmt, dtype=dtype)
+    tensor = Tensor(shape, fmt)
     tensor._coords = coordinates
     tensor._values = values
 
@@ -849,9 +833,8 @@ class Tensor:
       value is stored as an MLIR sparse tensor.
     """
     sparse_tensor, shape = utils.create_sparse_tensor(filename,
-                                                      fmt.format_pack.formats,
-                                                      _dtype_to_mlir_str(dtype))
-    tensor = Tensor(shape.tolist(), fmt, dtype=dtype)
+                                                      fmt.format_pack.formats)
+    tensor = Tensor(shape.tolist(), fmt)
     tensor._set_packed_sparse_tensor(sparse_tensor)
 
     return tensor
@@ -879,8 +862,7 @@ class Tensor:
                        "supported.")
 
     utils.output_sparse_tensor(self._packed_sparse_value, filename,
-                               self._format.format_pack.formats,
-                               _dtype_to_mlir_str(self._dtype))
+                               self._format.format_pack.formats)
 
   @property
   def dtype(self) -> DType:
@@ -907,32 +889,6 @@ class Tensor:
     """Returns the shape of the Tensor."""
     return self._shape
 
-  def _verify_and_normalize_indices(self, indices) -> Tuple[IndexVar, ...]:
-    """Verifies and normalizes the indices to access the tensor.
-
-    Args:
-      indices: The index expression used to access a tensor, which could be any
-        Python object from user inputs.
-
-    Returns:
-      A tuple of IndexVar.
-
-    Raises:
-      ValueError: If indices is not 0 for scalar tensors, or not an IndexVar or
-        a tuple of IndexVar for other tensors.
-    """
-    if self.order == 0:
-      if not isinstance(indices, int) or indices != 0:
-        raise ValueError(f"Expected 0 to index scalar tensors: {indices}")
-      return ()
-
-    if isinstance(indices, IndexVar):
-      return (indices,)
-    elif isinstance(indices, tuple) and _all_instance_of(indices, IndexVar):
-      return indices
-
-    raise ValueError(f"Expected IndexVars: {indices}")
-
   def __getitem__(self, key) -> "Access":
     """Verifies and processes a tensor access.
 
@@ -951,7 +907,7 @@ class Tensor:
     Raises:
       ValueError: If key is not an IndexVar or a tuple of IndexVar.
     """
-    indices = self._verify_and_normalize_indices(key)
+    indices = _verify_and_normalize_indices(key)
     return Access(self, indices)
 
   def __setitem__(self, key, value) -> None:
@@ -975,78 +931,23 @@ class Tensor:
         or a tuple of IndexVar, or the length of the indices is not the same as
         the rank of the tensor.
     """
-    indices = self._verify_and_normalize_indices(key)
+    indices = _verify_and_normalize_indices(key)
     if len(indices) != self.order:
       raise ValueError("Mismatch between indices and tensor rank: "
                        f"len({indices}) != {self.order}.")
 
     self._assignment = _Assignment(indices, value)
-    self._engine = None
 
-  def compile(self, force_recompile: bool = False) -> None:
-    """Compiles the tensor assignment to an execution engine.
-
-    Calling compile the second time does not do anything unless
-    force_recompile is True.
-
-    Args:
-      force_recompile: A boolean value to enable recompilation, such as for the
-        purpose of timing.
-
-    Raises:
-      ValueError: If the assignment is not proper or not supported.
-    """
-    if self._assignment is None or (self._engine is not None and
-                                    not force_recompile):
-      return
-
-    self._engine = self._assignment.expression.compile(self,
-                                                       self._assignment.indices)
-
-  def compute(self) -> None:
-    """Executes the engine for the tensor assignment.
-
-    Raises:
-      ValueError: If the assignment hasn't been compiled yet.
-    """
-    if self._assignment is None:
-      return
-
-    if self._engine is None:
-      raise ValueError("Need to invoke compile() before invoking compute().")
-
-    input_accesses = self._assignment.expression.get_input_accesses()
-    # Gather the pointers for the input buffers.
-    input_pointers = [a.tensor.ctype_pointer() for a in input_accesses]
+  def evaluate(self) -> None:
+    """Evaluates the assignment to the tensor."""
+    result = self._assignment.expression.evaluate(self,
+                                                  self._assignment.indices)
+    self._assignment = None
     if self.is_dense():
-      # The pointer to receive dense output is the first argument to the
-      # execution engine.
-      arg_pointers = [self.dense_dst_ctype_pointer()] + input_pointers
-    else:
-      # The pointer to receive the sparse tensor output is the last argument
-      # to the execution engine and is a pointer to pointer of char.
-      arg_pointers = input_pointers + [
-          ctypes.pointer(ctypes.pointer(ctypes.c_char(0)))
-      ]
-
-    # Invoke the execution engine to run the module.
-    self._engine.invoke(_ENTRY_NAME, *arg_pointers)
-
-    # Retrieve the result.
-    if self.is_dense():
-      result = runtime.ranked_memref_to_numpy(arg_pointers[0][0])
       assert isinstance(result, np.ndarray)
       self._dense_storage = result
     else:
-      self._set_packed_sparse_tensor(arg_pointers[-1][0])
-
-    self._assignment = None
-    self._engine = None
-
-  def evaluate(self) -> None:
-    """Evaluates the tensor assignment."""
-    self.compile()
-    self.compute()
+      self._set_packed_sparse_tensor(result)
 
   def _sync_value(self) -> None:
     """Updates the tensor value by evaluating the pending assignment."""
@@ -1055,8 +956,8 @@ class Tensor:
 
   def mlir_tensor_type(self) -> ir.RankedTensorType:
     """Returns the MLIR type for the tensor."""
-    mlir_attr = (None if (self._format is None or self.order == 0) else
-                 self._format.mlir_tensor_attr())
+    mlir_attr = None if (
+        self._format is None) else self._format.mlir_tensor_attr()
     return _mlir_tensor_type(self._dtype, tuple(self._shape), mlir_attr)
 
   def dense_dst_ctype_pointer(self) -> ctypes.pointer:
@@ -1082,34 +983,17 @@ class Tensor:
       shape = np.array(self._shape, np.int64)
       indices = np.array(self._coords, np.int64)
       values = np.array(self._values, self._dtype.value)
-      perm, sparse = self.format.get_permutation_and_sparsity()
-      ptr = utils.coo_tensor_to_sparse_tensor(shape, values, indices, perm,
-                                              sparse)
+      ptr = utils.coo_tensor_to_sparse_tensor(shape, values, indices)
     else:
       ptr = self._packed_sparse_value
 
     return ctypes.pointer(ctypes.cast(ptr, ctypes.c_void_p))
 
-  def get_scalar_value(self) -> _AnyRuntimeType:
-    """Returns the value for the scalar tensor.
-
-    This method also evaluates the assignment to the tensor.
-
-    Raises:
-      ValueError: If the tensor is not a scalar.
-    """
-    if self.order != 0:
-      raise ValueError(f"Expected a scalar tensor, got: rank={self.order}")
-
-    self._sync_value()
-    return self._dense_storage
-
-
   def get_coordinates_and_values(
       self) -> Tuple[List[Tuple[int, ...]], List[_AnyRuntimeType]]:
     """Returns the coordinates and values for the non-zero elements.
 
-    This method also evaluates the assignment to the tensor and unpack the
+    This method also evaluate the assignment to the tensor and unpack the
     sparse tensor.
     """
     self._sync_value()
@@ -1117,9 +1001,6 @@ class Tensor:
     if not self.is_dense():
       self.unpack()
       return (self._coords, self._values)
-
-    if self.order == 0:
-      return ([], self._dense_storage)
 
     # Coordinates for non-zero elements, grouped by dimensions.
     coords_by_dims = self._dense_storage.nonzero()
@@ -1224,14 +1105,6 @@ class IndexExpr(abc.ABC):
       raise ValueError(f"Expected IndexExpr: {rhs}")
     return _BinaryExpr(op, self, rhs)
 
-  def _build_unary_expr(self, op: _UnaryOp) -> "_UnaryExpr":
-    """Build a unary expression.
-
-    Args:
-      op: A _UnaryOp object representing the unary operation.
-    """
-    return _UnaryExpr(op, self)
-
   def __add__(self, rhs) -> "_BinaryExpr":
     """Defines the operator +.
 
@@ -1261,22 +1134,6 @@ class IndexExpr(abc.ABC):
       ValueError: If rhs is not an IndexExpr.
     """
     return self._verify_operand_and_build_expr(rhs, operator.mul)
-
-  def __abs__(self) -> "_UnaryExpr":
-    """Defines the operator abs.
-
-    Returns:
-      A _UnaryExpr object representing the operation.
-    """
-    return self._build_unary_expr(operator.abs)
-
-  def __neg__(self) -> "_UnaryExpr":
-    """Defines the operator neg.
-
-    Returns:
-      A _UnaryExpr object representing the operation.
-    """
-    return self._build_unary_expr(operator.neg)
 
   def __sub__(self, rhs) -> "_BinaryExpr":
     """Defines the operator -.
@@ -1372,7 +1229,7 @@ class IndexExpr(abc.ABC):
     value = self._emit_expression(expr_to_input_opnd, expr_to_info)
     # Emit the structured op representation for the destination tensor.
     dst_opnd = _emit_operand(op_def, op_info.dst_indices, op_info.dst_name,
-                             lang.OperandKind.OUTPUT_TENSOR)
+                             lang.OperandKind.OutputTensor)
     dst_dim_syms = _mlir_dimensions_from_index_vars(op_info.dst_indices)
     dst_use = lang.TensorUse(dst_opnd, dst_dim_syms)
 
@@ -1526,31 +1383,29 @@ class IndexExpr(abc.ABC):
       linalg_funcop.func_op.attributes[
           "llvm.emit_c_interface"] = ir.UnitAttr.get()
 
-  def get_input_accesses(self) -> List["Access"]:
-    """Compute the list of input accesses for the expression."""
-    input_accesses = []
-    self._visit(_gather_input_accesses_index_vars, (input_accesses,))
-    return input_accesses
-
-  def compile(
+  def evaluate(
       self,
       dst: Tensor,
       dst_indices: Tuple[IndexVar, ...],
-  ) -> execution_engine.ExecutionEngine:
-    """Compiles the tensor assignment dst[dst_indices] = expression.
+  ) -> Union[np.ndarray, ctypes.c_void_p]:
+    """Evaluates tensor assignment dst[dst_indices] = expression.
 
     Args:
       dst: The destination tensor.
       dst_indices: The tuple of IndexVar used to access the destination tensor.
 
     Returns:
-      The execution engine for the tensor assignment.
+      The result of the dense tensor represented in numpy ndarray or the pointer
+      to the MLIR sparse tensor.
 
     Raises:
       ValueError: If the expression is not proper or not supported.
     """
     expr_to_info = self._validate_and_collect_expr_info(dst, dst_indices)
-    input_accesses = self.get_input_accesses()
+
+    # Compute a list of input accesses.
+    input_accesses = []
+    self._visit(_gather_input_accesses_index_vars, (input_accesses,))
 
     # Build and compile the module to produce the execution engine.
     with ir.Context(), ir.Location.unknown():
@@ -1559,7 +1414,29 @@ class IndexExpr(abc.ABC):
                             input_accesses)
       engine = utils.compile_and_build_engine(module)
 
-    return engine
+    # Gather the pointers for the input buffers.
+    input_pointers = [a.tensor.ctype_pointer() for a in input_accesses]
+    if dst.is_dense():
+      # The pointer to receive dense output is the first argument to the
+      # execution engine.
+      arg_pointers = [dst.dense_dst_ctype_pointer()] + input_pointers
+    else:
+      # The pointer to receive sparse output is the last argument to the
+      # execution engine. The pointer to receive a sparse tensor output is a
+      # pointer to pointer of char.
+      arg_pointers = input_pointers + [
+          ctypes.pointer(ctypes.pointer(ctypes.c_char(0)))
+      ]
+
+    # Invoke the execution engine to run the module and return the result.
+    engine.invoke(_ENTRY_NAME, *arg_pointers)
+
+    if dst.is_dense():
+      return runtime.ranked_memref_to_numpy(arg_pointers[0][0])
+
+    # Return the sparse tensor pointer.
+    return arg_pointers[-1][0]
+
 
 @dataclasses.dataclass(frozen=True)
 class Access(IndexExpr):
@@ -1628,83 +1505,15 @@ def _gather_input_accesses_index_vars(
     input_accesses.append(expr)
 
 
-def _op_ceil(__a: Any) -> Any:
-  """A _UnaryOp object for operation ceil."""
-  pass
-
-
-def _op_floor(__a: Any) -> Any:
-  """A _UnaryOp object for operation floor."""
-  pass
-
-
-def _op_unary_to_callable(op: _UnaryOp) -> lang.UnaryFnType:
+def _op_to_callable(op: _BinaryOp) -> lang.ArithFnType:
   """Returns the linalg dialect function object for the given operation."""
   op_to_callable = {
-      operator.abs: lang.UnaryFn.abs,
-      operator.neg: lang.UnaryFn.negf,
-      _op_ceil: lang.UnaryFn.ceil,
-      _op_floor: lang.UnaryFn.floor,
+      operator.add: lang.ArithFn.add,
+      operator.sub: lang.ArithFn.sub,
+      operator.mul: lang.ArithFn.mul,
   }
   return op_to_callable[op]
 
-
-@dataclasses.dataclass(frozen=True)
-class _UnaryExpr(IndexExpr):
-  """The representation for a Unary operation.
-
-  Attributes:
-  op: A _UnaryOp representing the operation.
-  a: An IndexExpr representing the operand for the operation.
-  """
-  op: _BinaryOp
-  a: IndexExpr
-
-  def __post_init__(self) -> None:
-    """Verifies that the operand being added is an IndexExpr."""
-    assert isinstance(self.a, IndexExpr)
-
-  def _emit_expression(
-      self,
-      expr_to_opnd: Dict[IndexExpr, lang.OperandDef],
-      expr_to_info: _ExprInfoDict,
-  ) -> lang.ScalarExpression:
-    """Emits the expression tree and returns the expression."""
-    # The current expression node is an internal node of the structured op.
-    if self not in expr_to_opnd:
-      a = self.a._emit_expression(expr_to_opnd, expr_to_info)
-      return _op_unary_to_callable(self.op)(a)
-
-    # The current expression is a leaf node of the structured op. That is, it is
-    # a temporary tensor generated by its child structured op.
-    op_info = expr_to_info[self].structop_info
-    assert op_info is not None
-    dims = _mlir_dimensions_from_index_vars(op_info.dst_indices)
-    return lang.TensorUse(expr_to_opnd[self], dims)
-
-  def _visit(self,
-             func: _ExprVisitor,
-             args,
-             *,
-             leaf_checker: _SubtreeLeafChecker = None) -> None:
-    """A post-order visitor."""
-    if leaf_checker is None or not leaf_checker(self, *args):
-      self.a._visit(func, args, leaf_checker=leaf_checker)
-    func(self, *args)
-
-  def dtype(self) -> DType:
-    """Returns the data type of the operation."""
-    return self.a.dtype()
-
-
-def _op_to_callable(op: _BinaryOp) -> lang.BinaryFnType:
-  """Returns the linalg dialect function object for the given operation."""
-  op_to_callable = {
-      operator.add: lang.BinaryFn.add,
-      operator.sub: lang.BinaryFn.sub,
-      operator.mul: lang.BinaryFn.mul,
-  }
-  return op_to_callable[op]
 
 @dataclasses.dataclass(frozen=True)
 class _BinaryExpr(IndexExpr):
@@ -1833,15 +1642,6 @@ def _validate_and_collect_expr_info(
       mode_formats = tuple(expr.tensor.format.format_pack.formats)
     assert len(src_dims) == len(mode_formats)
     dim_infos = tuple([_DimInfo(d, m) for d, m in zip(src_dims, mode_formats)])
-  elif isinstance(expr, _UnaryExpr):
-    a_info = expr_to_info[expr.a]
-    index_to_dim_info = {
-        i: d for i, d in zip(a_info.src_indices, a_info.dim_infos)
-    }
-    # Here we rely on the fact that dictionaries keep the insertion order for
-    # keys and values.
-    src_indices = tuple(index_to_dim_info.keys())
-    dim_infos = tuple(index_to_dim_info.values())
   else:
     assert isinstance(expr, _BinaryExpr)
     a_info = expr_to_info[expr.a]
@@ -1928,10 +1728,6 @@ def _accumulate_reduce_indices(
     expr_info.acc_reduce_indices = (
         a_info.acc_reduce_indices | b_info.acc_reduce_indices
         | expr_info.reduce_indices)
-  elif isinstance(expr, _UnaryExpr):
-    a_info = expr_to_info[expr.a]
-    expr_info.acc_reduce_indices = (
-        a_info.acc_reduce_indices | expr_info.reduce_indices)
   else:
     assert isinstance(expr, Access)
     # Handle simple reduction expression in the format of A[i] = B[i, j].
@@ -2068,54 +1864,6 @@ def _emit_structured_op_input(
     name = expr.tensor.name
 
   dim_sym = _mlir_symbols_from_index_vars(indices)
-  opnd = lang.OperandDef(lang.OperandKind.INPUT_TENSOR, lang.T, dim_sym)
+  opnd = lang.OperandDef(lang.OperandKind.InputTensor, lang.T, dim_sym)
   op_def.add_operand(name, opnd)
   return opnd
-
-
-def _check_and_build_unary(a: Access, op: _UnaryOp) -> "_UnaryExpr":
-  """Build a unary operation ceil.
-
-    Args:
-      a: The operand, which could be any Python object from user inputs.
-      op: An _UnaryOp object representing the operation.
-
-    Returns:
-      A _UnaryExpr object representing the operation.
-
-    Raises:
-      ValueError: If a is not an IndexExpr.
-    """
-  if not isinstance(a, Access):
-    raise ValueError(f"Expected an Access Operand: {a}")
-  return a._build_unary_expr(op)
-
-
-def ceil(a: Access) -> "_UnaryExpr":
-  """Defines the operation ceil.
-
-    Args:
-      a: The operand, which could be any Python object from user inputs.
-
-    Returns:
-      A _UnaryExpr object representing the operation.
-
-    Raises:
-      ValueError: If a is not an IndexExpr.
-    """
-  return _check_and_build_unary(a, _op_ceil)
-
-
-def floor(a: Access) -> "_UnaryExpr":
-  """Defines the operation floor.
-
-    Args:
-      a: The operand, which could be any Python object from user inputs.
-
-    Returns:
-      A _UnaryExpr object representing the operation.
-
-    Raises:
-      ValueError: If a is not an IndexExpr.
-    """
-  return _check_and_build_unary(a, _op_floor)

@@ -1030,9 +1030,10 @@ SourceLocation Parser::ParseDecltypeSpecifier(DeclSpec &DS) {
     }
 
     // Check for C++1y 'decltype(auto)'.
-    if (Tok.is(tok::kw_auto) && NextToken().is(tok::r_paren)) {
-      // the typename-specifier in a function-style cast expression may
-      // be 'auto' since C++2b.
+    if (Tok.is(tok::kw_auto)) {
+      // No need to disambiguate here: an expression can't start with 'auto',
+      // because the typename-specifier in a function-style cast operation can't
+      // be 'auto'.
       Diag(Tok.getLocation(),
            getLangOpts().CPlusPlus14
              ? diag::warn_cxx11_compat_decltype_auto_type_specifier
@@ -4513,17 +4514,19 @@ void Parser::ParseCXX11AttributeSpecifierInternal(ParsedAttributes &Attrs,
 ///
 /// attribute-specifier-seq:
 ///       attribute-specifier-seq[opt] attribute-specifier
-void Parser::ParseCXX11Attributes(ParsedAttributesWithRange &attrs) {
+void Parser::ParseCXX11Attributes(ParsedAttributesWithRange &attrs,
+                                  SourceLocation *endLoc) {
   assert(standardAttributesAllowed());
 
-  SourceLocation StartLoc = Tok.getLocation();
-  SourceLocation EndLoc = StartLoc;
+  SourceLocation StartLoc = Tok.getLocation(), Loc;
+  if (!endLoc)
+    endLoc = &Loc;
 
   do {
-    ParseCXX11AttributeSpecifier(attrs, &EndLoc);
+    ParseCXX11AttributeSpecifier(attrs, endLoc);
   } while (isCXX11AttributeSpecifier());
 
-  attrs.Range = SourceRange(StartLoc, EndLoc);
+  attrs.Range = SourceRange(StartLoc, *endLoc);
 }
 
 void Parser::DiagnoseAndSkipCXX11Attributes() {
@@ -4656,11 +4659,10 @@ void Parser::ParseMicrosoftUuidAttributeArgs(ParsedAttributes &Attrs) {
 /// [MS] ms-attribute-seq:
 ///             ms-attribute[opt]
 ///             ms-attribute ms-attribute-seq
-void Parser::ParseMicrosoftAttributes(ParsedAttributesWithRange &Attrs) {
+void Parser::ParseMicrosoftAttributes(ParsedAttributes &attrs,
+                                      SourceLocation *endLoc) {
   assert(Tok.is(tok::l_square) && "Not a Microsoft attribute list");
 
-  SourceLocation StartLoc = Tok.getLocation();
-  SourceLocation EndLoc = StartLoc;
   do {
     // FIXME: If this is actually a C++11 attribute, parse it as one.
     BalancedDelimiterTracker T(*this, tok::l_square);
@@ -4680,16 +4682,15 @@ void Parser::ParseMicrosoftAttributes(ParsedAttributesWithRange &Attrs) {
       if (Tok.isNot(tok::identifier)) // ']', but also eof
         break;
       if (Tok.getIdentifierInfo()->getName() == "uuid")
-        ParseMicrosoftUuidAttributeArgs(Attrs);
+        ParseMicrosoftUuidAttributeArgs(attrs);
       else
         ConsumeToken();
     }
 
     T.consumeClose();
-    EndLoc = T.getCloseLocation();
+    if (endLoc)
+      *endLoc = T.getCloseLocation();
   } while (Tok.is(tok::l_square));
-
-  Attrs.Range = SourceRange(StartLoc, EndLoc);
 }
 
 void Parser::ParseMicrosoftIfExistsClassDeclaration(

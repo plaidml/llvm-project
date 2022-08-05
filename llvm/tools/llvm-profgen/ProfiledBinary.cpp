@@ -10,7 +10,6 @@
 #include "ErrorHandling.h"
 #include "ProfileGenerator.h"
 #include "llvm/ADT/Triple.h"
-#include "llvm/DebugInfo/Symbolize/SymbolizableModule.h"
 #include "llvm/Demangle/Demangle.h"
 #include "llvm/IR/DebugInfoMetadata.h"
 #include "llvm/MC/TargetRegistry.h"
@@ -43,11 +42,6 @@ static cl::opt<bool> UseDwarfCorrelation(
     "use-dwarf-correlation", cl::init(false), cl::ZeroOrMore,
     cl::desc("Use dwarf for profile correlation even when binary contains "
              "pseudo probe."));
-
-static cl::opt<std::string>
-    DWPPath("dwp", cl::init(""), cl::ZeroOrMore,
-            cl::desc("Path of .dwp file. When not specified, it will be "
-                     "<binary>.dwp in the same directory as the main binary."));
 
 static cl::list<std::string> DisassembleFunctions(
     "disassemble-functions", cl::CommaSeparated,
@@ -616,94 +610,69 @@ void ProfiledBinary::checkUseFSDiscriminator(
   }
 }
 
-void ProfiledBinary::loadSymbolsFromDWARFUnit(DWARFUnit &CompilationUnit) {
-  for (const auto &DieInfo : CompilationUnit.dies()) {
-    llvm::DWARFDie Die(&CompilationUnit, &DieInfo);
-
-    if (!Die.isSubprogramDIE())
-      continue;
-    auto Name = Die.getName(llvm::DINameKind::LinkageName);
-    if (!Name)
-      Name = Die.getName(llvm::DINameKind::ShortName);
-    if (!Name)
-      continue;
-
-    auto RangesOrError = Die.getAddressRanges();
-    if (!RangesOrError)
-      continue;
-    const DWARFAddressRangesVector &Ranges = RangesOrError.get();
-
-    if (Ranges.empty())
-      continue;
-
-    // Different DWARF symbols can have same function name, search or create
-    // BinaryFunction indexed by the name.
-    auto Ret = BinaryFunctions.emplace(Name, BinaryFunction());
-    auto &Func = Ret.first->second;
-    if (Ret.second)
-      Func.FuncName = Ret.first->first;
-
-    for (const auto &Range : Ranges) {
-      uint64_t FuncStart = Range.LowPC;
-      uint64_t FuncSize = Range.HighPC - FuncStart;
-
-      if (FuncSize == 0 || FuncStart < getPreferredBaseAddress())
-        continue;
-
-      uint64_t StartOffset = FuncStart - getPreferredBaseAddress();
-      uint64_t EndOffset = Range.HighPC - getPreferredBaseAddress();
-
-      // We may want to know all ranges for one function. Here group the
-      // ranges and store them into BinaryFunction.
-      Func.Ranges.emplace_back(StartOffset, EndOffset);
-
-      auto R = StartOffset2FuncRangeMap.emplace(StartOffset, FuncRange());
-      if (R.second) {
-        FuncRange &FRange = R.first->second;
-        FRange.Func = &Func;
-        FRange.StartOffset = StartOffset;
-        FRange.EndOffset = EndOffset;
-      } else {
-        WithColor::warning()
-            << "Duplicated symbol start address at "
-            << format("%8" PRIx64, StartOffset + getPreferredBaseAddress())
-            << " " << R.first->second.getFuncName() << " and " << Name << "\n";
-      }
-    }
-  }
-}
-
 void ProfiledBinary::loadSymbolsFromDWARF(ObjectFile &Obj) {
-  auto DebugContext = llvm::DWARFContext::create(
-      Obj, DWARFContext::ProcessDebugRelocations::Process, nullptr, DWPPath);
+  auto DebugContext = llvm::DWARFContext::create(Obj);
   if (!DebugContext)
-    exitWithError("Error creating the debug info context", Path);
+    exitWithError("Misssing debug info.", Path);
 
-  for (const auto &CompilationUnit : DebugContext->compile_units())
-    loadSymbolsFromDWARFUnit(*CompilationUnit.get());
-
-  // Handles DWO sections that can either be in .o, .dwo or .dwp files.
   for (const auto &CompilationUnit : DebugContext->compile_units()) {
-    DWARFUnit *const DwarfUnit = CompilationUnit.get();
-    if (llvm::Optional<uint64_t> DWOId = DwarfUnit->getDWOId()) {
-      DWARFUnit *DWOCU = DwarfUnit->getNonSkeletonUnitDIE(false).getDwarfUnit();
-      if (!DWOCU->isDWOUnit()) {
-        std::string DWOName = dwarf::toString(
-            DwarfUnit->getUnitDIE().find(
-                {dwarf::DW_AT_dwo_name, dwarf::DW_AT_GNU_dwo_name}),
-            "");
-        WithColor::warning()
-            << "DWO debug information for " << DWOName
-            << " was not loaded. Please check the .o, .dwo or .dwp path.\n";
+    for (const auto &DieInfo : CompilationUnit->dies()) {
+      llvm::DWARFDie Die(CompilationUnit.get(), &DieInfo);
+
+      if (!Die.isSubprogramDIE())
         continue;
+      auto Name = Die.getName(llvm::DINameKind::LinkageName);
+      if (!Name)
+        Name = Die.getName(llvm::DINameKind::ShortName);
+      if (!Name)
+        continue;
+
+      auto RangesOrError = Die.getAddressRanges();
+      if (!RangesOrError)
+        continue;
+      const DWARFAddressRangesVector &Ranges = RangesOrError.get();
+
+      if (Ranges.empty())
+        continue;
+
+      // Different DWARF symbols can have same function name, search or create
+      // BinaryFunction indexed by the name.
+      auto Ret = BinaryFunctions.emplace(Name, BinaryFunction());
+      auto &Func = Ret.first->second;
+      if (Ret.second)
+        Func.FuncName = Ret.first->first;
+
+      for (const auto &Range : Ranges) {
+        uint64_t FuncStart = Range.LowPC;
+        uint64_t FuncSize = Range.HighPC - FuncStart;
+
+        if (FuncSize == 0 || FuncStart < getPreferredBaseAddress())
+          continue;
+
+        uint64_t StartOffset = FuncStart - getPreferredBaseAddress();
+        uint64_t EndOffset = Range.HighPC - getPreferredBaseAddress();
+
+        // We may want to know all ranges for one function. Here group the
+        // ranges and store them into BinaryFunction.
+        Func.Ranges.emplace_back(StartOffset, EndOffset);
+
+        auto R = StartOffset2FuncRangeMap.emplace(StartOffset, FuncRange());
+        if (R.second) {
+          FuncRange &FRange = R.first->second;
+          FRange.Func = &Func;
+          FRange.StartOffset = StartOffset;
+          FRange.EndOffset = EndOffset;
+        } else {
+          WithColor::warning()
+              << "Duplicated symbol start address at "
+              << format("%8" PRIx64, StartOffset + getPreferredBaseAddress())
+              << " " << R.first->second.getFuncName() << " and " << Name
+              << "\n";
+        }
       }
-      loadSymbolsFromDWARFUnit(*DWOCU);
     }
   }
-
-  if (BinaryFunctions.empty())
-    WithColor::warning() << "Loading of DWARF info completed, but no binary "
-                            "functions have been retrieved.\n";
+  assert(!StartOffset2FuncRangeMap.empty() && "Misssing debug info.");
 }
 
 void ProfiledBinary::populateSymbolListFromDWARF(
@@ -720,7 +689,6 @@ void ProfiledBinary::setupSymbolizer() {
   SymbolizerOpts.DefaultArch = TheTriple.getArchName().str();
   SymbolizerOpts.UseSymbolTable = false;
   SymbolizerOpts.RelativeAddresses = false;
-  SymbolizerOpts.DWPName = DWPPath;
   Symbolizer = std::make_unique<symbolize::LLVMSymbolizer>(SymbolizerOpts);
 }
 

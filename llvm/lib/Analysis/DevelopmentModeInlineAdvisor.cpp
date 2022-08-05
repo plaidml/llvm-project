@@ -11,6 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 #include "llvm/Config/config.h"
+#include "llvm/Support/Casting.h"
 #if defined(LLVM_HAVE_TF_API)
 
 #include "llvm/ADT/BitVector.h"

@@ -9,6 +9,8 @@
 // NetBSD does not support LC_TIME at the moment
 // XFAIL: netbsd
 
+// XFAIL: LIBCXX-AIX-FIXME
+
 // REQUIRES: locale.en_US.UTF-8
 // REQUIRES: locale.fr_FR.UTF-8
 
@@ -62,7 +64,7 @@ int main(int, char**)
         std::string pat("Today is %A which is abbreviated %a.");
         cpp17_output_iterator<char*> iter =
             f.put(cpp17_output_iterator<char*>(str), ios, '*', &t, pat.data(), pat.data() + pat.size());
-        std::string ex(str, base(iter));
+        std::string ex(str, iter.base());
         assert(ex == "Today is Saturday which is abbreviated Sat.");
     }
     {
@@ -70,7 +72,7 @@ int main(int, char**)
         std::string pat("Today is %A which is abbreviated '%a'.");
         cpp17_output_iterator<char*> iter =
             f.put(cpp17_output_iterator<char*>(str), ios, '*', &t, pat.data(), pat.data() + pat.size());
-        std::string ex(str, base(iter));
+        std::string ex(str, iter.base());
         assert((ex == "Today is Samedi which is abbreviated 'Sam'.")||
                (ex == "Today is samedi which is abbreviated 'sam'." )||
                (ex == "Today is samedi which is abbreviated 'sam.'."));

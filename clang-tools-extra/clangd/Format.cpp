@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 #include "Format.h"
 #include "support/Logger.h"
+#include "clang/Basic/FileManager.h"
 #include "clang/Basic/SourceManager.h"
 #include "clang/Format/Format.h"
 #include "clang/Lex/Lexer.h"
@@ -25,8 +26,8 @@ void closeBrackets(std::string &Code, const format::FormatStyle &Style) {
   SourceManagerForFile FileSM("mock_file.cpp", Code);
   auto &SM = FileSM.get();
   FileID FID = SM.getMainFileID();
-  LangOptions LangOpts = format::getFormattingLangOpts(Style);
-  Lexer Lex(FID, SM.getBufferOrFake(FID), SM, LangOpts);
+  Lexer Lex(FID, SM.getBufferOrFake(FID), SM,
+            format::getFormattingLangOpts(Style));
   Token Tok;
   std::vector<char> Brackets;
   while (!Lex.LexFromRawLexer(Tok)) {

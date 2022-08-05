@@ -42,9 +42,7 @@ public:
   virtual ~EventData();
 
   virtual ConstString GetFlavor() const = 0;
-  
-  virtual Log *GetLogChannel() { return nullptr; }
-  
+
   virtual void Dump(Stream *s) const;
 
 private:

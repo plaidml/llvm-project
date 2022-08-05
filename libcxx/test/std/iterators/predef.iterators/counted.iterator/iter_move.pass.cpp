@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 // UNSUPPORTED: c++03, c++11, c++14, c++17
+// UNSUPPORTED: libcpp-no-concepts
 
 // friend constexpr iter_rvalue_reference_t<I>
 //   iter_move(const counted_iterator& i)

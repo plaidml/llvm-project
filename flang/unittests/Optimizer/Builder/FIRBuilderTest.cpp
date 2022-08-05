@@ -12,8 +12,6 @@
 #include "flang/Optimizer/Support/InitFIR.h"
 #include "flang/Optimizer/Support/KindMapping.h"
 
-using namespace mlir;
-
 struct FIRBuilderTest : public testing::Test {
 public:
   void SetUp() override {

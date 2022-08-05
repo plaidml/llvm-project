@@ -13,7 +13,6 @@
 
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "llvm/IR/LegacyPassManager.h"
-#include "llvm/Pass.h"
 #include "llvm/Support/InitLLVM.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/raw_ostream.h"

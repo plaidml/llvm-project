@@ -155,14 +155,12 @@ bool Message::SortBefore(const Message &that) const {
       location_, that.location_);
 }
 
-bool Message::IsFatal() const { return severity() == Severity::Error; }
-
-Severity Message::severity() const {
+bool Message::IsFatal() const {
   return std::visit(
       common::visitors{
-          [](const MessageExpectedText &) { return Severity::Error; },
-          [](const MessageFixedText &x) { return x.severity(); },
-          [](const MessageFormattedText &x) { return x.severity(); },
+          [](const MessageExpectedText &) { return true; },
+          [](const MessageFixedText &x) { return x.isFatal(); },
+          [](const MessageFormattedText &x) { return x.isFatal(); },
       },
       text_);
 }
@@ -205,18 +203,8 @@ void Message::Emit(llvm::raw_ostream &o, const AllCookedSources &allCooked,
     bool echoSourceLine) const {
   std::optional<ProvenanceRange> provenanceRange{GetProvenanceRange(allCooked)};
   std::string text;
-  switch (severity()) {
-  case Severity::Error:
-    text = "error: ";
-    break;
-  case Severity::Warning:
-    text = "warning: ";
-    break;
-  case Severity::Portability:
-    text = "portability: ";
-    break;
-  case Severity::None:
-    break;
+  if (IsFatal()) {
+    text += "error: ";
   }
   text += ToString();
   const AllSources &sources{allCooked.allSources()};

@@ -68,7 +68,7 @@ bool ConstantBounds::IncrementSubscripts(
     if (++indices[k] < lb + shape_[k]) {
       return true;
     } else {
-      CHECK(indices[k] == lb + std::max<ConstantSubscript>(shape_[k], 1));
+      CHECK(indices[k] == lb + shape_[k]);
       indices[k] = lb;
     }
   }

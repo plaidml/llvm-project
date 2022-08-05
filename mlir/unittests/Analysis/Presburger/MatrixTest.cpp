@@ -10,8 +10,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-using namespace mlir;
-using namespace presburger;
+namespace mlir {
 
 TEST(MatrixTest, ReadWrite) {
   Matrix mat(5, 5);
@@ -191,3 +190,5 @@ TEST(MatrixTest, resize) {
     for (unsigned col = 0; col < 7; ++col)
       EXPECT_EQ(mat(row, col), row >= 3 || col >= 3 ? 0 : int(10 * row + col));
 }
+
+} // namespace mlir

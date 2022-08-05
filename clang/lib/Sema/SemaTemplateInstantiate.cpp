@@ -55,23 +55,26 @@ using namespace sema;
 /// instantiating the definition of the given declaration, \p D. This is
 /// used to determine the proper set of template instantiation arguments for
 /// friend function template specializations.
-MultiLevelTemplateArgumentList Sema::getTemplateInstantiationArgs(
-    const NamedDecl *D, const TemplateArgumentList *Innermost,
-    bool RelativeToPrimary, const FunctionDecl *Pattern) {
+MultiLevelTemplateArgumentList
+Sema::getTemplateInstantiationArgs(NamedDecl *D,
+                                   const TemplateArgumentList *Innermost,
+                                   bool RelativeToPrimary,
+                                   const FunctionDecl *Pattern) {
   // Accumulate the set of template argument lists in this structure.
   MultiLevelTemplateArgumentList Result;
 
   if (Innermost)
     Result.addOuterTemplateArguments(Innermost);
 
-  const auto *Ctx = dyn_cast<DeclContext>(D);
+  DeclContext *Ctx = dyn_cast<DeclContext>(D);
   if (!Ctx) {
     Ctx = D->getDeclContext();
 
     // Add template arguments from a variable template instantiation. For a
     // class-scope explicit specialization, there are no template arguments
     // at this level, but there may be enclosing template arguments.
-    const auto *Spec = dyn_cast<VarTemplateSpecializationDecl>(D);
+    VarTemplateSpecializationDecl *Spec =
+        dyn_cast<VarTemplateSpecializationDecl>(D);
     if (Spec && !Spec->isClassScopeExplicitSpecialization()) {
       // We're done when we hit an explicit specialization.
       if (Spec->getSpecializationKind() == TSK_ExplicitSpecialization &&
@@ -104,7 +107,8 @@ MultiLevelTemplateArgumentList Sema::getTemplateInstantiationArgs(
     // use empty template parameter lists for all of the outer templates
     // to avoid performing any substitutions.
     if (Ctx->isTranslationUnit()) {
-      if (const auto *TTP = dyn_cast<TemplateTemplateParmDecl>(D)) {
+      if (TemplateTemplateParmDecl *TTP
+                                      = dyn_cast<TemplateTemplateParmDecl>(D)) {
         for (unsigned I = 0, N = TTP->getDepth() + 1; I != N; ++I)
           Result.addOuterTemplateArguments(None);
         return Result;
@@ -114,7 +118,8 @@ MultiLevelTemplateArgumentList Sema::getTemplateInstantiationArgs(
 
   while (!Ctx->isFileContext()) {
     // Add template arguments from a class template instantiation.
-    const auto *Spec = dyn_cast<ClassTemplateSpecializationDecl>(Ctx);
+    ClassTemplateSpecializationDecl *Spec
+          = dyn_cast<ClassTemplateSpecializationDecl>(Ctx);
     if (Spec && !Spec->isClassScopeExplicitSpecialization()) {
       // We're done when we hit an explicit specialization.
       if (Spec->getSpecializationKind() == TSK_ExplicitSpecialization &&
@@ -130,7 +135,7 @@ MultiLevelTemplateArgumentList Sema::getTemplateInstantiationArgs(
         break;
     }
     // Add template arguments from a function template specialization.
-    else if (const auto *Function = dyn_cast<FunctionDecl>(Ctx)) {
+    else if (FunctionDecl *Function = dyn_cast<FunctionDecl>(Ctx)) {
       if (!RelativeToPrimary &&
           Function->getTemplateSpecializationKindForInstantiation() ==
               TSK_ExplicitSpecialization)
@@ -172,7 +177,7 @@ MultiLevelTemplateArgumentList Sema::getTemplateInstantiationArgs(
         RelativeToPrimary = false;
         continue;
       }
-    } else if (const auto *Rec = dyn_cast<CXXRecordDecl>(Ctx)) {
+    } else if (CXXRecordDecl *Rec = dyn_cast<CXXRecordDecl>(Ctx)) {
       if (ClassTemplateDecl *ClassTemplate = Rec->getDescribedClassTemplate()) {
         assert(Result.getNumSubstitutedLevels() == 0 &&
                "Outer template not instantiated?");
@@ -1121,12 +1126,12 @@ namespace {
 
     ExprResult TransformLambdaExpr(LambdaExpr *E) {
       LocalInstantiationScope Scope(SemaRef, /*CombineWithOuterScope=*/true);
-      return inherited::TransformLambdaExpr(E);
+      return TreeTransform<TemplateInstantiator>::TransformLambdaExpr(E);
     }
 
     ExprResult TransformRequiresExpr(RequiresExpr *E) {
       LocalInstantiationScope Scope(SemaRef, /*CombineWithOuterScope=*/true);
-      return inherited::TransformRequiresExpr(E);
+      return TreeTransform<TemplateInstantiator>::TransformRequiresExpr(E);
     }
 
     bool TransformRequiresExprRequirements(
@@ -1336,7 +1341,10 @@ TemplateInstantiator::RebuildElaboratedType(SourceLocation KeywordLoc,
     }
   }
 
-  return inherited::RebuildElaboratedType(KeywordLoc, Keyword, QualifierLoc, T);
+  return TreeTransform<TemplateInstantiator>::RebuildElaboratedType(KeywordLoc,
+                                                                    Keyword,
+                                                                  QualifierLoc,
+                                                                    T);
 }
 
 TemplateName TemplateInstantiator::TransformTemplateName(
@@ -1711,7 +1719,7 @@ TemplateInstantiator::TransformDeclRefExpr(DeclRefExpr *E) {
     if (PD->isParameterPack())
       return TransformFunctionParmPackRefExpr(E, PD);
 
-  return inherited::TransformDeclRefExpr(E);
+  return TreeTransform<TemplateInstantiator>::TransformDeclRefExpr(E);
 }
 
 ExprResult TemplateInstantiator::TransformCXXDefaultArgExpr(
@@ -3226,14 +3234,6 @@ Sema::InstantiateClassMembers(SourceLocation PointOfInstantiation,
     if (auto *Function = dyn_cast<FunctionDecl>(D)) {
       if (FunctionDecl *Pattern =
               Function->getInstantiatedFromMemberFunction()) {
-
-        if (Function->getTrailingRequiresClause()) {
-          ConstraintSatisfaction Satisfaction;
-          if (CheckFunctionConstraints(Function, Satisfaction) ||
-              !Satisfaction.IsSatisfied) {
-            continue;
-          }
-        }
 
         if (Function->hasAttr<ExcludeFromExplicitInstantiationAttr>())
           continue;

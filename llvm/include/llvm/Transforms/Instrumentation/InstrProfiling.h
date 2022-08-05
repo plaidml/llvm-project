@@ -19,6 +19,7 @@
 #include "llvm/IR/PassManager.h"
 #include "llvm/ProfileData/InstrProf.h"
 #include "llvm/Transforms/Instrumentation.h"
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <vector>

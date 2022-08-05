@@ -20,6 +20,7 @@
 #include "llvm/ProfileData/MemProf.h"
 #include "llvm/Support/Endian.h"
 #include "llvm/Support/Error.h"
+#include "llvm/Support/MemoryBuffer.h"
 #include <cstdint>
 #include <memory>
 
@@ -28,7 +29,6 @@ namespace llvm {
 /// Writer for instrumentation based profile data.
 class InstrProfRecordWriterTrait;
 class ProfOStream;
-class MemoryBuffer;
 class raw_fd_ostream;
 
 class InstrProfWriter {
@@ -106,13 +106,11 @@ public:
 
     // Check if the profiles are in-compatible. Clang frontend profiles can't be
     // merged with other profile types.
-    if (static_cast<bool>(
-            (ProfileKind & InstrProfKind::FrontendInstrumentation) ^
-            (Other & InstrProfKind::FrontendInstrumentation))) {
+    if (static_cast<bool>((ProfileKind & InstrProfKind::FE) ^
+                          (Other & InstrProfKind::FE))) {
       return make_error<InstrProfError>(instrprof_error::unsupported_version);
     }
-    if (testIncompatible(InstrProfKind::FunctionEntryOnly,
-                         InstrProfKind::FunctionEntryInstrumentation)) {
+    if (testIncompatible(InstrProfKind::FunctionEntryOnly, InstrProfKind::BB)) {
       return make_error<InstrProfError>(
           instrprof_error::unsupported_version,
           "cannot merge FunctionEntryOnly profiles and BB profiles together");

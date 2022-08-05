@@ -17,15 +17,13 @@
 
 def SDT_RISCVFMV_H_X
     : SDTypeProfile<1, 1, [SDTCisVT<0, f16>, SDTCisVT<1, XLenVT>]>;
-def SDT_RISCVFMV_X_EXTH
+def SDT_RISCVFMV_X_ANYEXTH
     : SDTypeProfile<1, 1, [SDTCisVT<0, XLenVT>, SDTCisVT<1, f16>]>;
 
 def riscv_fmv_h_x
     : SDNode<"RISCVISD::FMV_H_X", SDT_RISCVFMV_H_X>;
 def riscv_fmv_x_anyexth
-    : SDNode<"RISCVISD::FMV_X_ANYEXTH", SDT_RISCVFMV_X_EXTH>;
-def riscv_fmv_x_signexth
-    : SDNode<"RISCVISD::FMV_X_SIGNEXTH", SDT_RISCVFMV_X_EXTH>;
+    : SDNode<"RISCVISD::FMV_X_ANYEXTH", SDT_RISCVFMV_X_ANYEXTH>;
 
 //===----------------------------------------------------------------------===//
 // Operand and SDNode transformation definitions.
@@ -251,6 +249,13 @@ def : InstAlias<"fge.h $rd, $rs, $rt",
 // Pseudo-instructions and codegen patterns
 //===----------------------------------------------------------------------===//
 
+/// Generic pattern classes
+class PatFpr16Fpr16<SDPatternOperator OpNode, RVInstR Inst>
+    : Pat<(OpNode FPR16:$rs1, FPR16:$rs2), (Inst $rs1, $rs2)>;
+
+class PatFpr16Fpr16DynFrm<SDPatternOperator OpNode, RVInstRFrm Inst>
+    : Pat<(OpNode FPR16:$rs1, FPR16:$rs2), (Inst $rs1, $rs2, 0b111)>;
+
 let Predicates = [HasStdExtZfh] in {
 
 /// Float constants
@@ -264,17 +269,17 @@ def : Pat<(f16 (fpimmneg0)), (FSGNJN_H (FMV_H_X X0), (FMV_H_X X0))>;
 
 /// Float arithmetic operations
 
-def : PatFprFprDynFrm<any_fadd, FADD_H, FPR16>;
-def : PatFprFprDynFrm<any_fsub, FSUB_H, FPR16>;
-def : PatFprFprDynFrm<any_fmul, FMUL_H, FPR16>;
-def : PatFprFprDynFrm<any_fdiv, FDIV_H, FPR16>;
+def : PatFpr16Fpr16DynFrm<any_fadd, FADD_H>;
+def : PatFpr16Fpr16DynFrm<any_fsub, FSUB_H>;
+def : PatFpr16Fpr16DynFrm<any_fmul, FMUL_H>;
+def : PatFpr16Fpr16DynFrm<any_fdiv, FDIV_H>;
 
 def : Pat<(any_fsqrt FPR16:$rs1), (FSQRT_H FPR16:$rs1, 0b111)>;
 
 def : Pat<(fneg FPR16:$rs1), (FSGNJN_H $rs1, $rs1)>;
 def : Pat<(fabs FPR16:$rs1), (FSGNJX_H $rs1, $rs1)>;
 
-def : PatFprFpr<fcopysign, FSGNJ_H, FPR16>;
+def : PatFpr16Fpr16<fcopysign, FSGNJ_H>;
 def : Pat<(fcopysign FPR16:$rs1, (fneg FPR16:$rs2)), (FSGNJN_H $rs1, $rs2)>;
 def : Pat<(fcopysign FPR16:$rs1, FPR32:$rs2),
           (FSGNJ_H $rs1, (FCVT_H_S $rs2, 0b111))>;
@@ -299,8 +304,8 @@ def : Pat<(any_fma (fneg FPR16:$rs1), FPR16:$rs2, (fneg FPR16:$rs3)),
 // The ratified 20191213 ISA spec defines fmin and fmax in a way that matches
 // LLVM's fminnum and fmaxnum
 // <https://github.com/riscv/riscv-isa-manual/commit/cd20cee7efd9bac7c5aa127ec3b451749d2b3cce>.
-def : PatFprFpr<fminnum, FMIN_H, FPR16>;
-def : PatFprFpr<fmaxnum, FMAX_H, FPR16>;
+def : PatFpr16Fpr16<fminnum, FMIN_H>;
+def : PatFpr16Fpr16<fmaxnum, FMAX_H>;
 
 /// Setcc
 // FIXME: SETEQ/SETLT/SETLE imply nonans, can we pick better instructions for
@@ -353,7 +358,6 @@ def : Pat<(any_fpextend FPR16:$rs1), (FCVT_S_H FPR16:$rs1)>;
 // Moves (no conversion)
 def : Pat<(riscv_fmv_h_x GPR:$src), (FMV_H_X GPR:$src)>;
 def : Pat<(riscv_fmv_x_anyexth FPR16:$src), (FMV_X_H FPR16:$src)>;
-def : Pat<(riscv_fmv_x_signexth FPR16:$src), (FMV_X_H FPR16:$src)>;
 } // Predicates = [HasStdExtZfhOrZfhmin]
 
 let Predicates = [HasStdExtZfh, IsRV32] in {

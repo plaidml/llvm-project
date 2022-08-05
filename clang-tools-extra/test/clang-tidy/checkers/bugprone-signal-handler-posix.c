@@ -23,7 +23,7 @@ void handler_good(int) {
   memcpy((void*)10, (const void*)20, 1);
 }
 
-void test(void) {
+void test() {
   signal(SIGINT, handler_good);
   signal(SIGINT, handler_bad);
 }

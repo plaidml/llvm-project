@@ -20,6 +20,7 @@
 
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SetVector.h"
+#include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/Analysis/AliasAnalysis.h"
 #include "llvm/Analysis/AssumptionCache.h"
@@ -35,10 +36,13 @@
 #include "llvm/IR/ConstantRange.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/Dominators.h"
+#include "llvm/IR/GetElementPtrTypeIterator.h"
+#include "llvm/IR/GlobalAlias.h"
 #include "llvm/IR/InstrTypes.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Operator.h"
 #include "llvm/IR/PatternMatch.h"
+#include "llvm/IR/ValueHandle.h"
 #include "llvm/Support/KnownBits.h"
 #include <algorithm>
 using namespace llvm;
@@ -2325,31 +2329,6 @@ static Value *SimplifyOrInst(Value *Op0, Value *Op1, const SimplifyQuery &Q,
     }
   }
 
-  // A funnel shift (rotate) can be decomposed into simpler shifts. See if we
-  // are mixing in another shift that is redundant with the funnel shift.
-
-  // (fshl X, ?, Y) | (shl X, Y) --> fshl X, ?, Y
-  // (shl X, Y) | (fshl X, ?, Y) --> fshl X, ?, Y
-  if (match(Op0,
-            m_Intrinsic<Intrinsic::fshl>(m_Value(X), m_Value(), m_Value(Y))) &&
-      match(Op1, m_Shl(m_Specific(X), m_Specific(Y))))
-    return Op0;
-  if (match(Op1,
-            m_Intrinsic<Intrinsic::fshl>(m_Value(X), m_Value(), m_Value(Y))) &&
-      match(Op0, m_Shl(m_Specific(X), m_Specific(Y))))
-    return Op1;
-
-  // (fshr ?, X, Y) | (lshr X, Y) --> fshr ?, X, Y
-  // (lshr X, Y) | (fshr ?, X, Y) --> fshr ?, X, Y
-  if (match(Op0,
-            m_Intrinsic<Intrinsic::fshr>(m_Value(), m_Value(X), m_Value(Y))) &&
-      match(Op1, m_LShr(m_Specific(X), m_Specific(Y))))
-    return Op0;
-  if (match(Op1,
-            m_Intrinsic<Intrinsic::fshr>(m_Value(), m_Value(X), m_Value(Y))) &&
-      match(Op0, m_LShr(m_Specific(X), m_Specific(Y))))
-    return Op1;
-
   if (Value *V = simplifyAndOrOfCmps(Q, Op0, Op1, false))
     return V;
 
@@ -4499,8 +4478,7 @@ static Value *SimplifyGEPInst(Type *SrcTy, Value *Ptr,
 
   // For opaque pointers an all-zero GEP is a no-op. For typed pointers,
   // it may be equivalent to a bitcast.
-  if (Ptr->getType()->getScalarType()->isOpaquePointerTy() &&
-      Ptr->getType() == GEPTy &&
+  if (Ptr->getType()->isOpaquePointerTy() &&
       all_of(Indices, [](const auto *V) { return match(V, m_Zero()); }))
     return Ptr;
 

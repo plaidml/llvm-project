@@ -1,6 +1,7 @@
 #include "support/Cancellation.h"
 #include "support/Context.h"
 #include "support/Threading.h"
+#include "llvm/Support/Error.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include <atomic>

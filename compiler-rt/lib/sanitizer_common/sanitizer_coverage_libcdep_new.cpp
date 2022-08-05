@@ -14,7 +14,6 @@
 #  include "sanitizer_allocator_internal.h"
 #  include "sanitizer_atomic.h"
 #  include "sanitizer_common.h"
-#  include "sanitizer_common/sanitizer_stacktrace.h"
 #  include "sanitizer_file.h"
 #  include "sanitizer_interface_internal.h"
 
@@ -223,8 +222,7 @@ SANITIZER_INTERFACE_ATTRIBUTE void __sanitizer_dump_coverage(const uptr* pcs,
 
 SANITIZER_INTERFACE_WEAK_DEF(void, __sanitizer_cov_trace_pc_guard, u32* guard) {
   if (!*guard) return;
-  __sancov::pc_guard_controller.TracePcGuard(
-      guard, StackTrace::GetPreviousInstructionPc(GET_CALLER_PC()));
+  __sancov::pc_guard_controller.TracePcGuard(guard, GET_CALLER_PC() - 1);
 }
 
 SANITIZER_INTERFACE_WEAK_DEF(void, __sanitizer_cov_trace_pc_guard_init,

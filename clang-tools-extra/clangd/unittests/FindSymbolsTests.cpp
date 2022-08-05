@@ -6,7 +6,9 @@
 //
 //===----------------------------------------------------------------------===//
 #include "Annotations.h"
+#include "ClangdServer.h"
 #include "FindSymbols.h"
+#include "SyncAPI.h"
 #include "TestFS.h"
 #include "TestTU.h"
 #include "llvm/ADT/StringRef.h"

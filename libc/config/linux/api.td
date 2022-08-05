@@ -44,8 +44,11 @@ def NullMacro : MacroDef<"NULL"> {
 
 def ErrnoMacro : MacroDef<"errno"> {
   let Defn = [{
-    extern _Thread_local int __llvmlibc_errno;
-    #define errno __llvmlibc_errno
+    #ifdef __cplusplus
+    extern "C"
+    #endif
+    int *__errno_location();
+    #define errno (*__errno_location())
   }];
 }
 
@@ -213,7 +216,7 @@ def SignalAPI : PublicAPI<"signal.h"> {
 
 def ThreadsAPI : PublicAPI<"threads.h"> {
   let Macros = [
-    SimpleMacroDef<"ONCE_FLAG_INIT", "{0}">,
+    SimpleMacroDef<"ONCE_FLAG_INIT", "0">,
   ];
 
   let Types = [

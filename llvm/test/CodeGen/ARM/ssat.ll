@@ -669,7 +669,14 @@ define i32 @mm_sat_base_32bit(i32 %x) {
 ;
 ; V6T2-LABEL: mm_sat_base_32bit:
 ; V6T2:       @ %bb.0: @ %entry
-; V6T2-NEXT:    ssat r0, #24, r0
+; V6T2-NEXT:    movw r1, #65535
+; V6T2-NEXT:    movt r1, #127
+; V6T2-NEXT:    cmp r0, r1
+; V6T2-NEXT:    movge r0, r1
+; V6T2-NEXT:    movw r1, #0
+; V6T2-NEXT:    movt r1, #65408
+; V6T2-NEXT:    cmn r0, #8388608
+; V6T2-NEXT:    movle r0, r1
 ; V6T2-NEXT:    bx lr
 entry:
   %0 = call i32 @llvm.smin.i32(i32 %x, i32 8388607)
@@ -698,7 +705,13 @@ define i16 @mm_sat_base_16bit(i16 %x) {
 ; V6T2-LABEL: mm_sat_base_16bit:
 ; V6T2:       @ %bb.0: @ %entry
 ; V6T2-NEXT:    sxth r0, r0
-; V6T2-NEXT:    ssat r0, #12, r0
+; V6T2-NEXT:    movw r1, #2047
+; V6T2-NEXT:    cmp r0, r1
+; V6T2-NEXT:    movlt r1, r0
+; V6T2-NEXT:    movw r0, #63488
+; V6T2-NEXT:    movt r0, #65535
+; V6T2-NEXT:    cmn r1, #2048
+; V6T2-NEXT:    movgt r0, r1
 ; V6T2-NEXT:    bx lr
 entry:
   %0 = call i16 @llvm.smin.i16(i16 %x, i16 2047)
@@ -721,7 +734,10 @@ define i8 @mm_sat_base_8bit(i8 %x) {
 ; V6T2-LABEL: mm_sat_base_8bit:
 ; V6T2:       @ %bb.0: @ %entry
 ; V6T2-NEXT:    sxtb r0, r0
-; V6T2-NEXT:    ssat r0, #6, r0
+; V6T2-NEXT:    cmp r0, #31
+; V6T2-NEXT:    movge r0, #31
+; V6T2-NEXT:    cmn r0, #32
+; V6T2-NEXT:    mvnle r0, #31
 ; V6T2-NEXT:    bx lr
 entry:
   %0 = call i8 @llvm.smin.i8(i8 %x, i8 31)
@@ -747,7 +763,14 @@ define i32 @mm_sat_lower_upper_1(i32 %x) {
 ;
 ; V6T2-LABEL: mm_sat_lower_upper_1:
 ; V6T2:       @ %bb.0: @ %entry
-; V6T2-NEXT:    ssat r0, #24, r0
+; V6T2-NEXT:    movw r1, #65535
+; V6T2-NEXT:    movt r1, #127
+; V6T2-NEXT:    cmp r0, r1
+; V6T2-NEXT:    movge r0, r1
+; V6T2-NEXT:    movw r1, #0
+; V6T2-NEXT:    movt r1, #65408
+; V6T2-NEXT:    cmn r0, #8388608
+; V6T2-NEXT:    movle r0, r1
 ; V6T2-NEXT:    bx lr
 entry:
   %0 = call i32 @llvm.smin.i32(i32 %x, i32 8388607)
@@ -773,7 +796,14 @@ define i32 @mm_sat_lower_upper_2(i32 %x) {
 ;
 ; V6T2-LABEL: mm_sat_lower_upper_2:
 ; V6T2:       @ %bb.0: @ %entry
-; V6T2-NEXT:    ssat r0, #24, r0
+; V6T2-NEXT:    movw r1, #65535
+; V6T2-NEXT:    movt r1, #127
+; V6T2-NEXT:    cmp r0, r1
+; V6T2-NEXT:    movge r0, r1
+; V6T2-NEXT:    movw r1, #0
+; V6T2-NEXT:    movt r1, #65408
+; V6T2-NEXT:    cmn r0, #8388608
+; V6T2-NEXT:    movle r0, r1
 ; V6T2-NEXT:    bx lr
 entry:
   %0 = call i32 @llvm.smin.i32(i32 %x, i32 8388607)
@@ -799,7 +829,14 @@ define i32 @mm_sat_upper_lower_1(i32 %x) {
 ;
 ; V6T2-LABEL: mm_sat_upper_lower_1:
 ; V6T2:       @ %bb.0: @ %entry
-; V6T2-NEXT:    ssat r0, #24, r0
+; V6T2-NEXT:    movw r1, #0
+; V6T2-NEXT:    cmn r0, #8388608
+; V6T2-NEXT:    movt r1, #65408
+; V6T2-NEXT:    movle r0, r1
+; V6T2-NEXT:    movw r1, #65535
+; V6T2-NEXT:    movt r1, #127
+; V6T2-NEXT:    cmp r0, r1
+; V6T2-NEXT:    movge r0, r1
 ; V6T2-NEXT:    bx lr
 entry:
   %0 = call i32 @llvm.smax.i32(i32 %x, i32 -8388608)
@@ -825,7 +862,14 @@ define i32 @mm_sat_upper_lower_2(i32 %x) {
 ;
 ; V6T2-LABEL: mm_sat_upper_lower_2:
 ; V6T2:       @ %bb.0: @ %entry
-; V6T2-NEXT:    ssat r0, #24, r0
+; V6T2-NEXT:    movw r1, #0
+; V6T2-NEXT:    cmn r0, #8388608
+; V6T2-NEXT:    movt r1, #65408
+; V6T2-NEXT:    movle r0, r1
+; V6T2-NEXT:    movw r1, #65535
+; V6T2-NEXT:    movt r1, #127
+; V6T2-NEXT:    cmp r0, r1
+; V6T2-NEXT:    movge r0, r1
 ; V6T2-NEXT:    bx lr
 entry:
   %0 = call i32 @llvm.smax.i32(i32 %x, i32 -8388608)
@@ -851,7 +895,14 @@ define i32 @mm_sat_upper_lower_3(i32 %x) {
 ;
 ; V6T2-LABEL: mm_sat_upper_lower_3:
 ; V6T2:       @ %bb.0: @ %entry
-; V6T2-NEXT:    ssat r0, #24, r0
+; V6T2-NEXT:    movw r1, #0
+; V6T2-NEXT:    cmn r0, #8388608
+; V6T2-NEXT:    movt r1, #65408
+; V6T2-NEXT:    movle r0, r1
+; V6T2-NEXT:    movw r1, #65535
+; V6T2-NEXT:    movt r1, #127
+; V6T2-NEXT:    cmp r0, r1
+; V6T2-NEXT:    movge r0, r1
 ; V6T2-NEXT:    bx lr
 entry:
   %0 = call i32 @llvm.smax.i32(i32 %x, i32 -8388608)
@@ -877,7 +928,14 @@ define i32 @mm_sat_le_ge(i32 %x) {
 ;
 ; V6T2-LABEL: mm_sat_le_ge:
 ; V6T2:       @ %bb.0: @ %entry
-; V6T2-NEXT:    ssat r0, #24, r0
+; V6T2-NEXT:    movw r1, #0
+; V6T2-NEXT:    cmn r0, #8388608
+; V6T2-NEXT:    movt r1, #65408
+; V6T2-NEXT:    movle r0, r1
+; V6T2-NEXT:    movw r1, #65535
+; V6T2-NEXT:    movt r1, #127
+; V6T2-NEXT:    cmp r0, r1
+; V6T2-NEXT:    movge r0, r1
 ; V6T2-NEXT:    bx lr
 entry:
   %0 = call i32 @llvm.smax.i32(i32 %x, i32 -8388608)

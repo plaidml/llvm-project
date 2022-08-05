@@ -19,7 +19,7 @@ using namespace mlir;
 
 namespace {
 struct TestComposeSubViewPass
-    : public PassWrapper<TestComposeSubViewPass, OperationPass<>> {
+    : public PassWrapper<TestComposeSubViewPass, OperationPass<FuncOp>> {
   StringRef getArgument() const final { return "test-compose-subview"; }
   StringRef getDescription() const final {
     return "Test combining composed subviews";

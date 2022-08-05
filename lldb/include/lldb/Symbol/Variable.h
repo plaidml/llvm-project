@@ -77,9 +77,7 @@ public:
 
   const DWARFExpression &LocationExpression() const { return m_location; }
 
-  // When given invalid address, it dumps all locations. Otherwise it only dumps
-  // the location that contains this address.
-  bool DumpLocations(Stream *s, const Address &address);
+  bool DumpLocationForAddress(Stream *s, const Address &address);
 
   size_t MemorySize() const;
 

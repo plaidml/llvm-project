@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 // UNSUPPORTED: c++03, c++11, c++14, c++17
+// UNSUPPORTED: libcpp-no-concepts
 // UNSUPPORTED: libcpp-has-no-incomplete-ranges
 
 // constexpr reverse_iterator<iterator_t<V>> begin();
@@ -84,8 +85,8 @@ constexpr bool test() {
   // Common bidirectional range.
   {
     auto rev = std::ranges::reverse_view(BidirRange{buffer, buffer + 8});
-    assert(base(rev.begin().base()) == buffer + 8);
-    assert(base(std::move(rev).begin().base()) == buffer + 8);
+    assert(rev.begin().base().base() == buffer + 8);
+    assert(std::move(rev).begin().base().base() == buffer + 8);
 
     ASSERT_SAME_TYPE(decltype(rev.begin()), std::reverse_iterator<bidirectional_iterator<int*>>);
     ASSERT_SAME_TYPE(decltype(std::move(rev).begin()), std::reverse_iterator<bidirectional_iterator<int*>>);
@@ -93,8 +94,8 @@ constexpr bool test() {
   // Const common bidirectional range.
   {
     const auto rev = std::ranges::reverse_view(BidirRange{buffer, buffer + 8});
-    assert(base(rev.begin().base()) == buffer + 8);
-    assert(base(std::move(rev).begin().base()) == buffer + 8);
+    assert(rev.begin().base().base() == buffer + 8);
+    assert(std::move(rev).begin().base().base() == buffer + 8);
 
     ASSERT_SAME_TYPE(decltype(rev.begin()), std::reverse_iterator<bidirectional_iterator<const int*>>);
     ASSERT_SAME_TYPE(decltype(std::move(rev).begin()), std::reverse_iterator<bidirectional_iterator<const int*>>);
@@ -102,15 +103,15 @@ constexpr bool test() {
   // Non-common, non-const (move only) bidirectional range.
   {
     auto rev = std::ranges::reverse_view(BidirSentRange<MoveOnly>{buffer, buffer + 8});
-    assert(base(std::move(rev).begin().base()) == buffer + 8);
+    assert(std::move(rev).begin().base().base() == buffer + 8);
 
     ASSERT_SAME_TYPE(decltype(std::move(rev).begin()), std::reverse_iterator<bidirectional_iterator<int*>>);
   }
   // Non-common, non-const bidirectional range.
   {
     auto rev = std::ranges::reverse_view(BidirSentRange<Copyable>{buffer, buffer + 8});
-    assert(base(rev.begin().base()) == buffer + 8);
-    assert(base(std::move(rev).begin().base()) == buffer + 8);
+    assert(rev.begin().base().base() == buffer + 8);
+    assert(std::move(rev).begin().base().base() == buffer + 8);
 
     ASSERT_SAME_TYPE(decltype(rev.begin()), std::reverse_iterator<bidirectional_iterator<int*>>);
     ASSERT_SAME_TYPE(decltype(std::move(rev).begin()), std::reverse_iterator<bidirectional_iterator<int*>>);
@@ -120,8 +121,8 @@ constexpr bool test() {
   // to implement for random access ranges.
   {
     auto rev = std::ranges::reverse_view(RASentRange{buffer, buffer + 8});
-    assert(base(rev.begin().base()) == buffer + 8);
-    assert(base(std::move(rev).begin().base()) == buffer + 8);
+    assert(rev.begin().base().base() == buffer + 8);
+    assert(std::move(rev).begin().base().base() == buffer + 8);
 
     ASSERT_SAME_TYPE(decltype(rev.begin()), std::reverse_iterator<random_access_iterator<int*>>);
     ASSERT_SAME_TYPE(decltype(std::move(rev).begin()), std::reverse_iterator<random_access_iterator<int*>>);

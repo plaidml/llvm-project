@@ -241,8 +241,7 @@ int main(int argc, char **argv) {
         exit(1);
       }
 
-      if (Error E = RI.run())
-        report_error(opts::InputFilename, std::move(E));
+      RI.run();
     } else if (auto *O = dyn_cast<MachOObjectFile>(&Binary)) {
       auto MachORIOrErr =
           MachORewriteInstance::createMachORewriteInstance(O, ToolPath);
@@ -293,14 +292,12 @@ int main(int argc, char **argv) {
              << "\n";
       outs() << "BOLT-DIFF: *** Binary 1 fdata:     " << opts::InputDataFilename
              << "\n";
-      if (Error E = RI1.run())
-        report_error(opts::InputFilename, std::move(E));
+      RI1.run();
       outs() << "BOLT-DIFF: *** Analyzing binary 2: " << opts::InputFilename2
              << "\n";
       outs() << "BOLT-DIFF: *** Binary 2 fdata:     "
              << opts::InputDataFilename2 << "\n";
-      if (Error E = RI2.run())
-        report_error(opts::InputFilename2, std::move(E));
+      RI2.run();
       RI1.compare(RI2);
     } else {
       report_error(opts::InputFilename2, object_error::invalid_file_type);

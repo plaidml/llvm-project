@@ -9,7 +9,6 @@
 #include "Annotations.h"
 #include "DumpAST.h"
 #include "TestTU.h"
-#include "clang/AST/ASTTypeTraits.h"
 #include "llvm/Support/ScopedPrinter.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"

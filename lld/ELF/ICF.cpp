@@ -74,7 +74,6 @@
 
 #include "ICF.h"
 #include "Config.h"
-#include "InputFiles.h"
 #include "LinkerScript.h"
 #include "OutputSections.h"
 #include "SymbolTable.h"
@@ -568,8 +567,8 @@ template <class ELFT> void ICF<ELFT>::run() {
   // InputSectionDescription::sections is populated by processSectionCommands().
   // ICF may fold some input sections assigned to output sections. Remove them.
   for (SectionCommand *cmd : script->sectionCommands)
-    if (auto *osd = dyn_cast<OutputDesc>(cmd))
-      for (SectionCommand *subCmd : osd->osec.commands)
+    if (auto *sec = dyn_cast<OutputSection>(cmd))
+      for (SectionCommand *subCmd : sec->commands)
         if (auto *isd = dyn_cast<InputSectionDescription>(subCmd))
           llvm::erase_if(isd->sections,
                          [](InputSection *isec) { return !isec->isLive(); });

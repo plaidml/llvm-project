@@ -12,7 +12,7 @@
 
 // typedef TrivialClock file_time_type;
 
-// ADDITIONAL_COMPILE_FLAGS: -I %S/../../../../src/filesystem -Wno-macro-redefined
+// ADDITIONAL_COMPILE_FLAGS: -I %S/../../../../src/filesystem
 
 #include <cassert>
 #include <chrono>

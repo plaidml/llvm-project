@@ -843,7 +843,7 @@ Status GDBRemoteCommunication::StartListenThread(const char *hostname,
   m_listen_url = listen_url;
   SetConnection(std::make_unique<ConnectionFileDescriptor>());
   llvm::Expected<HostThread> listen_thread = ThreadLauncher::LaunchThread(
-      listen_url, [this] { return GDBRemoteCommunication::ListenThread(); });
+      listen_url, GDBRemoteCommunication::ListenThread, this);
   if (!listen_thread)
     return Status(listen_thread.takeError());
   m_listen_thread = *listen_thread;
@@ -857,22 +857,23 @@ bool GDBRemoteCommunication::JoinListenThread() {
   return true;
 }
 
-lldb::thread_result_t GDBRemoteCommunication::ListenThread() {
+lldb::thread_result_t
+GDBRemoteCommunication::ListenThread(lldb::thread_arg_t arg) {
+  GDBRemoteCommunication *comm = (GDBRemoteCommunication *)arg;
   Status error;
   ConnectionFileDescriptor *connection =
-      (ConnectionFileDescriptor *)GetConnection();
+      (ConnectionFileDescriptor *)comm->GetConnection();
 
   if (connection) {
     // Do the listen on another thread so we can continue on...
     if (connection->Connect(
-            m_listen_url.c_str(),
-            [this](llvm::StringRef port_str) {
+            comm->m_listen_url.c_str(), [comm](llvm::StringRef port_str) {
               uint16_t port = 0;
               llvm::to_integer(port_str, port, 10);
-              m_port_promise.set_value(port);
+              comm->m_port_promise.set_value(port);
             },
             &error) != eConnectionStatusSuccess)
-      SetConnection(nullptr);
+      comm->SetConnection(nullptr);
   }
   return {};
 }

@@ -14,8 +14,9 @@
 #ifndef LLVM_INTERFACESTUB_IFSSTUB_H
 #define LLVM_INTERFACESTUB_IFSSTUB_H
 
-#include "llvm/ADT/Optional.h"
+#include "llvm/Support/Error.h"
 #include "llvm/Support/VersionTuple.h"
+#include <set>
 #include <vector>
 
 namespace llvm {

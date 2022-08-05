@@ -946,15 +946,14 @@ Scope *ModFileReader::Read(const SourceName &name,
       for (auto &msg : parsing.messages().messages()) {
         std::string str{msg.ToString()};
         Say(name, ancestorName,
-            parser::MessageFixedText{str.c_str(), str.size(), msg.severity()},
-            path);
+            parser::MessageFixedText{str.c_str(), str.size()}, path);
       }
     }
     return nullptr;
   }
   CHECK(sourceFile);
   if (!VerifyHeader(sourceFile->content())) {
-    Say(name, ancestorName, "File has invalid checksum: %s"_warn_en_US,
+    Say(name, ancestorName, "File has invalid checksum: %s"_en_US,
         sourceFile->path());
     return nullptr;
   }
@@ -1044,17 +1043,7 @@ void SubprogramSymbolCollector::Collect() {
   for (const auto &pair : scope_) {
     const Symbol &symbol{*pair.second};
     if (const auto *useDetails{symbol.detailsIf<UseDetails>()}) {
-      const Symbol &ultimate{useDetails->symbol().GetUltimate()};
-      bool needed{useSet_.count(ultimate) > 0};
-      if (const auto *generic{ultimate.detailsIf<GenericDetails>()}) {
-        // The generic may not be needed itself, but the specific procedure
-        // &/or derived type that it shadows may be needed.
-        const Symbol *spec{generic->specific()};
-        const Symbol *dt{generic->derivedType()};
-        needed = needed || (spec && useSet_.count(*spec) > 0) ||
-            (dt && useSet_.count(*dt) > 0);
-      }
-      if (needed) {
+      if (useSet_.count(useDetails->symbol().GetUltimate()) > 0) {
         need_.push_back(symbol);
       }
     }

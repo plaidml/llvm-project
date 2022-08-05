@@ -22,6 +22,7 @@
 #include "llvm/Support/Process.h"
 #include "llvm/Support/Signals.h"
 #include <cctype>
+#include <cstring>
 
 #if !defined(_MSC_VER) && !defined(__MINGW32__)
 #include <unistd.h>

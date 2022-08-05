@@ -37,10 +37,6 @@
 
 #--- foo1.s
 .cstring
-L_.str.0:
-  .asciz  "bar"
-## This string is at a different offset than the corresponding "foo" string in
-## foo2.s. Make sure that we treat references to either string as equivalent.
 L_.str:
   .asciz  "foo"
 
@@ -61,7 +57,7 @@ _named_cfstring:
   .quad  3 ## strlen
 
 .section  __TEXT,__ustring
-l_.ustr:
+l_.str.2:
   .short  102 ## f
   .short  111 ## o
   .short  0   ## \0
@@ -81,7 +77,7 @@ L__unnamed_cfstring_.2:
   .quad  ___CFConstantStringClassReference
   .long  2000 ## utf-16
   .space  4
-  .quad  l_.ustr
+  .quad  l_.str.2
   .quad  4 ## strlen
 
 .text
@@ -120,7 +116,7 @@ _named_cfstring:
 
 .section  __TEXT,__ustring
   .p2align  1
-l_.ustr:
+l_.str.2:
   .short  102 ## f
   .short  111 ## o
   .short  0   ## \0
@@ -133,7 +129,7 @@ L__unnamed_cfstring_.2:
   .quad  ___CFConstantStringClassReference
   .long  2000 ## utf-16
   .space  4
-  .quad  l_.ustr
+  .quad  l_.str.2
   .quad  4 ## strlen
 
 .text

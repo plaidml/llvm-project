@@ -188,10 +188,8 @@ void Finalize(
       SubscriptValue extent[maxRank];
       const typeInfo::Value *bounds{comp.bounds()};
       for (int dim{0}; dim < comp.rank(); ++dim) {
-        SubscriptValue lb{bounds[2 * dim].GetValue(&descriptor).value_or(0)};
-        SubscriptValue ub{
-            bounds[2 * dim + 1].GetValue(&descriptor).value_or(0)};
-        extent[dim] = ub >= lb ? ub - lb + 1 : 0;
+        extent[dim] = bounds[2 * dim].GetValue(&descriptor).value_or(0) -
+            bounds[2 * dim + 1].GetValue(&descriptor).value_or(0) + 1;
       }
       StaticDescriptor<maxRank, true, 0> staticDescriptor;
       Descriptor &compDesc{staticDescriptor.descriptor()};

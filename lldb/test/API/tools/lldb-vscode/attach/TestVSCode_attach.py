@@ -214,7 +214,7 @@ class TestVSCode_attach(lldbvscode_testcase.VSCodeTestCaseBase):
         # and use it for debugging
         attachCommands = [
             'target create -d "%s"' % (program),
-            'process launch --stop-at-entry'
+            'process launch'
         ]
         terminateCommands = ['expr 4+2']
         self.attach(program=program,

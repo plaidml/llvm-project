@@ -55,7 +55,8 @@ MonitoringProcessLauncher::LaunchProcess(const ProcessLaunchInfo &launch_info,
 
     assert(launch_info.GetMonitorProcessCallback());
     llvm::Expected<HostThread> maybe_thread =
-        process.StartMonitoring(launch_info.GetMonitorProcessCallback());
+        process.StartMonitoring(launch_info.GetMonitorProcessCallback(),
+                                launch_info.GetMonitorSignals());
     if (!maybe_thread)
       error.SetErrorStringWithFormatv("failed to launch host thread: {}",
                                       llvm::toString(maybe_thread.takeError()));

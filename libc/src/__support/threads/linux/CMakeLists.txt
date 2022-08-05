@@ -1,9 +1,0 @@
-add_header_library(
-  thread
-  HDRS
-    mutex.h
-  DEPENDS
-    libc.include.sys_syscall
-    libc.src.__support.CPP.atomic
-    libc.src.__support.OSUtil.osutil
-)

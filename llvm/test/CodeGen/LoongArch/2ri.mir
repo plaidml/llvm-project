@@ -280,74 +280,74 @@ body: |
 ---
 # CHECK-LABEL: test_LDPTR_W:
 # CHECK-ENC: 0 0 1 0 0 1 0 0 0 0 0 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0 1 0 0 1 0 0
-# CHECK-ASM: ldptr.w	$a0, $a1, 264
+# CHECK-ASM: ldptr.w	$a0, $a1, 66
 name: test_LDPTR_W
 body: |
   bb.0:
-    $r4 = LDPTR_W $r5, 264
+    $r4 = LDPTR_W $r5, 66
 ...
 ---
 # CHECK-LABEL: test_LDPTR_D:
 # CHECK-ENC: 0 0 1 0 0 1 1 0 0 0 0 0 0 0 0 0 1 1 1 0 0 0 0 0 1 0 1 0 0 1 0 0
-# CHECK-ASM: ldptr.d	$a0, $a1, 224
+# CHECK-ASM: ldptr.d	$a0, $a1, 56
 name: test_LDPTR_D
 body: |
   bb.0:
-    $r4 = LDPTR_D $r5, 224
+    $r4 = LDPTR_D $r5, 56
 ...
 ---
 # CHECK-LABEL: test_STPTR_W:
 # CHECK-ENC: 0 0 1 0 0 1 0 1 0 0 0 0 0 0 0 1 0 1 0 1 1 1 0 0 1 0 1 0 0 1 0 0
-# CHECK-ASM: stptr.w	$a0, $a1, 348
+# CHECK-ASM: stptr.w	$a0, $a1, 87
 name: test_STPTR_W
 body: |
   bb.0:
-    STPTR_W $r4, $r5, 348
+    STPTR_W $r4, $r5, 87
 ...
 ---
 # CHECK-LABEL: test_STPTR_D:
 # CHECK-ENC: 0 0 1 0 0 1 1 1 0 0 0 0 0 0 1 0 0 1 0 0 0 1 0 0 1 0 1 0 0 1 0 0
-# CHECK-ASM: stptr.d	$a0, $a1, 580
+# CHECK-ASM: stptr.d	$a0, $a1, 145
 name: test_STPTR_D
 body: |
   bb.0:
-    STPTR_D $r4, $r5, 580
+    STPTR_D $r4, $r5, 145
 ...
 ---
 # CHECK-LABEL: test_LL_W:
 # CHECK-ENC: 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 0 0 1 1 0 0 1 0 1 0 0 1 0 0
-# CHECK-ASM: ll.w	$a0, $a1, 972
+# CHECK-ASM: ll.w	$a0, $a1, 243
 name: test_LL_W
 body: |
   bb.0:
-    $r4 = LL_W $r5, 972
+    $r4 = LL_W $r5, 243
 ...
 ---
 # CHECK-LABEL: test_LL_D:
 # CHECK-ENC: 0 0 1 0 0 0 1 0 0 0 0 0 0 0 0 1 0 0 1 0 1 0 0 0 1 0 1 0 0 1 0 0
-# CHECK-ASM: ll.d	$a0, $a1, 296
+# CHECK-ASM: ll.d	$a0, $a1, 74
 name: test_LL_D
 body: |
   bb.0:
-    $r4 = LL_D $r5, 296
+    $r4 = LL_D $r5, 74
 ...
 ---
 # CHECK-LABEL: test_SC_W:
 # CHECK-ENC: 0 0 1 0 0 0 0 1 0 0 0 0 0 0 0 1 1 0 0 0 0 0 0 0 1 0 1 0 0 1 0 0
-# CHECK-ASM: sc.w	$a0, $a1, 384
+# CHECK-ASM: sc.w	$a0, $a1, 96
 name: test_SC_W
 body: |
   bb.0:
-    $r4 = SC_W $r4, $r5, 384
+    $r4 = SC_W $r4, $r5, 96
 ...
 ---
 # CHECK-LABEL: test_SC_D:
 # CHECK-ENC: 0 0 1 0 0 0 1 1 0 0 0 0 0 0 0 1 1 0 1 0 0 1 0 0 1 0 1 0 0 1 0 0
-# CHECK-ASM: sc.d	$a0, $a1, 420
+# CHECK-ASM: sc.d	$a0, $a1, 105
 name: test_SC_D
 body: |
   bb.0:
-    $r4 = SC_D $r4, $r5, 420
+    $r4 = SC_D $r4, $r5, 105
 ...
 
 # -------------------------------------------------------------------------------------------------
@@ -371,62 +371,62 @@ body: |
 ---
 # CHECK-LABEL: test_JIRL:
 # CHECK-ENC: 0 1 0 0 1 1 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 1 0 0 1 0 1 0 0 1 0 0
-# CHECK-ASM: jirl	$a0, $a1, 196
+# CHECK-ASM: jirl	$a0, $a1, 49
 name: test_JIRL
 body: |
   bb.0:
-    $r4 = JIRL $r5, 196
+    $r4 = JIRL $r5, 49
 ...
 ---
 # CHECK-LABEL: test_BEQ:
 # CHECK-ENC: 0 1 0 1 1 0 0 0 0 0 0 0 0 0 1 1 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 1
-# CHECK-ASM: beq	$a0, $a1, 784
+# CHECK-ASM: beq	$a0, $a1, 196
 name: test_BEQ
 body: |
   bb.0:
-    BEQ $r4, $r5, 784
+    BEQ $r4, $r5, 196
 ...
 ---
 # CHECK-LABEL: test_BNE:
 # CHECK-ENC: 0 1 0 1 1 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 1 1 0 0 1 0 0 0 0 1 0 1
-# CHECK-ASM: bne	$a0, $a1, 76
+# CHECK-ASM: bne	$a0, $a1, 19
 name: test_BNE
 body: |
   bb.0:
-    BNE $r4, $r5, 76
+    BNE $r4, $r5, 19
 ...
 ---
 # CHECK-LABEL: test_BLT:
 # CHECK-ENC: 0 1 1 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 0 1 1 0 0 1 0 0 0 0 1 0 1
-# CHECK-ASM: blt	$a0, $a1, 492
+# CHECK-ASM: blt	$a0, $a1, 123
 name: test_BLT
 body: |
   bb.0:
-    BLT $r4, $r5, 492
+    BLT $r4, $r5, 123
 ...
 ---
 # CHECK-LABEL: test_BGE:
 # CHECK-ENC: 0 1 1 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 0 1 0 0 0 0 1 0 1
-# CHECK-ASM: bge	$a0, $a1, 48
+# CHECK-ASM: bge	$a0, $a1, 12
 name: test_BGE
 body: |
   bb.0:
-    BGE $r4, $r5, 48
+    BGE $r4, $r5, 12
 ...
 ---
 # CHECK-LABEL: test_BLTU:
 # CHECK-ENC: 0 1 1 0 1 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 1 0 0 1 0 0 0 0 1 0 1
-# CHECK-ASM: bltu	$a0, $a1, 68
+# CHECK-ASM: bltu	$a0, $a1, 17
 name: test_BLTU
 body: |
   bb.0:
-    BLTU $r4, $r5, 68
+    BLTU $r4, $r5, 17
 ...
 ---
 # CHECK-LABEL: test_BGEU:
 # CHECK-ENC: 0 1 1 0 1 1 0 0 0 0 0 0 0 0 0 1 0 1 1 0 0 0 0 0 1 0 0 0 0 1 0 1
-# CHECK-ASM: bgeu	$a0, $a1, 352
+# CHECK-ASM: bgeu	$a0, $a1, 88
 name: test_BGEU
 body: |
   bb.0:
-    BGEU $r4, $r5, 352
+    BGEU $r4, $r5, 88

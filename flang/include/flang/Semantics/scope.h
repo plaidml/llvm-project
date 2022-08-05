@@ -104,7 +104,6 @@ public:
   bool IsParameterizedDerivedTypeInstantiation() const {
     return kind_ == Kind::DerivedType && !symbol_;
   }
-  bool IsDerivedTypeWithKindParameter() const;
   Symbol *symbol() { return symbol_; }
   const Symbol *symbol() const { return symbol_; }
   SemanticsContext &context() const { return context_; }

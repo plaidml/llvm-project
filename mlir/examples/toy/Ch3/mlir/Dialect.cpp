@@ -89,7 +89,6 @@ static void printBinaryOp(mlir::OpAsmPrinter &printer, mlir::Operation *op) {
 
 //===----------------------------------------------------------------------===//
 // ConstantOp
-//===----------------------------------------------------------------------===//
 
 /// Build a constant operation.
 /// The builder is passed as an argument, so is the state that this method is
@@ -159,7 +158,6 @@ mlir::LogicalResult ConstantOp::verify() {
 
 //===----------------------------------------------------------------------===//
 // AddOp
-//===----------------------------------------------------------------------===//
 
 void AddOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                   mlir::Value lhs, mlir::Value rhs) {
@@ -176,7 +174,6 @@ void AddOp::print(mlir::OpAsmPrinter &p) { printBinaryOp(p, *this); }
 
 //===----------------------------------------------------------------------===//
 // GenericCallOp
-//===----------------------------------------------------------------------===//
 
 void GenericCallOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                           StringRef callee, ArrayRef<mlir::Value> arguments) {
@@ -189,7 +186,6 @@ void GenericCallOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
 
 //===----------------------------------------------------------------------===//
 // MulOp
-//===----------------------------------------------------------------------===//
 
 void MulOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                   mlir::Value lhs, mlir::Value rhs) {
@@ -206,7 +202,6 @@ void MulOp::print(mlir::OpAsmPrinter &p) { printBinaryOp(p, *this); }
 
 //===----------------------------------------------------------------------===//
 // ReturnOp
-//===----------------------------------------------------------------------===//
 
 mlir::LogicalResult ReturnOp::verify() {
   // We know that the parent operation is a function, because of the 'HasParent'
@@ -243,7 +238,6 @@ mlir::LogicalResult ReturnOp::verify() {
 
 //===----------------------------------------------------------------------===//
 // TransposeOp
-//===----------------------------------------------------------------------===//
 
 void TransposeOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                         mlir::Value value) {

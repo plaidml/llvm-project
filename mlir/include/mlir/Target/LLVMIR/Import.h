@@ -20,13 +20,12 @@
 
 // Forward-declare LLVM classes.
 namespace llvm {
-class DataLayout;
 class Module;
 } // namespace llvm
 
 namespace mlir {
 
-class DataLayoutSpecInterface;
+class DialectRegistry;
 class MLIRContext;
 class ModuleOp;
 
@@ -37,11 +36,6 @@ class ModuleOp;
 OwningOpRef<ModuleOp>
 translateLLVMIRToModule(std::unique_ptr<llvm::Module> llvmModule,
                         MLIRContext *context);
-
-/// Translate the given LLVM data layout into an MLIR equivalent using the DLTI
-/// dialect.
-DataLayoutSpecInterface translateDataLayout(const llvm::DataLayout &dataLayout,
-                                            MLIRContext *context);
 
 } // namespace mlir
 

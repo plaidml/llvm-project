@@ -1,4 +1,4 @@
-; RUN: opt -aa-pipeline=basic-aa -passes=aa-eval -print-no-aliases -disable-output %s 2>&1 | FileCheck %s
+; RUN: opt -basic-aa -aa-eval -print-no-aliases -disable-output %s 2>&1 | FileCheck %s
 
 %struct = type <{ [20 x i64] }>
 

@@ -10,7 +10,6 @@
 
 #include "lldb/Core/ModuleList.h"
 #include "lldb/Core/ModuleSpec.h"
-#include "lldb/Core/Progress.h"
 #include "lldb/Host/FileSystem.h"
 #include "lldb/Symbol/ObjectFile.h"
 #include "lldb/Utility/ArchSpec.h"
@@ -262,10 +261,6 @@ Symbols::LocateExecutableSymbolFile(const ModuleSpec &module_spec,
   if (symbol_file_spec.IsAbsolute() &&
       FileSystem::Instance().Exists(symbol_file_spec))
     return symbol_file_spec;
-
-  Progress progress(llvm::formatv(
-      "Locating external symbol file for {0}",
-      module_spec.GetFileSpec().GetFilename().AsCString("<Unknown>")));
 
   FileSpecList debug_file_search_paths = default_search_paths;
 

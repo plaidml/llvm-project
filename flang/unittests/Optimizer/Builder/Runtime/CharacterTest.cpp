@@ -11,8 +11,6 @@
 #include "gtest/gtest.h"
 #include "flang/Optimizer/Builder/Character.h"
 
-using namespace mlir;
-
 TEST_F(RuntimeCallTest, genAdjustLTest) {
   auto loc = firBuilder->getUnknownLoc();
   mlir::Value result = firBuilder->create<fir::UndefOp>(loc, boxTy);

@@ -13,7 +13,7 @@
 // False positive suppression.
 //===----------------------------------------------------------------------===//
 
-void good_memcpy_known_src(void) {
+void good_memcpy_known_src() {
   char dest[13];
   char src[] = "foobar";
   memcpy(dest, src, sizeof(src));
@@ -69,7 +69,7 @@ void good_memcpy_variable_array(int dest_length) {
   strcpy(dst02, "foobarbazqux");
 }
 
-void bad_memcpy_equal_src_length_and_length(void) {
+void bad_memcpy_equal_src_length_and_length() {
   char dest03[13];
   const char *src = "foobarbazqux";
   memcpy(dest03, src, 12);
@@ -77,7 +77,7 @@ void bad_memcpy_equal_src_length_and_length(void) {
   // CHECK-FIXES: strcpy(dest03, src);
 }
 
-void good_memcpy_equal_src_length_and_length(void) {
+void good_memcpy_equal_src_length_and_length() {
   char dst03[13];
   const char *src = "foobarbazqux";
   strcpy(dst03, src);
@@ -98,7 +98,7 @@ void good_memcpy_dest_size_overflows(const char *src) {
   strcpy(dst04, src);
 }
 
-void bad_memcpy_macro(void) {
+void bad_memcpy_macro() {
   char dest05[SRC_LENGTH];
   memcpy(dest05, SRC, SRC_LENGTH);
   // CHECK-MESSAGES: :[[@LINE-1]]:3: warning: the result from calling 'memcpy' is not null-terminated [bugprone-not-null-terminated-result]
@@ -106,7 +106,7 @@ void bad_memcpy_macro(void) {
   // CHECK-FIXES-NEXT: strcpy(dest05, SRC);
 }
 
-void good_memcpy_macro(void) {
+void good_memcpy_macro() {
   char dst05[SRC_LENGTH + 1];
   strcpy(dst05, SRC);
 }

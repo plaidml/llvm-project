@@ -1,4 +1,5 @@
-// RUN: %clang_cc1 %s -fsyntax-only -verify -verify=c2x -pedantic -Wno-strict-prototypes
+// RUN: %clang_cc1 %s -fsyntax-only -verify -verify=c2x -pedantic
+// RUN: %clang_cc1 %s -fsyntax-only -std=c2x -verify -pedantic
 
 // PR1892, PR11354
 void f(double a[restrict][5]) { __typeof(a) x = 10; } // expected-warning {{(aka 'double (*restrict)[5]')}}

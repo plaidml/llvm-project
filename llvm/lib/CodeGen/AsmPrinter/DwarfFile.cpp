@@ -12,7 +12,9 @@
 #include "DwarfUnit.h"
 #include "llvm/CodeGen/AsmPrinter.h"
 #include "llvm/IR/DebugInfoMetadata.h"
+#include "llvm/IR/Metadata.h"
 #include "llvm/MC/MCStreamer.h"
+#include <algorithm>
 #include <cstdint>
 
 using namespace llvm;

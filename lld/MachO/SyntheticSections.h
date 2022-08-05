@@ -531,19 +531,13 @@ private:
 
 class DeduplicatedCStringSection final : public CStringSection {
 public:
-  uint64_t getSize() const override { return size; }
+  DeduplicatedCStringSection();
+  uint64_t getSize() const override { return builder.getSize(); }
   void finalizeContents() override;
-  void writeTo(uint8_t *buf) const override;
+  void writeTo(uint8_t *buf) const override { builder.write(buf); }
 
 private:
-  struct StringOffset {
-    uint8_t trailingZeros;
-    uint64_t outSecOff = UINT64_MAX;
-
-    explicit StringOffset(uint8_t zeros) : trailingZeros(zeros) {}
-  };
-  llvm::DenseMap<llvm::CachedHashStringRef, StringOffset> stringOffsetMap;
-  size_t size = 0;
+  llvm::StringTableBuilder builder;
 };
 
 /*
@@ -601,7 +595,6 @@ private:
 };
 
 struct InStruct {
-  const uint8_t *bufferStart = nullptr;
   MachHeaderSection *header = nullptr;
   CStringSection *cStringSection = nullptr;
   WordLiteralSection *wordLiteralSection = nullptr;

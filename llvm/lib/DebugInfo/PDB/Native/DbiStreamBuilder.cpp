@@ -14,6 +14,7 @@
 #include "llvm/DebugInfo/MSF/MSFBuilder.h"
 #include "llvm/DebugInfo/MSF/MappedBlockStream.h"
 #include "llvm/DebugInfo/PDB/Native/DbiModuleDescriptorBuilder.h"
+#include "llvm/DebugInfo/PDB/Native/DbiStream.h"
 #include "llvm/DebugInfo/PDB/Native/RawError.h"
 #include "llvm/Object/COFF.h"
 #include "llvm/Support/BinaryStreamWriter.h"

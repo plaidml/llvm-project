@@ -8,6 +8,7 @@
 
 #include "CanonicalIncludes.h"
 #include "Headers.h"
+#include "clang/Driver/Types.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Path.h"
 #include <algorithm>

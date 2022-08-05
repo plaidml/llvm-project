@@ -261,12 +261,6 @@ def stop_gdb_log(debugger, command, result, dict):
         help='display verbose debug info',
         default=False)
     parser.add_option(
-        '--plot',
-        action='store_true',
-        dest='plot',
-        help='plot packet latencies by packet type',
-        default=False)
-    parser.add_option(
         '-q',
         '--quiet',
         action='store_true',
@@ -562,11 +556,11 @@ class Packet:
         return kvp
 
     def split(self, ch):
-        return self.str.split(ch)
+        return string.split(self.str, ch)
 
     def split_hex(self, ch, byte_order):
         hex_values = list()
-        strings = self.str.split(ch)
+        strings = string.split(self.str, ch)
         for str in strings:
             hex_values.append(Packet(str).get_hex_uint(byte_order))
         return hex_values
@@ -894,7 +888,7 @@ def rsp_vCont(options, cmd, cmd_args, rsp):
 
 
 def cmd_vAttach(options, cmd, args):
-    (extra_command, args) = args.split(';')
+    (extra_command, args) = string.split(args, ';')
     if extra_command:
         print("%s%s(%s)" % (cmd, extra_command, args))
     else:
@@ -1218,13 +1212,9 @@ def decode_packet(s, start_index=0):
 
 def rsp_json(options, cmd, cmd_args, rsp):
     print('%s() reply:' % (cmd))
-    if not rsp:
-        return
-    try:
-        json_tree = json.loads(rsp)
-        print(json.dumps(json_tree, indent=4, separators=(',', ': ')))
-    except json.JSONDecodeError:
-        return
+    json_tree = json.loads(rsp)
+    print(json.dumps(json_tree, indent=4, separators=(',', ': ')))
+
 
 def rsp_jGetLoadedDynamicLibrariesInfos(options, cmd, cmd_args, rsp):
     if cmd_args:
@@ -1551,7 +1541,7 @@ def parse_gdb_log(file, options):
                 print("  %24s %11.6f  %5.2f%% %6d %9.6f" % (
                         item, packet_total_time, packet_percent, packet_count,
                         float(packet_total_time) / float(packet_count)))
-        if options and options.plot:
+        if options.plot:
             plot_latencies(packet_times)
 
 if __name__ == '__main__':
@@ -1567,6 +1557,12 @@ if __name__ == '__main__':
         action='store_true',
         dest='verbose',
         help='display verbose debug info',
+        default=False)
+    parser.add_option(
+        '--plot',
+        action='store_true',
+        dest='plot',
+        help='plot packet latencies by packet type',
         default=False)
     parser.add_option(
         '-q',

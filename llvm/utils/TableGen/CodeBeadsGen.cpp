@@ -19,12 +19,14 @@
 // CodeBeads provide a clean table for the instruction encoder to lookup.
 //===----------------------------------------------------------------------===//
 
-#include "CodeGenInstruction.h"
 #include "CodeGenTarget.h"
 #include "llvm/ADT/StringExtras.h"
+#include "llvm/Support/Debug.h"
 #include "llvm/TableGen/Error.h"
 #include "llvm/TableGen/Record.h"
 #include "llvm/TableGen/TableGenBackend.h"
+#include <map>
+#include <string>
 #include <vector>
 using namespace llvm;
 

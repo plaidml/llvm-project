@@ -9,7 +9,8 @@
 #include "llvm/DebugInfo/PDB/Native/NativePublicSymbol.h"
 
 #include "llvm/DebugInfo/CodeView/SymbolRecord.h"
-#include "llvm/DebugInfo/PDB/Native/NativeSession.h"
+#include "llvm/DebugInfo/PDB/Native/NativeTypeBuiltin.h"
+#include "llvm/DebugInfo/PDB/Native/NativeTypeEnum.h"
 
 using namespace llvm;
 using namespace llvm::codeview;

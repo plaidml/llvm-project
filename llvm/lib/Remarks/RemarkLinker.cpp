@@ -17,13 +17,10 @@
 #include "llvm/Remarks/RemarkParser.h"
 #include "llvm/Remarks/RemarkSerializer.h"
 #include "llvm/Support/Error.h"
+#include "llvm/Support/raw_ostream.h"
 
 using namespace llvm;
 using namespace llvm::remarks;
-
-namespace llvm {
-class raw_ostream;
-}
 
 static Expected<StringRef>
 getRemarksSectionName(const object::ObjectFile &Obj) {

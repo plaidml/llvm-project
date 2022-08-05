@@ -7,14 +7,12 @@
 //===----------------------------------------------------------------------===//
 
 #include "mlir/IR/BuiltinOps.h"
-#include "mlir/IR/FunctionInterfaces.h"
 #include "mlir/Pass/Pass.h"
 
 using namespace mlir;
 
 namespace {
-/// This is a test pass for verifying FunctionOpInterface's insertArgument
-/// method.
+/// This is a test pass for verifying FuncOp's insertArgument method.
 struct TestFuncInsertArg
     : public PassWrapper<TestFuncInsertArg, OperationPass<ModuleOp>> {
   StringRef getArgument() const final { return "test-func-insert-arg"; }
@@ -23,7 +21,7 @@ struct TestFuncInsertArg
     auto module = getOperation();
 
     UnknownLoc unknownLoc = UnknownLoc::get(module.getContext());
-    for (auto func : module.getOps<FunctionOpInterface>()) {
+    for (FuncOp func : module.getOps<FuncOp>()) {
       auto inserts = func->getAttrOfType<ArrayAttr>("test.insert_args");
       if (!inserts || inserts.empty())
         continue;
@@ -49,7 +47,7 @@ struct TestFuncInsertArg
   }
 };
 
-/// This is a test pass for verifying FunctionOpInterface's insertResult method.
+/// This is a test pass for verifying FuncOp's insertResult method.
 struct TestFuncInsertResult
     : public PassWrapper<TestFuncInsertResult, OperationPass<ModuleOp>> {
   StringRef getArgument() const final { return "test-func-insert-result"; }
@@ -59,7 +57,7 @@ struct TestFuncInsertResult
   void runOnOperation() override {
     auto module = getOperation();
 
-    for (auto func : module.getOps<FunctionOpInterface>()) {
+    for (FuncOp func : module.getOps<FuncOp>()) {
       auto inserts = func->getAttrOfType<ArrayAttr>("test.insert_results");
       if (!inserts || inserts.empty())
         continue;
@@ -80,8 +78,7 @@ struct TestFuncInsertResult
   }
 };
 
-/// This is a test pass for verifying FunctionOpInterface's eraseArgument
-/// method.
+/// This is a test pass for verifying FuncOp's eraseArgument method.
 struct TestFuncEraseArg
     : public PassWrapper<TestFuncEraseArg, OperationPass<ModuleOp>> {
   StringRef getArgument() const final { return "test-func-erase-arg"; }
@@ -89,7 +86,7 @@ struct TestFuncEraseArg
   void runOnOperation() override {
     auto module = getOperation();
 
-    for (auto func : module.getOps<FunctionOpInterface>()) {
+    for (FuncOp func : module.getOps<FuncOp>()) {
       BitVector indicesToErase(func.getNumArguments());
       for (auto argIndex : llvm::seq<int>(0, func.getNumArguments()))
         if (func.getArgAttr(argIndex, "test.erase_this_arg"))
@@ -99,7 +96,7 @@ struct TestFuncEraseArg
   }
 };
 
-/// This is a test pass for verifying FunctionOpInterface's eraseResult method.
+/// This is a test pass for verifying FuncOp's eraseResult method.
 struct TestFuncEraseResult
     : public PassWrapper<TestFuncEraseResult, OperationPass<ModuleOp>> {
   StringRef getArgument() const final { return "test-func-erase-result"; }
@@ -109,7 +106,7 @@ struct TestFuncEraseResult
   void runOnOperation() override {
     auto module = getOperation();
 
-    for (auto func : module.getOps<FunctionOpInterface>()) {
+    for (FuncOp func : module.getOps<FuncOp>()) {
       BitVector indicesToErase(func.getNumResults());
       for (auto resultIndex : llvm::seq<int>(0, func.getNumResults()))
         if (func.getResultAttr(resultIndex, "test.erase_this_result"))
@@ -119,23 +116,20 @@ struct TestFuncEraseResult
   }
 };
 
-/// This is a test pass for verifying FunctionOpInterface's setType method.
+/// This is a test pass for verifying FuncOp's setType method.
 struct TestFuncSetType
     : public PassWrapper<TestFuncSetType, OperationPass<ModuleOp>> {
   StringRef getArgument() const final { return "test-func-set-type"; }
-  StringRef getDescription() const final {
-    return "Test FunctionOpInterface::setType.";
-  }
+  StringRef getDescription() const final { return "Test FuncOp::setType."; }
   void runOnOperation() override {
     auto module = getOperation();
     SymbolTable symbolTable(module);
 
-    for (auto func : module.getOps<FunctionOpInterface>()) {
+    for (FuncOp func : module.getOps<FuncOp>()) {
       auto sym = func->getAttrOfType<FlatSymbolRefAttr>("test.set_type_from");
       if (!sym)
         continue;
-      func.setType(
-          symbolTable.lookup<FunctionOpInterface>(sym.getValue()).getType());
+      func.setType(symbolTable.lookup<FuncOp>(sym.getValue()).getType());
     }
   }
 };

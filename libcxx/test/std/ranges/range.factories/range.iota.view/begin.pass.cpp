@@ -7,13 +7,13 @@
 //===----------------------------------------------------------------------===//
 
 // UNSUPPORTED: c++03, c++11, c++14, c++17
+// UNSUPPORTED: libcpp-no-concepts
 // UNSUPPORTED: libcpp-has-no-incomplete-ranges
 
 // constexpr iterator begin() const;
 
-#include <cassert>
 #include <ranges>
-#include <utility>
+#include <cassert>
 
 #include "test_macros.h"
 #include "types.h"

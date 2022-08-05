@@ -218,7 +218,7 @@ protected:
 
   bool JoinListenThread();
 
-  lldb::thread_result_t ListenThread();
+  static lldb::thread_result_t ListenThread(lldb::thread_arg_t arg);
 
 private:
   // Promise used to grab the port number from listening thread

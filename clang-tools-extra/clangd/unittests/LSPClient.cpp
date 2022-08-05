@@ -1,21 +1,13 @@
-//===-- LSPClient.cpp - Helper for ClangdLSPServer tests ------------------===//
-//
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-//
-//===----------------------------------------------------------------------===//
-
 #include "LSPClient.h"
+#include "gtest/gtest.h"
+#include <condition_variable>
+
 #include "Protocol.h"
 #include "TestFS.h"
 #include "Transport.h"
-#include "support/Logger.h"
 #include "support/Threading.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/raw_ostream.h"
-#include "gtest/gtest.h"
-#include <condition_variable>
 #include <queue>
 
 namespace clang {

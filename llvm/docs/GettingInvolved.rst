@@ -18,7 +18,6 @@ LLVM welcomes contributions of all kinds. To get started, please review the foll
    HowToSubmitABug
    BugLifeCycle
    CodingStandards
-   GitHub
    GitBisecting
    GitRepositoryPolicy
 
@@ -52,9 +51,6 @@ LLVM welcomes contributions of all kinds. To get started, please review the foll
 :doc:`CodingStandards`
   Details the LLVM coding standards and provides useful information on writing
   efficient C++ code.
-
-:doc:`GitHub`
-  Describes how to use the llvm-project repository on GitHub.
 
 :doc:`GitBisecting`
   Describes how to use ``git bisect`` on LLVM's repository.
@@ -215,10 +211,6 @@ writing, the following sync-ups are organized:
      - `ics <https://drive.google.com/file/d/1uNa-PFYkhAfT83kR2Nc4Fi706TAQFBEL/view?usp=sharing>`__
        `gcal <https://calendar.google.com/calendar/u/0?cid=ZDQyc3ZlajJmbjIzNG1jaTUybjFsdjA2dWNAZ3JvdXAuY2FsZW5kYXIuZ29vZ2xlLmNvbQ>`__
      - `Minutes/docs <https://docs.google.com/document/d/1GahxppHJ7o1O_fn1Mbidu1DHEg7V2aOr92LXCtNV1_o/edit?usp=sharing>`__
-   * - Clang C and C++ Language Working Group
-     - 1st and 3rd Wednesday of the month
-     - `gcal <https://calendar.google.com/calendar/u/0?cid=cW1lZGg0ZXNpMnIyZDN2aTVydGVrdWF1YzRAZ3JvdXAuY2FsZW5kYXIuZ29vZ2xlLmNvbQ>`__
-     - `Minutes/docs <https://docs.google.com/document/d/1x5-RbOC6-jnI_NcJ9Dp4pSmGhhNe7lUevuWUIB46TeM/edit?usp=sharing>`__
 
 
 Office hours
@@ -227,7 +219,7 @@ Office hours
 A number of experienced LLVM contributors make themselves available for a chat
 on a regular schedule, to anyone who is looking for some guidance. Please find
 the list of who is available when, through which medium, and what their area of
-expertise is. Don't be too shy to dial in!
+expertise is. Don't by shy to dial in!
 
 Of course, people take time off from time to time, so if you dial in and you
 don't find anyone present, chances are they happen to be off that day.
@@ -249,21 +241,6 @@ don't find anyone present, chances are they happen to be off that day.
       `ics <https://calendar.google.com/calendar/ical/co0h4ndpvtfe64opn7eraiq3ac%40group.calendar.google.com/public/basic.ics>`__
     - `Jitsi <https://meet.jit.si/KristofBeylsLLVMOfficeHour>`__
     - English, Flemish, Dutch
-  * - Alina Sbirlea
-    - General questions on how to contribute to LLVM; women in compilers;
-      MemorySSA, BatchAA, various loop passes, new pass manager.
-    - Monthly, 2nd Tuesdays, 10.00am PT/7:00pm CET, for 30 minutes.
-      `ics <https://calendar.google.com/calendar/ical/c_pm6e7160iq7n5fcm1s6m3rjhh4%40group.calendar.google.com/public/basic.ics>`__
-      `gcal <https://calendar.google.com/calendar/embed?src=c_pm6e7160iq7n5fcm1s6m3rjhh4%40group.calendar.google.com>`__
-    - `GoogleMeet <https://meet.google.com/hhk-xpdj-gvx>`__
-    - English, Romanian
-  * - Aaron Ballman
-    - Clang internals; frontend attributes; clang-tidy; clang-query; AST matchers
-    - Monthly, 2nd Monday of the month at 10:00am Eastern, for 30 minutes.
-      `ics <https://calendar.google.com/calendar/ical/npgke5dug0uliud0qapptmps58%40group.calendar.google.com/public/basic.ics>`__
-      `gcal <https://calendar.google.com/calendar/embed?src=npgke5dug0uliud0qapptmps58%40group.calendar.google.com>`__
-    - `GoogleMeet <https://meet.google.com/xok-iqne-gmi>`__
-    - English, Norwegian (not fluently)
 
 
 IRC

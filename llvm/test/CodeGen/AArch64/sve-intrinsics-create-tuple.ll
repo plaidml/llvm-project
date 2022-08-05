@@ -1,11 +1,10 @@
 ; RUN: llc -mtriple aarch64 -mattr=+sve -asm-verbose=1 < %s | FileCheck %s
-; RUN: llc -mtriple aarch64 -mattr=+streaming-sve -asm-verbose=1 < %s | FileCheck %s
 
 ;
 ; SVCREATE2 (i8)
 ;
 
-define <vscale x 16 x i8> @test_svcreate2_s8_vec0(i1 %p, <vscale x 16 x i8> %z0, <vscale x 16 x i8> %z1) #0 {
+define <vscale x 16 x i8> @test_svcreate2_s8_vec0(i1 %p, <vscale x 16 x i8> %z0, <vscale x 16 x i8> %z1) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate2_s8_vec0:
 ; CHECK: // %L2
 ; CHECK-NEXT: ret
@@ -18,7 +17,7 @@ L2:
   ret <vscale x 16 x i8> %extract
 }
 
-define <vscale x 16 x i8> @test_svcreate2_s8_vec1(i1 %p, <vscale x 16 x i8> %z0, <vscale x 16 x i8> %z1) #0 {
+define <vscale x 16 x i8> @test_svcreate2_s8_vec1(i1 %p, <vscale x 16 x i8> %z0, <vscale x 16 x i8> %z1) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate2_s8_vec1:
 ; CHECK: // %L2
 ; CHECK-NEXT: mov z0.d, z1.d
@@ -36,7 +35,7 @@ L2:
 ; SVCREATE2 (i16)
 ;
 
-define <vscale x 8 x i16> @test_svcreate2_s16_vec0(i1 %p, <vscale x 8 x i16> %z0, <vscale x 8 x i16> %z1) #0 {
+define <vscale x 8 x i16> @test_svcreate2_s16_vec0(i1 %p, <vscale x 8 x i16> %z0, <vscale x 8 x i16> %z1) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate2_s16_vec0:
 ; CHECK: // %L2
 ; CHECK-NEXT: ret
@@ -49,7 +48,7 @@ L2:
   ret <vscale x 8 x i16> %extract
 }
 
-define <vscale x 8 x i16> @test_svcreate2_s16_vec1(i1 %p, <vscale x 8 x i16> %z0, <vscale x 8 x i16> %z1) #0 {
+define <vscale x 8 x i16> @test_svcreate2_s16_vec1(i1 %p, <vscale x 8 x i16> %z0, <vscale x 8 x i16> %z1) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate2_s16_vec1:
 ; CHECK: // %L2
 ; CHECK-NEXT: mov z0.d, z1.d
@@ -67,7 +66,7 @@ L2:
 ; SVCREATE2 (half)
 ;
 
-define <vscale x 8 x half> @test_svcreate2_f16_vec0(i1 %p, <vscale x 8 x half> %z0, <vscale x 8 x half> %z1) #0 {
+define <vscale x 8 x half> @test_svcreate2_f16_vec0(i1 %p, <vscale x 8 x half> %z0, <vscale x 8 x half> %z1) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate2_f16_vec0:
 ; CHECK: // %L2
 ; CHECK-NEXT: ret
@@ -80,7 +79,7 @@ L2:
   ret <vscale x 8 x half> %extract
 }
 
-define <vscale x 8 x half> @test_svcreate2_f16_vec1(i1 %p, <vscale x 8 x half> %z0, <vscale x 8 x half> %z1) #0 {
+define <vscale x 8 x half> @test_svcreate2_f16_vec1(i1 %p, <vscale x 8 x half> %z0, <vscale x 8 x half> %z1) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate2_f16_vec1:
 ; CHECK: // %L2
 ; CHECK-NEXT: mov z0.d, z1.d
@@ -98,7 +97,7 @@ L2:
 ; SVCREATE2 (bfloat)
 ;
 
-define <vscale x 8 x bfloat> @test_svcreate2_bf16_vec0(i1 %p, <vscale x 8 x bfloat> %z0, <vscale x 8 x bfloat> %z1) #1 {
+define <vscale x 8 x bfloat> @test_svcreate2_bf16_vec0(i1 %p, <vscale x 8 x bfloat> %z0, <vscale x 8 x bfloat> %z1) local_unnamed_addr #1 {
 ; CHECK-LABEL: test_svcreate2_bf16_vec0:
 ; CHECK: // %L2
 ; CHECK-NEXT: ret
@@ -111,7 +110,7 @@ L2:
   ret <vscale x 8 x bfloat> %extract
 }
 
-define <vscale x 8 x bfloat> @test_svcreate2_bf16_vec1(i1 %p, <vscale x 8 x bfloat> %z0, <vscale x 8 x bfloat> %z1) #1 {
+define <vscale x 8 x bfloat> @test_svcreate2_bf16_vec1(i1 %p, <vscale x 8 x bfloat> %z0, <vscale x 8 x bfloat> %z1) local_unnamed_addr #1 {
 ; CHECK-LABEL: test_svcreate2_bf16_vec1:
 ; CHECK: // %L2
 ; CHECK-NEXT: mov z0.d, z1.d
@@ -129,7 +128,7 @@ L2:
 ; SVCREATE2 (i32)
 ;
 
-define <vscale x 4 x i32> @test_svcreate2_s32_vec0(i1 %p, <vscale x 4 x i32> %z0, <vscale x 4 x i32> %z1) #0 {
+define <vscale x 4 x i32> @test_svcreate2_s32_vec0(i1 %p, <vscale x 4 x i32> %z0, <vscale x 4 x i32> %z1) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate2_s32_vec0:
 ; CHECK: // %L2
 ; CHECK-NEXT: ret
@@ -142,7 +141,7 @@ L2:
   ret <vscale x 4 x i32> %extract
 }
 
-define <vscale x 4 x i32> @test_svcreate2_s32_vec1(i1 %p, <vscale x 4 x i32> %z0, <vscale x 4 x i32> %z1) #0 {
+define <vscale x 4 x i32> @test_svcreate2_s32_vec1(i1 %p, <vscale x 4 x i32> %z0, <vscale x 4 x i32> %z1) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate2_s32_vec1:
 ; CHECK: // %L2
 ; CHECK-NEXT: mov z0.d, z1.d
@@ -160,7 +159,7 @@ L2:
 ; SVCREATE2 (float)
 ;
 
-define <vscale x 4 x float> @test_svcreate2_f32_vec0(i1 %p, <vscale x 4 x float> %z0, <vscale x 4 x float> %z1) #0 {
+define <vscale x 4 x float> @test_svcreate2_f32_vec0(i1 %p, <vscale x 4 x float> %z0, <vscale x 4 x float> %z1) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate2_f32_vec0:
 ; CHECK: // %L2
 ; CHECK-NEXT: ret
@@ -173,7 +172,7 @@ L2:
   ret <vscale x 4 x float> %extract
 }
 
-define <vscale x 4 x float> @test_svcreate2_f32_vec1(i1 %p, <vscale x 4 x float> %z0, <vscale x 4 x float> %z1) #0 {
+define <vscale x 4 x float> @test_svcreate2_f32_vec1(i1 %p, <vscale x 4 x float> %z0, <vscale x 4 x float> %z1) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate2_f32_vec1:
 ; CHECK: // %L2
 ; CHECK-NEXT: mov z0.d, z1.d
@@ -191,7 +190,7 @@ L2:
 ; SVCREATE2 (i64)
 ;
 
-define <vscale x 2 x i64> @test_svcreate2_s64_vec0(i1 %p, <vscale x 2 x i64> %z0, <vscale x 2 x i64> %z1) #0 {
+define <vscale x 2 x i64> @test_svcreate2_s64_vec0(i1 %p, <vscale x 2 x i64> %z0, <vscale x 2 x i64> %z1) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate2_s64_vec0:
 ; CHECK: // %L2
 ; CHECK-NEXT: ret
@@ -204,7 +203,7 @@ L2:
   ret <vscale x 2 x i64> %extract
 }
 
-define <vscale x 2 x i64> @test_svcreate2_s64_vec1(i1 %p, <vscale x 2 x i64> %z0, <vscale x 2 x i64> %z1) #0 {
+define <vscale x 2 x i64> @test_svcreate2_s64_vec1(i1 %p, <vscale x 2 x i64> %z0, <vscale x 2 x i64> %z1) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate2_s64_vec1:
 ; CHECK: // %L2
 ; CHECK-NEXT: mov z0.d, z1.d
@@ -222,7 +221,7 @@ L2:
 ; SVCREATE2 (double)
 ;
 
-define <vscale x 2 x double> @test_svcreate2_f64_vec0(i1 %p, <vscale x 2 x double> %z0, <vscale x 2 x double> %z1) #0 {
+define <vscale x 2 x double> @test_svcreate2_f64_vec0(i1 %p, <vscale x 2 x double> %z0, <vscale x 2 x double> %z1) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate2_f64_vec0:
 ; CHECK: // %L2
 ; CHECK-NEXT: ret
@@ -235,7 +234,7 @@ L2:
   ret <vscale x 2 x double> %extract
 }
 
-define <vscale x 2 x double> @test_svcreate2_f64_vec1(i1 %p, <vscale x 2 x double> %z0, <vscale x 2 x double> %z1) #0 {
+define <vscale x 2 x double> @test_svcreate2_f64_vec1(i1 %p, <vscale x 2 x double> %z0, <vscale x 2 x double> %z1) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate2_f64_vec1:
 ; CHECK: // %L2
 ; CHECK-NEXT: mov z0.d, z1.d
@@ -253,7 +252,7 @@ L2:
 ; SVCREATE3 (i8)
 ;
 
-define <vscale x 16 x i8> @test_svcreate3_s8_vec0(i1 %p, <vscale x 16 x i8> %z0, <vscale x 16 x i8> %z1, <vscale x 16 x i8> %z2) #0 {
+define <vscale x 16 x i8> @test_svcreate3_s8_vec0(i1 %p, <vscale x 16 x i8> %z0, <vscale x 16 x i8> %z1, <vscale x 16 x i8> %z2) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate3_s8_vec0:
 ; CHECK: // %L2
 ; CHECK-NEXT: ret
@@ -266,7 +265,7 @@ L2:
   ret <vscale x 16 x i8> %extract
 }
 
-define <vscale x 16 x i8> @test_svcreate3_s8_vec2(i1 %p, <vscale x 16 x i8> %z0, <vscale x 16 x i8> %z1, <vscale x 16 x i8> %z2) #0 {
+define <vscale x 16 x i8> @test_svcreate3_s8_vec2(i1 %p, <vscale x 16 x i8> %z0, <vscale x 16 x i8> %z1, <vscale x 16 x i8> %z2) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate3_s8_vec2:
 ; CHECK: // %L2
 ; CHECK-NEXT: mov z0.d, z2.d
@@ -284,7 +283,7 @@ L2:
 ; SVCREATE3 (i16)
 ;
 
-define <vscale x 8 x i16> @test_svcreate3_s16_vec0(i1 %p, <vscale x 8 x i16> %z0, <vscale x 8 x i16> %z1, <vscale x 8 x i16> %z2) #0 {
+define <vscale x 8 x i16> @test_svcreate3_s16_vec0(i1 %p, <vscale x 8 x i16> %z0, <vscale x 8 x i16> %z1, <vscale x 8 x i16> %z2) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate3_s16_vec0:
 ; CHECK: // %L2
 ; CHECK-NEXT: ret
@@ -297,7 +296,7 @@ L2:
   ret <vscale x 8 x i16> %extract
 }
 
-define <vscale x 8 x i16> @test_svcreate3_s16_vec2(i1 %p, <vscale x 8 x i16> %z0, <vscale x 8 x i16> %z1, <vscale x 8 x i16> %z2) #0 {
+define <vscale x 8 x i16> @test_svcreate3_s16_vec2(i1 %p, <vscale x 8 x i16> %z0, <vscale x 8 x i16> %z1, <vscale x 8 x i16> %z2) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate3_s16_vec2:
 ; CHECK: // %L2
 ; CHECK-NEXT: mov z0.d, z2.d
@@ -315,7 +314,7 @@ L2:
 ; SVCREATE3 (half)
 ;
 
-define <vscale x 8 x half> @test_svcreate3_f16_vec0(i1 %p, <vscale x 8 x half> %z0, <vscale x 8 x half> %z1, <vscale x 8 x half> %z2) #0 {
+define <vscale x 8 x half> @test_svcreate3_f16_vec0(i1 %p, <vscale x 8 x half> %z0, <vscale x 8 x half> %z1, <vscale x 8 x half> %z2) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate3_f16_vec0:
 ; CHECK: // %L2
 ; CHECK-NEXT: ret
@@ -328,7 +327,7 @@ L2:
   ret <vscale x 8 x half> %extract
 }
 
-define <vscale x 8 x half> @test_svcreate3_f16_vec2(i1 %p, <vscale x 8 x half> %z0, <vscale x 8 x half> %z1, <vscale x 8 x half> %z2) #0 {
+define <vscale x 8 x half> @test_svcreate3_f16_vec2(i1 %p, <vscale x 8 x half> %z0, <vscale x 8 x half> %z1, <vscale x 8 x half> %z2) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate3_f16_vec2:
 ; CHECK: // %L2
 ; CHECK-NEXT: mov z0.d, z2.d
@@ -346,7 +345,7 @@ L2:
 ; SVCREATE3 (bfloat)
 ;
 
-define <vscale x 8 x bfloat> @test_svcreate3_bf16_vec0(i1 %p, <vscale x 8 x bfloat> %z0, <vscale x 8 x bfloat> %z1, <vscale x 8 x bfloat> %z2) #1 {
+define <vscale x 8 x bfloat> @test_svcreate3_bf16_vec0(i1 %p, <vscale x 8 x bfloat> %z0, <vscale x 8 x bfloat> %z1, <vscale x 8 x bfloat> %z2) local_unnamed_addr #1 {
 ; CHECK-LABEL: test_svcreate3_bf16_vec0:
 ; CHECK: // %L2
 ; CHECK-NEXT: ret
@@ -359,7 +358,7 @@ L2:
   ret <vscale x 8 x bfloat> %extract
 }
 
-define <vscale x 8 x bfloat> @test_svcreate3_bf16_vec2(i1 %p, <vscale x 8 x bfloat> %z0, <vscale x 8 x bfloat> %z1, <vscale x 8 x bfloat> %z2) #1 {
+define <vscale x 8 x bfloat> @test_svcreate3_bf16_vec2(i1 %p, <vscale x 8 x bfloat> %z0, <vscale x 8 x bfloat> %z1, <vscale x 8 x bfloat> %z2) local_unnamed_addr #1 {
 ; CHECK-LABEL: test_svcreate3_bf16_vec2:
 ; CHECK: // %L2
 ; CHECK-NEXT: mov z0.d, z2.d
@@ -377,7 +376,7 @@ L2:
 ; SVCREATE3 (i32)
 ;
 
-define <vscale x 4 x i32> @test_svcreate3_s32_vec0(i1 %p, <vscale x 4 x i32> %z0, <vscale x 4 x i32> %z1, <vscale x 4 x i32> %z2) #0 {
+define <vscale x 4 x i32> @test_svcreate3_s32_vec0(i1 %p, <vscale x 4 x i32> %z0, <vscale x 4 x i32> %z1, <vscale x 4 x i32> %z2) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate3_s32_vec0:
 ; CHECK: // %L2
 ; CHECK-NEXT: ret
@@ -390,7 +389,7 @@ L2:
   ret <vscale x 4 x i32> %extract
 }
 
-define <vscale x 4 x i32> @test_svcreate3_s32_vec2(i1 %p, <vscale x 4 x i32> %z0, <vscale x 4 x i32> %z1, <vscale x 4 x i32> %z2) #0 {
+define <vscale x 4 x i32> @test_svcreate3_s32_vec2(i1 %p, <vscale x 4 x i32> %z0, <vscale x 4 x i32> %z1, <vscale x 4 x i32> %z2) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate3_s32_vec2:
 ; CHECK: // %L2
 ; CHECK-NEXT: mov z0.d, z2.d
@@ -408,7 +407,7 @@ L2:
 ; SVCREATE3 (float)
 ;
 
-define <vscale x 4 x float> @test_svcreate3_f32_vec0(i1 %p, <vscale x 4 x float> %z0, <vscale x 4 x float> %z1, <vscale x 4 x float> %z2) #0 {
+define <vscale x 4 x float> @test_svcreate3_f32_vec0(i1 %p, <vscale x 4 x float> %z0, <vscale x 4 x float> %z1, <vscale x 4 x float> %z2) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate3_f32_vec0:
 ; CHECK: // %L2
 ; CHECK-NEXT: ret
@@ -421,7 +420,7 @@ L2:
   ret <vscale x 4 x float> %extract
 }
 
-define <vscale x 4 x float> @test_svcreate3_f32_vec2(i1 %p, <vscale x 4 x float> %z0, <vscale x 4 x float> %z1, <vscale x 4 x float> %z2) #0 {
+define <vscale x 4 x float> @test_svcreate3_f32_vec2(i1 %p, <vscale x 4 x float> %z0, <vscale x 4 x float> %z1, <vscale x 4 x float> %z2) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate3_f32_vec2:
 ; CHECK: // %L2
 ; CHECK-NEXT: mov z0.d, z2.d
@@ -439,7 +438,7 @@ L2:
 ; SVCREATE3 (i64)
 ;
 
-define <vscale x 2 x i64> @test_svcreate3_s64_vec0(i1 %p, <vscale x 2 x i64> %z0, <vscale x 2 x i64> %z1, <vscale x 2 x i64> %z2) #0 {
+define <vscale x 2 x i64> @test_svcreate3_s64_vec0(i1 %p, <vscale x 2 x i64> %z0, <vscale x 2 x i64> %z1, <vscale x 2 x i64> %z2) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate3_s64_vec0:
 ; CHECK: // %L2
 ; CHECK-NEXT: ret
@@ -452,7 +451,7 @@ L2:
   ret <vscale x 2 x i64> %extract
 }
 
-define <vscale x 2 x i64> @test_svcreate3_s64_vec2(i1 %p, <vscale x 2 x i64> %z0, <vscale x 2 x i64> %z1, <vscale x 2 x i64> %z2) #0 {
+define <vscale x 2 x i64> @test_svcreate3_s64_vec2(i1 %p, <vscale x 2 x i64> %z0, <vscale x 2 x i64> %z1, <vscale x 2 x i64> %z2) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate3_s64_vec2:
 ; CHECK: // %L2
 ; CHECK-NEXT: mov z0.d, z2.d
@@ -470,7 +469,7 @@ L2:
 ; SVCREATE3 (double)
 ;
 
-define <vscale x 2 x double> @test_svcreate3_f64_vec0(i1 %p, <vscale x 2 x double> %z0, <vscale x 2 x double> %z1, <vscale x 2 x double> %z2) #0 {
+define <vscale x 2 x double> @test_svcreate3_f64_vec0(i1 %p, <vscale x 2 x double> %z0, <vscale x 2 x double> %z1, <vscale x 2 x double> %z2) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate3_f64_vec0:
 ; CHECK: // %L2
 ; CHECK-NEXT: ret
@@ -483,7 +482,7 @@ L2:
   ret <vscale x 2 x double> %extract
 }
 
-define <vscale x 2 x double> @test_svcreate3_f64_vec2(i1 %p, <vscale x 2 x double> %z0, <vscale x 2 x double> %z1, <vscale x 2 x double> %z2) #0 {
+define <vscale x 2 x double> @test_svcreate3_f64_vec2(i1 %p, <vscale x 2 x double> %z0, <vscale x 2 x double> %z1, <vscale x 2 x double> %z2) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate3_f64_vec2:
 ; CHECK: // %L2
 ; CHECK-NEXT: mov z0.d, z2.d
@@ -501,7 +500,7 @@ L2:
 ; SVCREATE4 (i8)
 ;
 
-define <vscale x 16 x i8> @test_svcreate4_s8_vec0(i1 %p, <vscale x 16 x i8> %z0, <vscale x 16 x i8> %z1, <vscale x 16 x i8> %z2, <vscale x 16 x i8> %z3) #0 {
+define <vscale x 16 x i8> @test_svcreate4_s8_vec0(i1 %p, <vscale x 16 x i8> %z0, <vscale x 16 x i8> %z1, <vscale x 16 x i8> %z2, <vscale x 16 x i8> %z3) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate4_s8_vec0:
 ; CHECK: // %L2
 ; CHECK-NEXT: ret
@@ -514,7 +513,7 @@ L2:
   ret <vscale x 16 x i8> %extract
 }
 
-define <vscale x 16 x i8> @test_svcreate4_s8_vec3(i1 %p, <vscale x 16 x i8> %z0, <vscale x 16 x i8> %z1, <vscale x 16 x i8> %z2, <vscale x 16 x i8> %z3) #0 {
+define <vscale x 16 x i8> @test_svcreate4_s8_vec3(i1 %p, <vscale x 16 x i8> %z0, <vscale x 16 x i8> %z1, <vscale x 16 x i8> %z2, <vscale x 16 x i8> %z3) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate4_s8_vec3:
 ; CHECK: // %L2
 ; CHECK-NEXT: mov z0.d, z3.d
@@ -532,7 +531,7 @@ L2:
 ; SVCREATE4 (i16)
 ;
 
-define <vscale x 8 x i16> @test_svcreate4_s16_vec0(i1 %p, <vscale x 8 x i16> %z0, <vscale x 8 x i16> %z1, <vscale x 8 x i16> %z2, <vscale x 8 x i16> %z3) #0 {
+define <vscale x 8 x i16> @test_svcreate4_s16_vec0(i1 %p, <vscale x 8 x i16> %z0, <vscale x 8 x i16> %z1, <vscale x 8 x i16> %z2, <vscale x 8 x i16> %z3) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate4_s16_vec0:
 ; CHECK: // %L2
 ; CHECK-NEXT: ret
@@ -545,7 +544,7 @@ L2:
   ret <vscale x 8 x i16> %extract
 }
 
-define <vscale x 8 x i16> @test_svcreate4_s16_vec3(i1 %p, <vscale x 8 x i16> %z0, <vscale x 8 x i16> %z1, <vscale x 8 x i16> %z2, <vscale x 8 x i16> %z3) #0 {
+define <vscale x 8 x i16> @test_svcreate4_s16_vec3(i1 %p, <vscale x 8 x i16> %z0, <vscale x 8 x i16> %z1, <vscale x 8 x i16> %z2, <vscale x 8 x i16> %z3) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate4_s16_vec3:
 ; CHECK: // %L2
 ; CHECK-NEXT: mov z0.d, z3.d
@@ -563,7 +562,7 @@ L2:
 ; SVCREATE4 (half)
 ;
 
-define <vscale x 8 x half> @test_svcreate4_f16_vec0(i1 %p, <vscale x 8 x half> %z0, <vscale x 8 x half> %z1, <vscale x 8 x half> %z2, <vscale x 8 x half> %z3) #0 {
+define <vscale x 8 x half> @test_svcreate4_f16_vec0(i1 %p, <vscale x 8 x half> %z0, <vscale x 8 x half> %z1, <vscale x 8 x half> %z2, <vscale x 8 x half> %z3) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate4_f16_vec0:
 ; CHECK: // %L2
 ; CHECK-NEXT: ret
@@ -576,7 +575,7 @@ L2:
   ret <vscale x 8 x half> %extract
 }
 
-define <vscale x 8 x half> @test_svcreate4_f16_vec3(i1 %p, <vscale x 8 x half> %z0, <vscale x 8 x half> %z1, <vscale x 8 x half> %z2, <vscale x 8 x half> %z3) #0 {
+define <vscale x 8 x half> @test_svcreate4_f16_vec3(i1 %p, <vscale x 8 x half> %z0, <vscale x 8 x half> %z1, <vscale x 8 x half> %z2, <vscale x 8 x half> %z3) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate4_f16_vec3:
 ; CHECK: // %L2
 ; CHECK-NEXT: mov z0.d, z3.d
@@ -594,7 +593,7 @@ L2:
 ; SVCREATE4 (bfloat)
 ;
 
-define <vscale x 8 x bfloat> @test_svcreate4_bf16_vec0(i1 %p, <vscale x 8 x bfloat> %z0, <vscale x 8 x bfloat> %z1, <vscale x 8 x bfloat> %z2, <vscale x 8 x bfloat> %z3) #1 {
+define <vscale x 8 x bfloat> @test_svcreate4_bf16_vec0(i1 %p, <vscale x 8 x bfloat> %z0, <vscale x 8 x bfloat> %z1, <vscale x 8 x bfloat> %z2, <vscale x 8 x bfloat> %z3) local_unnamed_addr #1 {
 ; CHECK-LABEL: test_svcreate4_bf16_vec0:
 ; CHECK: // %L2
 ; CHECK-NEXT: ret
@@ -607,7 +606,7 @@ L2:
   ret <vscale x 8 x bfloat> %extract
 }
 
-define <vscale x 8 x bfloat> @test_svcreate4_bf16_vec3(i1 %p, <vscale x 8 x bfloat> %z0, <vscale x 8 x bfloat> %z1, <vscale x 8 x bfloat> %z2, <vscale x 8 x bfloat> %z3) #1 {
+define <vscale x 8 x bfloat> @test_svcreate4_bf16_vec3(i1 %p, <vscale x 8 x bfloat> %z0, <vscale x 8 x bfloat> %z1, <vscale x 8 x bfloat> %z2, <vscale x 8 x bfloat> %z3) local_unnamed_addr #1 {
 ; CHECK-LABEL: test_svcreate4_bf16_vec3:
 ; CHECK: // %L2
 ; CHECK-NEXT: mov z0.d, z3.d
@@ -625,7 +624,7 @@ L2:
 ; SVCREATE4 (i32)
 ;
 
-define <vscale x 4 x i32> @test_svcreate4_s32_vec0(i1 %p, <vscale x 4 x i32> %z0, <vscale x 4 x i32> %z1, <vscale x 4 x i32> %z2, <vscale x 4 x i32> %z3) #0 {
+define <vscale x 4 x i32> @test_svcreate4_s32_vec0(i1 %p, <vscale x 4 x i32> %z0, <vscale x 4 x i32> %z1, <vscale x 4 x i32> %z2, <vscale x 4 x i32> %z3) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate4_s32_vec0:
 ; CHECK: // %L2
 ; CHECK-NEXT: ret
@@ -638,7 +637,7 @@ L2:
   ret <vscale x 4 x i32> %extract
 }
 
-define <vscale x 4 x i32> @test_svcreate4_s32_vec3(i1 %p, <vscale x 4 x i32> %z0, <vscale x 4 x i32> %z1, <vscale x 4 x i32> %z2, <vscale x 4 x i32> %z3) #0 {
+define <vscale x 4 x i32> @test_svcreate4_s32_vec3(i1 %p, <vscale x 4 x i32> %z0, <vscale x 4 x i32> %z1, <vscale x 4 x i32> %z2, <vscale x 4 x i32> %z3) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate4_s32_vec3:
 ; CHECK: // %L2
 ; CHECK-NEXT: mov z0.d, z3.d
@@ -656,7 +655,7 @@ L2:
 ; SVCREATE4 (float)
 ;
 
-define <vscale x 4 x float> @test_svcreate4_f32_vec0(i1 %p, <vscale x 4 x float> %z0, <vscale x 4 x float> %z1, <vscale x 4 x float> %z2, <vscale x 4 x float> %z3) #0 {
+define <vscale x 4 x float> @test_svcreate4_f32_vec0(i1 %p, <vscale x 4 x float> %z0, <vscale x 4 x float> %z1, <vscale x 4 x float> %z2, <vscale x 4 x float> %z3) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate4_f32_vec0:
 ; CHECK: // %L2
 ; CHECK-NEXT: ret
@@ -669,7 +668,7 @@ L2:
   ret <vscale x 4 x float> %extract
 }
 
-define <vscale x 4 x float> @test_svcreate4_f32_vec3(i1 %p, <vscale x 4 x float> %z0, <vscale x 4 x float> %z1, <vscale x 4 x float> %z2, <vscale x 4 x float> %z3) #0 {
+define <vscale x 4 x float> @test_svcreate4_f32_vec3(i1 %p, <vscale x 4 x float> %z0, <vscale x 4 x float> %z1, <vscale x 4 x float> %z2, <vscale x 4 x float> %z3) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate4_f32_vec3:
 ; CHECK: // %L2
 ; CHECK-NEXT: mov z0.d, z3.d
@@ -687,7 +686,7 @@ L2:
 ; SVCREATE4 (i64)
 ;
 
-define <vscale x 2 x i64> @test_svcreate4_s64_vec0(i1 %p, <vscale x 2 x i64> %z0, <vscale x 2 x i64> %z1, <vscale x 2 x i64> %z2, <vscale x 2 x i64> %z3) #0 {
+define <vscale x 2 x i64> @test_svcreate4_s64_vec0(i1 %p, <vscale x 2 x i64> %z0, <vscale x 2 x i64> %z1, <vscale x 2 x i64> %z2, <vscale x 2 x i64> %z3) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate4_s64_vec0:
 ; CHECK: // %L2
 ; CHECK-NEXT: ret
@@ -700,7 +699,7 @@ L2:
   ret <vscale x 2 x i64> %extract
 }
 
-define <vscale x 2 x i64> @test_svcreate4_s64_vec3(i1 %p, <vscale x 2 x i64> %z0, <vscale x 2 x i64> %z1, <vscale x 2 x i64> %z2, <vscale x 2 x i64> %z3) #0 {
+define <vscale x 2 x i64> @test_svcreate4_s64_vec3(i1 %p, <vscale x 2 x i64> %z0, <vscale x 2 x i64> %z1, <vscale x 2 x i64> %z2, <vscale x 2 x i64> %z3) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate4_s64_vec3:
 ; CHECK: // %L2
 ; CHECK-NEXT: mov z0.d, z3.d
@@ -718,7 +717,7 @@ L2:
 ; SVCREATE4 (double)
 ;
 
-define <vscale x 2 x double> @test_svcreate4_f64_vec0(i1 %p, <vscale x 2 x double> %z0, <vscale x 2 x double> %z1, <vscale x 2 x double> %z2, <vscale x 2 x double> %z3) #0 {
+define <vscale x 2 x double> @test_svcreate4_f64_vec0(i1 %p, <vscale x 2 x double> %z0, <vscale x 2 x double> %z1, <vscale x 2 x double> %z2, <vscale x 2 x double> %z3) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate4_f64_vec0:
 ; CHECK: // %L2
 ; CHECK-NEXT: ret
@@ -731,7 +730,7 @@ L2:
   ret <vscale x 2 x double> %extract
 }
 
-define <vscale x 2 x double> @test_svcreate4_f64_vec3(i1 %p, <vscale x 2 x double> %z0, <vscale x 2 x double> %z1, <vscale x 2 x double> %z2, <vscale x 2 x double> %z3) #0 {
+define <vscale x 2 x double> @test_svcreate4_f64_vec3(i1 %p, <vscale x 2 x double> %z0, <vscale x 2 x double> %z1, <vscale x 2 x double> %z2, <vscale x 2 x double> %z3) local_unnamed_addr #0 {
 ; CHECK-LABEL: test_svcreate4_f64_vec3:
 ; CHECK: // %L2
 ; CHECK-NEXT: mov z0.d, z3.d
@@ -745,9 +744,9 @@ L2:
   ret <vscale x 2 x double> %extract
 }
 
-attributes #0 = { nounwind }
+attributes #0 = { nounwind "target-features"="+sve" }
 ; +bf16 is required for the bfloat version.
-attributes #1 = { nounwind "target-features"="+bf16" }
+attributes #1 = { nounwind "target-features"="+sve,+bf16" }
 
 declare <vscale x 4 x double>  @llvm.aarch64.sve.tuple.create2.nxv4f64.nxv2f64(<vscale x 2 x double>, <vscale x 2 x double>)
 declare <vscale x 8 x float>  @llvm.aarch64.sve.tuple.create2.nxv8f32.nxv4f32(<vscale x 4 x float>, <vscale x 4 x float>)

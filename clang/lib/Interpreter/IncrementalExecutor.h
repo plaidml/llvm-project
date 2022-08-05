@@ -45,7 +45,6 @@ public:
   llvm::Error runCtors() const;
   llvm::Expected<llvm::JITTargetAddress>
   getSymbolAddress(llvm::StringRef Name, SymbolNameKind NameKind) const;
-  llvm::orc::LLJIT *getExecutionEngine() const { return Jit.get(); }
 };
 
 } // end namespace clang

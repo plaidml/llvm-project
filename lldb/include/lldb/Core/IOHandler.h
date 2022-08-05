@@ -85,11 +85,11 @@ public:
 
   virtual void GotEOF() = 0;
 
-  bool IsActive() { return m_active && !m_done; }
+  virtual bool IsActive() { return m_active && !m_done; }
 
-  void SetIsDone(bool b) { m_done = b; }
+  virtual void SetIsDone(bool b) { m_done = b; }
 
-  bool GetIsDone() { return m_done; }
+  virtual bool GetIsDone() { return m_done; }
 
   Type GetType() const { return m_type; }
 

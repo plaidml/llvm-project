@@ -10,7 +10,7 @@ int  __must_check IS_ERR_OR_NULL(const void *ptr);
 void * __must_check ERR_CAST(const void *ptr);
 int  __must_check PTR_ERR_OR_ZERO(const void *ptr);
 
-void f(void) {
+void f() {
   ERR_PTR(0);
   // CHECK-MESSAGES: :[[@LINE-1]]:3: warning: result from function 'ERR_PTR' is unused
   PTR_ERR((void *)0);
@@ -24,18 +24,18 @@ out:
   // CHECK-MESSAGES: :[[@LINE-1]]:3: warning: result from function 'PTR_ERR_OR_ZERO' is unused
 }
 
-void *f1(void) {
+void *f1() {
   return ERR_PTR(0);
 }
 
-long f2(void) {
+long f2() {
   if (IS_ERR((void *)0)) {
     return PTR_ERR((void *)0);
   }
   return -1;
 }
 
-void f3(void) {
+void f3() {
   f1();
   // CHECK-MESSAGES: :[[@LINE-1]]:3: warning: result from function 'f1' is unused but represents an error value
   f2();

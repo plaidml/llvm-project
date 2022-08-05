@@ -2487,9 +2487,12 @@ DerivedArgList *MachO::TranslateArgs(const DerivedArgList &Args,
     if (A->getOption().matches(options::OPT_Xarch__)) {
       // Skip this argument unless the architecture matches either the toolchain
       // triple arch, or the arch being bound.
-      StringRef XarchArch = A->getValue(0);
-      if (!(XarchArch == getArchName() ||
-            (!BoundArch.empty() && XarchArch == BoundArch)))
+      llvm::Triple::ArchType XarchArch =
+          tools::darwin::getArchTypeForMachOArchName(A->getValue(0));
+      if (!(XarchArch == getArch() ||
+            (!BoundArch.empty() &&
+             XarchArch ==
+                 tools::darwin::getArchTypeForMachOArchName(BoundArch))))
         continue;
 
       Arg *OriginalArg = A;

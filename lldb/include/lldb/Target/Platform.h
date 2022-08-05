@@ -217,7 +217,7 @@ public:
   llvm::Optional<std::string> GetOSKernelDescription();
 
   // Returns the name of the platform
-  llvm::StringRef GetName() { return GetPluginName(); }
+  ConstString GetName();
 
   virtual const char *GetHostname();
 
@@ -508,17 +508,17 @@ public:
 
   virtual uint64_t ReadFile(lldb::user_id_t fd, uint64_t offset, void *dst,
                             uint64_t dst_len, Status &error) {
-    error.SetErrorStringWithFormatv(
-        "Platform::ReadFile() is not supported in the {0} platform",
-        GetPluginName());
+    error.SetErrorStringWithFormat(
+        "Platform::ReadFile() is not supported in the %s platform",
+        GetName().GetCString());
     return -1;
   }
 
   virtual uint64_t WriteFile(lldb::user_id_t fd, uint64_t offset,
                              const void *src, uint64_t src_len, Status &error) {
-    error.SetErrorStringWithFormatv(
-        "Platform::WriteFile() is not supported in the {0} platform",
-        GetPluginName());
+    error.SetErrorStringWithFormat(
+        "Platform::WriteFile() is not supported in the %s platform",
+        GetName().GetCString());
     return -1;
   }
 

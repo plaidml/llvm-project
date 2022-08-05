@@ -100,7 +100,7 @@ LLVMTargetMachine::LLVMTargetMachine(const Target &T,
 }
 
 TargetTransformInfo
-LLVMTargetMachine::getTargetTransformInfo(const Function &F) const {
+LLVMTargetMachine::getTargetTransformInfo(const Function &F) {
   return TargetTransformInfo(BasicTTIImpl(this, F));
 }
 

@@ -183,11 +183,6 @@ static cl::opt<bool> ProfileSizeInline(
     cl::desc("Inline cold call sites in profile loader if it's beneficial "
              "for code size."));
 
-static cl::opt<bool> DisableSampleLoaderInlining(
-    "disable-sample-loader-inlining", cl::Hidden, cl::init(false),
-    cl::desc("If true, turn off inliner in sample profile loader. Used for "
-             "evaluation or debugging."));
-
 cl::opt<int> ProfileInlineGrowthLimit(
     "sample-profile-inline-growth-limit", cl::Hidden, cl::init(12),
     cl::desc("The size growth ratio limit for proirity-based sample profile "
@@ -846,13 +841,6 @@ static void
 updateIDTMetaData(Instruction &Inst,
                   const SmallVectorImpl<InstrProfValueData> &CallTargets,
                   uint64_t Sum) {
-  // Bail out early if MaxNumPromotions is zero.
-  // This prevents allocating an array of zero length below.
-  //
-  // Note `updateIDTMetaData` is called in two places so check
-  // `MaxNumPromotions` inside it.
-  if (MaxNumPromotions == 0)
-    return;
   uint32_t NumVals = 0;
   // OldSum is the existing total count in the value profile data.
   uint64_t OldSum = 0;
@@ -936,10 +924,6 @@ updateIDTMetaData(Instruction &Inst,
 bool SampleProfileLoader::tryPromoteAndInlineCandidate(
     Function &F, InlineCandidate &Candidate, uint64_t SumOrigin, uint64_t &Sum,
     SmallVector<CallBase *, 8> *InlinedCallSite) {
-  // Bail out early if MaxNumPromotions is zero.
-  // This prevents allocating an array of zero length in callees below.
-  if (MaxNumPromotions == 0)
-    return false;
   auto CalleeFunctionName = Candidate.CalleeSamples->getFuncName();
   auto R = SymbolMap.find(CalleeFunctionName);
   if (R == SymbolMap.end() || !R->getValue())
@@ -1129,8 +1113,6 @@ void SampleProfileLoader::findExternalInlineCandidate(
 /// \returns True if there is any inline happened.
 bool SampleProfileLoader::inlineHotFunctions(
     Function &F, DenseSet<GlobalValue::GUID> &InlinedGUIDs) {
-  if (DisableSampleLoaderInlining)
-    return false;
   // ProfAccForSymsInList is used in callsiteIsHot. The assertion makes sure
   // Profile symbol list is ignored when profile-sample-accurate is on.
   assert((!ProfAccForSymsInList ||
@@ -1305,8 +1287,14 @@ bool SampleProfileLoader::getInlineCandidate(InlineCandidate *NewCandidate,
   if (Optional<PseudoProbe> Probe = extractProbe(*CB))
     Factor = Probe->Factor;
 
-  uint64_t CallsiteCount =
-      CalleeSamples ? CalleeSamples->getEntrySamples() * Factor : 0;
+  uint64_t CallsiteCount = 0;
+  ErrorOr<uint64_t> Weight = getBlockWeight(CB->getParent());
+  if (Weight)
+    CallsiteCount = Weight.get();
+  if (CalleeSamples)
+    CallsiteCount = std::max(
+        CallsiteCount, uint64_t(CalleeSamples->getEntrySamples() * Factor));
+
   *NewCandidate = {CB, CalleeSamples, CallsiteCount, Factor};
   return true;
 }
@@ -1401,8 +1389,7 @@ SampleProfileLoader::shouldInlineCandidate(InlineCandidate &Candidate) {
 
 bool SampleProfileLoader::inlineHotFunctionsWithPriority(
     Function &F, DenseSet<GlobalValue::GUID> &InlinedGUIDs) {
-  if (DisableSampleLoaderInlining)
-    return false;
+
   // ProfAccForSymsInList is used in callsiteIsHot. The assertion makes sure
   // Profile symbol list is ignored when profile-sample-accurate is on.
   assert((!ProfAccForSymsInList ||

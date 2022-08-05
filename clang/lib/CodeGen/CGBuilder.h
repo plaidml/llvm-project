@@ -171,11 +171,10 @@ public:
 
   using CGBuilderBaseTy::CreatePointerBitCastOrAddrSpaceCast;
   Address CreatePointerBitCastOrAddrSpaceCast(Address Addr, llvm::Type *Ty,
-                                              llvm::Type *ElementTy,
                                               const llvm::Twine &Name = "") {
     llvm::Value *Ptr =
         CreatePointerBitCastOrAddrSpaceCast(Addr.getPointer(), Ty, Name);
-    return Address(Ptr, ElementTy, Addr.getAlignment());
+    return Address::deprecated(Ptr, Addr.getAlignment());
   }
 
   /// Given

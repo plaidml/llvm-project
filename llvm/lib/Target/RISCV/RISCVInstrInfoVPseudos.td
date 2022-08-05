@@ -7,7 +7,8 @@
 //===----------------------------------------------------------------------===//
 ///
 /// This file contains the required infrastructure to support code generation
-/// for the standard 'V' (Vector) extension, version 1.0.
+/// for the standard 'V' (Vector) extension, version 0.10.  This version is still
+/// experimental as the 'V' extension hasn't been ratified yet.
 ///
 /// This file is included from RISCVInstrInfoV.td
 ///
@@ -418,7 +419,7 @@ def RISCVVPseudosTable : GenericTable {
 def RISCVVIntrinsicsTable : GenericTable {
   let FilterClass = "RISCVVIntrinsic";
   let CppTypeName = "RISCVVIntrinsicInfo";
-  let Fields = ["IntrinsicID", "ScalarOperand", "VLOperand"];
+  let Fields = ["IntrinsicID", "SplatOperand", "VLOperand"];
   let PrimaryKey = ["IntrinsicID"];
   let PrimaryKeyName = "getRISCVVIntrinsicInfo";
 }
@@ -5413,11 +5414,6 @@ foreach fvti = AllFloatVectors in {
              (fvti.Vector $rs1),
              (fvti.Scalar fvti.ScalarRegClass:$rs2),
              GPR:$vl, fvti.Log2SEW)>;
-
-  def : Pat<(fvti.Vector (int_riscv_vfmv_s_f (fvti.Vector fvti.RegClass:$rs1),
-                         (fvti.Scalar (fpimm0)), VLOpFrag)),
-            (!cast<Instruction>("PseudoVMV_S_X_" # fvti.LMul.MX)
-             (fvti.Vector $rs1), X0, GPR:$vl, fvti.Log2SEW)>;
 }
 } // Predicates = [HasVInstructionsAnyF]
 

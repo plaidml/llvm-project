@@ -269,7 +269,7 @@ bool OperationOp::hasTypeInference() {
 // pdl::PatternOp
 //===----------------------------------------------------------------------===//
 
-LogicalResult PatternOp::verifyRegions() {
+LogicalResult PatternOp::verify() {
   Region &body = getBodyRegion();
   Operation *term = body.front().getTerminator();
   auto rewriteOp = dyn_cast<RewriteOp>(term);
@@ -402,7 +402,7 @@ LogicalResult ResultsOp::verify() {
 // pdl::RewriteOp
 //===----------------------------------------------------------------------===//
 
-LogicalResult RewriteOp::verifyRegions() {
+LogicalResult RewriteOp::verify() {
   Region &rewriteRegion = body();
 
   // Handle the case where the rewrite is external.

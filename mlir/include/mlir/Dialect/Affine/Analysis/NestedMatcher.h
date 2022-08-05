@@ -103,6 +103,11 @@ public:
     freeNested();
   }
 
+  /// Returns all the top-level matches in `func`.
+  void match(FuncOp func, SmallVectorImpl<NestedMatch> *matches) {
+    func.walk([&](Operation *op) { matchOne(op, matches); });
+  }
+
   /// Returns all the top-level matches in `op`.
   void match(Operation *op, SmallVectorImpl<NestedMatch> *matches) {
     op->walk([&](Operation *child) { matchOne(child, matches); });

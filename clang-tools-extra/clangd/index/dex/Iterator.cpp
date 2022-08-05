@@ -7,7 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "Iterator.h"
-#include "llvm/ADT/STLExtras.h"
+#include "llvm/Support/Casting.h"
 #include <algorithm>
 #include <cassert>
 #include <numeric>

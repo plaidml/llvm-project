@@ -94,8 +94,7 @@ int main(int argc, char **argv) {
     if (Error E = RI.setProfile(opts::PerfData))
       report_error(opts::PerfData, std::move(E));
 
-    if (Error E = RI.run())
-      report_error(opts::InputFilename, std::move(E));
+    RI.run();
   } else {
     report_error(opts::InputFilename, object_error::invalid_file_type);
   }

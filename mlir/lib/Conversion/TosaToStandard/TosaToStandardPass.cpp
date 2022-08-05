@@ -13,6 +13,7 @@
 #include "../PassDetail.h"
 #include "mlir/Conversion/TosaToStandard/TosaToStandard.h"
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
+#include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/Dialect/Tosa/IR/TosaOps.h"
 #include "mlir/Dialect/Tosa/Transforms/PassDetail.h"
@@ -35,6 +36,7 @@ public:
     target.addIllegalOp<tosa::SliceOp>();
     target.addIllegalOp<tosa::ApplyScaleOp>();
     target.addLegalDialect<arith::ArithmeticDialect>();
+    target.addLegalDialect<StandardOpsDialect>();
     target.addLegalDialect<tensor::TensorDialect>();
 
     mlir::tosa::populateTosaToStandardConversionPatterns(&patterns);

@@ -149,7 +149,7 @@ void BPFPassConfig::addIRPasses() {
 }
 
 TargetTransformInfo
-BPFTargetMachine::getTargetTransformInfo(const Function &F) const {
+BPFTargetMachine::getTargetTransformInfo(const Function &F) {
   return TargetTransformInfo(BPFTTIImpl(this, F));
 }
 

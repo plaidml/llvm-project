@@ -23,11 +23,8 @@
 
 namespace mlir {
 namespace spirv {
-/// Populates patterns to run canoncalization that involves GLSL ops.
-///
-/// These patterns cannot be run in default canonicalization because GLSL ops
-/// aren't always available. So they should be involed specifically when needed.
-void populateSPIRVGLSLCanonicalizationPatterns(RewritePatternSet &results);
+void populateSPIRVGLSLCanonicalizationPatterns(
+    mlir::RewritePatternSet &results);
 } // namespace spirv
 } // namespace mlir
 

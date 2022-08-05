@@ -1140,7 +1140,6 @@ def LLVM_GlobalOp : LLVM_Op<"mlir.global",
 
   let hasCustomAssemblyFormat = 1;
   let hasVerifier = 1;
-  let hasRegionVerifier = 1;
 }
 
 def LLVM_GlobalCtorsOp : LLVM_Op<"mlir.global_ctors", [
@@ -1278,7 +1277,6 @@ def LLVM_LLVMFuncOp : LLVM_Op<"func", [
 
   let hasCustomAssemblyFormat = 1;
   let hasVerifier = 1;
-  let hasRegionVerifier = 1;
 }
 
 def LLVM_NullOp

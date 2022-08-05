@@ -14,7 +14,6 @@
 #include "flang/Common/idioms.h"
 #include "flang/Lower/Bridge.h"
 #include "flang/Lower/PFTBuilder.h"
-#include "flang/Lower/StatementContext.h"
 #include "flang/Lower/Todo.h"
 #include "flang/Optimizer/Builder/BoxValue.h"
 #include "flang/Optimizer/Builder/FIRBuilder.h"
@@ -22,8 +21,6 @@
 #include "flang/Semantics/tools.h"
 #include "mlir/Dialect/OpenMP/OpenMPDialect.h"
 #include "llvm/Frontend/OpenMP/OMPConstants.h"
-
-using namespace mlir;
 
 static const Fortran::parser::Name *
 getDesignatorNameIfDataRef(const Fortran::parser::Designator &designator) {
@@ -142,7 +139,6 @@ genOMP(Fortran::lower::AbstractConverter &converter,
 
   auto &firOpBuilder = converter.getFirOpBuilder();
   auto currentLocation = converter.getCurrentLocation();
-  Fortran::lower::StatementContext stmtCtx;
   llvm::ArrayRef<mlir::Type> argTy;
   if (blockDirective.v == llvm::omp::OMPD_parallel) {
 
@@ -156,14 +152,14 @@ genOMP(Fortran::lower::AbstractConverter &converter,
               std::get_if<Fortran::parser::OmpClause::If>(&clause.u)) {
         auto &expr =
             std::get<Fortran::parser::ScalarLogicalExpr>(ifClause->v.t);
-        ifClauseOperand = fir::getBase(converter.genExprValue(
-            *Fortran::semantics::GetExpr(expr), stmtCtx));
+        ifClauseOperand = fir::getBase(
+            converter.genExprValue(*Fortran::semantics::GetExpr(expr)));
       } else if (const auto &numThreadsClause =
                      std::get_if<Fortran::parser::OmpClause::NumThreads>(
                          &clause.u)) {
         // OMPIRBuilder expects `NUM_THREAD` clause as a `Value`.
         numThreadsClauseOperand = fir::getBase(converter.genExprValue(
-            *Fortran::semantics::GetExpr(numThreadsClause->v), stmtCtx));
+            *Fortran::semantics::GetExpr(numThreadsClause->v)));
       }
       // TODO: Handle private, firstprivate, shared and copyin
     }
@@ -181,13 +177,13 @@ genOMP(Fortran::lower::AbstractConverter &converter,
         omp::ClauseProcBindKind pbKind;
         switch (ompProcBindClause.v) {
         case Fortran::parser::OmpProcBindClause::Type::Master:
-          pbKind = omp::ClauseProcBindKind::Master;
+          pbKind = omp::ClauseProcBindKind::master;
           break;
         case Fortran::parser::OmpProcBindClause::Type::Close:
-          pbKind = omp::ClauseProcBindKind::Close;
+          pbKind = omp::ClauseProcBindKind::close;
           break;
         case Fortran::parser::OmpProcBindClause::Type::Spread:
-          pbKind = omp::ClauseProcBindKind::Spread;
+          pbKind = omp::ClauseProcBindKind::spread;
           break;
         }
         parallelOp.proc_bind_valAttr(omp::ClauseProcBindKindAttr::get(

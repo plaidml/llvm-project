@@ -118,12 +118,11 @@ struct SimplifyClones : public OpRewritePattern<CloneOp> {
     // also consider aliases. That would also make the safety check below
     // redundant.
     llvm::Optional<Operation *> maybeCloneDeallocOp =
-        memref::findDealloc(cloneOp.output());
+        findDealloc(cloneOp.output());
     // Skip if either of them has > 1 deallocate operations.
     if (!maybeCloneDeallocOp.hasValue())
       return failure();
-    llvm::Optional<Operation *> maybeSourceDeallocOp =
-        memref::findDealloc(source);
+    llvm::Optional<Operation *> maybeSourceDeallocOp = findDealloc(source);
     if (!maybeSourceDeallocOp.hasValue())
       return failure();
     Operation *cloneDeallocOp = *maybeCloneDeallocOp;

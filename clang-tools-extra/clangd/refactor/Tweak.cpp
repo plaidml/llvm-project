@@ -11,6 +11,7 @@
 #include "index/Index.h"
 #include "support/Logger.h"
 #include "support/Path.h"
+#include "llvm/ADT/None.h"
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringMap.h"

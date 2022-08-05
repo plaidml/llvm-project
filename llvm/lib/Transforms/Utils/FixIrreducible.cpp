@@ -68,7 +68,6 @@
 
 #include "llvm/Transforms/Utils/FixIrreducible.h"
 #include "llvm/ADT/SCCIterator.h"
-#include "llvm/Analysis/DomTreeUpdater.h"
 #include "llvm/Analysis/LoopIterator.h"
 #include "llvm/InitializePasses.h"
 #include "llvm/Pass.h"

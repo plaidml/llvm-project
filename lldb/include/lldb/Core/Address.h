@@ -229,14 +229,6 @@ public:
   /// \param[in] fallback_style
   ///     The display style for the address.
   ///
-  /// \param[in] addr_byte_size
-  ///     The address byte size for the address.
-  ///
-  /// \param[in] all_ranges
-  ///     If true, dump all valid ranges and value ranges for the variable that
-  ///     contains the address, otherwise dumping the range that contains the
-  ///     address.
-  ///
   /// \return
   ///     Returns \b true if the address was able to be displayed.
   ///     File and load addresses may be unresolved and it may not be
@@ -246,8 +238,7 @@ public:
   /// \see Address::DumpStyle
   bool Dump(Stream *s, ExecutionContextScope *exe_scope, DumpStyle style,
             DumpStyle fallback_style = DumpStyleInvalid,
-            uint32_t addr_byte_size = UINT32_MAX,
-            bool all_ranges = false) const;
+            uint32_t addr_byte_size = UINT32_MAX) const;
 
   AddressClass GetAddressClass() const;
 

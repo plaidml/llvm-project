@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef MLIR_DIALECTS_CONTROLFLOW_IR_CONTROLFLOWOPS_TD
-#define MLIR_DIALECTS_CONTROLFLOW_IR_CONTROLFLOWOPS_TD
+#ifndef STANDARD_OPS
+#define STANDARD_OPS
 
 include "mlir/IR/OpAsmInterface.td"
 include "mlir/Interfaces/ControlFlowInterfaces.td"
@@ -310,4 +310,4 @@ def SwitchOp : CF_Op<"switch",
   let hasVerifier = 1;
 }
 
-#endif // MLIR_DIALECTS_CONTROLFLOW_IR_CONTROLFLOWOPS_TD
+#endif // STANDARD_OPS

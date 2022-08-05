@@ -14,12 +14,11 @@
 //===----------------------------------------------------------------------===//
 
 #include "./AffineStructuresParser.h"
-#include "mlir/Analysis/Presburger/PresburgerRelation.h"
+#include "mlir/Analysis/Presburger/PresburgerSet.h"
 
 #include <gtest/gtest.h>
 
-using namespace mlir;
-using namespace presburger;
+namespace mlir {
 
 /// Construct a FlatAffineConstraints from a set of inequality, equality, and
 /// division onstraints.
@@ -134,3 +133,5 @@ TEST(ParseFACTest, ParseAndCompareTest) {
                              {{{0, 1, 0}, 2}, {{1, 0, 1, 0}, 3}}),
       &context));
 }
+
+} // namespace mlir

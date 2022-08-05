@@ -19,7 +19,6 @@ add_flang_library(FIRTransforms
   FIRBuilder
   FIRDialect
   MLIRAffineUtils
-  MLIRFunc
   MLIRLLVMIR
   MLIROpenACC
   MLIROpenMP

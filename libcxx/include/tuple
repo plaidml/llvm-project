@@ -175,15 +175,11 @@ template <class... Types>
 #include <__utility/forward.h>
 #include <__utility/integer_sequence.h>
 #include <__utility/move.h>
-#include <__utility/pair.h>
-#include <__utility/piecewise_construct.h>
-#include <__utility/swap.h>
 #include <compare>
 #include <cstddef>
 #include <type_traits>
+#include <utility>
 #include <version>
-
-#include <utility> // TODO: Remove this
 
 // TODO: remove these headers
 #include <__functional/binary_function.h>
@@ -1130,7 +1126,7 @@ public:
     void swap(tuple&) _NOEXCEPT {}
 };
 
-#if _LIBCPP_STD_VER > 20
+#if _LIBCPP_STD_VER > 20 && !defined(_LIBCPP_HAS_NO_CONCEPTS)
 template <class... _TTypes, class... _UTypes, template<class> class _TQual, template<class> class _UQual>
     requires requires { typename tuple<common_reference_t<_TQual<_TTypes>, _UQual<_UTypes>>...>; }
 struct basic_common_reference<tuple<_TTypes...>, tuple<_UTypes...>, _TQual, _UQual> {
@@ -1142,7 +1138,7 @@ template <class... _TTypes, class... _UTypes>
 struct common_type<tuple<_TTypes...>, tuple<_UTypes...>> {
     using type = tuple<common_type_t<_TTypes, _UTypes>...>;
 };
-#endif // _LIBCPP_STD_VER > 20
+#endif // _LIBCPP_STD_VER > 20 && !defined(_LIBCPP_HAS_NO_CONCEPTS)
 
 #if _LIBCPP_STD_VER > 14
 template <class ..._Tp>
@@ -1347,7 +1343,7 @@ operator==(const tuple<_Tp...>& __x, const tuple<_Up...>& __y)
     return __tuple_equal<sizeof...(_Tp)>()(__x, __y);
 }
 
-#if _LIBCPP_STD_VER > 17
+#if !defined(_LIBCPP_HAS_NO_CONCEPTS)
 
 // operator<=>
 
@@ -1369,7 +1365,7 @@ operator<=>(const tuple<_Tp...>& __x, const tuple<_Up...>& __y)
     return _VSTD::__tuple_compare_three_way(__x, __y, index_sequence_for<_Tp...>{});
 }
 
-#else // _LIBCPP_STD_VER > 17
+#else // !defined(_LIBCPP_HAS_NO_CONCEPTS)
 
 template <class ..._Tp, class ..._Up>
 inline _LIBCPP_INLINE_VISIBILITY _LIBCPP_CONSTEXPR_AFTER_CXX11
@@ -1439,7 +1435,7 @@ operator<=(const tuple<_Tp...>& __x, const tuple<_Up...>& __y)
     return !(__y < __x);
 }
 
-#endif // _LIBCPP_STD_VER > 17
+#endif // !defined(_LIBCPP_HAS_NO_CONCEPTS)
 
 // tuple_cat
 

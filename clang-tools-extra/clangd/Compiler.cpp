@@ -13,6 +13,8 @@
 #include "clang/Lex/PreprocessorOptions.h"
 #include "clang/Serialization/PCHContainerOperations.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/Format.h"
+#include "llvm/Support/FormatVariadic.h"
 
 namespace clang {
 namespace clangd {

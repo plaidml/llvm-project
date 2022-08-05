@@ -434,7 +434,7 @@ void TemplateArgument::print(const PrintingPolicy &Policy, raw_ostream &Out,
     NamedDecl *ND = getAsDecl();
     if (getParamTypeForDecl()->isRecordType()) {
       if (auto *TPO = dyn_cast<TemplateParamObjectDecl>(ND)) {
-        TPO->printAsInit(Out, Policy);
+        TPO->printAsInit(Out);
         break;
       }
     }

@@ -100,10 +100,7 @@ inline CallInst *isFreeCall(Value *I, const TargetLibraryInfo *TLI) {
 /// insertion or speculative execution of allocation routines.
 bool isAllocRemovable(const CallBase *V, const TargetLibraryInfo *TLI);
 
-/// Gets the alignment argument for an aligned_alloc-like function, using either
-/// built-in knowledge based on fuction names/signatures or allocalign
-/// attributes. Note: the Value returned may not indicate a valid alignment, per
-/// the definition of the allocalign attribute.
+/// Gets the alignment argument for an aligned_alloc-like function
 Value *getAllocAlignment(const CallBase *V, const TargetLibraryInfo *TLI);
 
 /// Return the size of the requested allocation.  With a trivial mapper, this is
@@ -119,12 +116,6 @@ Optional<APInt> getAllocSize(const CallBase *CB,
 Constant *getInitialValueOfAllocation(const CallBase *Alloc,
                                       const TargetLibraryInfo *TLI,
                                       Type *Ty);
-
-/// If a function is part of an allocation family (e.g.
-/// malloc/realloc/calloc/free), return the identifier for its family
-/// of functions.
-Optional<StringRef> getAllocationFamily(const Value *I,
-                                        const TargetLibraryInfo *TLI);
 
 //===----------------------------------------------------------------------===//
 //  Utility functions to compute size of objects.

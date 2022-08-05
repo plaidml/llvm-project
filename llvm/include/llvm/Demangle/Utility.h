@@ -37,10 +37,10 @@ class OutputBuffer {
   void grow(size_t N) {
     size_t Need = N + CurrentPosition;
     if (Need > BufferCapacity) {
-      // Reduce the number of reallocations, with a bit of hysteresis. The
-      // number here is chosen so the first allocation will more-than-likely not
-      // allocate more than 1K.
-      Need += 1024 - 32;
+      // Avoid many reallocations during startup, with a bit of hysteresis.
+      constexpr size_t MinInitAlloc = 1024;
+      if (Need < MinInitAlloc)
+        Need = MinInitAlloc;
       BufferCapacity *= 2;
       if (BufferCapacity < Need)
         BufferCapacity = Need;
@@ -71,10 +71,6 @@ public:
   OutputBuffer(char *StartBuf, size_t Size)
       : Buffer(StartBuf), CurrentPosition(0), BufferCapacity(Size) {}
   OutputBuffer() = default;
-  // Non-copyable
-  OutputBuffer(const OutputBuffer &) = delete;
-  OutputBuffer &operator=(const OutputBuffer &) = delete;
-
   void reset(char *Buffer_, size_t BufferCapacity_) {
     CurrentPosition = 0;
     Buffer = Buffer_;
@@ -101,7 +97,7 @@ public:
     return *this;
   }
 
-  OutputBuffer &prepend(StringView R) {
+  OutputBuffer prepend(StringView R) {
     size_t Size = R.size();
 
     grow(Size);
@@ -167,6 +163,7 @@ public:
 template <class T> class SwapAndRestore {
   T &Restore;
   T OriginalValue;
+  bool ShouldRestore = true;
 
 public:
   SwapAndRestore(T &Restore_) : SwapAndRestore(Restore_, Restore_) {}
@@ -175,7 +172,20 @@ public:
       : Restore(Restore_), OriginalValue(Restore) {
     Restore = std::move(NewVal);
   }
-  ~SwapAndRestore() { Restore = std::move(OriginalValue); }
+  ~SwapAndRestore() {
+    if (ShouldRestore)
+      Restore = std::move(OriginalValue);
+  }
+
+  void shouldRestore(bool ShouldRestore_) { ShouldRestore = ShouldRestore_; }
+
+  void restoreNow(bool Force) {
+    if (!Force && !ShouldRestore)
+      return;
+
+    Restore = std::move(OriginalValue);
+    ShouldRestore = false;
+  }
 
   SwapAndRestore(const SwapAndRestore &) = delete;
   SwapAndRestore &operator=(const SwapAndRestore &) = delete;

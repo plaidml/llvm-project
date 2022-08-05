@@ -368,7 +368,7 @@ private:
   ExplicitSpecifier FS_explicit_specifier;
 
   // attributes.
-  ParsedAttributesWithRange Attrs;
+  ParsedAttributes Attrs;
 
   // Scope specifier for the type spec, if applicable.
   CXXScopeSpec TypeScope;

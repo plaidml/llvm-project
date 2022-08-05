@@ -42,7 +42,7 @@ public:
     return TLOF.get();
   }
 
-  TargetTransformInfo getTargetTransformInfo(const Function &F) const override;
+  TargetTransformInfo getTargetTransformInfo(const Function &F) override;
 
   virtual bool isNoopAddrSpaceCast(unsigned SrcAS,
                                    unsigned DstAS) const override;

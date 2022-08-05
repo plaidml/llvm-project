@@ -10,6 +10,7 @@
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
 #include "mlir/Dialect/Shape/IR/Shape.h"
 #include "mlir/Dialect/Shape/Transforms/Passes.h"
+#include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Pass/Pass.h"
@@ -65,7 +66,8 @@ void ShapeToShapeLowering::runOnOperation() {
   populateShapeRewritePatterns(patterns);
 
   ConversionTarget target(getContext());
-  target.addLegalDialect<arith::ArithmeticDialect, ShapeDialect>();
+  target.addLegalDialect<arith::ArithmeticDialect, ShapeDialect,
+                         StandardOpsDialect>();
   target.addIllegalOp<NumElementsOp>();
   if (failed(mlir::applyPartialConversion(getOperation(), target,
                                           std::move(patterns))))

@@ -915,11 +915,6 @@ static bool ParseAnalyzerArgs(AnalyzerOptions &Opts, ArgList &Args,
       Diags.Report(diag::err_drv_invalid_value)
         << A->getAsString(Args) << Name;
     } else {
-#ifndef LLVM_WITH_Z3
-      if (Value == AnalysisConstraints::Z3ConstraintsModel) {
-        Diags.Report(diag::err_analyzer_not_built_with_z3);
-      }
-#endif // LLVM_WITH_Z3
       Opts.AnalysisConstraintsOpt = Value;
     }
   }
@@ -3249,8 +3244,8 @@ void CompilerInvocation::setLangDefaults(LangOptions &Opts, InputKind IK,
 
   Opts.RenderScript = IK.getLanguage() == Language::RenderScript;
 
-  // OpenCL, C++ and C2x have bool, true, false keywords.
-  Opts.Bool = Opts.OpenCL || Opts.CPlusPlus || Opts.C2x;
+  // OpenCL and C++ both have bool, true, false keywords.
+  Opts.Bool = Opts.OpenCL || Opts.CPlusPlus;
 
   // OpenCL has half keyword
   Opts.Half = Opts.OpenCL;

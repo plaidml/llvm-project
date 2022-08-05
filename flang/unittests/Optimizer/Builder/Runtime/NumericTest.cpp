@@ -10,8 +10,6 @@
 #include "RuntimeCallTestBase.h"
 #include "gtest/gtest.h"
 
-using namespace mlir;
-
 void testGenExponent(fir::FirOpBuilder &builder, mlir::Type resultType,
     mlir::Type xType, llvm::StringRef fctName) {
   auto loc = builder.getUnknownLoc();

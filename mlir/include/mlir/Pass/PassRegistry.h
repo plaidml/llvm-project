@@ -81,10 +81,10 @@ protected:
 
 private:
   /// The argument with which to invoke the pass via mlir-opt.
-  std::string arg;
+  StringRef arg;
 
   /// Description of the pass.
-  std::string description;
+  StringRef description;
 
   /// Function to register this entry to a pass manager pipeline.
   PassRegistryFunction builder;

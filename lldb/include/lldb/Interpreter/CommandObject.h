@@ -326,20 +326,15 @@ protected:
   }
 
   virtual const char *GetInvalidProcessDescription() {
-    return "Command requires a current process.";
+    return "invalid process";
   }
 
-  virtual const char *GetInvalidThreadDescription() {
-    return "Command requires a process which is currently stopped.";
-  }
+  virtual const char *GetInvalidThreadDescription() { return "invalid thread"; }
 
-  virtual const char *GetInvalidFrameDescription() {
-    return "Command requires a process, which is currently stopped.";
-  }
+  virtual const char *GetInvalidFrameDescription() { return "invalid frame"; }
 
   virtual const char *GetInvalidRegContextDescription() {
-    return "invalid frame, no registers, command requires a process which is "
-           "currently stopped.";
+    return "invalid frame, no registers";
   }
 
   // This is for use in the command interpreter, when you either want the

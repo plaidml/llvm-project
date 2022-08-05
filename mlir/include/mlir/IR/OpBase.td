@@ -363,8 +363,7 @@ class DialectType<Dialect d, Pred condition, string descr = "",
 
 // A variadic type constraint. It expands to zero or more of the base type. This
 // class is used for supporting variadic operands/results.
-class Variadic<Type type> : TypeConstraint<type.predicate, type.summary,
-                                           type.cppClassName> {
+class Variadic<Type type> : TypeConstraint<type.predicate, type.summary> {
   Type baseType = type;
 }
 
@@ -380,8 +379,7 @@ class VariadicOfVariadic<Type type, string variadicSegmentAttrName>
 
 // An optional type constraint. It expands to either zero or one of the base
 // type. This class is used for supporting optional operands/results.
-class Optional<Type type> : TypeConstraint<type.predicate, type.summary,
-                                           type.cppClassName> {
+class Optional<Type type> : TypeConstraint<type.predicate, type.summary> {
   Type baseType = type;
 }
 
@@ -876,10 +874,9 @@ class MixedContainerType<Type etype, Pred containerPred, code elementTypesCall,
         And<[
             containerPred,
             Concat<
-                "::llvm::all_of(" # elementTypesCall # ", [](Type t) { "
-                "return t && (",
+                "::llvm::all_of(" # elementTypesCall # ", [](Type t) { return ",
                 SubstLeaves<"$_self", "t", etype.predicate>,
-                "); })"
+                "; })"
             >
         ]>,
         descr # " with any combination of " # etype.summary # " values"> {
@@ -1265,11 +1262,6 @@ class TypeAttrBase<string retType, string summary> :
 }
 
 def TypeAttr : TypeAttrBase<"::mlir::Type", "any type attribute"> {
-  let constBuilderCall = "::mlir::TypeAttr::get($0)";
-}
-
-class TypeAttrOf<Type ty>
-   : TypeAttrBase<ty.cppClassName, "type attribute of " # ty.description> {
   let constBuilderCall = "::mlir::TypeAttr::get($0)";
 }
 
@@ -1677,9 +1669,9 @@ class TypedArrayAttrBase<Attr element, string summary>: ArrayAttrBase<
       CPred<"$_self.isa<::mlir::ArrayAttr>()">,
       // Guarantee all elements satisfy the constraints from `element`
       Concat<"::llvm::all_of($_self.cast<::mlir::ArrayAttr>(), "
-                            "[&](::mlir::Attribute attr) { return attr && (",
+                            "[&](::mlir::Attribute attr) { return ",
                                SubstLeaves<"$_self", "attr", element.predicate>,
-                            "); })">]>,
+                            "; })">]>,
     summary> {
 
   Attr elementAttr = element;
@@ -2031,10 +2023,6 @@ class PredAttrTrait<string descr, Pred pred> : PredTrait<descr, pred>;
 // OpTrait definitions
 //===----------------------------------------------------------------------===//
 
-// A trait that describes the structure of operation will be marked with
-// `StructuralOpTrait` and they will be verified first.
-class StructuralOpTrait;
-
 // These classes are used to define operation specific traits.
 class NativeOpTrait<string name, list<Trait> traits = []>
     : NativeTrait<name, "Op"> {
@@ -2065,19 +2053,16 @@ class PredOpTrait<string descr, Pred pred, list<Trait> traits = []>
 // Op defines an affine scope.
 def AffineScope : NativeOpTrait<"AffineScope">;
 // Op defines an automatic allocation scope.
-def AutomaticAllocationScope :
-  NativeOpTrait<"AutomaticAllocationScope">;
+def AutomaticAllocationScope : NativeOpTrait<"AutomaticAllocationScope">;
 // Op supports operand broadcast behavior.
 def ResultsBroadcastableShape :
   NativeOpTrait<"ResultsBroadcastableShape">;
 // X op Y == Y op X
 def Commutative  : NativeOpTrait<"IsCommutative">;
 // op op X == op X (unary) / X op X == X (binary)
-// FIXME: Idempotent should depend on SameOperandsAndResultType
-def Idempotent : NativeOpTrait<"IsIdempotent">;
+def Idempotent  : NativeOpTrait<"IsIdempotent">;
 // op op X == X
-// FIXME: Involution should depend on SameOperandsAndResultType
-def Involution : NativeOpTrait<"IsInvolution">;
+def Involution  : NativeOpTrait<"IsInvolution">;
 // Op behaves like a constant.
 def ConstantLike : NativeOpTrait<"ConstantLike">;
 // Op is isolated from above.
@@ -2089,11 +2074,9 @@ def SameTypeOperands : NativeOpTrait<"SameTypeOperands">;
 // Op has same shape for all operands.
 def SameOperandsShape : NativeOpTrait<"SameOperandsShape">;
 // Op has same operand and result shape.
-def SameOperandsAndResultShape :
-  NativeOpTrait<"SameOperandsAndResultShape">;
+def SameOperandsAndResultShape : NativeOpTrait<"SameOperandsAndResultShape">;
 // Op has the same element type (or type itself, if scalar) for all operands.
-def SameOperandsElementType :
-  NativeOpTrait<"SameOperandsElementType">;
+def SameOperandsElementType : NativeOpTrait<"SameOperandsElementType">;
 // Op has the same operand and result element type (or type itself, if scalar).
 def SameOperandsAndResultElementType :
   NativeOpTrait<"SameOperandsAndResultElementType">;
@@ -2105,11 +2088,11 @@ def MemRefsNormalizable : NativeOpTrait<"MemRefsNormalizable">;
 // Op is elementwise on tensor/vector operands and results.
 def Elementwise : NativeOpTrait<"Elementwise">;
 // Elementwise op can be applied to scalars instead tensor/vector operands.
-def Scalarizable : NativeOpTrait<"Scalarizable", [Elementwise]>;
+def Scalarizable : NativeOpTrait<"Scalarizable">;
 // Elementwise op can be applied to all-vector operands.
-def Vectorizable : NativeOpTrait<"Vectorizable", [Elementwise]>;
+def Vectorizable : NativeOpTrait<"Vectorizable">;
 // Elementwise op can be applied to all-tensor operands.
-def Tensorizable : NativeOpTrait<"Tensorizable", [Elementwise]>;
+def Tensorizable : NativeOpTrait<"Tensorizable">;
 
 // Group together `Elementwise`, `Scalarizable`, `Vectorizable`, and
 // `Tensorizable` for convenience.
@@ -2121,23 +2104,21 @@ def ElementwiseMappable : TraitList<[
 ]>;
 
 // Op's regions have a single block.
-def SingleBlock : NativeOpTrait<"SingleBlock">, StructuralOpTrait;
+def SingleBlock : NativeOpTrait<"SingleBlock">;
 
 // Op's regions have a single block with the specified terminator.
 class SingleBlockImplicitTerminator<string op>
-    : ParamNativeOpTrait<"SingleBlockImplicitTerminator", op>,
-      StructuralOpTrait;
+    : ParamNativeOpTrait<"SingleBlockImplicitTerminator", op>;
 
 // Op's regions don't have terminator.
-def NoTerminator : NativeOpTrait<"NoTerminator">, StructuralOpTrait;
+def NoTerminator : NativeOpTrait<"NoTerminator">;
 
 // Op's parent operation is the provided one.
 class HasParent<string op>
-    : ParamNativeOpTrait<"HasParent", op>, StructuralOpTrait;
+    : ParamNativeOpTrait<"HasParent", op>;
 
 class ParentOneOf<list<string> ops>
-    : ParamNativeOpTrait<"HasParent", !interleave(ops, ", ")>,
-      StructuralOpTrait;
+    : ParamNativeOpTrait<"HasParent", !interleave(ops, ", ")>;
 
 // Op result type is derived from the first attribute. If the attribute is an
 // subclass of `TypeAttrBase`, its value is used, otherwise, the type of the
@@ -2166,15 +2147,13 @@ def SameVariadicResultSize : GenInternalOpTrait<"SameVariadicResultSize">;
 // vector that has the same number of elements as the number of ODS declared
 // operands. That means even if some operands are non-variadic, the attribute
 // still need to have an element for its size, which is always 1.
-def AttrSizedOperandSegments :
-  NativeOpTrait<"AttrSizedOperandSegments">, StructuralOpTrait;
+def AttrSizedOperandSegments : NativeOpTrait<"AttrSizedOperandSegments">;
 // Similar to AttrSizedOperandSegments, but used for results. The attribute
 // should be named as `result_segment_sizes`.
-def AttrSizedResultSegments  :
-  NativeOpTrait<"AttrSizedResultSegments">, StructuralOpTrait;
+def AttrSizedResultSegments  : NativeOpTrait<"AttrSizedResultSegments">;
 
 // Op attached regions have no arguments
-def NoRegionArguments : NativeOpTrait<"NoRegionArguments">, StructuralOpTrait;
+def NoRegionArguments : NativeOpTrait<"NoRegionArguments">;
 
 //===----------------------------------------------------------------------===//
 // OpInterface definitions
@@ -2211,11 +2190,6 @@ class OpInterfaceTrait<string name, code verifyBody = [{}],
   // Specify the body of the verification function. `$_op` will be replaced with
   // the operation being verified.
   code verify = verifyBody;
-
-  // A bit indicating if the verifier needs to access the ops in the regions. If
-  // it set to `1`, the region ops will be verified before invoking this
-  // verifier.
-  bit verifyWithRegions = 0;
 
   // Specify the list of traits that need to be verified before the verification
   // of this OpInterfaceTrait.
@@ -2491,20 +2465,8 @@ class Op<Dialect dialect, string mnemonic, list<Trait> props = []> {
   // verified (aside from those verified by other ODS constructs). If set to `1`,
   // an additional `LogicalResult verify()` declaration will be generated on the
   // operation class. The operation should implement this method and verify the
-  // additional necessary invariants. This verifier shouldn't access any nested
-  // operations because those operations may ill-formed. Use the
-  // `hasRegionVerifier` below instead.
+  // additional necessary invariants.
   bit hasVerifier = 0;
-
-  // A bit indicating if the operation has additional invariants that need to
-  // verified and which associate with regions (aside from those verified by the
-  // traits). If set to `1`, an additional `LogicalResult verifyRegions()`
-  // declaration will be generated on the operation class. The operation should
-  // implement this method and verify the additional necessary invariants
-  // associated with regions. Note that this method is invoked after all the
-  // region ops are verified.
-  bit hasRegionVerifier = 0;
-
   // A custom code block corresponding to the extra verification code of the
   // operation.
   // NOTE: This field is deprecated in favor of `hasVerifier` and is slated for

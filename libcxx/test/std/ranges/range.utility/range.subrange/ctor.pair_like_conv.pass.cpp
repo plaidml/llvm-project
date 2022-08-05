@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 // UNSUPPORTED: c++03, c++11, c++14, c++17
+// UNSUPPORTED: libcpp-no-concepts
 // UNSUPPORTED: libcpp-has-no-incomplete-ranges
 
 // class std::ranges::subrange;
@@ -31,11 +32,11 @@ static_assert( std::is_convertible_v<SizedIntPtrSubrange, std::tuple<int*, int*>
 constexpr bool test() {
   ForwardSubrange a(ForwardIter(globalBuff), ForwardIter(globalBuff + 8));
   std::pair<ForwardIter, ForwardIter> aPair = a;
-  assert(base(aPair.first) == globalBuff);
-  assert(base(aPair.second) == globalBuff + 8);
+  assert(aPair.first.base() == globalBuff);
+  assert(aPair.second.base() == globalBuff + 8);
   std::tuple<ForwardIter, ForwardIter> aTuple = a;
-  assert(base(std::get<0>(aTuple)) == globalBuff);
-  assert(base(std::get<1>(aTuple)) == globalBuff + 8);
+  assert(std::get<0>(aTuple).base() == globalBuff);
+  assert(std::get<1>(aTuple).base() == globalBuff + 8);
 
   return true;
 }

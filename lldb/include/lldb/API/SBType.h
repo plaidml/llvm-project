@@ -133,8 +133,6 @@ public:
 
   bool IsScopedEnumerationType();
 
-  bool IsAggregateType();
-
   lldb::SBType GetPointerType();
 
   lldb::SBType GetPointeeType();

@@ -503,13 +503,15 @@ static void convertElementwiseOp(Operation *op, gpu::MMAElementwiseOp opType,
   valueMapping[op->getResult(0)] = newOp;
 }
 
-void mlir::populatePrepareVectorToMMAPatterns(RewritePatternSet &patterns) {
+namespace mlir {
+
+void populatePrepareVectorToMMAPatterns(RewritePatternSet &patterns) {
   patterns.add<PrepareContractToGPUMMA, CombineTransferReadOpTranspose>(
       patterns.getContext());
 }
 
-void mlir::convertVectorToMMAOps(Operation *rootOp) {
-  SetVector<Operation *> ops = getOpToConvert(rootOp);
+void convertVectorToMMAOps(FuncOp funcOp) {
+  SetVector<Operation *> ops = getOpToConvert(funcOp);
   llvm::DenseMap<Value, Value> valueMapping;
   for (Operation *op : ops) {
     if (auto transferRead = dyn_cast<vector::TransferReadOp>(op)) {
@@ -532,12 +534,13 @@ void mlir::convertVectorToMMAOps(Operation *rootOp) {
   }
 }
 
+} // namespace mlir
 namespace {
 
 struct ConvertVectorToGPUPass
     : public ConvertVectorToGPUBase<ConvertVectorToGPUPass> {
   void runOnOperation() override {
-    RewritePatternSet patterns(&getContext());
+    RewritePatternSet patterns(getOperation().getContext());
     populatePrepareVectorToMMAPatterns(patterns);
     (void)applyPatternsAndFoldGreedily(getOperation(), std::move(patterns));
 

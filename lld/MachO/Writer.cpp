@@ -1048,10 +1048,10 @@ void Writer::openFile() {
                                FileOutputBuffer::F_executable);
 
   if (!bufferOrErr)
-    fatal("failed to open " + config->outputFile + ": " +
+    error("failed to open " + config->outputFile + ": " +
           llvm::toString(bufferOrErr.takeError()));
-  buffer = std::move(*bufferOrErr);
-  in.bufferStart = buffer->getBufferStart();
+  else
+    buffer = std::move(*bufferOrErr);
 }
 
 void Writer::writeSections() {

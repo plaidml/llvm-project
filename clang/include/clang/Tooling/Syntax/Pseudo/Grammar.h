@@ -154,8 +154,6 @@ std::vector<llvm::DenseSet<SymbolID>> followSets(const Grammar &);
 // It can be constructed dynamically (from compiling BNF file) or statically
 // (a compiled data-source).
 struct GrammarTable {
-  GrammarTable();
-
   struct Nonterminal {
     std::string Name;
     // Corresponding rules that construct the non-terminal, it is a [start, end)
@@ -171,7 +169,7 @@ struct GrammarTable {
   std::vector<Rule> Rules;
   // A table of terminals (aka tokens). It corresponds to the clang::Token.
   // clang::tok::TokenKind is the index of the table.
-  llvm::ArrayRef<std::string> Terminals;
+  std::vector<std::string> Terminals;
   // A table of nonterminals, sorted by name.
   // SymbolID is the index of the table.
   std::vector<Nonterminal> Nonterminals;

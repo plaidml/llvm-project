@@ -181,7 +181,7 @@ void Prescanner::Statement() {
     case LineClassification::Kind::DefinitionDirective:
     case LineClassification::Kind::PreprocessorDirective:
       Say(preprocessed->GetProvenanceRange(),
-          "Preprocessed line resembles a preprocessor directive"_warn_en_US);
+          "Preprocessed line resembles a preprocessor directive"_en_US);
       preprocessed->ToLowerCase()
           .CheckBadFortranCharacters(messages_)
           .CheckBadParentheses(messages_)
@@ -280,7 +280,7 @@ void Prescanner::LabelField(TokenSequence &token) {
   }
   if (bad && !preprocessor_.IsNameDefined(token.CurrentOpenToken())) {
     Say(GetProvenance(bad),
-        "Character in fixed-form label field must be a digit"_warn_en_US);
+        "Character in fixed-form label field must be a digit"_en_US);
     token.clear();
     at_ = start;
     return;
@@ -296,7 +296,7 @@ void Prescanner::LabelField(TokenSequence &token) {
   SkipToNextSignificantCharacter();
   if (IsDecimalDigit(*at_)) {
     Say(GetProvenance(at_),
-        "Label digit is not in fixed-form label field"_port_en_US);
+        "Label digit is not in fixed-form label field"_en_US);
   }
 }
 
@@ -489,8 +489,7 @@ bool Prescanner::NextToken(TokenSequence &tokens) {
       // Recognize and skip over classic C style /*comments*/ when
       // outside a character literal.
       if (features_.ShouldWarn(LanguageFeature::ClassicCComments)) {
-        Say(GetProvenance(at_),
-            "nonstandard usage: C-style comment"_port_en_US);
+        Say(GetProvenance(at_), "nonstandard usage: C-style comment"_en_US);
       }
       SkipCComments();
     }
@@ -699,7 +698,7 @@ void Prescanner::Hollerith(
     if (PadOutCharacterLiteral(tokens)) {
     } else if (*at_ == '\n') {
       Say(GetProvenanceRange(start, at_),
-          "Possible truncated Hollerith literal"_warn_en_US);
+          "Possible truncated Hollerith literal"_en_US);
       break;
     } else {
       NextChar();
@@ -828,7 +827,7 @@ void Prescanner::FortranInclude(const char *firstQuote) {
     for (; *p != '\n' && *p != '!'; ++p) {
     }
     Say(GetProvenanceRange(garbage, p),
-        "excess characters after path name"_warn_en_US);
+        "excess characters after path name"_en_US);
   }
   std::string buf;
   llvm::raw_string_ostream error{buf};
@@ -952,7 +951,7 @@ const char *Prescanner::FixedFormContinuationLine(bool mightNeedSpace) {
       // Extension: '&' as continuation marker
       if (features_.ShouldWarn(
               LanguageFeature::FixedFormContinuationWithColumn1Ampersand)) {
-        Say(GetProvenance(nextLine_), "nonstandard usage"_port_en_US);
+        Say(GetProvenance(nextLine_), "nonstandard usage"_en_US);
       }
       return nextLine_ + 1;
     }
@@ -1046,7 +1045,7 @@ bool Prescanner::FreeFormContinuation() {
       return false;
     } else if (*p != '!' &&
         features_.ShouldWarn(LanguageFeature::CruftAfterAmpersand)) {
-      Say(GetProvenance(p), "missing ! before comment after &"_warn_en_US);
+      Say(GetProvenance(p), "missing ! before comment after &"_en_US);
     }
   }
   do {

@@ -17,6 +17,7 @@
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/SCF/SCF.h"
 #include "mlir/Dialect/SPIRV/IR/SPIRVDialect.h"
+#include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/Pass/Pass.h"
 
@@ -31,7 +32,8 @@ class TestGpuMemoryPromotionPass
     : public PassWrapper<TestGpuMemoryPromotionPass,
                          OperationPass<gpu::GPUFuncOp>> {
   void getDependentDialects(DialectRegistry &registry) const override {
-    registry.insert<AffineDialect, memref::MemRefDialect, scf::SCFDialect>();
+    registry.insert<AffineDialect, memref::MemRefDialect, StandardOpsDialect,
+                    scf::SCFDialect>();
   }
   StringRef getArgument() const final { return "test-gpu-memory-promotion"; }
   StringRef getDescription() const final {

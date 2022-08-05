@@ -6,22 +6,25 @@
 //
 //===----------------------------------------------------------------------===//
 
+// UNSUPPORTED: no-exceptions
+
 // <algorithm>
 
 // template <class _Compare> struct __debug_less
 
 // __debug_less checks that a comparator actually provides a strict-weak ordering.
 
-// UNSUPPORTED: libcxx-no-debug-mode
+struct DebugException {};
 
-// ADDITIONAL_COMPILE_FLAGS: -D_LIBCPP_DEBUG=1
+// ADDITIONAL_COMPILE_FLAGS: -Wno-macro-redefined
+#define _LIBCPP_DEBUG 0
+#define _LIBCPP_ASSERT(x, m) ((x) ? (void)0 : throw ::DebugException())
 
 #include <algorithm>
 #include <iterator>
 #include <cassert>
 
 #include "test_macros.h"
-#include "debug_macros.h"
 
 template <int ID>
 struct MyType {
@@ -139,6 +142,8 @@ void test_passing() {
 }
 
 void test_failing() {
+    int& called = CompareBase::called;
+    called = 0;
     MT0 one(1);
     MT0 two(2);
 
@@ -148,7 +153,14 @@ void test_failing() {
         C c;
         D d(c);
 
-        TEST_LIBCPP_ASSERT_FAILURE(d(one, two), "Comparator does not induce a strict weak ordering");
+        try {
+            d(one, two);
+            assert(false);
+        } catch (DebugException const&) {
+        }
+
+        assert(called == 2);
+        called = 0;
     }
 }
 

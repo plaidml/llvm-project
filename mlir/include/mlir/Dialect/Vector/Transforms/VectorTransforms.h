@@ -89,7 +89,7 @@ distributPointwiseVectorOp(OpBuilder &builder, Operation *op,
 
 /// Implements transfer op write to read forwarding and dead transfer write
 /// optimizations.
-void transferOpflowOpt(Operation *rootOp);
+void transferOpflowOpt(FuncOp func);
 
 } // namespace vector
 } // namespace mlir

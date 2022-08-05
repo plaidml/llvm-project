@@ -34,10 +34,6 @@ class Toy_Op<string mnemonic, list<Trait> traits = []> :
 // Toy Operations
 //===----------------------------------------------------------------------===//
 
-//===----------------------------------------------------------------------===//
-// ConstantOp
-//===----------------------------------------------------------------------===//
-
 // We define a toy operation by inheriting from our base 'Toy_Op' class above.
 // Here we provide the mnemonic and a list of traits for the operation. The
 // constant operation is marked as 'NoSideEffect' as it is a pure operation
@@ -82,10 +78,6 @@ def ConstantOp : Toy_Op<"constant", [NoSideEffect]> {
   let hasVerifier = 1;
 }
 
-//===----------------------------------------------------------------------===//
-// AddOp
-//===----------------------------------------------------------------------===//
-
 def AddOp : Toy_Op<"add", [NoSideEffect]> {
   let summary = "element-wise addition operation";
   let description = [{
@@ -104,10 +96,6 @@ def AddOp : Toy_Op<"add", [NoSideEffect]> {
     OpBuilder<(ins "Value":$lhs, "Value":$rhs)>
   ];
 }
-
-//===----------------------------------------------------------------------===//
-// GenericCallOp
-//===----------------------------------------------------------------------===//
 
 def GenericCallOp : Toy_Op<"generic_call"> {
   let summary = "generic call operation";
@@ -144,10 +132,6 @@ def GenericCallOp : Toy_Op<"generic_call"> {
   ];
 }
 
-//===----------------------------------------------------------------------===//
-// MulOp
-//===----------------------------------------------------------------------===//
-
 def MulOp : Toy_Op<"mul", [NoSideEffect]> {
   let summary = "element-wise multiplication operation";
   let description = [{
@@ -167,10 +151,6 @@ def MulOp : Toy_Op<"mul", [NoSideEffect]> {
   ];
 }
 
-//===----------------------------------------------------------------------===//
-// PrintOp
-//===----------------------------------------------------------------------===//
-
 def PrintOp : Toy_Op<"print"> {
   let summary = "print operation";
   let description = [{
@@ -183,10 +163,6 @@ def PrintOp : Toy_Op<"print"> {
 
   let assemblyFormat = "$input attr-dict `:` type($input)";
 }
-
-//===----------------------------------------------------------------------===//
-// ReshapeOp
-//===----------------------------------------------------------------------===//
 
 def ReshapeOp : Toy_Op<"reshape", [NoSideEffect]> {
   let summary = "tensor reshape operation";
@@ -211,10 +187,6 @@ def ReshapeOp : Toy_Op<"reshape", [NoSideEffect]> {
   // Enable registering canonicalization patterns with this operation.
   let hasCanonicalizer = 1;
 }
-
-//===----------------------------------------------------------------------===//
-// ReturnOp
-//===----------------------------------------------------------------------===//
 
 def ReturnOp : Toy_Op<"return", [NoSideEffect, HasParent<"FuncOp">,
                                  Terminator]> {
@@ -253,10 +225,6 @@ def ReturnOp : Toy_Op<"return", [NoSideEffect, HasParent<"FuncOp">,
   // Indicate that additional verification for this operation is necessary.
   let hasVerifier = 1;
 }
-
-//===----------------------------------------------------------------------===//
-// TransposeOp
-//===----------------------------------------------------------------------===//
 
 def TransposeOp : Toy_Op<"transpose", [NoSideEffect]> {
   let summary = "transpose operation";

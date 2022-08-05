@@ -31,7 +31,8 @@ define i32 @neg_select_nega(i32 %a, i32 %b, i1 %bb) {
 ; CHECK-LABEL: neg_select_nega:
 ; CHECK:       // %bb.0:
 ; CHECK-NEXT:    tst w2, #0x1
-; CHECK-NEXT:    csneg w0, w0, w1, ne
+; CHECK-NEXT:    csneg w8, w1, w0, eq
+; CHECK-NEXT:    neg w0, w8
 ; CHECK-NEXT:    ret
   %nega = sub i32 0, %a
   %sel = select i1 %bb, i32 %nega, i32 %b
@@ -43,7 +44,8 @@ define i32 @neg_select_negb(i32 %a, i32 %b, i1 %bb) {
 ; CHECK-LABEL: neg_select_negb:
 ; CHECK:       // %bb.0:
 ; CHECK-NEXT:    tst w2, #0x1
-; CHECK-NEXT:    csneg w0, w1, w0, eq
+; CHECK-NEXT:    csneg w8, w0, w1, ne
+; CHECK-NEXT:    neg w0, w8
 ; CHECK-NEXT:    ret
   %negb = sub i32 0, %b
   %sel = select i1 %bb, i32 %a, i32 %negb

@@ -1,5 +1,5 @@
 # REQUIRES: target={{x86_64-.+-linux-gnu}}
-# RUN: %{build} -no-pie
+# RUN: %{build}
 # RUN: %{run}
 
 # The following assembly is a translation of this code:

@@ -6,6 +6,7 @@
 //===----------------------------------------------------------------------===//
 
 // UNSUPPORTED: c++03, c++11, c++14, c++17
+// UNSUPPORTED: libcpp-no-concepts
 // UNSUPPORTED: libcpp-has-no-incomplete-format
 
 // <format>
@@ -35,4 +36,3 @@ static_assert(uint8_t(std::__format::__arg_t::__long_double) == 11);
 static_assert(uint8_t(std::__format::__arg_t::__const_char_type_ptr) == 12);
 static_assert(uint8_t(std::__format::__arg_t::__string_view) == 13);
 static_assert(uint8_t(std::__format::__arg_t::__ptr) == 14);
-static_assert(uint8_t(std::__format::__arg_t::__handle) == 15);

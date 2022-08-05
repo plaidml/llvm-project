@@ -14,16 +14,17 @@
 namespace mlir {
 class MLIRContext;
 class Pass;
+class FuncOp;
 class RewritePatternSet;
 
 /// Patterns to transform vector ops into a canonical form to convert to MMA
 /// matrix operations.
 void populatePrepareVectorToMMAPatterns(RewritePatternSet &patterns);
 
-/// Convert vector ops to MMA matrix operations nested under `rootOp`. This will
-/// convert slice of operations that can be legally converted to MMA operations.
-/// The rest of the vector operations are left untouched.
-void convertVectorToMMAOps(Operation *rootOp);
+/// Convert vector ops to MMA matrix operations. This will convert slice of
+/// operations that can be legally converted to MMA operations. The rest of the
+/// vector operations are left untouched.
+void convertVectorToMMAOps(FuncOp funcOp);
 
 /// Convert from vector to GPU ops.
 std::unique_ptr<Pass> createConvertVectorToGPUPass();

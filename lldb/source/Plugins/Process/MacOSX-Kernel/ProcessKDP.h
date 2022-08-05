@@ -179,7 +179,7 @@ protected:
 
   void StopAsyncThread();
 
-  void *AsyncThread();
+  static void *AsyncThread(void *arg);
 
 private:
   // For ProcessKDP only

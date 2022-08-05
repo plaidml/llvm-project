@@ -9,13 +9,12 @@
 // This file implements full lowering of Toy operations to LLVM MLIR dialect.
 // 'toy.print' is lowered to a loop nest that calls `printf` on each element of
 // the input array. The file also sets up the ToyToLLVMLoweringPass. This pass
-// lowers the combination of Arithmetic + Affine + SCF + Func dialects to the
-// LLVM one:
+// lowers the combination of Affine + SCF + Standard dialects to the LLVM one:
 //
 //                         Affine --
 //                                  |
 //                                  v
-//                       Arithmetic + Func --> LLVM (Dialect)
+//                                  Standard --> LLVM (Dialect)
 //                                  ^
 //                                  |
 //     'toy.print' --> Loop (SCF) --
@@ -28,18 +27,18 @@
 #include "mlir/Conversion/AffineToStandard/AffineToStandard.h"
 #include "mlir/Conversion/ArithmeticToLLVM/ArithmeticToLLVM.h"
 #include "mlir/Conversion/ControlFlowToLLVM/ControlFlowToLLVM.h"
-#include "mlir/Conversion/FuncToLLVM/ConvertFuncToLLVM.h"
-#include "mlir/Conversion/FuncToLLVM/ConvertFuncToLLVMPass.h"
 #include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Conversion/MemRefToLLVM/MemRefToLLVM.h"
 #include "mlir/Conversion/SCFToControlFlow/SCFToControlFlow.h"
+#include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVM.h"
+#include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVMPass.h"
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
-#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/SCF/SCF.h"
+#include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "llvm/ADT/Sequence.h"
@@ -92,8 +91,8 @@ public:
 
       // Insert a newline after each of the inner dimensions of the shape.
       if (i != e - 1)
-        rewriter.create<func::CallOp>(loc, printfRef,
-                                      rewriter.getIntegerType(32), newLineCst);
+        rewriter.create<CallOp>(loc, printfRef, rewriter.getIntegerType(32),
+                                newLineCst);
       rewriter.create<scf::YieldOp>(loc);
       rewriter.setInsertionPointToStart(loop.getBody());
     }
@@ -102,9 +101,8 @@ public:
     auto printOp = cast<toy::PrintOp>(op);
     auto elementLoad =
         rewriter.create<memref::LoadOp>(loc, printOp.input(), loopIvs);
-    rewriter.create<func::CallOp>(
-        loc, printfRef, rewriter.getIntegerType(32),
-        ArrayRef<Value>({formatSpecifierCst, elementLoad}));
+    rewriter.create<CallOp>(loc, printfRef, rewriter.getIntegerType(32),
+                            ArrayRef<Value>({formatSpecifierCst, elementLoad}));
 
     // Notify the rewriter that this operation has been removed.
     rewriter.eraseOp(op);
@@ -208,7 +206,7 @@ void ToyToLLVMLoweringPass::runOnOperation() {
                                                           patterns);
   populateMemRefToLLVMConversionPatterns(typeConverter, patterns);
   cf::populateControlFlowToLLVMConversionPatterns(typeConverter, patterns);
-  populateFuncToLLVMConversionPatterns(typeConverter, patterns);
+  populateStdToLLVMConversionPatterns(typeConverter, patterns);
 
   // The only remaining operation to lower from the `toy` dialect, is the
   // PrintOp.

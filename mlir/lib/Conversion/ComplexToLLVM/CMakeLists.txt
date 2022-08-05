@@ -14,5 +14,6 @@ add_mlir_conversion_library(MLIRComplexToLLVM
   MLIRComplex
   MLIRLLVMCommonConversion
   MLIRLLVMIR
+  MLIRStandardOpsTransforms
   MLIRTransforms
   )

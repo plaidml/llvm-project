@@ -1,6 +1,5 @@
 set(LIBS
   MLIRPDLLAST
-  MLIRPDLLCodeGen
   MLIRPDLLParser
   )
 

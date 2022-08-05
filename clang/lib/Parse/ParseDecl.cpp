@@ -105,6 +105,7 @@ static bool FindLocsWithCommonFileID(Preprocessor &PP, SourceLocation StartLoc,
 
 void Parser::ParseAttributes(unsigned WhichAttrKinds,
                              ParsedAttributesWithRange &Attrs,
+                             SourceLocation *End,
                              LateParsedAttrList *LateAttrs) {
   bool MoreToParse;
   do {
@@ -112,11 +113,11 @@ void Parser::ParseAttributes(unsigned WhichAttrKinds,
     // parsed, loop to ensure all specified attribute combinations are parsed.
     MoreToParse = false;
     if (WhichAttrKinds & PAKM_CXX11)
-      MoreToParse |= MaybeParseCXX11Attributes(Attrs);
+      MoreToParse |= MaybeParseCXX11Attributes(Attrs, End);
     if (WhichAttrKinds & PAKM_GNU)
-      MoreToParse |= MaybeParseGNUAttributes(Attrs, LateAttrs);
+      MoreToParse |= MaybeParseGNUAttributes(Attrs, End, LateAttrs);
     if (WhichAttrKinds & PAKM_Declspec)
-      MoreToParse |= MaybeParseMicrosoftDeclSpecs(Attrs);
+      MoreToParse |= MaybeParseMicrosoftDeclSpecs(Attrs, End);
   } while (MoreToParse);
 }
 
@@ -162,11 +163,14 @@ void Parser::ParseAttributes(unsigned WhichAttrKinds,
 ///
 /// We follow the C++ model, but don't allow junk after the identifier.
 void Parser::ParseGNUAttributes(ParsedAttributesWithRange &Attrs,
+                                SourceLocation *EndLoc,
                                 LateParsedAttrList *LateAttrs, Declarator *D) {
   assert(Tok.is(tok::kw___attribute) && "Not a GNU attribute list!");
 
-  SourceLocation StartLoc = Tok.getLocation();
-  SourceLocation EndLoc = StartLoc;
+  SourceLocation StartLoc = Tok.getLocation(), Loc;
+
+  if (!EndLoc)
+    EndLoc = &Loc;
 
   while (Tok.is(tok::kw___attribute)) {
     SourceLocation AttrTokLoc = ConsumeToken();
@@ -210,7 +214,7 @@ void Parser::ParseGNUAttributes(ParsedAttributesWithRange &Attrs,
 
       // Handle "parameterized" attributes
       if (!LateAttrs || !isAttributeLateParsed(*AttrName)) {
-        ParseGNUAttributeArgs(AttrName, AttrNameLoc, Attrs, &EndLoc, nullptr,
+        ParseGNUAttributeArgs(AttrName, AttrNameLoc, Attrs, EndLoc, nullptr,
                               SourceLocation(), ParsedAttr::AS_GNU, D);
         continue;
       }
@@ -243,7 +247,8 @@ void Parser::ParseGNUAttributes(ParsedAttributesWithRange &Attrs,
     SourceLocation Loc = Tok.getLocation();
     if (ExpectAndConsume(tok::r_paren))
       SkipUntil(tok::r_paren, StopAtSemi);
-    EndLoc = Loc;
+    if (EndLoc)
+      *EndLoc = Loc;
 
     // If this was declared in a macro, attach the macro IdentifierInfo to the
     // parsed attribute.
@@ -265,7 +270,7 @@ void Parser::ParseGNUAttributes(ParsedAttributesWithRange &Attrs,
     }
   }
 
-  Attrs.Range = SourceRange(StartLoc, EndLoc);
+  Attrs.Range = SourceRange(StartLoc, *EndLoc);
 }
 
 /// Determine whether the given attribute has an identifier argument.
@@ -745,12 +750,10 @@ bool Parser::ParseMicrosoftDeclSpecArgs(IdentifierInfo *AttrName,
 /// [MS] extended-decl-modifier-seq:
 ///             extended-decl-modifier[opt]
 ///             extended-decl-modifier extended-decl-modifier-seq
-void Parser::ParseMicrosoftDeclSpecs(ParsedAttributesWithRange &Attrs) {
+void Parser::ParseMicrosoftDeclSpecs(ParsedAttributes &Attrs,
+                                     SourceLocation *End) {
   assert(getLangOpts().DeclSpecKeyword && "__declspec keyword is not enabled");
   assert(Tok.is(tok::kw___declspec) && "Not a declspec!");
-
-  SourceLocation StartLoc = Tok.getLocation();
-  SourceLocation EndLoc = StartLoc;
 
   while (Tok.is(tok::kw___declspec)) {
     ConsumeToken();
@@ -814,10 +817,9 @@ void Parser::ParseMicrosoftDeclSpecs(ParsedAttributesWithRange &Attrs) {
                      ParsedAttr::AS_Declspec);
     }
     T.consumeClose();
-    EndLoc = T.getCloseLocation();
+    if (End)
+      *End = T.getCloseLocation();
   }
-
-  Attrs.Range = SourceRange(StartLoc, EndLoc);
 }
 
 void Parser::ParseMicrosoftTypeAttributes(ParsedAttributes &attrs) {
@@ -3661,7 +3663,8 @@ void Parser::ParseDeclarationSpecifiers(DeclSpec &DS,
     // Attributes support.
     case tok::kw___attribute:
     case tok::kw___declspec:
-      ParseAttributes(PAKM_GNU | PAKM_Declspec, DS.getAttributes(), LateAttrs);
+      ParseAttributes(PAKM_GNU | PAKM_Declspec, DS.getAttributes(), nullptr,
+                      LateAttrs);
       continue;
 
     // Microsoft single token adornments.
@@ -5800,7 +5803,7 @@ static bool isPtrOperatorToken(tok::TokenKind Kind, const LangOptions &Lang,
 }
 
 // Indicates whether the given declarator is a pipe declarator.
-static bool isPipeDeclarator(const Declarator &D) {
+static bool isPipeDeclerator(const Declarator &D) {
   const unsigned NumTypes = D.getNumTypeObjects();
 
   for (unsigned Idx = 0; Idx != NumTypes; ++Idx)
@@ -5893,7 +5896,7 @@ void Parser::ParseDeclaratorInternal(Declarator &D,
 
   tok::TokenKind Kind = Tok.getKind();
 
-  if (D.getDeclSpec().isTypeSpecPipe() && !isPipeDeclarator(D)) {
+  if (D.getDeclSpec().isTypeSpecPipe() && !isPipeDeclerator(D)) {
     DeclSpec DS(AttrFactory);
     ParseTypeQualifierListOpt(DS);
 

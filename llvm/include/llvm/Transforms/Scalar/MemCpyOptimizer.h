@@ -16,6 +16,8 @@
 
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/PassManager.h"
+#include <cstdint>
+#include <functional>
 
 namespace llvm {
 

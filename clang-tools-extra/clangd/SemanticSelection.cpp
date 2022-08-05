@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "SemanticSelection.h"
+#include "FindSymbols.h"
 #include "ParsedAST.h"
 #include "Protocol.h"
 #include "Selection.h"
@@ -14,6 +15,7 @@
 #include "clang/AST/DeclBase.h"
 #include "clang/Basic/SourceLocation.h"
 #include "clang/Basic/SourceManager.h"
+#include "clang/Basic/TokenKinds.h"
 #include "clang/Tooling/Syntax/BuildTree.h"
 #include "clang/Tooling/Syntax/Nodes.h"
 #include "clang/Tooling/Syntax/Tree.h"

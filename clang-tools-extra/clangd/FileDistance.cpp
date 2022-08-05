@@ -31,10 +31,8 @@
 //===-------------------------------------------------------------------------//
 
 #include "FileDistance.h"
-#include "URI.h"
 #include "support/Logger.h"
 #include "llvm/ADT/STLExtras.h"
-#include "llvm/Support/Path.h"
 #include <queue>
 
 namespace clang {

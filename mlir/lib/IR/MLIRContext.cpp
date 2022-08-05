@@ -693,8 +693,7 @@ RegisteredOperationName::parseAssembly(OpAsmParser &parser,
 void RegisteredOperationName::insert(
     StringRef name, Dialect &dialect, TypeID typeID,
     ParseAssemblyFn &&parseAssembly, PrintAssemblyFn &&printAssembly,
-    VerifyInvariantsFn &&verifyInvariants,
-    VerifyRegionInvariantsFn &&verifyRegionInvariants, FoldHookFn &&foldHook,
+    VerifyInvariantsFn &&verifyInvariants, FoldHookFn &&foldHook,
     GetCanonicalizationPatternsFn &&getCanonicalizationPatterns,
     detail::InterfaceMap &&interfaceMap, HasTraitFn &&hasTrait,
     ArrayRef<StringRef> attrNames) {
@@ -750,7 +749,6 @@ void RegisteredOperationName::insert(
   impl.parseAssemblyFn = std::move(parseAssembly);
   impl.printAssemblyFn = std::move(printAssembly);
   impl.verifyInvariantsFn = std::move(verifyInvariants);
-  impl.verifyRegionInvariantsFn = std::move(verifyRegionInvariants);
   impl.attributeNames = cachedAttrNames;
 }
 

@@ -152,12 +152,6 @@ enum EdgeKind_riscv : Edge::Kind {
   ///   Fixup <- (Target - *{1}Fixup - Addend)
   R_RISCV_SUB8,
 
-  /// 6 bits label subtraction
-  ///
-  /// Fixup expression
-  ///   Fixup <- (Target - *{1}Fixup - Addend)
-  R_RISCV_SUB6,
-
   /// Local label assignment
   ///
   /// Fixup expression:

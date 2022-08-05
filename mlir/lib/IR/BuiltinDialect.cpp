@@ -101,8 +101,7 @@ void FuncOp::build(OpBuilder &builder, OperationState &state, StringRef name,
                    ArrayRef<DictionaryAttr> argAttrs) {
   state.addAttribute(SymbolTable::getSymbolAttrName(),
                      builder.getStringAttr(name));
-  state.addAttribute(function_interface_impl::getTypeAttrName(),
-                     TypeAttr::get(type));
+  state.addAttribute(getTypeAttrName(), TypeAttr::get(type));
   state.attributes.append(attrs.begin(), attrs.end());
   state.addRegion();
 
@@ -288,8 +287,8 @@ LogicalResult ModuleOp::verify() {
 LogicalResult
 UnrealizedConversionCastOp::fold(ArrayRef<Attribute> attrOperands,
                                  SmallVectorImpl<OpFoldResult> &foldResults) {
-  OperandRange operands = getInputs();
-  ResultRange results = getOutputs();
+  OperandRange operands = inputs();
+  ResultRange results = outputs();
 
   if (operands.getType() == results.getType()) {
     foldResults.append(operands.begin(), operands.end());

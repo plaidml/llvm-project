@@ -16,11 +16,10 @@
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Analysis/BranchProbabilityInfo.h"
+#include "llvm/Analysis/Loads.h"
 #include "llvm/Analysis/OptimizationRemarkEmitter.h"
 #include "llvm/Analysis/ValueTracking.h"
 #include "llvm/CodeGen/Analysis.h"
-#include "llvm/CodeGen/GlobalISel/CSEInfo.h"
-#include "llvm/CodeGen/GlobalISel/CSEMIRBuilder.h"
 #include "llvm/CodeGen/GlobalISel/CallLowering.h"
 #include "llvm/CodeGen/GlobalISel/GISelChangeObserver.h"
 #include "llvm/CodeGen/GlobalISel/InlineAsmLowering.h"
@@ -48,6 +47,7 @@
 #include "llvm/IR/Constant.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DataLayout.h"
+#include "llvm/IR/DebugInfo.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/DiagnosticInfo.h"
 #include "llvm/IR/Function.h"
@@ -78,6 +78,7 @@
 #include "llvm/Transforms/Utils/MemoryOpRemark.h"
 #include <algorithm>
 #include <cassert>
+#include <cstddef>
 #include <cstdint>
 #include <iterator>
 #include <string>
@@ -3278,7 +3279,7 @@ bool IRTranslator::emitSPDescriptorFailure(StackProtectorDescriptor &SPD,
   // because the function return type can be different from __stack_chk_fail's
   // return type (void).
   const TargetMachine &TM = MF->getTarget();
-  if (TM.getTargetTriple().isPS4() || TM.getTargetTriple().isWasm()) {
+  if (TM.getTargetTriple().isPS4CPU() || TM.getTargetTriple().isWasm()) {
     LLVM_DEBUG(dbgs() << "Unhandled trap emission for stack protector fail\n");
     return false;
   }

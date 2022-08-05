@@ -16,16 +16,16 @@ extern int Buf[10]; // Buf[10]
 // CHECK-MESSAGES: :[[@LINE-1]]:12: warning: redundant 'Buf' declaration
 // CHECK-FIXES: {{^}}// Buf[10]{{$}}
 
-static int f(void);
-static int f(void); // f
+static int f();
+static int f(); // f
 // CHECK-MESSAGES: :[[@LINE-1]]:12: warning: redundant 'f' declaration
 // CHECK-FIXES: {{^}}// f{{$}}
-static int f(void) {}
+static int f() {}
 
-inline void g(void) {}
+inline void g() {}
 
-inline void g(void);
+inline void g();
 // CHECK-MESSAGES: :[[@LINE-1]]:13: warning: redundant 'g' declaration
 
 // OK: Needed to emit an external definition.
-extern inline void g(void);
+extern inline void g();

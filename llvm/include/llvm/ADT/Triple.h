@@ -200,7 +200,6 @@ public:
     ELFIAMCU,
     TvOS,       // Apple tvOS
     WatchOS,    // Apple watchOS
-    DriverKit,  // Apple DriverKit
     Mesa3D,
     Contiki,
     AMDPAL,     // AMD PAL Runtime
@@ -363,9 +362,6 @@ public:
   /// with WatchOS or generic triples.
   VersionTuple getWatchOSVersion() const;
 
-  /// Parse the version number as with getOSVersion.
-  VersionTuple getDriverKitVersion() const;
-
   /// @}
   /// @name Direct Component Access
   /// @{
@@ -468,14 +464,11 @@ public:
     return getSubArch() == Triple::ARMSubArch_v7k;
   }
 
-  /// Is this an Apple DriverKit triple.
-  bool isDriverKit() const { return getOS() == Triple::DriverKit; }
-
   bool isOSzOS() const { return getOS() == Triple::ZOS; }
 
-  /// Is this a "Darwin" OS (macOS, iOS, tvOS, watchOS, or DriverKit).
+  /// Is this a "Darwin" OS (macOS, iOS, tvOS or watchOS).
   bool isOSDarwin() const {
-    return isMacOSX() || isiOS() || isWatchOS() || isDriverKit();
+    return isMacOSX() || isiOS() || isWatchOS();
   }
 
   bool isSimulatorEnvironment() const {
@@ -649,10 +642,16 @@ public:
     return getObjectFormat() == Triple::XCOFF;
   }
 
-  /// Tests whether the target is the PS4 platform.
-  bool isPS4() const {
+  /// Tests whether the target is the PS4 CPU
+  bool isPS4CPU() const {
     return getArch() == Triple::x86_64 &&
            getVendor() == Triple::SCEI &&
+           getOS() == Triple::PS4;
+  }
+
+  /// Tests whether the target is the PS4 platform
+  bool isPS4() const {
+    return getVendor() == Triple::SCEI &&
            getOS() == Triple::PS4;
   }
 
@@ -818,17 +817,6 @@ public:
     return getArch() == Triple::riscv32 || getArch() == Triple::riscv64;
   }
 
-  /// Tests whether the target is 32-bit SPARC (little and big endian).
-  bool isSPARC32() const {
-    return getArch() == Triple::sparc || getArch() == Triple::sparcel;
-  }
-
-  /// Tests whether the target is 64-bit SPARC (big endian).
-  bool isSPARC64() const { return getArch() == Triple::sparcv9; }
-
-  /// Tests whether the target is SPARC.
-  bool isSPARC() const { return isSPARC32() || isSPARC64(); }
-
   /// Tests whether the target is SystemZ.
   bool isSystemZ() const {
     return getArch() == Triple::systemz;
@@ -882,7 +870,7 @@ public:
   }
 
   /// Tests if the environment supports dllimport/export annotations.
-  bool hasDLLImportExport() const { return isOSWindows() || isPS4(); }
+  bool hasDLLImportExport() const { return isOSWindows() || isPS4CPU(); }
 
   /// @}
   /// @name Mutators

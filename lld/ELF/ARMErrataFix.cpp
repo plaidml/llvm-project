@@ -14,7 +14,6 @@
 //===----------------------------------------------------------------------===//
 
 #include "ARMErrataFix.h"
-#include "InputFiles.h"
 #include "LinkerScript.h"
 #include "OutputSections.h"
 #include "Relocations.h"

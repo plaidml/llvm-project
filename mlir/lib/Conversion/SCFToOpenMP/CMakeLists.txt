@@ -16,5 +16,6 @@ add_mlir_conversion_library(MLIRSCFToOpenMP
   MLIRLLVMIR
   MLIROpenMP
   MLIRSCF
+  MLIRStandard
   MLIRTransforms
   )

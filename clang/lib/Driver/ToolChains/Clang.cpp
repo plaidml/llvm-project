@@ -451,7 +451,7 @@ static bool addExceptionArgs(const ArgList &Args, types::ID InputType,
   if (types::isCXX(InputType)) {
     // Disable C++ EH by default on XCore and PS4.
     bool CXXExceptionsEnabled =
-        Triple.getArch() != llvm::Triple::xcore && !Triple.isPS4();
+        Triple.getArch() != llvm::Triple::xcore && !Triple.isPS4CPU();
     Arg *ExceptionArg = Args.getLastArg(
         options::OPT_fcxx_exceptions, options::OPT_fno_cxx_exceptions,
         options::OPT_fexceptions, options::OPT_fno_exceptions);
@@ -612,10 +612,10 @@ getFramePointerKind(const ArgList &Args, const llvm::Triple &Triple) {
   bool OmitFP = A && A->getOption().matches(options::OPT_fomit_frame_pointer);
   bool NoOmitFP =
       A && A->getOption().matches(options::OPT_fno_omit_frame_pointer);
-  bool OmitLeafFP =
-      Args.hasFlag(options::OPT_momit_leaf_frame_pointer,
-                   options::OPT_mno_omit_leaf_frame_pointer,
-                   Triple.isAArch64() || Triple.isPS4() || Triple.isVE());
+  bool OmitLeafFP = Args.hasFlag(options::OPT_momit_leaf_frame_pointer,
+                                 options::OPT_mno_omit_leaf_frame_pointer,
+                                 Triple.isAArch64() || Triple.isPS4CPU() ||
+                                 Triple.isVE());
   if (NoOmitFP || mustUseNonLeafFramePointerForTarget(Triple) ||
       (!OmitFP && useFramePointerForTargetByDefault(Args, Triple))) {
     if (OmitLeafFP)
@@ -2288,7 +2288,7 @@ void Clang::AddX86TargetArgs(const ArgList &Args,
   // Default to "generic" unless -march is present or targetting the PS4.
   std::string TuneCPU;
   if (!Args.hasArg(clang::driver::options::OPT_march_EQ) &&
-      !getToolChain().getTriple().isPS4())
+      !getToolChain().getTriple().isPS4CPU())
     TuneCPU = "generic";
 
   // Override based on -mtune.
@@ -2726,8 +2726,6 @@ static void RenderFloatingPointOptions(const ToolChain &TC, const Driver &D,
   StringRef FPModel = "";
   // -ffp-exception-behavior options: strict, maytrap, ignore
   StringRef FPExceptionBehavior = "";
-  // -ffp-eval-method options: double, extended, source
-  StringRef FPEvalMethod = "";
   const llvm::DenormalMode DefaultDenormalFPMath =
       TC.getDefaultDenormalModeForType(Args, JA);
   const llvm::DenormalMode DefaultDenormalFP32Math =
@@ -2923,18 +2921,6 @@ static void RenderFloatingPointOptions(const ToolChain &TC, const Driver &D,
       break;
     }
 
-    // Validate and pass through -ffp-eval-method option.
-    case options::OPT_ffp_eval_method_EQ: {
-      StringRef Val = A->getValue();
-      if (Val.equals("double") || Val.equals("extended") ||
-          Val.equals("source"))
-        FPEvalMethod = Val;
-      else
-        D.Diag(diag::err_drv_unsupported_option_argument)
-            << A->getOption().getName() << Val;
-      break;
-    }
-
     case options::OPT_ffinite_math_only:
       HonorINFs = false;
       HonorNaNs = false;
@@ -3090,9 +3076,6 @@ static void RenderFloatingPointOptions(const ToolChain &TC, const Driver &D,
     CmdArgs.push_back(Args.MakeArgString("-ffp-exception-behavior=" +
                       FPExceptionBehavior));
 
-  if (!FPEvalMethod.empty())
-    CmdArgs.push_back(Args.MakeArgString("-ffp-eval-method=" + FPEvalMethod));
-
   ParseMRecip(D, Args, CmdArgs);
 
   // -ffast-math enables the __FAST_MATH__ preprocessor macro, but check for the
@@ -3157,7 +3140,7 @@ static void RenderAnalyzerOptions(const ArgList &Args, ArgStringList &CmdArgs,
     }
 
     // Disable some unix checkers for PS4.
-    if (Triple.isPS4()) {
+    if (Triple.isPS4CPU()) {
       CmdArgs.push_back("-analyzer-disable-checker=unix.API");
       CmdArgs.push_back("-analyzer-disable-checker=unix.Vfork");
     }
@@ -3175,7 +3158,7 @@ static void RenderAnalyzerOptions(const ArgList &Args, ArgStringList &CmdArgs,
     if (types::isCXX(Input.getType()))
       CmdArgs.push_back("-analyzer-checker=cplusplus");
 
-    if (!Triple.isPS4()) {
+    if (!Triple.isPS4CPU()) {
       CmdArgs.push_back("-analyzer-checker=security.insecureAPI.UncheckedReturn");
       CmdArgs.push_back("-analyzer-checker=security.insecureAPI.getpw");
       CmdArgs.push_back("-analyzer-checker=security.insecureAPI.gets");
@@ -5392,19 +5375,6 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
                      types::isLLVMIR(InputType), CmdArgs, DebugInfoKind,
                      DwarfFission);
 
-  // This controls whether or not we perform JustMyCode instrumentation.
-  if (Args.hasFlag(options::OPT_fjmc, options::OPT_fno_jmc, false)) {
-    if (TC.getTriple().isOSBinFormatELF()) {
-      if (DebugInfoKind >= codegenoptions::DebugInfoConstructor)
-        CmdArgs.push_back("-fjmc");
-      else
-        D.Diag(clang::diag::warn_drv_jmc_requires_debuginfo) << "-fjmc"
-                                                             << "-g";
-    } else {
-      D.Diag(clang::diag::warn_drv_fjmc_for_elf_only);
-    }
-  }
-
   // Add the split debug info name to the command lines here so we
   // can propagate it to the backend.
   bool SplitDWARF = (DwarfFission != DwarfFissionKind::None) &&
@@ -5557,7 +5527,7 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
   Args.AddLastArg(CmdArgs, options::OPT_fclang_abi_compat_EQ);
 
   // Add runtime flag for PS4 when PGO, coverage, or sanitizers are enabled.
-  if (RawTriple.isPS4() &&
+  if (RawTriple.isPS4CPU() &&
       !Args.hasArg(options::OPT_nostdlib, options::OPT_nodefaultlibs)) {
     PS4cpu::addProfileRTArgs(TC, Args, CmdArgs);
     PS4cpu::addSanitizerArgs(TC, Args, CmdArgs);
@@ -5775,13 +5745,6 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
   if (Arg *A = Args.getLastArg(options::OPT_fconstexpr_steps_EQ)) {
     CmdArgs.push_back("-fconstexpr-steps");
     CmdArgs.push_back(A->getValue());
-  }
-
-  if (Args.hasArg(options::OPT_funstable)) {
-    CmdArgs.push_back("-funstable");
-    if (!Args.hasArg(options::OPT_fno_coroutines_ts))
-      CmdArgs.push_back("-fcoroutines-ts");
-    CmdArgs.push_back("-fmodules-ts");
   }
 
   if (Args.hasArg(options::OPT_fexperimental_new_constant_interpreter))
@@ -6034,8 +5997,6 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
         CmdArgs.push_back("-fopenmp-assume-threads-oversubscription");
       if (Args.hasArg(options::OPT_fopenmp_assume_no_thread_state))
         CmdArgs.push_back("-fopenmp-assume-no-thread-state");
-      if (Args.hasArg(options::OPT_fopenmp_offload_mandatory))
-        CmdArgs.push_back("-fopenmp-offload-mandatory");
       break;
     default:
       // By default, if Clang doesn't know how to generate useful OpenMP code
@@ -6935,10 +6896,8 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
       CmdArgs.push_back(Args.MakeArgString(Twine("-cuid=") + Twine(CUID)));
   }
 
-  if (IsHIP) {
+  if (IsHIP)
     CmdArgs.push_back("-fcuda-allow-variadic-functions");
-    Args.AddLastArg(CmdArgs, options::OPT_fgpu_default_stream_EQ);
-  }
 
   if (IsCudaDevice || IsHIPDevice) {
     StringRef InlineThresh =
@@ -7546,8 +7505,7 @@ void Clang::AddClangCLArgs(const ArgList &Args, types::ID InputType,
     if (*EmitCodeView && *DebugInfoKind >= codegenoptions::DebugInfoConstructor)
       CmdArgs.push_back("-fjmc");
     else
-      D.Diag(clang::diag::warn_drv_jmc_requires_debuginfo) << "/JMC"
-                                                           << "'/Zi', '/Z7'";
+      D.Diag(clang::diag::warn_drv_jmc_requires_debuginfo);
   }
 
   EHFlags EH = parseClangCLEHFlags(D, Args);

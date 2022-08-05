@@ -6,10 +6,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "loader_test.h"
-
 #include "include/errno.h"
 #include "include/sys/mman.h"
+
+#undef NDEBUG
+#include "src/assert/assert.h"
 
 #include "src/errno/llvmlibc_errno.h"
 #include "src/sys/mman/mmap.h"
@@ -18,22 +19,22 @@ constexpr int threadLocalDataSize = 101;
 _Thread_local int a[threadLocalDataSize] = {123};
 
 int main(int argc, char **argv, char **envp) {
-  ASSERT_TRUE(a[0] == 123);
+  assert(a[0] == 123);
 
   for (int i = 1; i < threadLocalDataSize; ++i)
     a[i] = i;
   for (int i = 1; i < threadLocalDataSize; ++i)
-    ASSERT_TRUE(a[i] == i);
+    assert(a[i] == i);
 
   // Call mmap with bad params so that an error value is
   // set in errno. Since errno is implemented using a thread
   // local var, this helps us test setting of errno and
   // reading it back.
-  ASSERT_TRUE(llvmlibc_errno == 0);
+  assert(llvmlibc_errno == 0);
   void *addr = __llvm_libc::mmap(nullptr, 0, PROT_READ,
                                  MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
-  ASSERT_TRUE(addr == MAP_FAILED);
-  ASSERT_TRUE(llvmlibc_errno == EINVAL);
+  assert(addr == MAP_FAILED);
+  assert(llvmlibc_errno == EINVAL);
 
   return 0;
 }

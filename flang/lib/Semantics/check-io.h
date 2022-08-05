@@ -126,9 +126,6 @@ private:
 
   void CheckForPureSubprogram() const;
 
-  void CheckForBadIoComponent(
-      const SomeExpr &, GenericKind::DefinedIo, parser::CharBlock) const;
-
   void Init(IoStmtKind s) {
     stmt_ = s;
     specifierSet_.reset();

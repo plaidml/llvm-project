@@ -278,20 +278,11 @@ CommandObjectDisassemble::GetContainingAddressRanges() {
 
 llvm::Expected<std::vector<AddressRange>>
 CommandObjectDisassemble::GetCurrentFunctionRanges() {
-  Process *process = m_exe_ctx.GetProcessPtr();
   StackFrame *frame = m_exe_ctx.GetFramePtr();
   if (!frame) {
-    if (process) {
-      return llvm::createStringError(
-          llvm::inconvertibleErrorCode(),
-          "Cannot disassemble around the current "
-          "function without the process being stopped.\n");
-    } else {
-      return llvm::createStringError(llvm::inconvertibleErrorCode(),
-                                     "Cannot disassemble around the current "
-                                     "function without a selected frame: "
-                                     "no currently running process.\n");
-    }
+    return llvm::createStringError(llvm::inconvertibleErrorCode(),
+                                   "Cannot disassemble around the current "
+                                   "function without a selected frame.\n");
   }
   SymbolContext sc(
       frame->GetSymbolContext(eSymbolContextFunction | eSymbolContextSymbol));
@@ -310,20 +301,11 @@ CommandObjectDisassemble::GetCurrentFunctionRanges() {
 
 llvm::Expected<std::vector<AddressRange>>
 CommandObjectDisassemble::GetCurrentLineRanges() {
-  Process *process = m_exe_ctx.GetProcessPtr();
   StackFrame *frame = m_exe_ctx.GetFramePtr();
   if (!frame) {
-    if (process) {
-      return llvm::createStringError(
-          llvm::inconvertibleErrorCode(),
-          "Cannot disassemble around the current "
-          "function without the process being stopped.\n");
-    } else {
-      return llvm::createStringError(llvm::inconvertibleErrorCode(),
-                                     "Cannot disassemble around the current "
-                                     "line without a selected frame: "
-                                     "no currently running process.\n");
-    }
+    return llvm::createStringError(llvm::inconvertibleErrorCode(),
+                                   "Cannot disassemble around the current "
+                                   "line without a selected frame.\n");
   }
 
   LineEntry pc_line_entry(
@@ -379,20 +361,11 @@ CommandObjectDisassemble::GetNameRanges(CommandReturnObject &result) {
 
 llvm::Expected<std::vector<AddressRange>>
 CommandObjectDisassemble::GetPCRanges() {
-  Process *process = m_exe_ctx.GetProcessPtr();
   StackFrame *frame = m_exe_ctx.GetFramePtr();
   if (!frame) {
-    if (process) {
-      return llvm::createStringError(
-          llvm::inconvertibleErrorCode(),
-          "Cannot disassemble around the current "
-          "function without the process being stopped.\n");
-    } else {
-      return llvm::createStringError(llvm::inconvertibleErrorCode(),
-                                     "Cannot disassemble around the current "
-                                     "PC without a selected frame: "
-                                     "no currently running process.\n");
-    }
+    return llvm::createStringError(llvm::inconvertibleErrorCode(),
+                                   "Cannot disassemble around the current "
+                                   "PC without a selected frame.\n");
   }
 
   if (m_options.num_instructions == 0) {

@@ -145,7 +145,6 @@ static void printBinaryOp(mlir::OpAsmPrinter &printer, mlir::Operation *op) {
 
 //===----------------------------------------------------------------------===//
 // ConstantOp
-//===----------------------------------------------------------------------===//
 
 /// Build a constant operation.
 /// The builder is passed as an argument, so is the state that this method is
@@ -215,7 +214,6 @@ mlir::LogicalResult ConstantOp::verify() {
 
 //===----------------------------------------------------------------------===//
 // AddOp
-//===----------------------------------------------------------------------===//
 
 void AddOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                   mlir::Value lhs, mlir::Value rhs) {
@@ -236,7 +234,6 @@ void AddOp::inferShapes() { getResult().setType(getOperand(0).getType()); }
 
 //===----------------------------------------------------------------------===//
 // CastOp
-//===----------------------------------------------------------------------===//
 
 /// Infer the output shape of the CastOp, this is required by the shape
 /// inference interface.
@@ -259,7 +256,6 @@ bool CastOp::areCastCompatible(TypeRange inputs, TypeRange outputs) {
 
 //===----------------------------------------------------------------------===//
 // GenericCallOp
-//===----------------------------------------------------------------------===//
 
 void GenericCallOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                           StringRef callee, ArrayRef<mlir::Value> arguments) {
@@ -282,7 +278,6 @@ Operation::operand_range GenericCallOp::getArgOperands() { return inputs(); }
 
 //===----------------------------------------------------------------------===//
 // MulOp
-//===----------------------------------------------------------------------===//
 
 void MulOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                   mlir::Value lhs, mlir::Value rhs) {
@@ -303,7 +298,6 @@ void MulOp::inferShapes() { getResult().setType(getOperand(0).getType()); }
 
 //===----------------------------------------------------------------------===//
 // ReturnOp
-//===----------------------------------------------------------------------===//
 
 mlir::LogicalResult ReturnOp::verify() {
   // We know that the parent operation is a function, because of the 'HasParent'
@@ -340,7 +334,6 @@ mlir::LogicalResult ReturnOp::verify() {
 
 //===----------------------------------------------------------------------===//
 // TransposeOp
-//===----------------------------------------------------------------------===//
 
 void TransposeOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                         mlir::Value value) {

@@ -14,12 +14,13 @@ target_link_libraries(fir-opt PRIVATE
   MLIRIR
   MLIRLLVMIR
   MLIRPass
-  MLIRFuncToLLVM
+  MLIRStandardToLLVM
   MLIRTransforms
   MLIRAffineToStandard
   MLIRAnalysis
   MLIRSCFToControlFlow
   MLIRParser
+  MLIRStandardToLLVM
   MLIRSupport
   MLIRVectorToLLVM
   MLIROptLib

@@ -80,13 +80,13 @@ add_mlir_upstream_c_api_library(MLIRCAPISparseTensor
   MLIRSparseTensorTransforms
 )
 
-add_mlir_upstream_c_api_library(MLIRCAPIFunc
-  Func.cpp
+add_mlir_upstream_c_api_library(MLIRCAPIStandard
+  Standard.cpp
 
   PARTIAL_SOURCES_INTENDED
   LINK_LIBS PUBLIC
   MLIRCAPIIR
-  MLIRFunc
+  MLIRStandard
 )
 
 add_mlir_upstream_c_api_library(MLIRCAPITensor

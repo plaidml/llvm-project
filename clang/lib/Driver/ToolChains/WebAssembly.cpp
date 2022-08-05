@@ -528,12 +528,10 @@ void WebAssembly::addLibStdCXXIncludePaths(
 
   // First add the per-target include path if the OS is known.
   if (IsKnownOs) {
-    std::string TargetDir = LibPath + "/c++/" + Version + "/" + MultiarchTriple;
+    std::string TargetDir = LibPath + "/" + MultiarchTriple + "/c++/" + Version;
     addSystemInclude(DriverArgs, CC1Args, TargetDir);
   }
 
   // Second add the generic one.
   addSystemInclude(DriverArgs, CC1Args, LibPath + "/c++/" + Version);
-  // Third the backward one.
-  addSystemInclude(DriverArgs, CC1Args, LibPath + "/c++/" + Version + "/backward");
 }

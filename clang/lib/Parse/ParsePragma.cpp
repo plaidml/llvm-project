@@ -341,7 +341,7 @@ struct PragmaAttributeHandler : public PragmaHandler {
                     Token &FirstToken) override;
 
   /// A pool of attributes that were parsed in \#pragma clang attribute.
-  ParsedAttributesWithRange AttributesForPragmaAttribute;
+  ParsedAttributes AttributesForPragmaAttribute;
 };
 
 struct PragmaMaxTokensHereHandler : public PragmaHandler {
@@ -1365,13 +1365,12 @@ bool Parser::HandlePragmaLoopHint(LoopHint &Hint) {
 namespace {
 struct PragmaAttributeInfo {
   enum ActionType { Push, Pop, Attribute };
-  ParsedAttributesWithRange &Attributes;
+  ParsedAttributes &Attributes;
   ActionType Action;
   const IdentifierInfo *Namespace = nullptr;
   ArrayRef<Token> Tokens;
 
-  PragmaAttributeInfo(ParsedAttributesWithRange &Attributes)
-      : Attributes(Attributes) {}
+  PragmaAttributeInfo(ParsedAttributes &Attributes) : Attributes(Attributes) {}
 };
 
 #include "clang/Parse/AttrSubMatchRulesParserStringSwitches.inc"
@@ -1641,7 +1640,7 @@ void Parser::HandlePragmaAttribute() {
                       /*IsReinject=*/false);
   ConsumeAnnotationToken();
 
-  ParsedAttributesWithRange &Attrs = Info->Attributes;
+  ParsedAttributes &Attrs = Info->Attributes;
   Attrs.clearListOnly();
 
   auto SkipToEnd = [this]() {
@@ -3029,13 +3028,12 @@ void PragmaOptimizeHandler::HandlePragma(Preprocessor &PP,
 namespace {
 /// Used as the annotation value for tok::annot_pragma_fp.
 struct TokFPAnnotValue {
-  enum FlagKinds { Contract, Reassociate, Exceptions, EvalMethod };
+  enum FlagKinds { Contract, Reassociate, Exceptions };
   enum FlagValues { On, Off, Fast };
 
   llvm::Optional<LangOptions::FPModeKind> ContractValue;
   llvm::Optional<LangOptions::FPModeKind> ReassociateValue;
   llvm::Optional<LangOptions::FPExceptionModeKind> ExceptionsValue;
-  llvm::Optional<LangOptions::FPEvalMethodKind> EvalMethodValue;
 };
 } // end anonymous namespace
 
@@ -3062,7 +3060,6 @@ void PragmaFPHandler::HandlePragma(Preprocessor &PP,
             .Case("contract", TokFPAnnotValue::Contract)
             .Case("reassociate", TokFPAnnotValue::Reassociate)
             .Case("exceptions", TokFPAnnotValue::Exceptions)
-            .Case("eval_method", TokFPAnnotValue::EvalMethod)
             .Default(None);
     if (!FlagKind) {
       PP.Diag(Tok.getLocation(), diag::err_pragma_fp_invalid_option)
@@ -3077,11 +3074,8 @@ void PragmaFPHandler::HandlePragma(Preprocessor &PP,
       return;
     }
     PP.Lex(Tok);
-    bool isEvalMethodDouble =
-        Tok.is(tok::kw_double) && FlagKind == TokFPAnnotValue::EvalMethod;
 
-    // Don't diagnose if we have an eval_metod pragma with "double" kind.
-    if (Tok.isNot(tok::identifier) && !isEvalMethodDouble) {
+    if (Tok.isNot(tok::identifier)) {
       PP.Diag(Tok.getLocation(), diag::err_pragma_fp_invalid_argument)
           << PP.getSpelling(Tok) << OptionInfo->getName()
           << static_cast<int>(*FlagKind);
@@ -3123,19 +3117,6 @@ void PragmaFPHandler::HandlePragma(Preprocessor &PP,
               .Case("strict", LangOptions::FPE_Strict)
               .Default(llvm::None);
       if (!AnnotValue->ExceptionsValue) {
-        PP.Diag(Tok.getLocation(), diag::err_pragma_fp_invalid_argument)
-            << PP.getSpelling(Tok) << OptionInfo->getName() << *FlagKind;
-        return;
-      }
-    } else if (FlagKind == TokFPAnnotValue::EvalMethod) {
-      AnnotValue->EvalMethodValue =
-          llvm::StringSwitch<llvm::Optional<LangOptions::FPEvalMethodKind>>(
-              II->getName())
-              .Case("source", LangOptions::FPEvalMethodKind::FEM_Source)
-              .Case("double", LangOptions::FPEvalMethodKind::FEM_Double)
-              .Case("extended", LangOptions::FPEvalMethodKind::FEM_Extended)
-              .Default(llvm::None);
-      if (!AnnotValue->EvalMethodValue) {
         PP.Diag(Tok.getLocation(), diag::err_pragma_fp_invalid_argument)
             << PP.getSpelling(Tok) << OptionInfo->getName() << *FlagKind;
         return;
@@ -3242,9 +3223,6 @@ void Parser::HandlePragmaFP() {
   if (AnnotValue->ExceptionsValue)
     Actions.ActOnPragmaFPExceptions(Tok.getLocation(),
                                     *AnnotValue->ExceptionsValue);
-  if (AnnotValue->EvalMethodValue)
-    Actions.ActOnPragmaFPEvalMethod(Tok.getLocation(),
-                                    *AnnotValue->EvalMethodValue);
   ConsumeAnnotationToken();
 }
 

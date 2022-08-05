@@ -1113,7 +1113,7 @@ void CodeGenAction::ExecuteAction() {
   auto &CodeGenOpts = CI.getCodeGenOpts();
   auto &Diagnostics = CI.getDiagnostics();
   std::unique_ptr<raw_pwrite_stream> OS =
-      GetOutputStream(CI, getCurrentFileOrBufferName(), BA);
+      GetOutputStream(CI, getCurrentFile(), BA);
   if (BA != Backend_EmitNothing && !OS)
     return;
 

@@ -29,45 +29,34 @@
 
 namespace Fortran::parser {
 
-// Use "..."_err_en_US, "..."_warn_en_US, and "..."_en_US literals to define
-// the static text and fatality of a message.
-enum class Severity { Error, Warning, Portability, None };
-
+// Use "..."_err_en_US and "..."_en_US literals to define the static
+// text and fatality of a message.
 class MessageFixedText {
 public:
-  constexpr MessageFixedText() {}
   constexpr MessageFixedText(
-      const char str[], std::size_t n, Severity severity = Severity::None)
-      : text_{str, n}, severity_{severity} {}
+      const char str[], std::size_t n, bool isFatal = false)
+      : text_{str, n}, isFatal_{isFatal} {}
   constexpr MessageFixedText(const MessageFixedText &) = default;
   constexpr MessageFixedText(MessageFixedText &&) = default;
   constexpr MessageFixedText &operator=(const MessageFixedText &) = default;
   constexpr MessageFixedText &operator=(MessageFixedText &&) = default;
 
   CharBlock text() const { return text_; }
-  Severity severity() const { return severity_; }
-  bool isFatal() const { return severity_ == Severity::Error; }
+  bool isFatal() const { return isFatal_; }
 
 private:
   CharBlock text_;
-  Severity severity_{Severity::None};
+  bool isFatal_{false};
 };
 
 inline namespace literals {
+constexpr MessageFixedText operator""_en_US(const char str[], std::size_t n) {
+  return MessageFixedText{str, n, false /* not fatal */};
+}
+
 constexpr MessageFixedText operator""_err_en_US(
     const char str[], std::size_t n) {
-  return MessageFixedText{str, n, Severity::Error};
-}
-constexpr MessageFixedText operator""_warn_en_US(
-    const char str[], std::size_t n) {
-  return MessageFixedText{str, n, Severity::Warning};
-}
-constexpr MessageFixedText operator""_port_en_US(
-    const char str[], std::size_t n) {
-  return MessageFixedText{str, n, Severity::Portability};
-}
-constexpr MessageFixedText operator""_en_US(const char str[], std::size_t n) {
-  return MessageFixedText{str, n, Severity::None};
+  return MessageFixedText{str, n, true /* fatal */};
 }
 } // namespace literals
 
@@ -80,7 +69,7 @@ class MessageFormattedText {
 public:
   template <typename... A>
   MessageFormattedText(const MessageFixedText &text, A &&...x)
-      : severity_{text.severity()} {
+      : isFatal_{text.isFatal()} {
     Format(&text, Convert(std::forward<A>(x))...);
   }
   MessageFormattedText(const MessageFormattedText &) = default;
@@ -88,8 +77,7 @@ public:
   MessageFormattedText &operator=(const MessageFormattedText &) = default;
   MessageFormattedText &operator=(MessageFormattedText &&) = default;
   const std::string &string() const { return string_; }
-  bool isFatal() const { return severity_ == Severity::Error; }
-  Severity severity() const { return severity_; }
+  bool isFatal() const { return isFatal_; }
   std::string MoveString() { return std::move(string_); }
 
 private:
@@ -116,7 +104,7 @@ private:
   std::intmax_t Convert(std::int64_t x) { return x; }
   std::uintmax_t Convert(std::uint64_t x) { return x; }
 
-  Severity severity_;
+  bool isFatal_{false};
   std::string string_;
   std::forward_list<std::string> conversions_; // preserves created strings
 };
@@ -198,7 +186,6 @@ public:
 
   bool SortBefore(const Message &that) const;
   bool IsFatal() const;
-  Severity severity() const;
   std::string ToString() const;
   std::optional<ProvenanceRange> GetProvenanceRange(
       const AllCookedSources &) const;
@@ -307,11 +294,6 @@ public:
     } else {
       return nullptr;
     }
-  }
-
-  template <typename... A>
-  Message *Say(std::optional<CharBlock> at, A &&...args) {
-    return Say(at.value_or(at_), std::forward<A>(args)...);
   }
 
   template <typename... A> Message *Say(A &&...args) {

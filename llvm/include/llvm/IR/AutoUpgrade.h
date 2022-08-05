@@ -21,10 +21,9 @@ namespace llvm {
   class Constant;
   class Function;
   class Instruction;
-  class GlobalVariable;
   class MDNode;
   class Module;
-  class StringRef;
+  class GlobalVariable;
   class Type;
   class Value;
 

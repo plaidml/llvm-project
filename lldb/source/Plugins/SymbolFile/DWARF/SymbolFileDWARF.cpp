@@ -96,7 +96,6 @@
 
 using namespace lldb;
 using namespace lldb_private;
-using namespace lldb_private::dwarf;
 
 LLDB_PLUGIN_DEFINE(SymbolFileDWARF)
 
@@ -1746,14 +1745,8 @@ SymbolFileDWARF::GetDwoSymbolFileForCompileUnit(
     dwo_file.AppendPathComponent(dwo_name);
   }
 
-  if (!FileSystem::Instance().Exists(dwo_file)) {
-    if (m_dwo_warning_issued.test_and_set(std::memory_order_relaxed) == false) {
-      GetObjectFile()->GetModule()->ReportWarning(
-          "unable to locate separate debug file (dwo, dwp). Debugging will be "
-          "degraded.");
-    }
+  if (!FileSystem::Instance().Exists(dwo_file))
     return nullptr;
-  }
 
   const lldb::offset_t file_offset = 0;
   DataBufferSP dwo_file_data_sp;
@@ -3930,7 +3923,7 @@ SymbolFileDWARF::CollectCallEdges(ModuleSP module, DWARFDIE function_die) {
       if (log) {
         StreamString call_target_desc;
         call_target->GetDescription(&call_target_desc, eDescriptionLevelBrief,
-                                    nullptr);
+                                    LLDB_INVALID_ADDRESS, nullptr);
         LLDB_LOG(log, "CollectCallEdges: Found indirect call target: {0}",
                  call_target_desc.GetString());
       }
@@ -3943,9 +3936,11 @@ SymbolFileDWARF::CollectCallEdges(ModuleSP module, DWARFDIE function_die) {
       for (const CallSiteParameter &param : parameters) {
         StreamString callee_loc_desc, caller_loc_desc;
         param.LocationInCallee.GetDescription(&callee_loc_desc,
-                                              eDescriptionLevelBrief, nullptr);
+                                              eDescriptionLevelBrief,
+                                              LLDB_INVALID_ADDRESS, nullptr);
         param.LocationInCaller.GetDescription(&caller_loc_desc,
-                                              eDescriptionLevelBrief, nullptr);
+                                              eDescriptionLevelBrief,
+                                              LLDB_INVALID_ADDRESS, nullptr);
         LLDB_LOG(log, "CollectCallEdges: \tparam: {0} => {1}",
                  callee_loc_desc.GetString(), caller_loc_desc.GetString());
       }

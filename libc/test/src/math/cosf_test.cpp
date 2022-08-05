@@ -29,19 +29,21 @@ TEST(LlvmLibcCosfTest, SpecialNumbers) {
   errno = 0;
 
   EXPECT_FP_EQ(aNaN, __llvm_libc::cosf(aNaN));
-  EXPECT_MATH_ERRNO(0);
+  EXPECT_EQ(errno, 0);
 
   EXPECT_FP_EQ(1.0f, __llvm_libc::cosf(0.0f));
-  EXPECT_MATH_ERRNO(0);
+  EXPECT_EQ(errno, 0);
 
   EXPECT_FP_EQ(1.0f, __llvm_libc::cosf(-0.0f));
-  EXPECT_MATH_ERRNO(0);
+  EXPECT_EQ(errno, 0);
 
+  errno = 0;
   EXPECT_FP_EQ(aNaN, __llvm_libc::cosf(inf));
-  EXPECT_MATH_ERRNO(EDOM);
+  EXPECT_EQ(errno, EDOM);
 
+  errno = 0;
   EXPECT_FP_EQ(aNaN, __llvm_libc::cosf(neg_inf));
-  EXPECT_MATH_ERRNO(EDOM);
+  EXPECT_EQ(errno, EDOM);
 }
 
 TEST(LlvmLibcCosfTest, InFloatRange) {

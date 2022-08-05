@@ -960,10 +960,40 @@ void CharacterLiteral::print(unsigned Val, CharacterKind Kind,
     break;
   }
 
-  StringRef Escaped = escapeCStyle<EscapeChar::Single>(Val);
-  if (!Escaped.empty()) {
-    OS << "'" << Escaped << "'";
-  } else {
+  switch (Val) {
+  case '\\':
+    OS << "'\\\\'";
+    break;
+  case '\'':
+    OS << "'\\''";
+    break;
+  case '\a':
+    // TODO: K&R: the meaning of '\\a' is different in traditional C
+    OS << "'\\a'";
+    break;
+  case '\b':
+    OS << "'\\b'";
+    break;
+  // Nonstandard escape sequence.
+  /*case '\e':
+    OS << "'\\e'";
+    break;*/
+  case '\f':
+    OS << "'\\f'";
+    break;
+  case '\n':
+    OS << "'\\n'";
+    break;
+  case '\r':
+    OS << "'\\r'";
+    break;
+  case '\t':
+    OS << "'\\t'";
+    break;
+  case '\v':
+    OS << "'\\v'";
+    break;
+  default:
     // A character literal might be sign-extended, which
     // would result in an invalid \U escape sequence.
     // FIXME: multicharacter literals such as '\xFF\xFF\xFF\xFF'
@@ -1133,9 +1163,8 @@ void StringLiteral::outputString(raw_ostream &OS) const {
 
   unsigned LastSlashX = getLength();
   for (unsigned I = 0, N = getLength(); I != N; ++I) {
-    uint32_t Char = getCodeUnit(I);
-    StringRef Escaped = escapeCStyle<EscapeChar::Double>(Char);
-    if (Escaped.empty()) {
+    switch (uint32_t Char = getCodeUnit(I)) {
+    default:
       // FIXME: Convert UTF-8 back to codepoints before rendering.
 
       // Convert UTF-16 surrogate pairs back to codepoints before rendering.
@@ -1163,7 +1192,7 @@ void StringLiteral::outputString(raw_ostream &OS) const {
           for (/**/; Shift >= 0; Shift -= 4)
             OS << Hex[(Char >> Shift) & 15];
           LastSlashX = I;
-          continue;
+          break;
         }
 
         if (Char > 0xffff)
@@ -1176,7 +1205,7 @@ void StringLiteral::outputString(raw_ostream &OS) const {
            << Hex[(Char >>  8) & 15]
            << Hex[(Char >>  4) & 15]
            << Hex[(Char >>  0) & 15];
-        continue;
+        break;
       }
 
       // If we used \x... for the previous character, and this character is a
@@ -1201,9 +1230,17 @@ void StringLiteral::outputString(raw_ostream &OS) const {
            << (char)('0' + ((Char >> 6) & 7))
            << (char)('0' + ((Char >> 3) & 7))
            << (char)('0' + ((Char >> 0) & 7));
-    } else {
-      // Handle some common non-printable cases to make dumps prettier.
-      OS << Escaped;
+      break;
+    // Handle some common non-printable cases to make dumps prettier.
+    case '\\': OS << "\\\\"; break;
+    case '"': OS << "\\\""; break;
+    case '\a': OS << "\\a"; break;
+    case '\b': OS << "\\b"; break;
+    case '\f': OS << "\\f"; break;
+    case '\n': OS << "\\n"; break;
+    case '\r': OS << "\\r"; break;
+    case '\t': OS << "\\t"; break;
+    case '\v': OS << "\\v"; break;
     }
   }
   OS << '"';

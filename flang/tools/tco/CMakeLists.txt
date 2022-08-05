@@ -13,12 +13,13 @@ target_link_libraries(tco PRIVATE
   MLIRLLVMToLLVMIRTranslation
   MLIRTargetLLVMIRExport
   MLIRPass
-  MLIRFuncToLLVM
+  MLIRStandardToLLVM
   MLIRTransforms
   MLIRAffineToStandard
   MLIRAnalysis
   MLIRSCFToControlFlow
   MLIRParser
+  MLIRStandardToLLVM
   MLIRSupport
   MLIRVectorToLLVM
 )

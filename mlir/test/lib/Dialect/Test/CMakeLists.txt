@@ -59,8 +59,6 @@ add_mlir_library(MLIRTestDialect
   MLIRDerivedAttributeOpInterface
   MLIRDialect
   MLIRDLTI
-  MLIRFunc
-  MLIRFuncTransforms
   MLIRIR
   MLIRInferTypeOpInterface
   MLIRLinalg
@@ -68,6 +66,8 @@ add_mlir_library(MLIRTestDialect
   MLIRLLVMIR
   MLIRPass
   MLIRReduce
+  MLIRStandard
+  MLIRStandardOpsTransforms
   MLIRTensor
   MLIRTransformUtils
   MLIRTransforms

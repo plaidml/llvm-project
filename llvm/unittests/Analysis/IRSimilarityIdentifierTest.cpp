@@ -809,8 +809,7 @@ TEST(IRInstructionMapper, PhiIllegal) {
   getVectors(*M, Mapper, InstrList, UnsignedVec);
 
   ASSERT_EQ(InstrList.size(), UnsignedVec.size());
-  ASSERT_EQ(UnsignedVec.size(), static_cast<unsigned>(3));
-  ASSERT_GT(UnsignedVec[0], Mapper.IllegalInstrNumber);
+  ASSERT_EQ(UnsignedVec.size(), static_cast<unsigned>(0));
 }
 
 // In most cases, the illegal instructions we are collecting don't require any
@@ -845,8 +844,7 @@ TEST(IRInstructionMapper, AllocaIllegal) {
   getVectors(*M, Mapper, InstrList, UnsignedVec);
 
   ASSERT_EQ(InstrList.size(), UnsignedVec.size());
-  ASSERT_EQ(UnsignedVec.size(), static_cast<unsigned>(1));
-  ASSERT_GT(UnsignedVec[0], Mapper.IllegalInstrNumber);
+  ASSERT_EQ(UnsignedVec.size(), static_cast<unsigned>(0));
 }
 
 // Checks that an getelementptr instruction is mapped to be legal.  And that
@@ -985,8 +983,7 @@ TEST(IRInstructionMapper, CallsIllegalIndirect) {
   getVectors(*M, Mapper, InstrList, UnsignedVec);
 
   ASSERT_EQ(InstrList.size(), UnsignedVec.size());
-  ASSERT_EQ(UnsignedVec.size(), static_cast<unsigned>(1));
-  ASSERT_GT(UnsignedVec[0], Mapper.IllegalInstrNumber);
+  ASSERT_EQ(UnsignedVec.size(), static_cast<unsigned>(0));
 }
 
 // Checks that indirect call instructions are mapped to be legal when it is not
@@ -1268,8 +1265,7 @@ TEST(IRInstructionMapper, InvokeIllegal) {
   getVectors(*M, Mapper, InstrList, UnsignedVec);
 
   ASSERT_EQ(InstrList.size(), UnsignedVec.size());
-  ASSERT_EQ(UnsignedVec.size(), static_cast<unsigned>(1));
-  ASSERT_GT(UnsignedVec[0], Mapper.IllegalInstrNumber);
+  ASSERT_EQ(UnsignedVec.size(), static_cast<unsigned>(0));
 }
 
 // Checks that an callbr instructions are considered to be illegal.  Callbr
@@ -1302,8 +1298,7 @@ TEST(IRInstructionMapper, CallBrInstIllegal) {
   getVectors(*M, Mapper, InstrList, UnsignedVec);
 
   ASSERT_EQ(InstrList.size(), UnsignedVec.size());
-  ASSERT_EQ(UnsignedVec.size(), static_cast<unsigned>(1));
-  ASSERT_GT(UnsignedVec[0], Mapper.IllegalInstrNumber);
+  ASSERT_EQ(UnsignedVec.size(), static_cast<unsigned>(0));
 }
 
 // Checks that an debuginfo intrinsics are mapped to be invisible.  Since they
@@ -1361,8 +1356,7 @@ TEST(IRInstructionMapper, ExceptionHandlingTypeIdIllegal) {
   getVectors(*M, Mapper, InstrList, UnsignedVec);
 
   ASSERT_EQ(InstrList.size(), UnsignedVec.size());
-  ASSERT_EQ(UnsignedVec.size(), static_cast<unsigned>(1));
-  ASSERT_GT(UnsignedVec[0], Mapper.IllegalInstrNumber);
+  ASSERT_EQ(UnsignedVec.size(), static_cast<unsigned>(0));
 }
 
 // Checks that an eh.exceptioncode intrinsic is mapped to be illegal.
@@ -1394,8 +1388,7 @@ TEST(IRInstructionMapper, ExceptionHandlingExceptionCodeIllegal) {
   getVectors(*M, Mapper, InstrList, UnsignedVec);
 
   ASSERT_EQ(InstrList.size(), UnsignedVec.size());
-  ASSERT_EQ(UnsignedVec.size(), static_cast<unsigned>(1));
-  ASSERT_GT(UnsignedVec[0], Mapper.IllegalInstrNumber);
+  ASSERT_EQ(UnsignedVec.size(), static_cast<unsigned>(0));
 }
 
 // Checks that an eh.unwind intrinsic is mapped to be illegal.
@@ -1420,8 +1413,7 @@ TEST(IRInstructionMapper, ExceptionHandlingUnwindIllegal) {
   getVectors(*M, Mapper, InstrList, UnsignedVec);
 
   ASSERT_EQ(InstrList.size(), UnsignedVec.size());
-  ASSERT_EQ(UnsignedVec.size(), static_cast<unsigned>(1));
-  ASSERT_GT(UnsignedVec[0], Mapper.IllegalInstrNumber);
+  ASSERT_EQ(UnsignedVec.size(), static_cast<unsigned>(0));
 }
 
 // Checks that an eh.exceptionpointer intrinsic is mapped to be illegal.
@@ -1446,8 +1438,7 @@ TEST(IRInstructionMapper, ExceptionHandlingExceptionPointerIllegal) {
   getVectors(*M, Mapper, InstrList, UnsignedVec);
 
   ASSERT_EQ(InstrList.size(), UnsignedVec.size());
-  ASSERT_EQ(UnsignedVec.size(), static_cast<unsigned>(1));
-  ASSERT_GT(UnsignedVec[0], Mapper.IllegalInstrNumber);
+  ASSERT_EQ(UnsignedVec.size(), static_cast<unsigned>(0));
 }
 
 // Checks that a catchpad instruction is mapped to an illegal value.
@@ -1478,8 +1469,7 @@ TEST(IRInstructionMapper, CatchpadIllegal) {
   getVectors(*M, Mapper, InstrList, UnsignedVec);
 
   ASSERT_EQ(InstrList.size(), UnsignedVec.size());
-  ASSERT_EQ(UnsignedVec.size(), static_cast<unsigned>(1));
-  ASSERT_GT(UnsignedVec[0], Mapper.IllegalInstrNumber);
+  ASSERT_EQ(UnsignedVec.size(), static_cast<unsigned>(0));
 }
 
 // Checks that a cleanuppad instruction is mapped to an illegal value.
@@ -1510,8 +1500,7 @@ TEST(IRInstructionMapper, CleanuppadIllegal) {
   getVectors(*M, Mapper, InstrList, UnsignedVec);
 
   ASSERT_EQ(InstrList.size(), UnsignedVec.size());
-  ASSERT_EQ(UnsignedVec.size(), static_cast<unsigned>(1));
-  ASSERT_GT(UnsignedVec[0], Mapper.IllegalInstrNumber);
+  ASSERT_EQ(UnsignedVec.size(), static_cast<unsigned>(0));
 }
 
 // The following three instructions are memory transfer and setting based, which
@@ -2473,7 +2462,7 @@ TEST(IRSimilarityCandidate, SamePHIStructureInternal) {
   getVectors(*M, Mapper, InstrList, UnsignedVec);
 
   // Check to make sure that we have a long enough region.
-  ASSERT_EQ(InstrList.size(), static_cast<unsigned>(12));
+  ASSERT_EQ(InstrList.size(), static_cast<unsigned>(11));
   // Check that the instructions were added correctly to both vectors.
   ASSERT_TRUE(InstrList.size() == UnsignedVec.size());
 
@@ -2526,7 +2515,7 @@ TEST(IRSimilarityCandidate, DifferentPHIStructureInternal) {
   getVectors(*M, Mapper, InstrList, UnsignedVec);
 
   // Check to make sure that we have a long enough region.
-  ASSERT_EQ(InstrList.size(), static_cast<unsigned>(14));
+  ASSERT_EQ(InstrList.size(), static_cast<unsigned>(13));
   // Check that the instructions were added correctly to both vectors.
   ASSERT_TRUE(InstrList.size() == UnsignedVec.size());
 

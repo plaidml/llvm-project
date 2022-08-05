@@ -9,7 +9,7 @@
 #ifndef LLVM_LIB_OBJCOPY_MACHO_MACHOREADER_H
 #define LLVM_LIB_OBJCOPY_MACHO_MACHOREADER_H
 
-#include "MachOObject.h"
+#include "Object.h"
 #include "llvm/BinaryFormat/MachO.h"
 #include "llvm/ObjCopy/MachO/MachOObjcopy.h"
 #include "llvm/Object/MachO.h"

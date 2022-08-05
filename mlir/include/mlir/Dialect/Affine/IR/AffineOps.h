@@ -76,7 +76,7 @@ bool isTopLevelValue(Value value);
 class AffineDmaStartOp
     : public Op<AffineDmaStartOp, OpTrait::MemRefsNormalizable,
                 OpTrait::VariadicOperands, OpTrait::ZeroResult,
-                OpTrait::OpInvariants, AffineMapAccessInterface::Trait> {
+                AffineMapAccessInterface::Trait> {
 public:
   using Op::Op;
   static ArrayRef<StringRef> getAttributeNames() { return {}; }
@@ -227,8 +227,7 @@ public:
   static StringRef getOperationName() { return "affine.dma_start"; }
   static ParseResult parse(OpAsmParser &parser, OperationState &result);
   void print(OpAsmPrinter &p);
-  LogicalResult verifyInvariantsImpl();
-  LogicalResult verifyInvariants() { return verifyInvariantsImpl(); }
+  LogicalResult verifyInvariants();
   LogicalResult fold(ArrayRef<Attribute> cstOperands,
                      SmallVectorImpl<OpFoldResult> &results);
 
@@ -269,7 +268,7 @@ public:
 class AffineDmaWaitOp
     : public Op<AffineDmaWaitOp, OpTrait::MemRefsNormalizable,
                 OpTrait::VariadicOperands, OpTrait::ZeroResult,
-                OpTrait::OpInvariants, AffineMapAccessInterface::Trait> {
+                AffineMapAccessInterface::Trait> {
 public:
   using Op::Op;
   static ArrayRef<StringRef> getAttributeNames() { return {}; }
@@ -316,8 +315,7 @@ public:
   static StringRef getTagMapAttrName() { return "tag_map"; }
   static ParseResult parse(OpAsmParser &parser, OperationState &result);
   void print(OpAsmPrinter &p);
-  LogicalResult verifyInvariantsImpl();
-  LogicalResult verifyInvariants() { return verifyInvariantsImpl(); }
+  LogicalResult verifyInvariants();
   LogicalResult fold(ArrayRef<Attribute> cstOperands,
                      SmallVectorImpl<OpFoldResult> &results);
 };

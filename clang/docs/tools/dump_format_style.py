@@ -118,7 +118,7 @@ class NestedStruct(object):
     self.values = []
 
   def __str__(self):
-    return self.comment + '\n' + '\n'.join(map(str, self.values))
+    return '\n'.join(map(str, self.values))
 
 class NestedField(object):
   def __init__(self, name, comment):

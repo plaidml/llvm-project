@@ -49,7 +49,7 @@ static AffineMap getIndexingMapOfProducerOperandsInCoordinatesOfFusedOp(
   AffineMap invProducerResultIndexMap =
       inversePermutation(producerResultIndexMap);
   assert(invProducerResultIndexMap &&
-         "expected producer result indexing map to be invertible");
+         "expected producer result indexig map to be invertible");
 
   LinalgOp producer = cast<LinalgOp>(producerOpOperand->getOwner());
   // argMap is a map from producer loop -> producer arg tensor index.
@@ -1205,14 +1205,14 @@ static bool isDimSequencePreserved(AffineMap indexingMap,
   sequenceElements.insert(dimSequence.begin(), dimSequence.end());
 
   unsigned dimSequenceStart = dimSequence[0];
-  for (const auto &expr : enumerate(indexingMap.getResults())) {
+  for (auto expr : enumerate(indexingMap.getResults())) {
     unsigned dimInMapStart = expr.value().cast<AffineDimExpr>().getPosition();
     // 1.  Check if this start of the sequence.
     if (dimInMapStart == dimSequenceStart) {
       if (expr.index() + dimSequence.size() > indexingMap.getNumResults())
         return false;
       // 1a. Check if sequence is preserved.
-      for (const auto &dimInSequence : enumerate(dimSequence)) {
+      for (auto dimInSequence : enumerate(dimSequence)) {
         unsigned dimInMap =
             indexingMap.getResult(expr.index() + dimInSequence.index())
                 .cast<AffineDimExpr>()
@@ -1289,7 +1289,7 @@ class CollapsingInfo {
 public:
   CollapsingInfo(SmallVector<ReassociationIndices> &&reassociation) {
     iterationReassociation = std::move(reassociation);
-    for (const auto &foldedIterDims : enumerate(iterationReassociation)) {
+    for (auto foldedIterDims : enumerate(iterationReassociation)) {
       foldedDimStartToSequenceMap[foldedIterDims.value()[0]] =
           foldedIterDims.index();
     }
@@ -1534,7 +1534,7 @@ fuseWithReshapeByCollapsing(GenericOp genericOp, Operation *reshapeOp,
   // Insert expanding reshape for the result to get back the original result
   // type.
   SmallVector<Value> results;
-  for (const auto &originalResult : llvm::enumerate(genericOp->getResults())) {
+  for (auto originalResult : llvm::enumerate(genericOp->getResults())) {
     Value collapsedOpResult =
         collapsedGenericOp->getResult(originalResult.index());
     auto originalResultType =
@@ -2264,7 +2264,6 @@ void mlir::linalg::populateElementwiseOpsFusionPatterns(
                FoldConstantTranspose>(context,
                                       options.controlElementwiseOpsFusionFn);
   patterns.add<RemoveOutsDependency>(context);
-  populateSparseTensorRewriting(patterns);
   populateFoldReshapeOpsByExpansionPatterns(patterns,
                                             options.controlFoldingReshapesFn);
   AffineApplyOp::getCanonicalizationPatterns(patterns, context);

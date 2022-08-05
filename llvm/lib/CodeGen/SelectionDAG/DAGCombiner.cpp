@@ -35,6 +35,7 @@
 #include "llvm/Analysis/VectorUtils.h"
 #include "llvm/CodeGen/DAGCombine.h"
 #include "llvm/CodeGen/ISDOpcodes.h"
+#include "llvm/CodeGen/MachineFrameInfo.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineMemOperand.h"
 #include "llvm/CodeGen/RuntimeLibcalls.h"
@@ -51,6 +52,7 @@
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/IR/Function.h"
+#include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Metadata.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/CodeGen.h"
@@ -664,8 +666,9 @@ namespace {
     /// of folding (mul (add x, c1), c2) -> (add (mul x, c2), c1*c2).
     /// MulNode is the original multiply, AddNode is (add x, c1),
     /// and ConstNode is c2.
-    bool isMulAddWithConstProfitable(SDNode *MulNode, SDValue AddNode,
-                                     SDValue ConstNode);
+    bool isMulAddWithConstProfitable(SDNode *MulNode,
+                                     SDValue &AddNode,
+                                     SDValue &ConstNode);
 
     /// This is a helper function for visitAND and visitZERO_EXTEND.  Returns
     /// true if the (and (load x) c) pattern matches an extload.  ExtVT returns
@@ -1075,25 +1078,6 @@ SDValue DAGCombiner::reassociateOpsCommutative(unsigned Opc, const SDLoc &DL,
       return SDValue();
     }
   }
-
-  // Check for repeated operand logic simplifications.
-  if (Opc == ISD::AND || Opc == ISD::OR) {
-    // (N00 & N01) & N00 --> N00 & N01
-    // (N00 & N01) & N01 --> N00 & N01
-    // (N00 | N01) | N00 --> N00 | N01
-    // (N00 | N01) | N01 --> N00 | N01
-    if (N1 == N00 || N1 == N01)
-      return N0;
-  }
-  if (Opc == ISD::XOR) {
-    // (N00 ^ N01) ^ N00 --> N01
-    if (N1 == N00)
-      return N01;
-    // (N00 ^ N01) ^ N01 --> N00
-    if (N1 == N01)
-      return N00;
-  }
-
   return SDValue();
 }
 
@@ -3153,14 +3137,9 @@ static SDValue combineADDCARRYDiamond(DAGCombiner &Combiner, SelectionDAG &DAG,
 // Our goal is to identify A, B, and CarryIn and produce ADDCARRY/SUBCARRY with
 // a single path for carry/borrow out propagation:
 static SDValue combineCarryDiamond(SelectionDAG &DAG, const TargetLowering &TLI,
-                                   SDValue N0, SDValue N1, SDNode *N) {
-  SDValue Carry0 = getAsCarry(TLI, N0);
-  if (!Carry0)
+                                   SDValue Carry0, SDValue Carry1, SDNode *N) {
+  if (Carry0.getResNo() != 1 || Carry1.getResNo() != 1)
     return SDValue();
-  SDValue Carry1 = getAsCarry(TLI, N1);
-  if (!Carry1)
-    return SDValue();
-
   unsigned Opcode = Carry0.getOpcode();
   if (Opcode != Carry1.getOpcode())
     return SDValue();
@@ -3418,7 +3397,7 @@ SDValue DAGCombiner::visitSUB(SDNode *N) {
     }
 
     // Convert 0 - abs(x).
-    if (N1.getOpcode() == ISD::ABS && N1.hasOneUse() &&
+    if (N1->getOpcode() == ISD::ABS &&
         !TLI.isOperationLegalOrCustom(ISD::ABS, VT))
       if (SDValue Result = TLI.expandABS(N1.getNode(), DAG, true))
         return Result;
@@ -5967,53 +5946,6 @@ static SDValue foldAndToUsubsat(SDNode *N, SelectionDAG &DAG) {
   return DAG.getNode(ISD::USUBSAT, DL, VT, N0.getOperand(0), SignMask);
 }
 
-/// Given a bitwise logic operation N with a matching bitwise logic operand,
-/// fold a pattern where 2 of the source operands are identically shifted
-/// values. For example:
-/// ((X0 << Y) | Z) | (X1 << Y) --> ((X0 | X1) << Y) | Z
-static SDValue foldLogicOfShifts(SDNode *N, SDValue LogicOp, SDValue ShiftOp,
-                                 SelectionDAG &DAG) {
-  unsigned LogicOpcode = N->getOpcode();
-  assert((LogicOpcode == ISD::AND || LogicOpcode == ISD::OR ||
-          LogicOpcode == ISD::XOR)
-         && "Expected bitwise logic operation");
-
-  if (!LogicOp.hasOneUse() || !ShiftOp.hasOneUse())
-    return SDValue();
-
-  // Match another bitwise logic op and a shift.
-  unsigned ShiftOpcode = ShiftOp.getOpcode();
-  if (LogicOp.getOpcode() != LogicOpcode ||
-      !(ShiftOpcode == ISD::SHL || ShiftOpcode == ISD::SRL ||
-        ShiftOpcode == ISD::SRA))
-    return SDValue();
-
-  // Match another shift op inside the first logic operand. Handle both commuted
-  // possibilities.
-  // LOGIC (LOGIC (SH X0, Y), Z), (SH X1, Y) --> LOGIC (SH (LOGIC X0, X1), Y), Z
-  // LOGIC (LOGIC Z, (SH X0, Y)), (SH X1, Y) --> LOGIC (SH (LOGIC X0, X1), Y), Z
-  SDValue X1 = ShiftOp.getOperand(0);
-  SDValue Y = ShiftOp.getOperand(1);
-  SDValue X0, Z;
-  if (LogicOp.getOperand(0).getOpcode() == ShiftOpcode &&
-      LogicOp.getOperand(0).getOperand(1) == Y) {
-    X0 = LogicOp.getOperand(0).getOperand(0);
-    Z = LogicOp.getOperand(1);
-  } else if (LogicOp.getOperand(1).getOpcode() == ShiftOpcode &&
-             LogicOp.getOperand(1).getOperand(1) == Y) {
-    X0 = LogicOp.getOperand(1).getOperand(0);
-    Z = LogicOp.getOperand(0);
-  } else {
-    return SDValue();
-  }
-
-  EVT VT = N->getValueType(0);
-  SDLoc DL(N);
-  SDValue LogicX = DAG.getNode(LogicOpcode, DL, VT, X0, X1);
-  SDValue NewShift = DAG.getNode(ShiftOpcode, DL, VT, LogicX, Y);
-  return DAG.getNode(LogicOpcode, DL, VT, NewShift, Z);
-}
-
 SDValue DAGCombiner::visitAND(SDNode *N) {
   SDValue N0 = N->getOperand(0);
   SDValue N1 = N->getOperand(1);
@@ -6282,11 +6214,6 @@ SDValue DAGCombiner::visitAND(SDNode *N) {
   if (N0.getOpcode() == N1.getOpcode())
     if (SDValue V = hoistLogicOpWithSameOpcodeHands(N))
       return V;
-
-  if (SDValue R = foldLogicOfShifts(N, N0, N1, DAG))
-    return R;
-  if (SDValue R = foldLogicOfShifts(N, N1, N0, DAG))
-    return R;
 
   // Masking the negated extension of a boolean is just the zero-extended
   // boolean:
@@ -6778,27 +6705,6 @@ static SDValue visitORCommutative(
     if (isBitwiseNot(N0.getOperand(0)) && N0.getOperand(0).getOperand(0) == N1)
       return DAG.getNode(ISD::OR, SDLoc(N), VT, N0.getOperand(1), N1);
   }
-
-  if (SDValue R = foldLogicOfShifts(N, N0, N1, DAG))
-    return R;
-
-  auto peekThroughZext = [](SDValue V) {
-    if (V->getOpcode() == ISD::ZERO_EXTEND)
-      return V->getOperand(0);
-    return V;
-  };
-
-  // (fshl X, ?, Y) | (shl X, Y) --> fshl X, ?, Y
-  if (N0.getOpcode() == ISD::FSHL && N1.getOpcode() == ISD::SHL &&
-      N0.getOperand(0) == N1.getOperand(0) &&
-      peekThroughZext(N0.getOperand(2)) == peekThroughZext(N1.getOperand(1)))
-    return N0;
-
-  // (fshr ?, X, Y) | (srl X, Y) --> fshr ?, X, Y
-  if (N0.getOpcode() == ISD::FSHR && N1.getOpcode() == ISD::SRL &&
-      N0.getOperand(1) == N1.getOperand(0) &&
-      peekThroughZext(N0.getOperand(2)) == peekThroughZext(N1.getOperand(1)))
-    return N0;
 
   return SDValue();
 }
@@ -7422,6 +7328,11 @@ SDValue DAGCombiner::MatchRotate(SDValue LHS, SDValue RHS, const SDLoc &DL) {
   if (LHSShift.getOpcode() == RHSShift.getOpcode())
     return SDValue(); // Shifts must disagree.
 
+  // TODO: Support pre-legalization funnel-shift by constant.
+  bool IsRotate = LHSShift.getOperand(0) == RHSShift.getOperand(0);
+  if (!IsRotate && !(HasFSHL || HasFSHR))
+    return SDValue(); // Requires funnel shift support.
+
   // Canonicalize shl to left side in a shl/srl pair.
   if (RHSShift.getOpcode() == ISD::SHL) {
     std::swap(LHS, RHS);
@@ -7435,57 +7346,15 @@ SDValue DAGCombiner::MatchRotate(SDValue LHS, SDValue RHS, const SDLoc &DL) {
   SDValue RHSShiftArg = RHSShift.getOperand(0);
   SDValue RHSShiftAmt = RHSShift.getOperand(1);
 
-  auto MatchRotateSum = [EltSizeInBits](ConstantSDNode *LHS,
-                                        ConstantSDNode *RHS) {
-    return (LHS->getAPIntValue() + RHS->getAPIntValue()) == EltSizeInBits;
-  };
-
-  // TODO: Support pre-legalization funnel-shift by constant.
-  bool IsRotate = LHSShift.getOperand(0) == RHSShift.getOperand(0);
-  if (!IsRotate && !(HasFSHL || HasFSHR)) {
-    if (TLI.isTypeLegal(VT) && LHS.hasOneUse() && RHS.hasOneUse() &&
-        ISD::matchBinaryPredicate(LHSShiftAmt, RHSShiftAmt, MatchRotateSum)) {
-      // Look for a disguised rotate by constant.
-      // The common shifted operand X may be hidden inside another 'or'.
-      SDValue X, Y;
-      auto matchOr = [&X, &Y](SDValue Or, SDValue CommonOp) {
-        if (!Or.hasOneUse() || Or.getOpcode() != ISD::OR)
-          return false;
-        if (CommonOp == Or.getOperand(0)) {
-          X = CommonOp;
-          Y = Or.getOperand(1);
-          return true;
-        }
-        if (CommonOp == Or.getOperand(1)) {
-          X = CommonOp;
-          Y = Or.getOperand(0);
-          return true;
-        }
-        return false;
-      };
-
-      // (shl (X | Y), C1) | (srl X, C2) --> (rotl X, C1) | (shl Y, C1)
-      if (matchOr(LHSShiftArg, RHSShiftArg)) {
-        SDValue RotX = DAG.getNode(ISD::ROTL, DL, VT, X, LHSShiftAmt);
-        SDValue ShlY = DAG.getNode(ISD::SHL, DL, VT, Y, LHSShiftAmt);
-        return DAG.getNode(ISD::OR, DL, VT, RotX, ShlY);
-      }
-      // (shl X, C1) | (srl (X | Y), C2) --> (rotl X, C1) | (srl Y, C2)
-      if (matchOr(RHSShiftArg, LHSShiftArg)) {
-        SDValue RotX = DAG.getNode(ISD::ROTL, DL, VT, X, LHSShiftAmt);
-        SDValue SrlY = DAG.getNode(ISD::SRL, DL, VT, Y, RHSShiftAmt);
-        return DAG.getNode(ISD::OR, DL, VT, RotX, SrlY);
-      }
-    }
-
-    return SDValue(); // Requires funnel shift support.
-  }
-
   // fold (or (shl x, C1), (srl x, C2)) -> (rotl x, C1)
   // fold (or (shl x, C1), (srl x, C2)) -> (rotr x, C2)
   // fold (or (shl x, C1), (srl y, C2)) -> (fshl x, y, C1)
   // fold (or (shl x, C1), (srl y, C2)) -> (fshr x, y, C2)
   // iff C1+C2 == EltSizeInBits
+  auto MatchRotateSum = [EltSizeInBits](ConstantSDNode *LHS,
+                                        ConstantSDNode *RHS) {
+    return (LHS->getAPIntValue() + RHS->getAPIntValue()) == EltSizeInBits;
+  };
   if (ISD::matchBinaryPredicate(LHSShiftAmt, RHSShiftAmt, MatchRotateSum)) {
     SDValue Res;
     if (IsRotate && (HasROTL || HasROTR || !(HasFSHL || HasFSHR))) {
@@ -8453,11 +8322,6 @@ SDValue DAGCombiner::visitXOR(SDNode *N) {
   if (N0Opcode == N1.getOpcode())
     if (SDValue V = hoistLogicOpWithSameOpcodeHands(N))
       return V;
-
-  if (SDValue R = foldLogicOfShifts(N, N0, N1, DAG))
-    return R;
-  if (SDValue R = foldLogicOfShifts(N, N1, N0, DAG))
-    return R;
 
   // Unfold  ((x ^ y) & m) ^ y  into  (x & m) | (y & ~m)  if profitable
   if (SDValue MM = unfoldMaskedMerge(N))
@@ -9722,27 +9586,6 @@ SDValue DAGCombiner::visitBSWAP(SDNode *N) {
   if (N0.getOpcode() == ISD::BITREVERSE && N0.hasOneUse()) {
     SDValue BSwap = DAG.getNode(ISD::BSWAP, DL, VT, N0.getOperand(0));
     return DAG.getNode(ISD::BITREVERSE, DL, VT, BSwap);
-  }
-
-  // fold (bswap shl(x,c)) -> (zext(bswap(trunc(shl(x,sub(c,bw/2))))))
-  // iff x >= bw/2 (i.e. lower half is known zero)
-  unsigned BW = VT.getScalarSizeInBits();
-  if (BW >= 32 && N0.getOpcode() == ISD::SHL && N0.hasOneUse()) {
-    auto *ShAmt = dyn_cast<ConstantSDNode>(N0.getOperand(1));
-    EVT HalfVT = EVT::getIntegerVT(*DAG.getContext(), BW / 2);
-    if (ShAmt && ShAmt->getAPIntValue().ult(BW) &&
-        ShAmt->getZExtValue() >= (BW / 2) &&
-        (ShAmt->getZExtValue() % 16) == 0 && TLI.isTypeLegal(HalfVT) &&
-        TLI.isTruncateFree(VT, HalfVT) &&
-        (!LegalOperations || hasOperation(ISD::BSWAP, HalfVT))) {
-      SDValue Res = N0.getOperand(0);
-      if (uint64_t NewShAmt = (ShAmt->getZExtValue() - (BW / 2)))
-        Res = DAG.getNode(ISD::SHL, DL, VT, Res,
-                          DAG.getConstant(NewShAmt, DL, getShiftAmountTy(VT)));
-      Res = DAG.getZExtOrTrunc(Res, DL, HalfVT);
-      Res = DAG.getNode(ISD::BSWAP, DL, HalfVT, Res);
-      return DAG.getZExtOrTrunc(Res, DL, VT);
-    }
   }
 
   return SDValue();
@@ -17507,8 +17350,9 @@ SDValue DAGCombiner::TransformFPLoadStorePair(SDNode *N) {
 //     (A + c1) * c3
 //     (A + c2) * c3
 // We're checking for cases where we have common "c3 * A" expressions.
-bool DAGCombiner::isMulAddWithConstProfitable(SDNode *MulNode, SDValue AddNode,
-                                              SDValue ConstNode) {
+bool DAGCombiner::isMulAddWithConstProfitable(SDNode *MulNode,
+                                              SDValue &AddNode,
+                                              SDValue &ConstNode) {
   APInt Val;
 
   // If the add only has one use, and the target thinks the folding is
@@ -21325,8 +21169,7 @@ SDValue DAGCombiner::visitEXTRACT_SUBVECTOR(SDNode *N) {
   // ty1 extract_vector(ty2 splat(V))) -> ty1 splat(V)
   if (V.getOpcode() == ISD::SPLAT_VECTOR)
     if (DAG.isConstantValueOfAnyType(V.getOperand(0)) || V.hasOneUse())
-      if (!LegalOperations || TLI.isOperationLegal(ISD::SPLAT_VECTOR, NVT))
-        return DAG.getSplatVector(NVT, SDLoc(N), V.getOperand(0));
+      return DAG.getSplatVector(NVT, SDLoc(N), V.getOperand(0));
 
   // Try to move vector bitcast after extract_subv by scaling extraction index:
   // extract_subv (bitcast X), Index --> bitcast (extract_subv X, Index')
@@ -21693,10 +21536,9 @@ static SDValue combineShuffleOfScalars(ShuffleVectorSDNode *SVN,
       SVT = (SVT.bitsLT(Op.getValueType()) ? Op.getValueType() : SVT);
   if (SVT != VT.getScalarType())
     for (SDValue &Op : Ops)
-      Op = Op.isUndef() ? DAG.getUNDEF(SVT)
-                        : (TLI.isZExtFree(Op.getValueType(), SVT)
-                               ? DAG.getZExtOrTrunc(Op, SDLoc(SVN), SVT)
-                               : DAG.getSExtOrTrunc(Op, SDLoc(SVN), SVT));
+      Op = TLI.isZExtFree(Op.getValueType(), SVT)
+               ? DAG.getZExtOrTrunc(Op, SDLoc(SVN), SVT)
+               : DAG.getSExtOrTrunc(Op, SDLoc(SVN), SVT);
   return DAG.getBuildVector(VT, SDLoc(SVN), Ops);
 }
 

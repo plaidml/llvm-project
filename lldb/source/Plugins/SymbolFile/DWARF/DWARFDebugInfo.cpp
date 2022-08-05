@@ -27,6 +27,7 @@
 
 using namespace lldb;
 using namespace lldb_private;
+using namespace std;
 
 // Constructor
 DWARFDebugInfo::DWARFDebugInfo(SymbolFileDWARF &dwarf,

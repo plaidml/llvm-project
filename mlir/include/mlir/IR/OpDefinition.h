@@ -200,8 +200,7 @@ public:
 protected:
   /// If the concrete type didn't implement a custom verifier hook, just fall
   /// back to this one which accepts everything.
-  LogicalResult verify() { return success(); }
-  LogicalResult verifyRegions() { return success(); }
+  LogicalResult verifyInvariants() { return success(); }
 
   /// Parse the custom form of an operation. Unless overridden, this method will
   /// first try to get an operation parser from the op's dialect. Otherwise the
@@ -376,18 +375,6 @@ struct MultiOperandTraitBase : public TraitBase<ConcreteType, TraitType> {
   }
 };
 } // namespace detail
-
-/// `verifyInvariantsImpl` verifies the invariants like the types, attrs, .etc.
-/// It should be run after core traits and before any other user defined traits.
-/// In order to run it in the correct order, wrap it with OpInvariants trait so
-/// that tblgen will be able to put it in the right order.
-template <typename ConcreteType>
-class OpInvariants : public TraitBase<ConcreteType, OpInvariants> {
-public:
-  static LogicalResult verifyTrait(Operation *op) {
-    return cast<ConcreteType>(op).verifyInvariantsImpl();
-  }
-};
 
 /// This class provides the API for ops that are known to have no
 /// SSA operand.
@@ -920,7 +907,7 @@ struct SingleBlockImplicitTerminator {
     /// The type of the operation used as the implicit terminator type.
     using ImplicitTerminatorOpT = TerminatorOpType;
 
-    static LogicalResult verifyRegionTrait(Operation *op) {
+    static LogicalResult verifyTrait(Operation *op) {
       if (failed(Base::verifyTrait(op)))
         return failure();
       for (unsigned i = 0, e = op->getNumRegions(); i < e; ++i) {
@@ -1218,7 +1205,7 @@ template <typename ConcreteType>
 class IsIsolatedFromAbove
     : public TraitBase<ConcreteType, IsIsolatedFromAbove> {
 public:
-  static LogicalResult verifyRegionTrait(Operation *op) {
+  static LogicalResult verifyTrait(Operation *op) {
     return impl::verifyIsIsolatedFromAbove(op);
   }
 };
@@ -1262,7 +1249,7 @@ struct HasParent {
   class Impl : public TraitBase<ConcreteType, Impl> {
   public:
     static LogicalResult verifyTrait(Operation *op) {
-      if (llvm::isa_and_nonnull<ParentOpTypes...>(op->getParentOp()))
+      if (llvm::isa<ParentOpTypes...>(op->getParentOp()))
         return success();
 
       return op->emitOpError()
@@ -1585,14 +1572,6 @@ using has_verify_trait = decltype(T::verifyTrait(std::declval<Operation *>()));
 template <typename T>
 using detect_has_verify_trait = llvm::is_detected<has_verify_trait, T>;
 
-/// Trait to check if T provides a `verifyTrait` method.
-template <typename T, typename... Args>
-using has_verify_region_trait =
-    decltype(T::verifyRegionTrait(std::declval<Operation *>()));
-template <typename T>
-using detect_has_verify_region_trait =
-    llvm::is_detected<has_verify_region_trait, T>;
-
 /// The internal implementation of `verifyTraits` below that returns the result
 /// of verifying the current operation with all of the provided trait types
 /// `Ts`.
@@ -1610,26 +1589,6 @@ template <typename TraitTupleT>
 static LogicalResult verifyTraits(Operation *op) {
   return verifyTraitsImpl(op, (TraitTupleT *)nullptr);
 }
-
-/// The internal implementation of `verifyRegionTraits` below that returns the
-/// result of verifying the current operation with all of the provided trait
-/// types `Ts`.
-template <typename... Ts>
-static LogicalResult verifyRegionTraitsImpl(Operation *op,
-                                            std::tuple<Ts...> *) {
-  LogicalResult result = success();
-  (void)std::initializer_list<int>{
-      (result = succeeded(result) ? Ts::verifyRegionTrait(op) : failure(),
-       0)...};
-  return result;
-}
-
-/// Given a tuple type containing a set of traits that contain a
-/// `verifyTrait` method, return the result of verifying the given operation.
-template <typename TraitTupleT>
-static LogicalResult verifyRegionTraits(Operation *op) {
-  return verifyRegionTraitsImpl(op, (TraitTupleT *)nullptr);
-}
 } // namespace op_definition_impl
 
 //===----------------------------------------------------------------------===//
@@ -1644,8 +1603,7 @@ class Op : public OpState, public Traits<ConcreteType>... {
 public:
   /// Inherit getOperation from `OpState`.
   using OpState::getOperation;
-  using OpState::verify;
-  using OpState::verifyRegions;
+  using OpState::verifyInvariants;
 
   /// Return if this operation contains the provided trait.
   template <template <typename T> class Trait>
@@ -1746,10 +1704,6 @@ private:
   using VerifiableTraitsTupleT =
       typename detail::FilterTypes<op_definition_impl::detect_has_verify_trait,
                                    Traits<ConcreteType>...>::type;
-  /// A tuple type containing the region traits that have a verify function.
-  using VerifiableRegionTraitsTupleT = typename detail::FilterTypes<
-      op_definition_impl::detect_has_verify_region_trait,
-      Traits<ConcreteType>...>::type;
 
   /// Returns an interface map containing the interfaces registered to this
   /// operation.
@@ -1885,21 +1839,10 @@ private:
                   "Op class shouldn't define new data members");
     return failure(
         failed(op_definition_impl::verifyTraits<VerifiableTraitsTupleT>(op)) ||
-        failed(cast<ConcreteType>(op).verify()));
+        failed(cast<ConcreteType>(op).verifyInvariants()));
   }
   static OperationName::VerifyInvariantsFn getVerifyInvariantsFn() {
     return static_cast<LogicalResult (*)(Operation *)>(&verifyInvariants);
-  }
-  /// Implementation of `VerifyRegionInvariantsFn` OperationName hook.
-  static LogicalResult verifyRegionInvariants(Operation *op) {
-    static_assert(hasNoDataMembers(),
-                  "Op class shouldn't define new data members");
-    return failure(failed(op_definition_impl::verifyRegionTraits<
-                          VerifiableRegionTraitsTupleT>(op)) ||
-                   failed(cast<ConcreteType>(op).verifyRegions()));
-  }
-  static OperationName::VerifyRegionInvariantsFn getVerifyRegionInvariantsFn() {
-    return static_cast<LogicalResult (*)(Operation *)>(&verifyRegionInvariants);
   }
 
   static constexpr bool hasNoDataMembers() {

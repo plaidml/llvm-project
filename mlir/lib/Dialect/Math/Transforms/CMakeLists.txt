@@ -8,10 +8,11 @@ add_mlir_dialect_library(MLIRMathTransforms
 
   LINK_LIBS PUBLIC
   MLIRArithmetic
-  MLIRDialectUtils  
+  MLIRDialectUtils
   MLIRIR
   MLIRMath
   MLIRPass
+  MLIRStandard
   MLIRTransforms
   MLIRX86Vector
   MLIRVector

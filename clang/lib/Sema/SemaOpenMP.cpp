@@ -2517,7 +2517,7 @@ void Sema::finalizeOpenMPDelayedAnalysis(const FunctionDecl *Caller,
         << HostDevTy;
     return;
   }
-  if (!LangOpts.OpenMPIsDevice && !LangOpts.OpenMPOffloadMandatory && DevTy &&
+  if (!LangOpts.OpenMPIsDevice && DevTy &&
       *DevTy == OMPDeclareTargetDeclAttr::DT_NoHost) {
     // Diagnose nohost function called during host codegen.
     StringRef NoHostDevTy = getOpenMPSimpleClauseTypeName(
@@ -11133,11 +11133,11 @@ bool OpenMPAtomicCompareChecker::checkCondUpdateStmt(IfStmt *S,
   switch (Cond->getOpcode()) {
   case BO_EQ: {
     C = Cond;
-    D = BO->getRHS()->IgnoreImpCasts();
+    D = BO->getRHS();
     if (checkIfTwoExprsAreSame(ContextRef, X, Cond->getLHS())) {
-      E = Cond->getRHS()->IgnoreImpCasts();
+      E = Cond->getRHS();
     } else if (checkIfTwoExprsAreSame(ContextRef, X, Cond->getRHS())) {
-      E = Cond->getLHS()->IgnoreImpCasts();
+      E = Cond->getLHS();
     } else {
       ErrorInfo.Error = ErrorTy::InvalidComparison;
       ErrorInfo.ErrorLoc = ErrorInfo.NoteLoc = Cond->getExprLoc();
@@ -11148,7 +11148,7 @@ bool OpenMPAtomicCompareChecker::checkCondUpdateStmt(IfStmt *S,
   }
   case BO_LT:
   case BO_GT: {
-    E = BO->getRHS()->IgnoreImpCasts();
+    E = BO->getRHS();
     if (checkIfTwoExprsAreSame(ContextRef, X, Cond->getLHS()) &&
         checkIfTwoExprsAreSame(ContextRef, E, Cond->getRHS())) {
       C = Cond;
@@ -11228,11 +11228,11 @@ bool OpenMPAtomicCompareChecker::checkCondExprStmt(Stmt *S,
   switch (Cond->getOpcode()) {
   case BO_EQ: {
     C = Cond;
-    D = CO->getTrueExpr()->IgnoreImpCasts();
+    D = CO->getTrueExpr();
     if (checkIfTwoExprsAreSame(ContextRef, X, Cond->getLHS())) {
-      E = Cond->getRHS()->IgnoreImpCasts();
+      E = Cond->getRHS();
     } else if (checkIfTwoExprsAreSame(ContextRef, X, Cond->getRHS())) {
-      E = Cond->getLHS()->IgnoreImpCasts();
+      E = Cond->getLHS();
     } else {
       ErrorInfo.Error = ErrorTy::InvalidComparison;
       ErrorInfo.ErrorLoc = ErrorInfo.NoteLoc = Cond->getExprLoc();
@@ -11243,7 +11243,7 @@ bool OpenMPAtomicCompareChecker::checkCondExprStmt(Stmt *S,
   }
   case BO_LT:
   case BO_GT: {
-    E = CO->getTrueExpr()->IgnoreImpCasts();
+    E = CO->getTrueExpr();
     if (checkIfTwoExprsAreSame(ContextRef, X, Cond->getLHS()) &&
         checkIfTwoExprsAreSame(ContextRef, E, Cond->getRHS())) {
       C = Cond;
@@ -11843,8 +11843,6 @@ StmtResult Sema::ActOnOpenMPAtomicDirective(ArrayRef<OMPClause *> Clauses,
   Expr *V = nullptr;
   Expr *E = nullptr;
   Expr *UE = nullptr;
-  Expr *D = nullptr;
-  Expr *CE = nullptr;
   bool IsXLHSInRHSPart = false;
   bool IsPostfixUpdate = false;
   // OpenMP [2.12.6, atomic Construct]
@@ -12254,19 +12252,15 @@ StmtResult Sema::ActOnOpenMPAtomicDirective(ArrayRef<OMPClause *> Clauses,
             << ErrorInfo.Error << ErrorInfo.NoteRange;
         return StmtError();
       }
-      X = Checker.getX();
-      E = Checker.getE();
-      D = Checker.getD();
-      CE = Checker.getCond();
-      // We reuse IsXLHSInRHSPart to tell if it is in the form 'x ordop expr'.
-      IsXLHSInRHSPart = Checker.isXBinopExpr();
+      // TODO: We don't set X, D, E, etc. here because in code gen we will emit
+      // error directly.
     }
   }
 
   setFunctionHasBranchProtectedScope();
 
   return OMPAtomicDirective::Create(Context, StartLoc, EndLoc, Clauses, AStmt,
-                                    X, V, E, UE, D, CE, IsXLHSInRHSPart,
+                                    X, V, E, UE, IsXLHSInRHSPart,
                                     IsPostfixUpdate);
 }
 
@@ -21402,8 +21396,7 @@ OMPClause *Sema::ActOnOpenMPHintClause(Expr *Hint, SourceLocation StartLoc,
   // OpenMP [2.13.2, critical construct, Description]
   // ... where hint-expression is an integer constant expression that evaluates
   // to a valid lock hint.
-  ExprResult HintExpr =
-      VerifyPositiveIntegerConstantInClause(Hint, OMPC_hint, false);
+  ExprResult HintExpr = VerifyPositiveIntegerConstantInClause(Hint, OMPC_hint);
   if (HintExpr.isInvalid())
     return nullptr;
   return new (Context)

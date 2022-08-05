@@ -195,7 +195,8 @@ bool Host::GetProcessInfo(lldb::pid_t pid, ProcessInstanceInfo &process_info) {
 }
 
 llvm::Expected<HostThread> Host::StartMonitoringChildProcess(
-    const Host::MonitorChildProcessCallback &callback, lldb::pid_t pid) {
+    const Host::MonitorChildProcessCallback &callback, lldb::pid_t pid,
+    bool monitor_signals) {
   return HostThread();
 }
 

@@ -280,7 +280,7 @@ PlatformSP Platform::Find(ConstString name) {
 
     std::lock_guard<std::recursive_mutex> guard(GetPlatformListMutex());
     for (const auto &platform_sp : GetPlatformList()) {
-      if (platform_sp->GetName() == name.GetStringRef())
+      if (platform_sp->GetName() == name)
         return platform_sp;
     }
   }
@@ -785,6 +785,8 @@ Status Platform::SetFilePermissions(const FileSpec &file_spec,
     return error;
   }
 }
+
+ConstString Platform::GetName() { return ConstString(GetPluginName()); }
 
 const char *Platform::GetHostname() {
   if (IsHost())
@@ -1726,7 +1728,7 @@ Status Platform::DownloadSymbolFile(const lldb::ModuleSP &module_sp,
 
 FileSpec Platform::GetModuleCacheRoot() {
   auto dir_spec = GetGlobalPlatformProperties().GetModuleCacheDirectory();
-  dir_spec.AppendPathComponent(GetPluginName());
+  dir_spec.AppendPathComponent(GetName().AsCString());
   return dir_spec;
 }
 

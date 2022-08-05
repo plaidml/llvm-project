@@ -39,7 +39,6 @@
 
 using namespace lldb;
 using namespace lldb_private;
-using namespace lldb_private::dwarf;
 
 class SymbolFileDWARFTests : public testing::Test {
   SubsystemRAII<FileSystem, HostInfo, ObjectFilePECOFF, SymbolFileDWARF,

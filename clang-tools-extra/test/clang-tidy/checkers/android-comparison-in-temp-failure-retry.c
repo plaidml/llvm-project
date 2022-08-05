@@ -9,10 +9,10 @@
     __z;                                                                       \
   })
 
-int foo(void);
+int foo();
 int bar(int a);
 
-void test(void) {
+void test() {
   int i;
   TEMP_FAILURE_RETRY((i = foo()));
   TEMP_FAILURE_RETRY(foo());
@@ -86,7 +86,7 @@ void test(void) {
 }
 
 // Be sure that it works inside of things like loops, if statements, etc.
-void control_flow(void) {
+void control_flow() {
   do {
     if (TEMP_FAILURE_RETRY(foo())) {
     }
@@ -105,7 +105,7 @@ void control_flow(void) {
   // CHECK-MESSAGES: :[[@LINE-1]]:37: warning: top-level comparison in TEMP_FAILURE_RETRY
 }
 
-void with_nondependent_variable_type(void) {
+void with_nondependent_variable_type() {
 #undef TEMP_FAILURE_RETRY
 #define TEMP_FAILURE_RETRY(x)                                                  \
   ({                                                                           \
@@ -126,7 +126,7 @@ void with_nondependent_variable_type(void) {
 
 // I can't find a case where TEMP_FAILURE_RETRY is implemented like this, but if
 // we can cheaply support it, I don't see why not.
-void obscured_temp_failure_retry(void) {
+void obscured_temp_failure_retry() {
 #undef TEMP_FAILURE_RETRY
 #define IMPL(x)                                                                \
   ({                                                                           \

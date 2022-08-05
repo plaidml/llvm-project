@@ -21,6 +21,7 @@
 #include "AST.h"
 #include "CodeCompletionStrings.h"
 #include "Compiler.h"
+#include "Diagnostics.h"
 #include "ExpectedTypes.h"
 #include "FileDistance.h"
 #include "FuzzyMatch.h"
@@ -30,6 +31,7 @@
 #include "Protocol.h"
 #include "Quality.h"
 #include "SourceCode.h"
+#include "TUScheduler.h"
 #include "URI.h"
 #include "index/Index.h"
 #include "index/Symbol.h"
@@ -65,6 +67,7 @@
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/Error.h"
+#include "llvm/Support/Format.h"
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/ScopedPrinter.h"
 #include <algorithm>

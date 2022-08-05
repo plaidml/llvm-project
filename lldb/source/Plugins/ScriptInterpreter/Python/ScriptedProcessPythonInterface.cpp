@@ -124,21 +124,9 @@ lldb::DataExtractorSP ScriptedProcessPythonInterface::ReadMemoryAtAddress(
                                          address, size);
 }
 
-StructuredData::ArraySP ScriptedProcessPythonInterface::GetLoadedImages() {
-  Status error;
-  StructuredData::ArraySP array =
-      Dispatch<StructuredData::ArraySP>("get_loaded_images", error);
-
-  if (!array || !array->IsValid() || error.Fail()) {
-    return ScriptedInterface::ErrorWithMessage<StructuredData::ArraySP>(
-        LLVM_PRETTY_FUNCTION,
-        llvm::Twine("Null or invalid object (" +
-                    llvm::Twine(error.AsCString()) + llvm::Twine(")."))
-            .str(),
-        error);
-  }
-
-  return array;
+StructuredData::DictionarySP ScriptedProcessPythonInterface::GetLoadedImages() {
+  // TODO: Implement
+  return {};
 }
 
 lldb::pid_t ScriptedProcessPythonInterface::GetProcessID() {

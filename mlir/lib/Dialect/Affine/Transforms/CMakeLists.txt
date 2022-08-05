@@ -31,6 +31,7 @@ add_mlir_dialect_library(MLIRAffineTransforms
   MLIRPass
   MLIRSCFUtils
   MLIRSideEffectInterfaces
+  MLIRStandard
   MLIRTransformUtils
   MLIRVector
   MLIRVectorUtils

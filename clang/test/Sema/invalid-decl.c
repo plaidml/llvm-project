@@ -1,6 +1,6 @@
-// RUN: %clang_cc1 %s -fsyntax-only -Wno-strict-prototypes -verify
+// RUN: %clang_cc1 %s -fsyntax-only -verify
 
-void test(void) {
+void test() {
     char = 4;  // expected-error {{expected identifier}}
 }
 
@@ -35,7 +35,7 @@ static void bar(hid_t, char); // expected-error {{expected identifier}}
 
 static void bar(hid_t p, char); // expected-error {{unknown type name 'hid_t'}}
 
-void foo(void) {
+void foo() {
   (void)bar;
 }
 

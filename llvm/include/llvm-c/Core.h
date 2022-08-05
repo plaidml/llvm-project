@@ -1391,9 +1391,9 @@ LLVMBool LLVMIsLiteralStruct(LLVMTypeRef StructTy);
  */
 
 /**
- * Obtain the element type of an array or vector type.
+ * Obtain the type of elements within a sequential type.
  *
- * This currently also works for pointer types, but this usage is deprecated.
+ * This works on array, vector, and pointer types.
  *
  * @see llvm::SequentialType::getElementType()
  */

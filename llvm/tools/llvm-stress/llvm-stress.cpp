@@ -347,10 +347,8 @@ struct LoadModifier: public Modifier {
   void Act() override {
     // Try to use predefined pointers. If non-exist, use undef pointer value;
     Value *Ptr = getRandomPointerValue();
-    Type *Ty = Ptr->getType()->isOpaquePointerTy()
-                   ? pickType()
-                   : Ptr->getType()->getNonOpaquePointerElementType();
-    Value *V = new LoadInst(Ty, Ptr, "L", BB->getTerminator());
+    Value *V = new LoadInst(Ptr->getType()->getPointerElementType(), Ptr, "L",
+                            BB->getTerminator());
     PT->push_back(V);
   }
 };
@@ -362,16 +360,14 @@ struct StoreModifier: public Modifier {
   void Act() override {
     // Try to use predefined pointers. If non-exist, use undef pointer value;
     Value *Ptr = getRandomPointerValue();
-    Type *ValTy = Ptr->getType()->isOpaquePointerTy()
-                      ? pickType()
-                      : Ptr->getType()->getNonOpaquePointerElementType();
+    Value *Val = getRandomValue(Ptr->getType()->getPointerElementType());
+    Type  *ValTy = Val->getType();
 
     // Do not store vectors of i1s because they are unsupported
     // by the codegen.
     if (ValTy->isVectorTy() && ValTy->getScalarSizeInBits() == 1)
       return;
 
-    Value *Val = getRandomValue(ValTy);
     new StoreInst(Val, Ptr, BB->getTerminator());
   }
 };

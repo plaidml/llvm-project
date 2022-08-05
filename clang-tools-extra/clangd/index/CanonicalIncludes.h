@@ -22,6 +22,7 @@
 #include "clang/Lex/Preprocessor.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/Regex.h"
 #include <mutex>
 #include <string>
 #include <vector>

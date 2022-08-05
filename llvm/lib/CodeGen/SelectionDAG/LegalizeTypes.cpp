@@ -13,7 +13,10 @@
 //===----------------------------------------------------------------------===//
 
 #include "LegalizeTypes.h"
+#include "SDNodeDbgValue.h"
 #include "llvm/ADT/SetVector.h"
+#include "llvm/CodeGen/MachineFunction.h"
+#include "llvm/IR/CallingConv.h"
 #include "llvm/IR/DataLayout.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ErrorHandling.h"

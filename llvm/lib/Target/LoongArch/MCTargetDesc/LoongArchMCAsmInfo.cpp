@@ -29,6 +29,5 @@ LoongArchMCAsmInfo::LoongArchMCAsmInfo(const Triple &TT) {
   ZeroDirective = "\t.space\t";
   CommentString = "#";
   SupportsDebugInformation = true;
-  DwarfRegNumForCFI = true;
   ExceptionsType = ExceptionHandling::DwarfCFI;
 }

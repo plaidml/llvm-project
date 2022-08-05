@@ -79,7 +79,6 @@ Developer Tools
    mlir-tblgen
    lit
    llvm-exegesis
-   llvm-ifs
    llvm-locstats
    llvm-pdbutil
    llvm-profgen

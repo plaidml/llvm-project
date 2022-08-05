@@ -18,6 +18,7 @@ add_mlir_conversion_library(MLIRAffineToStandard
   MLIRMemRef
   MLIRSCF
   MLIRPass
+  MLIRStandard
   MLIRTransforms
   MLIRVector
   )

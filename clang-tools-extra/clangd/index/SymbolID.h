@@ -9,6 +9,7 @@
 #ifndef LLVM_CLANG_TOOLS_EXTRA_CLANGD_INDEX_SYMBOLID_H
 #define LLVM_CLANG_TOOLS_EXTRA_CLANGD_INDEX_SYMBOLID_H
 
+#include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/Hashing.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Error.h"

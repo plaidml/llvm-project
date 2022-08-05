@@ -32,7 +32,6 @@
 #include "llvm/ADT/Statistic.h"
 #include "llvm/Analysis/AssumptionCache.h"
 #include "llvm/Analysis/CodeMetrics.h"
-#include "llvm/Analysis/DomTreeUpdater.h"
 #include "llvm/Analysis/InstructionSimplify.h"
 #include "llvm/Analysis/LazyBlockFrequencyInfo.h"
 #include "llvm/Analysis/LegacyDivergenceAnalysis.h"
@@ -56,6 +55,7 @@
 #include "llvm/IR/Instruction.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/IntrinsicInst.h"
+#include "llvm/IR/Intrinsics.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/User.h"
@@ -68,6 +68,7 @@
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Scalar.h"
+#include "llvm/Transforms/Scalar/LoopPassManager.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/Transforms/Utils/Local.h"
@@ -76,6 +77,7 @@
 #include <algorithm>
 #include <cassert>
 #include <map>
+#include <set>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -903,9 +905,9 @@ bool LoopUnswitch::processCurrentLoop() {
 /// If true, we return true and set ExitBB to the block we
 /// exit through.
 ///
-static bool
-isTrivialLoopExitBlockHelper(Loop *L, BasicBlock *BB, BasicBlock *&ExitBB,
-                             SmallPtrSet<BasicBlock *, 8> &Visited) {
+static bool isTrivialLoopExitBlockHelper(Loop *L, BasicBlock *BB,
+                                         BasicBlock *&ExitBB,
+                                         std::set<BasicBlock*> &Visited) {
   if (!Visited.insert(BB).second) {
     // Already visited. Without more analysis, this could indicate an infinite
     // loop.
@@ -939,7 +941,7 @@ isTrivialLoopExitBlockHelper(Loop *L, BasicBlock *BB, BasicBlock *&ExitBB,
 /// the specified loop, and has no side-effects in the process. If so, return
 /// the block that is exited to, otherwise return null.
 static BasicBlock *isTrivialLoopExitBlock(Loop *L, BasicBlock *BB) {
-  SmallPtrSet<BasicBlock *, 8> Visited;
+  std::set<BasicBlock*> Visited;
   Visited.insert(L->getHeader());  // Branches to header make infinite loops.
   BasicBlock *ExitBB = nullptr;
   if (isTrivialLoopExitBlockHelper(L, BB, ExitBB, Visited))

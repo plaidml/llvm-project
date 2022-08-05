@@ -275,7 +275,7 @@ LogicalResult GPUDialect::verifyOperationAttribute(Operation *op,
   return walkResult.wasInterrupted() ? failure() : success();
 }
 
-LogicalResult gpu::AllReduceOp::verifyRegions() {
+LogicalResult gpu::AllReduceOp::verify() {
   if (body().empty() != op().hasValue())
     return emitError("expected either an op attribute or a non-empty body");
   if (!body().empty()) {
@@ -407,7 +407,7 @@ KernelDim3 LaunchOp::getBlockSizeOperandValues() {
   return KernelDim3{getOperand(3), getOperand(4), getOperand(5)};
 }
 
-LogicalResult LaunchOp::verifyRegions() {
+LogicalResult LaunchOp::verify() {
   // Kernel launch takes kNumConfigOperands leading operands for grid/block
   // sizes and transforms them into kNumConfigRegionAttributes region arguments
   // for block/thread identifiers and grid/block sizes.

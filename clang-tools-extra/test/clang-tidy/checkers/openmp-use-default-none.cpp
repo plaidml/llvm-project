@@ -20,7 +20,7 @@ void n0(const int a) {
 
 // 'parallel' directive can have 'default' clause, but said clause is not
 // specified, diagnosed.
-void p0_0(void) {
+void p0_0() {
 #pragma omp parallel
   ;
   // CHECK-NOTES: :[[@LINE-2]]:1: warning: OpenMP directive 'parallel' does not specify 'default' clause, consider specifying 'default(none)' clause
@@ -28,14 +28,14 @@ void p0_0(void) {
 
 // 'parallel' directive can have 'default' clause, and said clause specified,
 // with 'none' kind, all good.
-void p0_1(void) {
+void p0_1() {
 #pragma omp parallel default(none)
   ;
 }
 
 // 'parallel' directive can have 'default' clause, and said clause specified,
 // but with 'shared' kind, which is not 'none', diagnose.
-void p0_2(void) {
+void p0_2() {
 #pragma omp parallel default(shared)
   ;
   // CHECK-NOTES: :[[@LINE-2]]:1: warning: OpenMP directive 'parallel' specifies 'default(shared)' clause, consider using 'default(none)' clause instead
@@ -44,7 +44,7 @@ void p0_2(void) {
 
 // 'parallel' directive can have 'default' clause, and said clause specified,
 // but with 'firstprivate' kind, which is not 'none', diagnose.
-void p0_3(void) {
+void p0_3() {
 #pragma omp parallel default(firstprivate)
   ;
   // CHECK-NOTES: :[[@LINE-2]]:1: warning: OpenMP directive 'parallel' specifies 'default(firstprivate)' clause, consider using 'default(none)' clause instead
@@ -55,7 +55,7 @@ void p0_3(void) {
 
 // 'task' directive can have 'default' clause, but said clause is not
 // specified, diagnosed.
-void p1_0(void) {
+void p1_0() {
 #pragma omp task
   ;
   // CHECK-NOTES: :[[@LINE-2]]:1: warning: OpenMP directive 'task' does not specify 'default' clause, consider specifying 'default(none)' clause
@@ -63,14 +63,14 @@ void p1_0(void) {
 
 // 'task' directive can have 'default' clause, and said clause specified,
 // with 'none' kind, all good.
-void p1_1(void) {
+void p1_1() {
 #pragma omp task default(none)
   ;
 }
 
 // 'task' directive can have 'default' clause, and said clause specified,
 // but with 'shared' kind, which is not 'none', diagnose.
-void p1_2(void) {
+void p1_2() {
 #pragma omp task default(shared)
   ;
   // CHECK-NOTES: :[[@LINE-2]]:1: warning: OpenMP directive 'task' specifies 'default(shared)' clause, consider using 'default(none)' clause instead
@@ -79,7 +79,7 @@ void p1_2(void) {
 
 // 'task' directive can have 'default' clause, and said clause specified,
 // but with 'firstprivate' kind, which is not 'none', diagnose.
-void p1_3(void) {
+void p1_3() {
 #pragma omp task default(firstprivate)
   ;
   // CHECK-NOTES: :[[@LINE-2]]:1: warning: OpenMP directive 'task' specifies 'default(firstprivate)' clause, consider using 'default(none)' clause instead
@@ -90,7 +90,7 @@ void p1_3(void) {
 
 // 'teams' directive can have 'default' clause, but said clause is not
 // specified, diagnosed.
-void p2_0(void) {
+void p2_0() {
 #pragma omp target
 #pragma omp teams
   ;
@@ -99,7 +99,7 @@ void p2_0(void) {
 
 // 'teams' directive can have 'default' clause, and said clause specified,
 // with 'none' kind, all good.
-void p2_1(void) {
+void p2_1() {
 #pragma omp target
 #pragma omp teams default(none)
   ;
@@ -107,7 +107,7 @@ void p2_1(void) {
 
 // 'teams' directive can have 'default' clause, and said clause specified,
 // but with 'shared' kind, which is not 'none', diagnose.
-void p2_2(void) {
+void p2_2() {
 #pragma omp target
 #pragma omp teams default(shared)
   ;
@@ -117,7 +117,7 @@ void p2_2(void) {
 
 // 'teams' directive can have 'default' clause, and said clause specified,
 // but with 'firstprivate' kind, which is not 'none', diagnose.
-void p2_3(void) {
+void p2_3() {
 #pragma omp target
 #pragma omp teams default(firstprivate)
   ;

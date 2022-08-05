@@ -43,7 +43,7 @@ add_object_library(
   DEPENDS
     libc.include.errno
     libc.include.math
-    libc.src.errno.errno
+    libc.src.errno.__errno_location
 )
 
 add_object_library(
@@ -65,7 +65,7 @@ add_entrypoint_object(
   DEPENDS
     .sincosf_utils
     libc.include.math
-    libc.src.errno.errno
+    libc.src.errno.__errno_location
   COMPILE_OPTIONS
     -O3
 )
@@ -79,7 +79,7 @@ add_entrypoint_object(
   DEPENDS
     .sincosf_utils
     libc.include.math
-    libc.src.errno.errno
+    libc.src.errno.__errno_location
     libc.src.__support.FPUtil.fputil
   COMPILE_OPTIONS
     -O3
@@ -94,7 +94,7 @@ add_entrypoint_object(
   DEPENDS
     .sincosf_utils
     libc.include.math
-    libc.src.errno.errno
+    libc.src.errno.__errno_location
   COMPILE_OPTIONS
     -O3
 )
@@ -476,10 +476,9 @@ add_entrypoint_object(
   HDRS
     ../expf.h
   DEPENDS
-    libc.src.__support.FPUtil.fputil
+    .exp_utils
+    .math_utils
     libc.include.math
-  COMPILE_OPTIONS
-    -O3
 )
 
 add_entrypoint_object(

@@ -18,41 +18,40 @@
 namespace llvm {
 namespace jitlink {
 
-DWARFRecordSectionSplitter::DWARFRecordSectionSplitter(StringRef SectionName)
-    : SectionName(SectionName) {}
+EHFrameSplitter::EHFrameSplitter(StringRef EHFrameSectionName)
+    : EHFrameSectionName(EHFrameSectionName) {}
 
-Error DWARFRecordSectionSplitter::operator()(LinkGraph &G) {
-  auto *Section = G.findSectionByName(SectionName);
+Error EHFrameSplitter::operator()(LinkGraph &G) {
+  auto *EHFrame = G.findSectionByName(EHFrameSectionName);
 
-  if (!Section) {
+  if (!EHFrame) {
     LLVM_DEBUG({
-      dbgs() << "DWARFRecordSectionSplitter: No " << SectionName
+      dbgs() << "EHFrameSplitter: No " << EHFrameSectionName
              << " section. Nothing to do\n";
     });
     return Error::success();
   }
 
   LLVM_DEBUG({
-    dbgs() << "DWARFRecordSectionSplitter: Processing " << SectionName
-           << "...\n";
+    dbgs() << "EHFrameSplitter: Processing " << EHFrameSectionName << "...\n";
   });
 
   DenseMap<Block *, LinkGraph::SplitBlockCache> Caches;
 
   {
     // Pre-build the split caches.
-    for (auto *B : Section->blocks())
+    for (auto *B : EHFrame->blocks())
       Caches[B] = LinkGraph::SplitBlockCache::value_type();
-    for (auto *Sym : Section->symbols())
+    for (auto *Sym : EHFrame->symbols())
       Caches[&Sym->getBlock()]->push_back(Sym);
-    for (auto *B : Section->blocks())
+    for (auto *B : EHFrame->blocks())
       llvm::sort(*Caches[B], [](const Symbol *LHS, const Symbol *RHS) {
         return LHS->getOffset() > RHS->getOffset();
       });
   }
 
   // Iterate over blocks (we do this by iterating over Caches entries rather
-  // than Section->blocks() as we will be inserting new blocks along the way,
+  // than EHFrame->blocks() as we will be inserting new blocks along the way,
   // which would invalidate iterators in the latter sequence.
   for (auto &KV : Caches) {
     auto &B = *KV.first;
@@ -64,14 +63,14 @@ Error DWARFRecordSectionSplitter::operator()(LinkGraph &G) {
   return Error::success();
 }
 
-Error DWARFRecordSectionSplitter::processBlock(
-    LinkGraph &G, Block &B, LinkGraph::SplitBlockCache &Cache) {
+Error EHFrameSplitter::processBlock(LinkGraph &G, Block &B,
+                                    LinkGraph::SplitBlockCache &Cache) {
   LLVM_DEBUG(dbgs() << "  Processing block at " << B.getAddress() << "\n");
 
-  // Section should not contain zero-fill blocks.
+  // eh-frame should not contain zero-fill blocks.
   if (B.isZeroFill())
     return make_error<JITLinkError>("Unexpected zero-fill block in " +
-                                    SectionName + " section");
+                                    EHFrameSectionName + " section");
 
   if (B.getSize() == 0) {
     LLVM_DEBUG(dbgs() << "    Block is empty. Skipping.\n");

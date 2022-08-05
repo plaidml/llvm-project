@@ -110,6 +110,7 @@
 #include "llvm/Support/RecyclingAllocator.h"
 #include <algorithm>
 #include <cassert>
+#include <cstdint>
 #include <iterator>
 #include <new>
 #include <utility>

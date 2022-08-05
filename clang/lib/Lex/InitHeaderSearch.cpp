@@ -370,7 +370,7 @@ void InitHeaderSearch::AddDefaultCIncludePaths(const llvm::Triple &triple,
       }
     }
     AddPath(BaseSDKPath + "/target/include", System, false);
-    if (triple.isPS4())
+    if (triple.isPS4CPU())
       AddPath(BaseSDKPath + "/target/include_common", System, false);
     LLVM_FALLTHROUGH;
   }

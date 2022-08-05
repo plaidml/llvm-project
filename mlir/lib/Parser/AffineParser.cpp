@@ -48,7 +48,7 @@ public:
   AffineParser(ParserState &state, bool allowParsingSSAIds = false,
                function_ref<ParseResult(bool)> parseElement = nullptr)
       : Parser(state), allowParsingSSAIds(allowParsingSSAIds),
-        parseElement(parseElement) {}
+        parseElement(parseElement), numDimOperands(0), numSymbolOperands(0) {}
 
   AffineMap parseAffineMapRange(unsigned numDims, unsigned numSymbols);
   ParseResult parseAffineMapOrIntegerSetInline(AffineMap &map, IntegerSet &set);
@@ -92,8 +92,8 @@ private:
 private:
   bool allowParsingSSAIds;
   function_ref<ParseResult(bool)> parseElement;
-  unsigned numDimOperands = 0;
-  unsigned numSymbolOperands = 0;
+  unsigned numDimOperands;
+  unsigned numSymbolOperands;
   SmallVector<std::pair<StringRef, AffineExpr>, 4> dimsAndSymbols;
 };
 } // namespace

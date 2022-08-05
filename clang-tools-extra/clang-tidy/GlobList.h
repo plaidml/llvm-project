@@ -59,7 +59,8 @@ public:
   bool contains(StringRef S) const override;
 
 private:
-  mutable llvm::StringMap<bool> Cache;
+  enum Tristate { None, Yes, No };
+  mutable llvm::StringMap<Tristate> Cache;
 };
 
 } // namespace tidy

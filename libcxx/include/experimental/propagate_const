@@ -106,13 +106,10 @@
 
 */
 
-#include <__utility/move.h>
-#include <__utility/swap.h>
 #include <experimental/__config>
 #include <functional>
 #include <type_traits>
-
-#include <utility> // TODO: Remove this
+#include <utility>
 
 #if !defined(_LIBCPP_HAS_NO_PRAGMA_SYSTEM_HEADER)
 #  pragma GCC system_header

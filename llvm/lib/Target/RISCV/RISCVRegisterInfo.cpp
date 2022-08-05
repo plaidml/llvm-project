@@ -126,7 +126,7 @@ const uint32_t *RISCVRegisterInfo::getNoPreservedMask() const {
 
 // Frame indexes representing locations of CSRs which are given a fixed location
 // by save/restore libcalls.
-static const std::pair<unsigned, int> FixedCSRFIMap[] = {
+static const std::map<unsigned, int> FixedCSRFIMap = {
   {/*ra*/  RISCV::X1,   -1},
   {/*s0*/  RISCV::X8,   -2},
   {/*s1*/  RISCV::X9,   -3},
@@ -149,9 +149,8 @@ bool RISCVRegisterInfo::hasReservedSpillSlot(const MachineFunction &MF,
   if (!RVFI->useSaveRestoreLibCalls(MF))
     return false;
 
-  const auto *FII =
-      llvm::find_if(FixedCSRFIMap, [&](auto P) { return P.first == Reg; });
-  if (FII == std::end(FixedCSRFIMap))
+  auto FII = FixedCSRFIMap.find(Reg);
+  if (FII == FixedCSRFIMap.end())
     return false;
 
   FrameIdx = FII->second;

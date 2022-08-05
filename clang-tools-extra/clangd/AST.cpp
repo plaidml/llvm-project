@@ -8,6 +8,7 @@
 
 #include "AST.h"
 
+#include "FindTarget.h"
 #include "SourceCode.h"
 #include "clang/AST/ASTContext.h"
 #include "clang/AST/ASTTypeTraits.h"
@@ -31,6 +32,7 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Casting.h"
+#include "llvm/Support/ScopedPrinter.h"
 #include "llvm/Support/raw_ostream.h"
 #include <string>
 #include <vector>

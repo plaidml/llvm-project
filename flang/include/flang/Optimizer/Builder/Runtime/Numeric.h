@@ -9,7 +9,7 @@
 #ifndef FORTRAN_OPTIMIZER_BUILDER_RUNTIME_NUMERIC_H
 #define FORTRAN_OPTIMIZER_BUILDER_RUNTIME_NUMERIC_H
 
-#include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/Dialect/StandardOps/IR/Ops.h"
 
 namespace fir {
 class ExtendedValue;

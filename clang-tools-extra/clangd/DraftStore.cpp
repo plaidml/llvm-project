@@ -7,8 +7,10 @@
 //===----------------------------------------------------------------------===//
 
 #include "DraftStore.h"
+#include "SourceCode.h"
 #include "support/Logger.h"
 #include "llvm/ADT/StringExtras.h"
+#include "llvm/Support/Errc.h"
 #include "llvm/Support/VirtualFileSystem.h"
 #include <memory>
 

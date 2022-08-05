@@ -112,8 +112,7 @@ private:
   void readTokenWithJavaScriptASI();
   void parseStructuralElement(IfStmtKind *IfKind = nullptr,
                               bool IsTopLevel = false,
-                              TokenType NextLBracesType = TT_Unknown,
-                              bool *HasLabel = nullptr);
+                              TokenType NextLBracesType = TT_Unknown);
   bool tryToParseBracedList();
   bool parseBracedList(bool ContinueOnSemicolons = false, bool IsEnum = false,
                        tok::TokenKind ClosingBraceKind = tok::r_brace);
@@ -121,8 +120,6 @@ private:
   void parseSquare(bool LambdaIntroducer = false);
   void keepAncestorBraces();
   void parseUnbracedBody(bool CheckEOF = false);
-  void handleAttributes();
-  bool handleCppAttributes();
   FormatToken *parseIfThenElse(IfStmtKind *IfKind, bool KeepBraces = false);
   void parseTryCatch();
   void parseForOrWhileLoop();

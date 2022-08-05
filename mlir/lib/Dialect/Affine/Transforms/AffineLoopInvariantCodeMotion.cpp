@@ -24,7 +24,6 @@
 #include "mlir/IR/AffineExpr.h"
 #include "mlir/IR/AffineMap.h"
 #include "mlir/IR/Builders.h"
-#include "mlir/IR/Matchers.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/SmallPtrSet.h"
@@ -83,7 +82,7 @@ bool isOpLoopInvariant(Operation &op, Value indVar, ValueRange iterArgs,
   } else if (isa<AffineDmaStartOp, AffineDmaWaitOp>(op)) {
     // TODO: Support DMA ops.
     return false;
-  } else if (!matchPattern(&op, m_Constant())) {
+  } else if (!isa<arith::ConstantOp, ConstantOp>(op)) {
     // Register op in the set of ops that have users.
     opsWithUsers.insert(&op);
     if (isa<AffineMapAccessInterface>(op)) {

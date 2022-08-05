@@ -12,7 +12,9 @@
 #include "support/Shutdown.h"
 #include "support/ThreadCrashReporter.h"
 #include "llvm/ADT/SmallString.h"
+#include "llvm/Support/Errno.h"
 #include "llvm/Support/Error.h"
+#include "llvm/Support/Threading.h"
 #include <system_error>
 
 namespace clang {

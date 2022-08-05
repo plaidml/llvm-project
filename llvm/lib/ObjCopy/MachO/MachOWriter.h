@@ -10,7 +10,7 @@
 #define LLVM_LIB_OBJCOPY_MACHO_MACHOWRITER_H
 
 #include "MachOLayoutBuilder.h"
-#include "MachOObject.h"
+#include "Object.h"
 #include "llvm/BinaryFormat/MachO.h"
 #include "llvm/ObjCopy/MachO/MachOObjcopy.h"
 #include "llvm/Object/MachO.h"

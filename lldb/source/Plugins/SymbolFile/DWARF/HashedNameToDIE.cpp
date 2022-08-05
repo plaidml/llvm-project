@@ -9,8 +9,6 @@
 #include "HashedNameToDIE.h"
 #include "llvm/ADT/StringRef.h"
 
-using namespace lldb_private::dwarf;
-
 bool DWARFMappedHash::ExtractDIEArray(
     const DIEInfoArray &die_info_array,
     llvm::function_ref<bool(DIERef ref)> callback) {

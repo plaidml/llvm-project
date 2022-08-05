@@ -19,6 +19,7 @@
 #include "clang/AST/NestedNameSpecifier.h"
 #include "clang/Basic/SourceLocation.h"
 #include "clang/Lex/MacroInfo.h"
+#include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/StringRef.h"
 #include <string>
 #include <vector>

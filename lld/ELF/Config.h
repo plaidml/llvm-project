@@ -148,7 +148,7 @@ struct Configuration {
                   uint64_t>
       callGraphProfile;
   bool allowMultipleDefinition;
-  bool androidPackDynRelocs = false;
+  bool androidPackDynRelocs;
   bool armHasBlx = false;
   bool armHasMovtMovw = false;
   bool armJ1J2BranchEncoding = false;
@@ -206,8 +206,7 @@ struct Configuration {
   bool printIcfSections;
   bool relax;
   bool relocatable;
-  bool relrGlibc = false;
-  bool relrPackDynRelocs = false;
+  bool relrPackDynRelocs;
   bool saveTemps;
   std::vector<std::pair<llvm::GlobPattern, uint32_t>> shuffleSections;
   bool singleRoRx;

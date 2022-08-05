@@ -184,7 +184,7 @@ operator<=(const reverse_iterator<_Iter1>& __x, const reverse_iterator<_Iter2>& 
     return __x.base() >= __y.base();
 }
 
-#if _LIBCPP_STD_VER > 17
+#if !defined(_LIBCPP_HAS_NO_CONCEPTS)
 template <class _Iter1, three_way_comparable_with<_Iter1> _Iter2>
 _LIBCPP_HIDE_FROM_ABI constexpr
 compare_three_way_result_t<_Iter1, _Iter2>
@@ -192,7 +192,7 @@ operator<=>(const reverse_iterator<_Iter1>& __x, const reverse_iterator<_Iter2>&
 {
     return __y.base() <=> __x.base();
 }
-#endif // _LIBCPP_STD_VER > 17
+#endif
 
 #ifndef _LIBCPP_CXX03_LANG
 template <class _Iter1, class _Iter2>

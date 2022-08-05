@@ -18,8 +18,7 @@ namespace llvm {
 class LLVM_LIBRARY_VISIBILITY CSKYAsmPrinter : public AsmPrinter {
   CSKYMCInstLower MCInstLowering;
 
-  const MCSubtargetInfo *Subtarget;
-  const TargetInstrInfo *TII;
+  const CSKYSubtarget *Subtarget;
 
   bool InConstantPool = false;
 
@@ -29,7 +28,6 @@ class LLVM_LIBRARY_VISIBILITY CSKYAsmPrinter : public AsmPrinter {
 
   void expandTLSLA(const MachineInstr *MI);
   void emitCustomConstantPool(const MachineInstr *MI);
-  void emitAttributes();
 
 public:
   explicit CSKYAsmPrinter(TargetMachine &TM,
@@ -47,10 +45,6 @@ public:
   void emitMachineConstantPoolValue(MachineConstantPoolValue *MCPV) override;
 
   void emitFunctionBodyEnd() override;
-
-  void emitStartOfAsmFile(Module &M) override;
-
-  void emitEndOfAsmFile(Module &M) override;
 
   void emitInstruction(const MachineInstr *MI) override;
 

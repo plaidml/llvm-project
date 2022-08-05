@@ -56,12 +56,8 @@
 #include "llvm/Analysis/LoopInfo.h"
 #include "llvm/Analysis/TargetLibraryInfo.h"
 #include "llvm/Analysis/TargetTransformInfo.h"
-#include "llvm/Analysis/ValueLattice.h"
-#include "llvm/Analysis/ValueLatticeUtils.h"
-#include "llvm/IR/IntrinsicInst.h"
 #include "llvm/Transforms/Scalar/SCCP.h"
 #include "llvm/Transforms/Utils/Cloning.h"
-#include "llvm/Transforms/Utils/SCCPSolver.h"
 #include "llvm/Transforms/Utils/SizeOpts.h"
 #include <cmath>
 
@@ -112,18 +108,24 @@ static cl::opt<bool> EnableSpecializationForLiteralConstant(
 namespace {
 // Bookkeeping struct to pass data from the analysis and profitability phase
 // to the actual transform helper functions.
-struct SpecializationInfo {
-  ArgInfo Arg;          // Stores the {formal,actual} argument pair.
+struct ArgInfo {
+  Function *Fn;         // The function to perform specialisation on.
+  Argument *Arg;        // The Formal argument being analysed.
+  Constant *Const;      // A corresponding actual constant argument.
   InstructionCost Gain; // Profitability: Gain = Bonus - Cost.
 
-  SpecializationInfo(Argument *A, Constant *C, InstructionCost G)
-      : Arg(A, C), Gain(G){};
+  // Flag if this will be a partial specialization, in which case we will need
+  // to keep the original function around in addition to the added
+  // specializations.
+  bool Partial = false;
+
+  ArgInfo(Function *F, Argument *A, Constant *C, InstructionCost G)
+      : Fn(F), Arg(A), Const(C), Gain(G){};
 };
 } // Anonymous namespace
 
 using FuncList = SmallVectorImpl<Function *>;
-using ConstList = SmallVector<Constant *>;
-using SpecializationList = SmallVector<SpecializationInfo>;
+using ConstList = SmallVectorImpl<Constant *>;
 
 // Helper to check if \p LV is either a constant or a constant
 // range with a single element. This should cover exactly the same cases as the
@@ -273,8 +275,7 @@ class FunctionSpecializer {
   std::function<TargetTransformInfo &(Function &)> GetTTI;
   std::function<TargetLibraryInfo &(Function &)> GetTLI;
 
-  SmallPtrSet<Function *, 4> SpecializedFuncs;
-  SmallPtrSet<Function *, 4> FullySpecialized;
+  SmallPtrSet<Function *, 2> SpecializedFuncs;
   SmallVector<Instruction *> ReplacedWithConstant;
 
 public:
@@ -284,20 +285,16 @@ public:
                       std::function<TargetLibraryInfo &(Function &)> GetTLI)
       : Solver(Solver), GetAC(GetAC), GetTTI(GetTTI), GetTLI(GetTLI) {}
 
-  ~FunctionSpecializer() {
-    // Eliminate dead code.
-    removeDeadInstructions();
-    removeDeadFunctions();
-  }
-
   /// Attempt to specialize functions in the module to enable constant
   /// propagation across function boundaries.
   ///
   /// \returns true if at least one function is specialized.
-  bool specializeFunctions(FuncList &Candidates, FuncList &WorkList) {
+  bool
+  specializeFunctions(FuncList &FuncDecls,
+                      FuncList &CurrentSpecializations) {
     bool Changed = false;
-    for (auto *F : Candidates) {
-      if (!isCandidateFunction(F))
+    for (auto *F : FuncDecls) {
+      if (!isCandidateFunction(F, CurrentSpecializations))
         continue;
 
       auto Cost = getSpecializationCost(F);
@@ -307,23 +304,19 @@ public:
         continue;
       }
 
-      LLVM_DEBUG(dbgs() << "FnSpecialization: Specialization cost for "
-                        << F->getName() << " is " << Cost << "\n");
-
-      SpecializationList Specializations;
-      calculateGains(F, Cost, Specializations);
-      if (Specializations.empty()) {
+      auto ConstArgs = calculateGains(F, Cost);
+      if (ConstArgs.empty()) {
         LLVM_DEBUG(dbgs() << "FnSpecialization: no possible constants found\n");
         continue;
       }
 
-      for (SpecializationInfo &S : Specializations) {
-        specializeFunction(F, S, WorkList);
+      for (auto &CA : ConstArgs) {
+        specializeFunction(CA, CurrentSpecializations);
         Changed = true;
       }
     }
 
-    updateSpecializedFuncs(Candidates, WorkList);
+    updateSpecializedFuncs(FuncDecls, CurrentSpecializations);
     NumFuncSpecialized += NbFunctionsSpecialized;
     return Changed;
   }
@@ -335,15 +328,6 @@ public:
       I->eraseFromParent();
     }
     ReplacedWithConstant.clear();
-  }
-
-  void removeDeadFunctions() {
-    for (auto *F : FullySpecialized) {
-      LLVM_DEBUG(dbgs() << "FnSpecialization: Removing dead function "
-                        << F->getName() << "\n");
-      F->eraseFromParent();
-    }
-    FullySpecialized.clear();
   }
 
   bool tryToReplaceWithConstant(Value *V) {
@@ -389,8 +373,9 @@ private:
 
   /// Clone the function \p F and remove the ssa_copy intrinsics added by
   /// the SCCPSolver in the cloned version.
-  Function *cloneCandidateFunction(Function *F, ValueToValueMapTy &Mappings) {
-    Function *Clone = CloneFunction(F, Mappings);
+  Function *cloneCandidateFunction(Function *F) {
+    ValueToValueMapTy EmptyMap;
+    Function *Clone = CloneFunction(F, EmptyMap);
     removeSSACopy(*Clone);
     return Clone;
   }
@@ -401,23 +386,28 @@ private:
   /// profitable to specialize. Specialization is performed on the first
   /// interesting argument. Specializations based on additional arguments will
   /// be evaluated on following iterations of the main IPSCCP solve loop.
-  void calculateGains(Function *F, InstructionCost Cost,
-                      SpecializationList &WorkList) {
+  SmallVector<ArgInfo> calculateGains(Function *F, InstructionCost Cost) {
+    SmallVector<ArgInfo> Worklist;
     // Determine if we should specialize the function based on the values the
     // argument can take on. If specialization is not profitable, we continue
     // on to the next argument.
     for (Argument &FormalArg : F->args()) {
+      LLVM_DEBUG(dbgs() << "FnSpecialization: Analysing arg: "
+                        << FormalArg.getName() << "\n");
       // Determine if this argument is interesting. If we know the argument can
-      // take on any constant values, they are collected in Constants.
-      ConstList ActualArgs;
-      if (!isArgumentInteresting(&FormalArg, ActualArgs)) {
-        LLVM_DEBUG(dbgs() << "FnSpecialization: Argument "
-                          << FormalArg.getNameOrAsOperand()
-                          << " is not interesting\n");
+      // take on any constant values, they are collected in Constants. If the
+      // argument can only ever equal a constant value in Constants, the
+      // function will be completely specialized, and the IsPartial flag will
+      // be set to false by isArgumentInteresting (that function only adds
+      // values to the Constants list that are deemed profitable).
+      bool IsPartial = true;
+      SmallVector<Constant *> ActualConstArg;
+      if (!isArgumentInteresting(&FormalArg, ActualConstArg, IsPartial)) {
+        LLVM_DEBUG(dbgs() << "FnSpecialization: Argument is not interesting\n");
         continue;
       }
 
-      for (auto *ActualArg : ActualArgs) {
+      for (auto *ActualArg : ActualConstArg) {
         InstructionCost Gain =
             ForceFunctionSpecialization
                 ? 1
@@ -425,44 +415,48 @@ private:
 
         if (Gain <= 0)
           continue;
-        WorkList.push_back({&FormalArg, ActualArg, Gain});
+        Worklist.push_back({F, &FormalArg, ActualArg, Gain});
       }
 
-      if (WorkList.empty())
+      if (Worklist.empty())
         continue;
 
       // Sort the candidates in descending order.
-      llvm::stable_sort(WorkList, [](const SpecializationInfo &L,
-                                     const SpecializationInfo &R) {
+      llvm::stable_sort(Worklist, [](const ArgInfo &L, const ArgInfo &R) {
         return L.Gain > R.Gain;
       });
 
       // Truncate the worklist to 'MaxClonesThreshold' candidates if
       // necessary.
-      if (WorkList.size() > MaxClonesThreshold) {
-        LLVM_DEBUG(dbgs() << "FnSpecialization: Number of candidates exceed "
-                          << "the maximum number of clones threshold.\n"
-                          << "FnSpecialization: Truncating worklist to "
-                          << MaxClonesThreshold << " candidates.\n");
-        WorkList.erase(WorkList.begin() + MaxClonesThreshold, WorkList.end());
+      if (Worklist.size() > MaxClonesThreshold) {
+        LLVM_DEBUG(dbgs() << "FnSpecialization: number of candidates exceed "
+                    << "the maximum number of clones threshold.\n"
+                    << "Truncating worklist to " << MaxClonesThreshold
+                    << " candidates.\n");
+        Worklist.erase(Worklist.begin() + MaxClonesThreshold,
+                       Worklist.end());
       }
 
-      LLVM_DEBUG(dbgs() << "FnSpecialization: Specializations for function "
-                        << F->getName() << "\n";
-                 for (SpecializationInfo &S : WorkList) {
-                   dbgs() << "FnSpecialization:   FormalArg = "
-                          << S.Arg.Formal->getNameOrAsOperand()
-                          << ", ActualArg = "
-                          << S.Arg.Actual->getNameOrAsOperand()
-                          << ", Gain = " << S.Gain << "\n";
+      if (IsPartial || Worklist.size() < ActualConstArg.size())
+        for (auto &ActualArg : Worklist)
+          ActualArg.Partial = true;
+
+      LLVM_DEBUG(dbgs() << "Sorted list of candidates by gain:\n";
+                 for (auto &C
+                      : Worklist) {
+                   dbgs() << "- Function = " << C.Fn->getName() << ", ";
+                   dbgs() << "FormalArg = " << C.Arg->getName() << ", ";
+                   dbgs() << "ActualArg = " << C.Const->getName() << ", ";
+                   dbgs() << "Gain = " << C.Gain << "\n";
                  });
 
       // FIXME: Only one argument per function.
       break;
     }
+    return Worklist;
   }
 
-  bool isCandidateFunction(Function *F) {
+  bool isCandidateFunction(Function *F, FuncList &Specializations) {
     // Do not specialize the cloned function again.
     if (SpecializedFuncs.contains(F))
       return false;
@@ -486,33 +480,26 @@ private:
     return true;
   }
 
-  void specializeFunction(Function *F, SpecializationInfo &S,
-                          FuncList &WorkList) {
-    ValueToValueMapTy Mappings;
-    Function *Clone = cloneCandidateFunction(F, Mappings);
+  void specializeFunction(ArgInfo &AI, FuncList &Specializations) {
+    Function *Clone = cloneCandidateFunction(AI.Fn);
+    Argument *ClonedArg = Clone->getArg(AI.Arg->getArgNo());
 
     // Rewrite calls to the function so that they call the clone instead.
-    rewriteCallSites(Clone, S.Arg, Mappings);
+    rewriteCallSites(AI.Fn, Clone, *ClonedArg, AI.Const);
 
     // Initialize the lattice state of the arguments of the function clone,
     // marking the argument on which we specialized the function constant
     // with the given value.
-    Solver.markArgInFuncSpecialization(Clone, S.Arg);
+    Solver.markArgInFuncSpecialization(AI.Fn, ClonedArg, AI.Const);
 
     // Mark all the specialized functions
-    WorkList.push_back(Clone);
+    Specializations.push_back(Clone);
     NbFunctionsSpecialized++;
 
     // If the function has been completely specialized, the original function
     // is no longer needed. Mark it unreachable.
-    if (F->getNumUses() == 0 || all_of(F->users(), [F](User *U) {
-          if (auto *CS = dyn_cast<CallBase>(U))
-            return CS->getFunction() == F;
-          return false;
-        })) {
-      Solver.markFunctionUnreachable(F);
-      FullySpecialized.insert(F);
-    }
+    if (!AI.Partial)
+      Solver.markFunctionUnreachable(AI.Fn);
   }
 
   /// Compute and return the cost of specializing function \p F.
@@ -571,20 +558,31 @@ private:
     DominatorTree DT(*F);
     LoopInfo LI(DT);
     auto &TTI = (GetTTI)(*F);
-    LLVM_DEBUG(dbgs() << "FnSpecialization: Analysing bonus for constant: "
-                      << C->getNameOrAsOperand() << "\n");
+    LLVM_DEBUG(dbgs() << "FnSpecialization: Analysing bonus for: " << *A
+                      << "\n");
 
     InstructionCost TotalCost = 0;
     for (auto *U : A->users()) {
       TotalCost += getUserBonus(U, TTI, LI);
-      LLVM_DEBUG(dbgs() << "FnSpecialization:   User cost ";
+      LLVM_DEBUG(dbgs() << "FnSpecialization: User cost ";
                  TotalCost.print(dbgs()); dbgs() << " for: " << *U << "\n");
     }
 
     // The below heuristic is only concerned with exposing inlining
     // opportunities via indirect call promotion. If the argument is not a
-    // (potentially casted) function pointer, give up.
-    Function *CalledFunction = dyn_cast<Function>(C->stripPointerCasts());
+    // function pointer, give up.
+    if (!isa<PointerType>(A->getType()) ||
+        !isa<FunctionType>(A->getType()->getPointerElementType()))
+      return TotalCost;
+
+    // Since the argument is a function pointer, its incoming constant values
+    // should be functions or constant expressions. The code below attempts to
+    // look through cast expressions to find the function that will be called.
+    Value *CalledValue = C;
+    while (isa<ConstantExpr>(CalledValue) &&
+           cast<ConstantExpr>(CalledValue)->isCast())
+      CalledValue = cast<User>(CalledValue)->getOperand(0);
+    Function *CalledFunction = dyn_cast<Function>(CalledValue);
     if (!CalledFunction)
       return TotalCost;
 
@@ -624,9 +622,6 @@ private:
         Bonus += Params.DefaultThreshold;
       else if (IC.isVariable() && IC.getCostDelta() > 0)
         Bonus += IC.getCostDelta();
-
-      LLVM_DEBUG(dbgs() << "FnSpecialization:   Inlining bonus " << Bonus
-                        << " for user " << *U << "\n");
     }
 
     return TotalCost + Bonus;
@@ -639,11 +634,15 @@ private:
   /// specializing the function based on the incoming values of argument \p A
   /// would result in any significant optimization opportunities. If
   /// optimization opportunities exist, the constant values of \p A on which to
-  /// specialize the function are collected in \p Constants.
+  /// specialize the function are collected in \p Constants. If the values in
+  /// \p Constants represent the complete set of values that \p A can take on,
+  /// the function will be completely specialized, and the \p IsPartial flag is
+  /// set to false.
   ///
   /// \returns true if the function should be specialized on the given
   /// argument.
-  bool isArgumentInteresting(Argument *A, ConstList &Constants) {
+  bool isArgumentInteresting(Argument *A, ConstList &Constants,
+                             bool &IsPartial) {
     // For now, don't attempt to specialize functions based on the values of
     // composite types.
     if (!A->getType()->isSingleValueType() || A->user_empty())
@@ -652,9 +651,8 @@ private:
     // If the argument isn't overdefined, there's nothing to do. It should
     // already be constant.
     if (!Solver.getLatticeValueFor(A).isOverdefined()) {
-      LLVM_DEBUG(dbgs() << "FnSpecialization: Nothing to do, argument "
-                        << A->getNameOrAsOperand()
-                        << " is already constant?\n");
+      LLVM_DEBUG(dbgs() << "FnSpecialization: nothing to do, arg is already "
+                        << "constant?\n");
       return false;
     }
 
@@ -671,20 +669,20 @@ private:
     //
     // TODO 2: this currently does not support constants, i.e. integer ranges.
     //
-    getPossibleConstants(A, Constants);
-
-    if (Constants.empty())
-      return false;
-
-    LLVM_DEBUG(dbgs() << "FnSpecialization: Found interesting argument "
-                      << A->getNameOrAsOperand() << "\n");
+    IsPartial = !getPossibleConstants(A, Constants);
+    LLVM_DEBUG(dbgs() << "FnSpecialization: interesting arg: " << *A << "\n");
     return true;
   }
 
   /// Collect in \p Constants all the constant values that argument \p A can
   /// take on.
-  void getPossibleConstants(Argument *A, ConstList &Constants) {
+  ///
+  /// \returns true if all of the values the argument can take on are constant
+  /// (e.g., the argument's parent function cannot be called with an
+  /// overdefined value).
+  bool getPossibleConstants(Argument *A, ConstList &Constants) {
     Function *F = A->getParent();
+    bool AllConstant = true;
 
     // Iterate over all the call sites of the argument's parent function.
     for (User *U : F->users()) {
@@ -693,8 +691,10 @@ private:
       auto &CS = *cast<CallBase>(U);
       // If the call site has attribute minsize set, that callsite won't be
       // specialized.
-      if (CS.hasFnAttr(Attribute::MinSize))
+      if (CS.hasFnAttr(Attribute::MinSize)) {
+        AllConstant = false;
         continue;
+      }
 
       // If the parent of the call site will never be executed, we don't need
       // to worry about the passed value.
@@ -703,13 +703,13 @@ private:
 
       auto *V = CS.getArgOperand(A->getArgNo());
       if (isa<PoisonValue>(V))
-        return;
+        return false;
 
       // For now, constant expressions are fine but only if they are function
       // calls.
       if (auto *CE = dyn_cast<ConstantExpr>(V))
         if (!isa<Function>(CE->getOperand(0)))
-          return;
+          return false;
 
       // TrackValueOfGlobalVariable only tracks scalar global variables.
       if (auto *GV = dyn_cast<GlobalVariable>(V)) {
@@ -717,30 +717,35 @@ private:
         // global values.
         if (!GV->isConstant())
           if (!SpecializeOnAddresses)
-            return;
+            return false;
 
         if (!GV->getValueType()->isSingleValueType())
-          return;
+          return false;
       }
 
       if (isa<Constant>(V) && (Solver.getLatticeValueFor(V).isConstant() ||
                                EnableSpecializationForLiteralConstant))
         Constants.push_back(cast<Constant>(V));
+      else
+        AllConstant = false;
     }
+
+    // If the argument can only take on constant values, AllConstant will be
+    // true.
+    return AllConstant;
   }
 
   /// Rewrite calls to function \p F to call function \p Clone instead.
   ///
-  /// This function modifies calls to function \p F as long as the actual
-  /// argument matches the one in \p Arg. Note that for recursive calls we
-  /// need to compare against the cloned formal argument.
+  /// This function modifies calls to function \p F whose argument at index \p
+  /// ArgNo is equal to constant \p C. The calls are rewritten to call function
+  /// \p Clone instead.
   ///
   /// Callsites that have been marked with the MinSize function attribute won't
   /// be specialized and rewritten.
-  void rewriteCallSites(Function *Clone, const ArgInfo &Arg,
-                        ValueToValueMapTy &Mappings) {
-    Function *F = Arg.Formal->getParent();
-    unsigned ArgNo = Arg.Formal->getArgNo();
+  void rewriteCallSites(Function *F, Function *Clone, Argument &Arg,
+                        Constant *C) {
+    unsigned ArgNo = Arg.getArgNo();
     SmallVector<CallBase *, 4> CallSitesToRewrite;
     for (auto *U : F->users()) {
       if (!isa<CallInst>(U) && !isa<InvokeInst>(U))
@@ -750,44 +755,35 @@ private:
         continue;
       CallSitesToRewrite.push_back(&CS);
     }
-
-    LLVM_DEBUG(dbgs() << "FnSpecialization: Replacing call sites of "
-                      << F->getName() << " with "
-                      << Clone->getName() << "\n");
-
     for (auto *CS : CallSitesToRewrite) {
-      LLVM_DEBUG(dbgs() << "FnSpecialization:   "
-                        << CS->getFunction()->getName() << " ->"
-                        << *CS << "\n");
-      if (/* recursive call */
-          (CS->getFunction() == Clone &&
-           CS->getArgOperand(ArgNo) == Mappings[Arg.Formal]) ||
-          /* normal call */
-          CS->getArgOperand(ArgNo) == Arg.Actual) {
+      if ((CS->getFunction() == Clone && CS->getArgOperand(ArgNo) == &Arg) ||
+          CS->getArgOperand(ArgNo) == C) {
         CS->setCalledFunction(Clone);
         Solver.markOverdefined(CS);
       }
     }
   }
 
-  void updateSpecializedFuncs(FuncList &Candidates, FuncList &WorkList) {
-    for (auto *F : WorkList) {
-      SpecializedFuncs.insert(F);
+  void updateSpecializedFuncs(FuncList &FuncDecls,
+                              FuncList &CurrentSpecializations) {
+    for (auto *SpecializedFunc : CurrentSpecializations) {
+      SpecializedFuncs.insert(SpecializedFunc);
 
       // Initialize the state of the newly created functions, marking them
       // argument-tracked and executable.
-      if (F->hasExactDefinition() && !F->hasFnAttribute(Attribute::Naked))
-        Solver.addTrackedFunction(F);
+      if (SpecializedFunc->hasExactDefinition() &&
+          !SpecializedFunc->hasFnAttribute(Attribute::Naked))
+        Solver.addTrackedFunction(SpecializedFunc);
 
-      Solver.addArgumentTrackedFunction(F);
-      Candidates.push_back(F);
-      Solver.markBlockExecutable(&F->front());
+      Solver.addArgumentTrackedFunction(SpecializedFunc);
+      FuncDecls.push_back(SpecializedFunc);
+      Solver.markBlockExecutable(&SpecializedFunc->front());
 
       // Replace the function arguments for the specialized functions.
-      for (Argument &Arg : F->args())
+      for (Argument &Arg : SpecializedFunc->args())
         if (!Arg.use_empty() && tryToReplaceWithConstant(&Arg))
           LLVM_DEBUG(dbgs() << "FnSpecialization: Replaced constant argument: "
-                            << Arg.getNameOrAsOperand() << "\n");
+                            << Arg.getName() << "\n");
     }
   }
 };
@@ -894,26 +890,23 @@ bool llvm::runFunctionSpecialization(
   // Initially resolve the constants in all the argument tracked functions.
   RunSCCPSolver(FuncDecls);
 
-  SmallVector<Function *, 2> WorkList;
+  SmallVector<Function *, 2> CurrentSpecializations;
   unsigned I = 0;
   while (FuncSpecializationMaxIters != I++ &&
-         FS.specializeFunctions(FuncDecls, WorkList)) {
-    LLVM_DEBUG(dbgs() << "FnSpecialization: Finished iteration " << I << "\n");
+         FS.specializeFunctions(FuncDecls, CurrentSpecializations)) {
 
     // Run the solver for the specialized functions.
-    RunSCCPSolver(WorkList);
+    RunSCCPSolver(CurrentSpecializations);
 
     // Replace some unresolved constant arguments.
     constantArgPropagation(FuncDecls, M, Solver);
 
-    WorkList.clear();
+    CurrentSpecializations.clear();
     Changed = true;
   }
 
-  LLVM_DEBUG(dbgs() << "FnSpecialization: Number of specializations = "
-                    << NumFuncSpecialized <<"\n");
-
-  // Remove any ssa_copy intrinsics that may have been introduced.
+  // Clean up the IR by removing dead instructions and ssa_copy intrinsics.
+  FS.removeDeadInstructions();
   removeSSACopy(M);
   return Changed;
 }

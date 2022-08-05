@@ -408,7 +408,6 @@ def Tensor_GenerateOp : Tensor_Op<"generate",
 
   let hasCanonicalizer = 1;
   let hasVerifier = 1;
-  let hasRegionVerifier = 1;
 }
 
 //===----------------------------------------------------------------------===//
@@ -984,7 +983,6 @@ def Tensor_PadOp : Tensor_Op<"pad", [AttrSizedOperandSegments, NoSideEffect,
   let hasCanonicalizer = 1;
   let hasFolder = 1;
   let hasVerifier = 1;
-  let hasRegionVerifier = 1;
 }
 
 //===----------------------------------------------------------------------===//

@@ -81,8 +81,6 @@ class Breakpoint : public std::enable_shared_from_this<Breakpoint>,
                    public Stoppoint {
 public:
   static ConstString GetEventIdentifier();
-  static const char *
-      BreakpointEventTypeAsCString(lldb::BreakpointEventType type);
 
   /// An enum specifying the match style for breakpoint settings.  At present
   /// only used for function name style breakpoints.
@@ -107,14 +105,12 @@ public:
     ~BreakpointEventData() override;
 
     static ConstString GetFlavorString();
-    
-    Log *GetLogChannel() override;
 
     ConstString GetFlavor() const override;
 
     lldb::BreakpointEventType GetBreakpointEventType() const;
 
-    lldb::BreakpointSP GetBreakpoint() const;
+    lldb::BreakpointSP &GetBreakpoint();
 
     BreakpointLocationCollection &GetBreakpointLocationCollection() {
       return m_locations;

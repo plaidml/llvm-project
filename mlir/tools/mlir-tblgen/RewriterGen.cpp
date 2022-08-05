@@ -243,7 +243,7 @@ private:
   StaticMatcherHelper &staticMatcherHelper;
 
   // The next unused ID for newly created values.
-  unsigned nextValueId = 0;
+  unsigned nextValueId;
 
   raw_indented_ostream os;
 
@@ -322,7 +322,7 @@ private:
   int staticMatcherCounter = 0;
 
   // The DagLeaf which contains type or attr constraint.
-  SetVector<DagLeaf> constraints;
+  DenseSet<DagLeaf> constraints;
 
   // Static type/attribute verification function emitter.
   StaticVerifierFunctionEmitter staticVerifierEmitter;
@@ -333,7 +333,8 @@ private:
 PatternEmitter::PatternEmitter(Record *pat, RecordOperatorMap *mapper,
                                raw_ostream &os, StaticMatcherHelper &helper)
     : loc(pat->getLoc()), opMap(mapper), pattern(pat, mapper),
-      symbolInfoMap(pat->getLoc()), staticMatcherHelper(helper), os(os) {
+      symbolInfoMap(pat->getLoc()), staticMatcherHelper(helper), nextValueId(0),
+      os(os) {
   fmtCtx.withBuilder("rewriter");
 }
 
@@ -1712,7 +1713,7 @@ void StaticMatcherHelper::populateStaticMatchers(raw_ostream &os) {
 }
 
 void StaticMatcherHelper::populateStaticConstraintFunctions(raw_ostream &os) {
-  staticVerifierEmitter.emitPatternConstraints(constraints.getArrayRef());
+  staticVerifierEmitter.emitPatternConstraints(constraints);
 }
 
 void StaticMatcherHelper::addPattern(Record *record) {

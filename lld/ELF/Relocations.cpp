@@ -42,7 +42,6 @@
 
 #include "Relocations.h"
 #include "Config.h"
-#include "InputFiles.h"
 #include "LinkerScript.h"
 #include "OutputSections.h"
 #include "SymbolTable.h"
@@ -248,7 +247,7 @@ template <class ELFT> static bool isReadOnly(SharedSymbol &ss) {
   using Elf_Phdr = typename ELFT::Phdr;
 
   // Determine if the symbol is read-only by scanning the DSO's program headers.
-  const auto &file = cast<SharedFile>(*ss.file);
+  const SharedFile &file = ss.getFile();
   for (const Elf_Phdr &phdr :
        check(file.template getObj<ELFT>().program_headers()))
     if ((phdr.p_type == ELF::PT_LOAD || phdr.p_type == ELF::PT_GNU_RELRO) &&
@@ -267,7 +266,7 @@ template <class ELFT>
 static SmallSet<SharedSymbol *, 4> getSymbolsAt(SharedSymbol &ss) {
   using Elf_Sym = typename ELFT::Sym;
 
-  const auto &file = cast<SharedFile>(*ss.file);
+  SharedFile &file = ss.getFile();
 
   SmallSet<SharedSymbol *, 4> ret;
   for (const Elf_Sym &s : file.template getGlobalELFSyms<ELFT>()) {
@@ -351,7 +350,7 @@ static void replaceWithDefined(Symbol &sym, SectionBase &sec, uint64_t value,
 // to the variable in .bss. This kind of issue is sometimes very hard to
 // debug. What's a solution? Instead of exporting a variable V from a DSO,
 // define an accessor getV().
-template <class ELFT> static void addCopyRelSymbol(SharedSymbol &ss) {
+template <class ELFT> static void addCopyRelSymbolImpl(SharedSymbol &ss) {
   // Copy relocation against zero-sized symbol doesn't make sense.
   uint64_t symSize = ss.getSize();
   if (symSize == 0 || ss.alignment == 0)
@@ -380,6 +379,26 @@ template <class ELFT> static void addCopyRelSymbol(SharedSymbol &ss) {
     replaceWithDefined(*sym, *sec, 0, sym->size);
 
   mainPart->relaDyn->addSymbolReloc(target->copyRel, *sec, 0, ss);
+}
+
+static void addCopyRelSymbol(SharedSymbol &ss) {
+  const SharedFile &file = ss.getFile();
+  switch (file.ekind) {
+  case ELF32LEKind:
+    addCopyRelSymbolImpl<ELF32LE>(ss);
+    break;
+  case ELF32BEKind:
+    addCopyRelSymbolImpl<ELF32BE>(ss);
+    break;
+  case ELF64LEKind:
+    addCopyRelSymbolImpl<ELF64LE>(ss);
+    break;
+  case ELF64BEKind:
+    addCopyRelSymbolImpl<ELF64BE>(ss);
+    break;
+  default:
+    llvm_unreachable("");
+  }
 }
 
 // .eh_frame sections are mergeable input sections, so their input
@@ -1602,7 +1621,7 @@ void elf::postScanRelocations() {
       addPltEntry(*in.plt, *in.gotPlt, *in.relaPlt, target->pltRel, sym);
     if (sym.needsCopy) {
       if (sym.isObject()) {
-        invokeELFT(addCopyRelSymbol, cast<SharedSymbol>(sym));
+        addCopyRelSymbol(cast<SharedSymbol>(sym));
         // needsCopy is cleared for sym and its aliases so that in later
         // iterations aliases won't cause redundant copies.
         assert(!sym.needsCopy);

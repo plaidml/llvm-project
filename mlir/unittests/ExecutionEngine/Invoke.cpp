@@ -7,10 +7,10 @@
 //===----------------------------------------------------------------------===//
 
 #include "mlir/Conversion/ArithmeticToLLVM/ArithmeticToLLVM.h"
-#include "mlir/Conversion/FuncToLLVM/ConvertFuncToLLVMPass.h"
 #include "mlir/Conversion/LinalgToLLVM/LinalgToLLVM.h"
 #include "mlir/Conversion/MemRefToLLVM/MemRefToLLVM.h"
 #include "mlir/Conversion/ReconcileUnrealizedCasts/ReconcileUnrealizedCasts.h"
+#include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVMPass.h"
 #include "mlir/Conversion/VectorToLLVM/ConvertVectorToLLVM.h"
 #include "mlir/Conversion/VectorToSCF/VectorToSCF.h"
 #include "mlir/Dialect/Linalg/Passes.h"
@@ -20,7 +20,7 @@
 #include "mlir/ExecutionEngine/RunnerUtils.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/InitAllDialects.h"
-#include "mlir/Parser/Parser.h"
+#include "mlir/Parser.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Export.h"
@@ -47,7 +47,7 @@ static LogicalResult lowerToLLVMDialect(ModuleOp module) {
   PassManager pm(module.getContext());
   pm.addPass(mlir::createMemRefToLLVMPass());
   pm.addNestedPass<FuncOp>(mlir::arith::createConvertArithmeticToLLVMPass());
-  pm.addPass(mlir::createConvertFuncToLLVMPass());
+  pm.addPass(mlir::createLowerToLLVMPass());
   pm.addPass(mlir::createReconcileUnrealizedCastsPass());
   return pm.run(module);
 }
@@ -63,8 +63,7 @@ TEST(MLIRExecutionEngine, AddInteger) {
   registerAllDialects(registry);
   registerLLVMDialectTranslation(registry);
   MLIRContext context(registry);
-  OwningOpRef<ModuleOp> module =
-      parseSourceString<ModuleOp>(moduleStr, &context);
+  OwningOpRef<ModuleOp> module = parseSourceString(moduleStr, &context);
   ASSERT_TRUE(!!module);
   ASSERT_TRUE(succeeded(lowerToLLVMDialect(*module)));
   auto jitOrError = ExecutionEngine::create(*module);
@@ -89,8 +88,7 @@ TEST(MLIRExecutionEngine, SubtractFloat) {
   registerAllDialects(registry);
   registerLLVMDialectTranslation(registry);
   MLIRContext context(registry);
-  OwningOpRef<ModuleOp> module =
-      parseSourceString<ModuleOp>(moduleStr, &context);
+  OwningOpRef<ModuleOp> module = parseSourceString(moduleStr, &context);
   ASSERT_TRUE(!!module);
   ASSERT_TRUE(succeeded(lowerToLLVMDialect(*module)));
   auto jitOrError = ExecutionEngine::create(*module);
@@ -120,7 +118,7 @@ TEST(NativeMemRefJit, ZeroRankMemref) {
   registerAllDialects(registry);
   registerLLVMDialectTranslation(registry);
   MLIRContext context(registry);
-  auto module = parseSourceString<ModuleOp>(moduleStr, &context);
+  auto module = parseSourceString(moduleStr, &context);
   ASSERT_TRUE(!!module);
   ASSERT_TRUE(succeeded(lowerToLLVMDialect(*module)));
   auto jitOrError = ExecutionEngine::create(*module);
@@ -155,7 +153,7 @@ TEST(NativeMemRefJit, RankOneMemref) {
   registerAllDialects(registry);
   registerLLVMDialectTranslation(registry);
   MLIRContext context(registry);
-  auto module = parseSourceString<ModuleOp>(moduleStr, &context);
+  auto module = parseSourceString(moduleStr, &context);
   ASSERT_TRUE(!!module);
   ASSERT_TRUE(succeeded(lowerToLLVMDialect(*module)));
   auto jitOrError = ExecutionEngine::create(*module);
@@ -209,8 +207,7 @@ TEST(NativeMemRefJit, BasicMemref) {
   registerAllDialects(registry);
   registerLLVMDialectTranslation(registry);
   MLIRContext context(registry);
-  OwningOpRef<ModuleOp> module =
-      parseSourceString<ModuleOp>(moduleStr, &context);
+  OwningOpRef<ModuleOp> module = parseSourceString(moduleStr, &context);
   ASSERT_TRUE(!!module);
   ASSERT_TRUE(succeeded(lowerToLLVMDialect(*module)));
   auto jitOrError = ExecutionEngine::create(*module);
@@ -252,7 +249,7 @@ TEST(NativeMemRefJit, JITCallback) {
   registerAllDialects(registry);
   registerLLVMDialectTranslation(registry);
   MLIRContext context(registry);
-  auto module = parseSourceString<ModuleOp>(moduleStr, &context);
+  auto module = parseSourceString(moduleStr, &context);
   ASSERT_TRUE(!!module);
   ASSERT_TRUE(succeeded(lowerToLLVMDialect(*module)));
   auto jitOrError = ExecutionEngine::create(*module);

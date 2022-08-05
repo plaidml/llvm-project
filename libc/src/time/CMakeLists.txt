@@ -7,7 +7,7 @@ add_object_library(
   DEPENDS
     libc.include.errno
     libc.include.time
-    libc.src.errno.errno
+    libc.src.errno.__errno_location
 )
 
 add_entrypoint_object(
@@ -64,5 +64,5 @@ add_entrypoint_object(
     .time_utils
     libc.include.errno
     libc.include.time
-    libc.src.errno.errno
+    libc.src.errno.__errno_location
 )

@@ -18,8 +18,7 @@ using namespace mlir;
 
 namespace {
 struct TestDiagnosticFilterPass
-    : public PassWrapper<TestDiagnosticFilterPass,
-                         InterfacePass<SymbolOpInterface>> {
+    : public PassWrapper<TestDiagnosticFilterPass, OperationPass<FuncOp>> {
   StringRef getArgument() const final { return "test-diagnostic-filter"; }
   StringRef getDescription() const final {
     return "Test diagnostic filtering support.";

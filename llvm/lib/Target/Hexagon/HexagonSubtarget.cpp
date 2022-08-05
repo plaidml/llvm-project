@@ -95,7 +95,8 @@ HexagonSubtarget::HexagonSubtarget(const Triple &TT, StringRef CPU,
 
 HexagonSubtarget &
 HexagonSubtarget::initializeSubtargetDependencies(StringRef CPU, StringRef FS) {
-  Optional<Hexagon::ArchEnum> ArchVer = Hexagon::getCpu(CPUString);
+  Optional<Hexagon::ArchEnum> ArchVer =
+      Hexagon::GetCpu(Hexagon::CpuTable, CPUString);
   if (ArchVer)
     HexagonArchVersion = *ArchVer;
   else

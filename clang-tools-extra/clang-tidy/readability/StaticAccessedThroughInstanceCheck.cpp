@@ -19,15 +19,14 @@ namespace readability {
 
 static unsigned getNameSpecifierNestingLevel(const QualType &QType) {
   if (const ElaboratedType *ElType = QType->getAs<ElaboratedType>()) {
-    if (const NestedNameSpecifier *NestedSpecifiers = ElType->getQualifier()) {
-      unsigned NameSpecifierNestingLevel = 1;
-      do {
-        NameSpecifierNestingLevel++;
-        NestedSpecifiers = NestedSpecifiers->getPrefix();
-      } while (NestedSpecifiers);
+    const NestedNameSpecifier *NestedSpecifiers = ElType->getQualifier();
+    unsigned NameSpecifierNestingLevel = 1;
+    do {
+      NameSpecifierNestingLevel++;
+      NestedSpecifiers = NestedSpecifiers->getPrefix();
+    } while (NestedSpecifiers);
 
-      return NameSpecifierNestingLevel;
-    }
+    return NameSpecifierNestingLevel;
   }
   return 0;
 }
@@ -69,10 +68,6 @@ void StaticAccessedThroughInstanceCheck::check(
   PrintingPolicy PrintingPolicyWithSupressedTag(AstContext->getLangOpts());
   PrintingPolicyWithSupressedTag.SuppressTagKeyword = true;
   PrintingPolicyWithSupressedTag.SuppressUnwrittenScope = true;
-
-  PrintingPolicyWithSupressedTag.PrintCanonicalTypes =
-      !BaseExpr->getType()->isTypedefNameType();
-
   std::string BaseTypeName =
       BaseType.getAsString(PrintingPolicyWithSupressedTag);
 

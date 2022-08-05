@@ -328,7 +328,9 @@ static bool isDivisibleBySymbol(AffineExpr expr, unsigned symbolPos,
          "unexpected opKind");
   switch (expr.getKind()) {
   case AffineExprKind::Constant:
-    return expr.cast<AffineConstantExpr>().getValue() == 0;
+    if (expr.cast<AffineConstantExpr>().getValue())
+      return false;
+    return true;
   case AffineExprKind::DimId:
     return false;
   case AffineExprKind::SymbolId:

@@ -7,9 +7,9 @@
 //===----------------------------------------------------------------------===//
 
 #include "llvm/ObjCopy/COFF/COFFObjcopy.h"
-#include "COFFObject.h"
-#include "COFFReader.h"
-#include "COFFWriter.h"
+#include "Object.h"
+#include "Reader.h"
+#include "Writer.h"
 #include "llvm/ObjCopy/COFF/COFFConfig.h"
 #include "llvm/ObjCopy/CommonConfig.h"
 
@@ -230,41 +230,56 @@ static Error handleArgs(const CommonConfig &Config,
             It->second.NewFlags, Sec.Header.Characteristics);
     }
 
-  for (const NewSectionInfo &NewSection : Config.AddSection) {
+  for (const auto &Flag : Config.AddSection) {
+    StringRef SecName, FileName;
+    std::tie(SecName, FileName) = Flag.split("=");
+
+    auto BufOrErr = MemoryBuffer::getFile(FileName);
+    if (!BufOrErr)
+      return createFileError(FileName, errorCodeToError(BufOrErr.getError()));
+    auto Buf = std::move(*BufOrErr);
+
     uint32_t Characteristics;
-    const auto It = Config.SetSectionFlags.find(NewSection.SectionName);
+    const auto It = Config.SetSectionFlags.find(SecName);
     if (It != Config.SetSectionFlags.end())
       Characteristics = flagsToCharacteristics(It->second.NewFlags, 0);
     else
       Characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_ALIGN_1BYTES;
 
-    addSection(Obj, NewSection.SectionName,
-               makeArrayRef(reinterpret_cast<const uint8_t *>(
-                                NewSection.SectionData->getBufferStart()),
-                            NewSection.SectionData->getBufferSize()),
-               Characteristics);
+    addSection(
+        Obj, SecName,
+        makeArrayRef(reinterpret_cast<const uint8_t *>(Buf->getBufferStart()),
+                     Buf->getBufferSize()),
+        Characteristics);
   }
 
-  for (const NewSectionInfo &NewSection : Config.UpdateSection) {
-    auto It = llvm::find_if(Obj.getMutableSections(), [&](auto &Sec) {
-      return Sec.Name == NewSection.SectionName;
+  for (StringRef Flag : Config.UpdateSection) {
+    StringRef SecName, FileName;
+    std::tie(SecName, FileName) = Flag.split('=');
+
+    auto BufOrErr = MemoryBuffer::getFile(FileName);
+    if (!BufOrErr)
+      return createFileError(FileName, errorCodeToError(BufOrErr.getError()));
+    auto Buf = std::move(*BufOrErr);
+
+    auto It = llvm::find_if(Obj.getMutableSections(), [SecName](auto &Sec) {
+      return Sec.Name == SecName;
     });
     if (It == Obj.getMutableSections().end())
       return createStringError(errc::invalid_argument,
                                "could not find section with name '%s'",
-                               NewSection.SectionName.str().c_str());
+                               SecName.str().c_str());
     size_t ContentSize = It->getContents().size();
     if (!ContentSize)
       return createStringError(
           errc::invalid_argument,
           "section '%s' cannot be updated because it does not have contents",
-          NewSection.SectionName.str().c_str());
-    if (ContentSize < NewSection.SectionData->getBufferSize())
+          SecName.str().c_str());
+    if (ContentSize < Buf->getBufferSize())
       return createStringError(
           errc::invalid_argument,
           "new section cannot be larger than previous section");
-    It->setOwnedContents({NewSection.SectionData->getBufferStart(),
-                          NewSection.SectionData->getBufferEnd()});
+    It->setOwnedContents({Buf->getBufferStart(), Buf->getBufferEnd()});
   }
 
   if (!Config.AddGnuDebugLink.empty())

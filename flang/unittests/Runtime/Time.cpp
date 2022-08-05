@@ -1,4 +1,4 @@
-//===-- flang/unittests/Runtime/Time.cpp ----------------------------===//
+//===-- flang/unittests/RuntimeGTest/Time.cpp -----------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -166,4 +166,3 @@ TEST(TimeIntrinsics, DateAndTime) {
     EXPECT_LE(minutes, 59);
   }
 }
-

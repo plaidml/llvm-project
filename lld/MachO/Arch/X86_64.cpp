@@ -102,9 +102,9 @@ void X86_64::relocateOne(uint8_t *loc, const Reloc &r, uint64_t value,
   switch (r.length) {
   case 2:
     if (r.type == X86_64_RELOC_UNSIGNED)
-      checkUInt(loc, r, value, 32);
+      checkUInt(r, value, 32);
     else
-      checkInt(loc, r, value, 32);
+      checkInt(r, value, 32);
     write32le(loc, value);
     break;
   case 3:
@@ -127,7 +127,7 @@ void X86_64::relocateOne(uint8_t *loc, const Reloc &r, uint64_t value,
 static void writeRipRelative(SymbolDiagnostic d, uint8_t *buf, uint64_t bufAddr,
                              uint64_t bufOff, uint64_t destAddr) {
   uint64_t rip = bufAddr + bufOff;
-  checkInt(buf, d, destAddr - rip, 32);
+  checkInt(d, destAddr - rip, 32);
   // For the instructions we care about, the RIP-relative address is always
   // stored in the last 4 bytes of the instruction.
   write32le(buf + bufOff - 4, destAddr - rip);

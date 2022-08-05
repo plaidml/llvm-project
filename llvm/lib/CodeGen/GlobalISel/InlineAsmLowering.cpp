@@ -12,10 +12,15 @@
 //===----------------------------------------------------------------------===//
 
 #include "llvm/CodeGen/GlobalISel/InlineAsmLowering.h"
+#include "llvm/CodeGen/Analysis.h"
 #include "llvm/CodeGen/GlobalISel/MachineIRBuilder.h"
+#include "llvm/CodeGen/GlobalISel/Utils.h"
 #include "llvm/CodeGen/MachineOperand.h"
 #include "llvm/CodeGen/MachineRegisterInfo.h"
 #include "llvm/CodeGen/TargetLowering.h"
+#include "llvm/IR/DataLayout.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 
 #define DEBUG_TYPE "inline-asm-lowering"
@@ -305,7 +310,7 @@ bool InlineAsmLowering::lowerInlineAsm(
       // If this is an indirect operand, the operand is a pointer to the
       // accessed type.
       if (OpInfo.isIndirect) {
-        OpTy = Call.getParamElementType(ArgNo);
+        OpTy = Call.getAttributes().getParamElementType(ArgNo);
         assert(OpTy && "Indirect operand must have elementtype attribute");
       }
 

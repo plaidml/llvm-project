@@ -12,13 +12,13 @@ add_mlir_conversion_library(MLIRSPIRVToLLVM
 
   LINK_LIBS PUBLIC
   MLIRArithmeticToLLVM
-  MLIRFuncToLLVM
   MLIRGPUOps
-  MLIRIR
+  MLIRSPIRV
+  MLIRSPIRVUtils
   MLIRLLVMCommonConversion
   MLIRLLVMIR
   MLIRMemRefToLLVM
-  MLIRSPIRV
-  MLIRSPIRVUtils
+  MLIRStandardToLLVM
+  MLIRIR
   MLIRTransforms
   )

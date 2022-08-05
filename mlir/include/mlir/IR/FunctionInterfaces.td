@@ -100,14 +100,6 @@ def FunctionOpInterface : OpInterface<"FunctionOpInterface"> {
     "::mlir::LogicalResult", "verifyType">,
   ];
 
-  let extraClassDeclaration = [{
-    //===------------------------------------------------------------------===//
-    // Name
-    //===------------------------------------------------------------------===//
-
-    /// Return the name of the function.
-    StringRef getName() { return SymbolTable::getSymbolName(*this); }
-  }];
   let extraSharedClassDeclaration = [{
     /// Block list iterator types.
     using BlockListType = Region::BlockListType;

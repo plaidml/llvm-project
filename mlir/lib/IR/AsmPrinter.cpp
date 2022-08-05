@@ -25,7 +25,6 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/SubElementInterfaces.h"
-#include "mlir/IR/Verifier.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/MapVector.h"
@@ -41,7 +40,6 @@
 #include "llvm/Support/Endian.h"
 #include "llvm/Support/Regex.h"
 #include "llvm/Support/SaveAndRestore.h"
-#include "llvm/Support/Threading.h"
 
 #include <tuple>
 
@@ -143,11 +141,6 @@ struct AsmPrinterOptions {
       "mlir-print-op-generic", llvm::cl::init(false),
       llvm::cl::desc("Print the generic op form"), llvm::cl::Hidden};
 
-  llvm::cl::opt<bool> assumeVerifiedOpt{
-      "mlir-print-assume-verified", llvm::cl::init(false),
-      llvm::cl::desc("Skip op verification when using custom printers"),
-      llvm::cl::Hidden};
-
   llvm::cl::opt<bool> printLocalScopeOpt{
       "mlir-print-local-scope", llvm::cl::init(false),
       llvm::cl::desc("Print with local scope and inline information (eliding "
@@ -167,8 +160,7 @@ void mlir::registerAsmPrinterCLOptions() {
 /// Initialize the printing flags with default supplied by the cl::opts above.
 OpPrintingFlags::OpPrintingFlags()
     : printDebugInfoFlag(false), printDebugInfoPrettyFormFlag(false),
-      printGenericOpFormFlag(false), assumeVerifiedFlag(false),
-      printLocalScope(false) {
+      printGenericOpFormFlag(false), printLocalScope(false) {
   // Initialize based upon command line options, if they are available.
   if (!clOptions.isConstructed())
     return;
@@ -177,7 +169,6 @@ OpPrintingFlags::OpPrintingFlags()
   printDebugInfoFlag = clOptions->printDebugInfoOpt;
   printDebugInfoPrettyFormFlag = clOptions->printPrettyDebugInfoOpt;
   printGenericOpFormFlag = clOptions->printGenericOpFormOpt;
-  assumeVerifiedFlag = clOptions->assumeVerifiedOpt;
   printLocalScope = clOptions->printLocalScopeOpt;
 }
 
@@ -202,12 +193,6 @@ OpPrintingFlags &OpPrintingFlags::enableDebugInfo(bool prettyForm) {
 /// Always print operations in the generic form.
 OpPrintingFlags &OpPrintingFlags::printGenericOpForm() {
   printGenericOpFormFlag = true;
-  return *this;
-}
-
-/// Do not verify the operation when using custom operation printers.
-OpPrintingFlags &OpPrintingFlags::assumeVerified() {
-  assumeVerifiedFlag = true;
   return *this;
 }
 
@@ -244,11 +229,6 @@ bool OpPrintingFlags::shouldPrintDebugInfoPrettyForm() const {
 /// Return if operations should be printed in the generic form.
 bool OpPrintingFlags::shouldPrintGenericOpForm() const {
   return printGenericOpFormFlag;
-}
-
-/// Return if operation verification should be skipped.
-bool OpPrintingFlags::shouldAssumeVerified() const {
-  return assumeVerifiedFlag;
 }
 
 /// Return if the printer should use local scope when dumping the IR.
@@ -1265,31 +1245,9 @@ private:
 } // namespace detail
 } // namespace mlir
 
-/// Verifies the operation and switches to generic op printing if verification
-/// fails. We need to do this because custom print functions may fail for
-/// invalid ops.
-static OpPrintingFlags verifyOpAndAdjustFlags(Operation *op,
-                                              OpPrintingFlags printerFlags) {
-  if (printerFlags.shouldPrintGenericOpForm() ||
-      printerFlags.shouldAssumeVerified())
-    return printerFlags;
-
-  // Ignore errors emitted by the verifier. We check the thread id to avoid
-  // consuming other threads' errors.
-  auto parentThreadId = llvm::get_threadid();
-  ScopedDiagnosticHandler diagHandler(op->getContext(), [&](Diagnostic &) {
-    return success(parentThreadId == llvm::get_threadid());
-  });
-  if (failed(verify(op)))
-    printerFlags.printGenericOpForm();
-
-  return printerFlags;
-}
-
 AsmState::AsmState(Operation *op, const OpPrintingFlags &printerFlags,
                    LocationMap *locationMap)
-    : impl(std::make_unique<AsmStateImpl>(
-          op, verifyOpAndAdjustFlags(op, printerFlags), locationMap)) {}
+    : impl(std::make_unique<AsmStateImpl>(op, printerFlags, locationMap)) {}
 AsmState::~AsmState() = default;
 
 const OpPrintingFlags &AsmState::getPrinterFlags() const {
@@ -2895,15 +2853,14 @@ void IntegerSet::print(raw_ostream &os) const {
   AsmPrinter::Impl(os).printIntegerSet(*this);
 }
 
-void Value::print(raw_ostream &os) { print(os, OpPrintingFlags()); }
-void Value::print(raw_ostream &os, const OpPrintingFlags &flags) {
+void Value::print(raw_ostream &os) {
   if (!impl) {
     os << "<<NULL VALUE>>";
     return;
   }
 
   if (auto *op = getDefiningOp())
-    return op->print(os, flags);
+    return op->print(os);
   // TODO: Improve BlockArgument print'ing.
   BlockArgument arg = this->cast<BlockArgument>();
   os << "<block argument> of type '" << arg.getType()

@@ -499,9 +499,7 @@ static bool shouldPinPassToLegacyPM(StringRef Pass) {
       "loop-reduce",          "lower-amx-type",
       "pre-amx-config",       "lower-amx-intrinsics",
       "polyhedral-info",      "replace-with-veclib",
-      "jmc-instrument",       "dot-regions",
-      "dot-regions-only",     "view-regions",
-      "view-regions-only"};
+      "jmc-instrument"};
   for (const auto &P : PassNamePrefix)
     if (Pass.startswith(P))
       return true;

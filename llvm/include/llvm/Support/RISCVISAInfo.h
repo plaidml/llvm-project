@@ -90,7 +90,6 @@ private:
   Error checkDependency();
 
   void updateImplication();
-  void updateCombination();
   void updateFLen();
   void updateMinVLen();
   void updateMaxELen();

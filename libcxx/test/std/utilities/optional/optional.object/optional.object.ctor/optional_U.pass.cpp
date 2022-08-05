@@ -12,11 +12,10 @@
 // template <class U>
 //   optional(optional<U>&& rhs);
 
-#include <cassert>
-#include <memory>
 #include <optional>
 #include <type_traits>
-#include <utility>
+#include <memory>
+#include <cassert>
 
 #include "test_macros.h"
 

@@ -9,6 +9,7 @@
 #ifndef LLVM_CLANG_TOOLS_EXTRA_CLANGD_DRAFTSTORE_H
 #define LLVM_CLANG_TOOLS_EXTRA_CLANGD_DRAFTSTORE_H
 
+#include "Protocol.h"
 #include "support/Path.h"
 #include "clang/Basic/LLVM.h"
 #include "llvm/ADT/StringMap.h"

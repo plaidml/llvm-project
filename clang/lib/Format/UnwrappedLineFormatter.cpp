@@ -310,8 +310,6 @@ private:
           for (; J != AnnotatedLines.begin(); --J)
             if ((*J)->Level < TheLine->Level)
               break;
-          if ((*J)->Level >= TheLine->Level)
-            return false;
 
           // Check if the found line starts a record.
           const FormatToken *LastNonComment = (*J)->Last;
@@ -484,8 +482,7 @@ private:
       } else {
         // Try to merge a block with left brace unwrapped that wasn't yet
         // covered.
-        assert(TheLine->InPPDirective ||
-               !TheLine->First->isOneOf(tok::kw_class, tok::kw_enum,
+        assert(!TheLine->First->isOneOf(tok::kw_class, tok::kw_enum,
                                         tok::kw_struct));
         ShouldMerge = !Style.BraceWrapping.AfterFunction ||
                       (NextLine.First->is(tok::r_brace) &&

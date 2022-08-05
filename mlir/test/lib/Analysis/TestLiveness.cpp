@@ -1,4 +1,5 @@
-//===- TestLiveness.cpp - Test liveness construction and information ------===//
+//===- TestLiveness.cpp - Test liveness construction and information
+//-------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -19,7 +20,7 @@ using namespace mlir;
 namespace {
 
 struct TestLivenessPass
-    : public PassWrapper<TestLivenessPass, InterfacePass<SymbolOpInterface>> {
+    : public PassWrapper<TestLivenessPass, OperationPass<FuncOp>> {
   StringRef getArgument() const final { return "test-print-liveness"; }
   StringRef getDescription() const final {
     return "Print the contents of a constructed liveness information.";

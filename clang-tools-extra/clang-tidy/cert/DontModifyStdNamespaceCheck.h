@@ -19,7 +19,7 @@ namespace cert {
 /// This check warns for such modifications.
 ///
 /// For the user-facing documentation see:
-/// https://clang.llvm.org/extra/clang-tidy/checks/cert-dcl58-cpp.html
+/// http://clang.llvm.org/extra/clang-tidy/checks/cert-msc53-cpp.html
 class DontModifyStdNamespaceCheck : public ClangTidyCheck {
 public:
   DontModifyStdNamespaceCheck(StringRef Name, ClangTidyContext *Context)

@@ -18,7 +18,6 @@
 
 using namespace lldb_private;
 using namespace lldb_private::postfix;
-using namespace lldb_private::dwarf;
 
 static llvm::Optional<BinaryOpNode::OpType>
 GetBinaryOpType(llvm::StringRef token) {

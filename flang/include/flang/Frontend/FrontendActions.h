@@ -109,10 +109,6 @@ class DebugDumpParseTreeAction : public PrescanAndSemaAction {
   void ExecuteAction() override;
 };
 
-class DebugDumpPFTAction : public PrescanAndSemaAction {
-  void ExecuteAction() override;
-};
-
 class DebugPreFIRTreeAction : public PrescanAndSemaAction {
   void ExecuteAction() override;
 };
@@ -137,12 +133,7 @@ class PluginParseTreeAction : public PrescanAndSemaAction {
 // PrescanAndSemaDebug Actions
 //
 // These actions will parse the input, run the semantic checks and execute
-// their actions _regardless of_ whether any semantic errors have been found.
-// This can be useful when adding new languge feature and when you wish to
-// investigate compiler output (e.g. the parse tree) despite any semantic
-// errors.
-//
-// NOTE: Use with care and for development only!
+// their actions regardless of whether any semantic errors are found.
 //===----------------------------------------------------------------------===//
 class PrescanAndSemaDebugAction : public FrontendAction {
 
@@ -192,19 +183,8 @@ class EmitLLVMAction : public CodeGenAction {
   void ExecuteAction() override;
 };
 
-class BackendAction : public CodeGenAction {
-public:
-  enum class BackendActionTy {
-    Backend_EmitAssembly, ///< Emit native assembly files
-    Backend_EmitObj ///< Emit native object files
-  };
-
-  BackendAction(BackendActionTy act) : action{act} {};
-
-private:
+class EmitObjAction : public CodeGenAction {
   void ExecuteAction() override;
-
-  BackendActionTy action;
 };
 
 } // namespace Fortran::frontend

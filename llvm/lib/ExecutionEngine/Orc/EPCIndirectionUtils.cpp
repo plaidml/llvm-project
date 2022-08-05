@@ -302,8 +302,7 @@ EPCIndirectionUtils::writeResolverBlock(JITTargetAddress ReentryFnAddr,
     return Alloc.takeError();
 
   auto SegInfo = Alloc->getSegInfo(MemProt::Read | MemProt::Exec);
-  ResolverBlockAddr = SegInfo.Addr.getValue();
-  ABI->writeResolverCode(SegInfo.WorkingMem.data(), ResolverBlockAddr,
+  ABI->writeResolverCode(SegInfo.WorkingMem.data(), SegInfo.Addr.getValue(),
                          ReentryFnAddr, ReentryCtxAddr);
 
   auto FA = Alloc->finalize();
@@ -311,7 +310,7 @@ EPCIndirectionUtils::writeResolverBlock(JITTargetAddress ReentryFnAddr,
     return FA.takeError();
 
   ResolverBlock = std::move(*FA);
-  return ResolverBlockAddr;
+  return SegInfo.Addr.getValue();
 }
 
 std::unique_ptr<IndirectStubsManager>

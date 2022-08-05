@@ -9,7 +9,7 @@
 #ifndef LLVM_LIB_OBJCOPY_MACHO_MACHOLAYOUTBUILDER_H
 #define LLVM_LIB_OBJCOPY_MACHO_MACHOLAYOUTBUILDER_H
 
-#include "MachOObject.h"
+#include "Object.h"
 #include "llvm/ObjCopy/MachO/MachOObjcopy.h"
 
 namespace llvm {

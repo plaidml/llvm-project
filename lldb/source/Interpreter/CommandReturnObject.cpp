@@ -109,11 +109,6 @@ void CommandReturnObject::SetError(const Status &error,
   AppendError(error.AsCString(fallback_error_cstr));
 }
 
-void CommandReturnObject::SetError(llvm::Error error) {
-  if (error)
-    AppendError(llvm::toString(std::move(error)));
-}
-
 // Similar to AppendError, but do not prepend 'Status: ' to message, and don't
 // append "\n" to the end of it.
 

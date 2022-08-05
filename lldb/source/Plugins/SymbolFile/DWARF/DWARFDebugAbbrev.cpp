@@ -12,6 +12,7 @@
 
 using namespace lldb;
 using namespace lldb_private;
+using namespace std;
 
 // DWARFAbbreviationDeclarationSet::Clear()
 void DWARFAbbreviationDeclarationSet::Clear() {

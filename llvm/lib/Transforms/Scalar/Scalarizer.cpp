@@ -39,6 +39,8 @@
 #include "llvm/Pass.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/CommandLine.h"
+#include "llvm/Support/MathExtras.h"
+#include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Utils/Local.h"
 #include <cassert>
 #include <cstdint>
@@ -94,7 +96,7 @@ public:
   // Scatter V into Size components.  If new instructions are needed,
   // insert them before BBI in BB.  If Cache is nonnull, use it to cache
   // the results.
-  Scatterer(BasicBlock *bb, BasicBlock::iterator bbi, Value *v, Type *PtrElemTy,
+  Scatterer(BasicBlock *bb, BasicBlock::iterator bbi, Value *v,
             ValueVector *cachePtr = nullptr);
 
   // Return component I, creating a new Value for it if necessary.
@@ -107,8 +109,8 @@ private:
   BasicBlock *BB;
   BasicBlock::iterator BBI;
   Value *V;
-  Type *PtrElemTy;
   ValueVector *CachePtr;
+  PointerType *PtrTy;
   ValueVector Tmp;
   unsigned Size;
 };
@@ -214,7 +216,7 @@ public:
   bool visitCallInst(CallInst &ICI);
 
 private:
-  Scatterer scatter(Instruction *Point, Value *V, Type *PtrElemTy = nullptr);
+  Scatterer scatter(Instruction *Point, Value *V);
   void gather(Instruction *Op, const ValueVector &CV);
   bool canTransferMetadata(unsigned Kind);
   void transferMetadataAndIRFlags(Instruction *Op, const ValueVector &CV);
@@ -263,14 +265,12 @@ INITIALIZE_PASS_END(ScalarizerLegacyPass, "scalarizer",
                     "Scalarize vector operations", false, false)
 
 Scatterer::Scatterer(BasicBlock *bb, BasicBlock::iterator bbi, Value *v,
-                     Type *PtrElemTy, ValueVector *cachePtr)
-    : BB(bb), BBI(bbi), V(v), PtrElemTy(PtrElemTy), CachePtr(cachePtr) {
+                     ValueVector *cachePtr)
+  : BB(bb), BBI(bbi), V(v), CachePtr(cachePtr) {
   Type *Ty = V->getType();
-  if (Ty->isPointerTy()) {
-    assert(cast<PointerType>(Ty)->isOpaqueOrPointeeTypeMatches(PtrElemTy) &&
-           "Pointer element type mismatch");
-    Ty = PtrElemTy;
-  }
+  PtrTy = dyn_cast<PointerType>(Ty);
+  if (PtrTy)
+    Ty = PtrTy->getPointerElementType();
   Size = cast<FixedVectorType>(Ty)->getNumElements();
   if (!CachePtr)
     Tmp.resize(Size, nullptr);
@@ -287,15 +287,15 @@ Value *Scatterer::operator[](unsigned I) {
   if (CV[I])
     return CV[I];
   IRBuilder<> Builder(BB, BBI);
-  if (PtrElemTy) {
-    Type *VectorElemTy = cast<VectorType>(PtrElemTy)->getElementType();
+  if (PtrTy) {
+    Type *ElTy =
+        cast<VectorType>(PtrTy->getPointerElementType())->getElementType();
     if (!CV[0]) {
-      Type *NewPtrTy = PointerType::get(
-          VectorElemTy, V->getType()->getPointerAddressSpace());
+      Type *NewPtrTy = PointerType::get(ElTy, PtrTy->getAddressSpace());
       CV[0] = Builder.CreateBitCast(V, NewPtrTy, V->getName() + ".i0");
     }
     if (I != 0)
-      CV[I] = Builder.CreateConstGEP1_32(VectorElemTy, CV[0], I,
+      CV[I] = Builder.CreateConstGEP1_32(ElTy, CV[0], I,
                                          V->getName() + ".i" + Twine(I));
   } else {
     // Search through a chain of InsertElementInsts looking for element I.
@@ -362,14 +362,13 @@ bool ScalarizerVisitor::visit(Function &F) {
 
 // Return a scattered form of V that can be accessed by Point.  V must be a
 // vector or a pointer to a vector.
-Scatterer ScalarizerVisitor::scatter(Instruction *Point, Value *V,
-                                     Type *PtrElemTy) {
+Scatterer ScalarizerVisitor::scatter(Instruction *Point, Value *V) {
   if (Argument *VArg = dyn_cast<Argument>(V)) {
     // Put the scattered form of arguments in the entry block,
     // so that it can be used everywhere.
     Function *F = VArg->getParent();
     BasicBlock *BB = &F->getEntryBlock();
-    return Scatterer(BB, BB->begin(), V, PtrElemTy, &Scattered[V]);
+    return Scatterer(BB, BB->begin(), V, &Scattered[V]);
   }
   if (Instruction *VOp = dyn_cast<Instruction>(V)) {
     // When scalarizing PHI nodes we might try to examine/rewrite InsertElement
@@ -380,17 +379,17 @@ Scatterer ScalarizerVisitor::scatter(Instruction *Point, Value *V,
     // need to analyse them further.
     if (!DT->isReachableFromEntry(VOp->getParent()))
       return Scatterer(Point->getParent(), Point->getIterator(),
-                       UndefValue::get(V->getType()), PtrElemTy);
+                       UndefValue::get(V->getType()));
     // Put the scattered form of an instruction directly after the
     // instruction, skipping over PHI nodes and debug intrinsics.
     BasicBlock *BB = VOp->getParent();
     return Scatterer(
         BB, skipPastPhiNodesAndDbg(std::next(BasicBlock::iterator(VOp))), V,
-        PtrElemTy, &Scattered[V]);
+        &Scattered[V]);
   }
   // In the fallback case, just put the scattered before Point and
   // keep the result local to Point.
-  return Scatterer(Point->getParent(), Point->getIterator(), V, PtrElemTy);
+  return Scatterer(Point->getParent(), Point->getIterator(), V);
 }
 
 // Replace Op with the gathered form of the components in CV.  Defer the
@@ -892,7 +891,7 @@ bool ScalarizerVisitor::visitLoadInst(LoadInst &LI) {
 
   unsigned NumElems = cast<FixedVectorType>(Layout->VecTy)->getNumElements();
   IRBuilder<> Builder(&LI);
-  Scatterer Ptr = scatter(&LI, LI.getPointerOperand(), LI.getType());
+  Scatterer Ptr = scatter(&LI, LI.getPointerOperand());
   ValueVector Res;
   Res.resize(NumElems);
 
@@ -918,7 +917,7 @@ bool ScalarizerVisitor::visitStoreInst(StoreInst &SI) {
 
   unsigned NumElems = cast<FixedVectorType>(Layout->VecTy)->getNumElements();
   IRBuilder<> Builder(&SI);
-  Scatterer VPtr = scatter(&SI, SI.getPointerOperand(), FullValue->getType());
+  Scatterer VPtr = scatter(&SI, SI.getPointerOperand());
   Scatterer VVal = scatter(&SI, FullValue);
 
   ValueVector Stores;

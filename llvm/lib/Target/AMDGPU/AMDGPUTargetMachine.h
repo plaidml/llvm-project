@@ -84,7 +84,7 @@ public:
 
   const TargetSubtargetInfo *getSubtargetImpl(const Function &) const override;
 
-  TargetTransformInfo getTargetTransformInfo(const Function &F) const override;
+  TargetTransformInfo getTargetTransformInfo(const Function &F) override;
 
   bool useIPRA() const override {
     return true;

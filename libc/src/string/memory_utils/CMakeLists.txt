@@ -1,4 +1,3 @@
-#TODO(michaelrj): split out the implementations from memory_utils
 add_header_library(
   memory_utils
   HDRS
@@ -9,7 +8,7 @@ add_header_library(
     memcpy_implementations.h
     memset_implementations.h
   DEPS
-    libc.src.__support.CPP.bit
+    standalone_cpp
 )
 
 add_header_library(
