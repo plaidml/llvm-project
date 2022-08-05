@@ -21,17 +21,17 @@ using namespace mlir;
 namespace {
 /// A pass for testing SPIR-V op availability.
 struct PrintOpAvailability
-    : public PassWrapper<PrintOpAvailability, OperationPass<FuncOp>> {
-  void runOnOperation() override;
+    : public PassWrapper<PrintOpAvailability, FunctionPass> {
+  void runOnFunction() override;
   StringRef getArgument() const final { return "test-spirv-op-availability"; }
   StringRef getDescription() const final {
     return "Test SPIR-V op availability";
   }
 };
-} // namespace
+} // end anonymous namespace
 
-void PrintOpAvailability::runOnOperation() {
-  auto f = getOperation();
+void PrintOpAvailability::runOnFunction() {
+  auto f = getFunction();
   llvm::outs() << f.getName() << "\n";
 
   Dialect *spvDialect = getContext().getLoadedDialect("spv");
@@ -43,23 +43,13 @@ void PrintOpAvailability::runOnOperation() {
     auto opName = op->getName();
     auto &os = llvm::outs();
 
-    if (auto minVersionIfx = dyn_cast<spirv::QueryMinVersionInterface>(op)) {
-      Optional<spirv::Version> minVersion = minVersionIfx.getMinVersion();
-      os << opName << " min version: ";
-      if (minVersion)
-        os << spirv::stringifyVersion(*minVersion) << "\n";
-      else
-        os << "None\n";
-    }
+    if (auto minVersion = dyn_cast<spirv::QueryMinVersionInterface>(op))
+      os << opName << " min version: "
+         << spirv::stringifyVersion(minVersion.getMinVersion()) << "\n";
 
-    if (auto maxVersionIfx = dyn_cast<spirv::QueryMaxVersionInterface>(op)) {
-      Optional<spirv::Version> maxVersion = maxVersionIfx.getMaxVersion();
-      os << opName << " max version: ";
-      if (maxVersion)
-        os << spirv::stringifyVersion(*maxVersion) << "\n";
-      else
-        os << "None\n";
-    }
+    if (auto maxVersion = dyn_cast<spirv::QueryMaxVersionInterface>(op))
+      os << opName << " max version: "
+         << spirv::stringifyVersion(maxVersion.getMaxVersion()) << "\n";
 
     if (auto extension = dyn_cast<spirv::QueryExtensionInterface>(op)) {
       os << opName << " extensions: [";
@@ -91,7 +81,7 @@ void PrintOpAvailability::runOnOperation() {
 }
 
 namespace mlir {
-void registerPrintSpirvAvailabilityPass() {
+void registerPrintOpAvailabilityPass() {
   PassRegistration<PrintOpAvailability>();
 }
 } // namespace mlir
@@ -103,12 +93,12 @@ void registerPrintSpirvAvailabilityPass() {
 namespace {
 /// A pass for testing SPIR-V op availability.
 struct ConvertToTargetEnv
-    : public PassWrapper<ConvertToTargetEnv, OperationPass<FuncOp>> {
+    : public PassWrapper<ConvertToTargetEnv, FunctionPass> {
   StringRef getArgument() const override { return "test-spirv-target-env"; }
   StringRef getDescription() const override {
     return "Test SPIR-V target environment";
   }
-  void runOnOperation() override;
+  void runOnFunction() override;
 };
 
 struct ConvertToAtomCmpExchangeWeak : public RewritePattern {
@@ -140,11 +130,11 @@ struct ConvertToSubgroupBallot : public RewritePattern {
   LogicalResult matchAndRewrite(Operation *op,
                                 PatternRewriter &rewriter) const override;
 };
-} // namespace
+} // end anonymous namespace
 
-void ConvertToTargetEnv::runOnOperation() {
+void ConvertToTargetEnv::runOnFunction() {
   MLIRContext *context = &getContext();
-  FuncOp fn = getOperation();
+  FuncOp fn = getFunction();
 
   auto targetEnv = fn.getOperation()
                        ->getAttr(spirv::getTargetEnvAttrName())

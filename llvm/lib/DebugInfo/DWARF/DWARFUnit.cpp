@@ -214,17 +214,13 @@ DWARFUnit::getAddrOffsetSectionItem(uint32_t Index) const {
   return {{Address, Section}};
 }
 
-Expected<uint64_t> DWARFUnit::getStringOffsetSectionItem(uint32_t Index) const {
+Optional<uint64_t> DWARFUnit::getStringOffsetSectionItem(uint32_t Index) const {
   if (!StringOffsetsTableContribution)
-    return make_error<StringError>(
-        "DW_FORM_strx used without a valid string offsets table",
-        inconvertibleErrorCode());
+    return None;
   unsigned ItemSize = getDwarfStringOffsetsByteSize();
   uint64_t Offset = getStringOffsetsBase() + Index * ItemSize;
   if (StringOffsetSection.Data.size() < Offset + ItemSize)
-    return make_error<StringError>("DW_FORM_strx uses index " + Twine(Index) +
-                                       ", which is too large",
-                                   inconvertibleErrorCode());
+    return None;
   DWARFDataExtractor DA(Context.getDWARFObj(), StringOffsetSection,
                         isLittleEndian, 0);
   return DA.getRelocatedValue(ItemSize, &Offset);
@@ -607,7 +603,7 @@ bool DWARFUnit::parseDWO() {
     DWO->setAddrOffsetSection(AddrOffsetSection, *AddrOffsetSectionBase);
   if (getVersion() == 4) {
     auto DWORangesBase = UnitDie.getRangesBaseAttribute();
-    DWO->setRangesSection(RangeSection, DWORangesBase.getValueOr(0));
+    DWO->setRangesSection(RangeSection, DWORangesBase ? *DWORangesBase : 0);
   }
 
   return true;

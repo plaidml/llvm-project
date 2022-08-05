@@ -30,7 +30,6 @@ class MDNode;
 class Module;
 struct SIProgramInfo;
 class Type;
-class GCNSubtarget;
 
 namespace AMDGPU {
 
@@ -87,8 +86,7 @@ protected:
 
   void emitKernelAttrs(const Function &Func, msgpack::MapDocNode Kern);
 
-  void emitKernelArgs(const Function &Func, const GCNSubtarget &ST,
-                      msgpack::MapDocNode Kern);
+  void emitKernelArgs(const Function &Func, msgpack::MapDocNode Kern);
 
   void emitKernelArg(const Argument &Arg, unsigned &Offset,
                      msgpack::ArrayDocNode Args);
@@ -100,8 +98,8 @@ protected:
                      StringRef BaseTypeName = "", StringRef AccQual = "",
                      StringRef TypeQual = "");
 
-  void emitHiddenKernelArgs(const Function &Func, const GCNSubtarget &ST,
-                            unsigned &Offset, msgpack::ArrayDocNode Args);
+  void emitHiddenKernelArgs(const Function &Func, unsigned &Offset,
+                            msgpack::ArrayDocNode Args);
 
   msgpack::DocNode &getRootMetadata(StringRef Key) {
     return HSAMetadataDoc->getRoot().getMap(/*Convert=*/true)[Key];
@@ -175,7 +173,7 @@ private:
 
   void emitKernelAttrs(const Function &Func);
 
-  void emitKernelArgs(const Function &Func, const GCNSubtarget &ST);
+  void emitKernelArgs(const Function &Func);
 
   void emitKernelArg(const Argument &Arg);
 
@@ -185,7 +183,7 @@ private:
                      StringRef BaseTypeName = "", StringRef AccQual = "",
                      StringRef TypeQual = "");
 
-  void emitHiddenKernelArgs(const Function &Func, const GCNSubtarget &ST);
+  void emitHiddenKernelArgs(const Function &Func);
 
   const Metadata &getHSAMetadata() const {
     return HSAMetadata;

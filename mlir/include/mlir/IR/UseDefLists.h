@@ -281,18 +281,15 @@ protected:
 /// a specific use iterator.
 template <typename UseIteratorT, typename OperandType>
 class ValueUserIterator final
-    : public llvm::mapped_iterator_base<
-          ValueUserIterator<UseIteratorT, OperandType>, UseIteratorT,
-          Operation *> {
+    : public llvm::mapped_iterator<UseIteratorT,
+                                   Operation *(*)(OperandType &)> {
+  static Operation *unwrap(OperandType &value) { return value.getOwner(); }
+
 public:
-  using llvm::mapped_iterator_base<ValueUserIterator<UseIteratorT, OperandType>,
-                                   UseIteratorT,
-                                   Operation *>::mapped_iterator_base;
-
-  /// Map the element to the iterator result type.
-  Operation *mapElement(OperandType &value) const { return value.getOwner(); }
-
-  /// Provide access to the underlying operation.
+  /// Initializes the user iterator to the specified use iterator.
+  ValueUserIterator(UseIteratorT it)
+      : llvm::mapped_iterator<UseIteratorT, Operation *(*)(OperandType &)>(
+            it, &unwrap) {}
   Operation *operator->() { return **this; }
 };
 

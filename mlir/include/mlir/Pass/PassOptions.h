@@ -242,7 +242,7 @@ private:
   /// A list of all of the opaque options.
   std::vector<OptionBase *> options;
 };
-} // namespace detail
+} // end namespace detail
 
 //===----------------------------------------------------------------------===//
 // PassPipelineOptions
@@ -276,7 +276,7 @@ public:
 struct EmptyPipelineOptions : public PassPipelineOptions<EmptyPipelineOptions> {
 };
 
-} // namespace mlir
+} // end namespace mlir
 
 #endif // MLIR_PASS_PASSOPTIONS_H_
 

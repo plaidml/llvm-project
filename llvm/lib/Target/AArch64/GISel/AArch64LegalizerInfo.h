@@ -21,6 +21,7 @@
 
 namespace llvm {
 
+class LLVMContext;
 class AArch64Subtarget;
 
 /// This class provides the information for the target register banks.

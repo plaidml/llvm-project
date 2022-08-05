@@ -1,4 +1,4 @@
-//===----------------------------------------------------------------------===//
+//===------------------------- cxa_exception.cpp --------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -1004,14 +1004,9 @@ extern "C" _Unwind_Reason_Code __gnu_unwind_frame(_Unwind_Exception*,
 static _Unwind_Reason_Code continue_unwind(_Unwind_Exception* unwind_exception,
                                            _Unwind_Context* context)
 {
-  switch (__gnu_unwind_frame(unwind_exception, context)) {
-  case _URC_OK:
+    if (__gnu_unwind_frame(unwind_exception, context) != _URC_OK)
+        return _URC_FAILURE;
     return _URC_CONTINUE_UNWIND;
-  case _URC_END_OF_STACK:
-    return _URC_END_OF_STACK;
-  default:
-    return _URC_FAILURE;
-  }
 }
 
 // ARM register names

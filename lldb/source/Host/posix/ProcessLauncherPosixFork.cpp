@@ -38,40 +38,43 @@
 using namespace lldb;
 using namespace lldb_private;
 
-// Begin code running in the child process
-// NB: This code needs to be async-signal safe, since we're invoking fork from
-// multithreaded contexts.
-
-static void write_string(int error_fd, const char *str) {
-  int r = write(error_fd, str, strlen(str));
-  (void)r;
+static void FixupEnvironment(Environment &env) {
+#ifdef __ANDROID__
+  // If there is no PATH variable specified inside the environment then set the
+  // path to /system/bin. It is required because the default path used by
+  // execve() is wrong on android.
+  env.try_emplace("PATH", "/system/bin");
+#endif
 }
 
 [[noreturn]] static void ExitWithError(int error_fd,
                                        const char *operation) {
   int err = errno;
-  write_string(error_fd, operation);
-  write_string(error_fd, " failed: ");
-  // strerror is not guaranteed to be async-signal safe, but it usually is.
-  write_string(error_fd, strerror(err));
+  llvm::raw_fd_ostream os(error_fd, true);
+  os << operation << " failed: " << llvm::sys::StrError(err);
+  os.flush();
   _exit(1);
 }
 
-static void DisableASLR(int error_fd) {
+static void DisableASLRIfRequested(int error_fd, const ProcessLaunchInfo &info) {
 #if defined(__linux__)
-  const unsigned long personality_get_current = 0xffffffff;
-  int value = personality(personality_get_current);
-  if (value == -1)
-    ExitWithError(error_fd, "personality get");
+  if (info.GetFlags().Test(lldb::eLaunchFlagDisableASLR)) {
+    const unsigned long personality_get_current = 0xffffffff;
+    int value = personality(personality_get_current);
+    if (value == -1)
+      ExitWithError(error_fd, "personality get");
 
-  value = personality(ADDR_NO_RANDOMIZE | value);
-  if (value == -1)
-    ExitWithError(error_fd, "personality set");
+    value = personality(ADDR_NO_RANDOMIZE | value);
+    if (value == -1)
+      ExitWithError(error_fd, "personality set");
+  }
 #endif
 }
 
-static void DupDescriptor(int error_fd, const char *file, int fd, int flags) {
-  int target_fd = llvm::sys::RetryAfterSignal(-1, ::open, file, flags, 0666);
+static void DupDescriptor(int error_fd, const FileSpec &file_spec, int fd,
+                          int flags) {
+  int target_fd = llvm::sys::RetryAfterSignal(-1, ::open,
+      file_spec.GetCString(), flags, 0666);
 
   if (target_fd == -1)
     ExitWithError(error_fd, "DupDescriptor-open");
@@ -83,69 +86,47 @@ static void DupDescriptor(int error_fd, const char *file, int fd, int flags) {
     ExitWithError(error_fd, "DupDescriptor-dup2");
 
   ::close(target_fd);
+  return;
 }
 
-namespace {
-struct ForkFileAction {
-  ForkFileAction(const FileAction &act);
-
-  FileAction::Action action;
-  int fd;
-  std::string path;
-  int arg;
-};
-
-struct ForkLaunchInfo {
-  ForkLaunchInfo(const ProcessLaunchInfo &info);
-
-  bool separate_process_group;
-  bool debug;
-  bool disable_aslr;
-  std::string wd;
-  const char **argv;
-  Environment::Envp envp;
-  std::vector<ForkFileAction> actions;
-
-  bool has_action(int fd) const {
-    for (const ForkFileAction &action : actions) {
-      if (action.fd == fd)
-        return true;
-    }
-    return false;
-  }
-};
-} // namespace
-
-[[noreturn]] static void ChildFunc(int error_fd, const ForkLaunchInfo &info) {
-  if (info.separate_process_group) {
+[[noreturn]] static void ChildFunc(int error_fd,
+                                   const ProcessLaunchInfo &info) {
+  if (info.GetFlags().Test(eLaunchFlagLaunchInSeparateProcessGroup)) {
     if (setpgid(0, 0) != 0)
       ExitWithError(error_fd, "setpgid");
   }
 
-  for (const ForkFileAction &action : info.actions) {
-    switch (action.action) {
+  for (size_t i = 0; i < info.GetNumFileActions(); ++i) {
+    const FileAction &action = *info.GetFileActionAtIndex(i);
+    switch (action.GetAction()) {
     case FileAction::eFileActionClose:
-      if (close(action.fd) != 0)
+      if (close(action.GetFD()) != 0)
         ExitWithError(error_fd, "close");
       break;
     case FileAction::eFileActionDuplicate:
-      if (dup2(action.fd, action.arg) == -1)
+      if (dup2(action.GetFD(), action.GetActionArgument()) == -1)
         ExitWithError(error_fd, "dup2");
       break;
     case FileAction::eFileActionOpen:
-      DupDescriptor(error_fd, action.path.c_str(), action.fd, action.arg);
+      DupDescriptor(error_fd, action.GetFileSpec(), action.GetFD(),
+                    action.GetActionArgument());
       break;
     case FileAction::eFileActionNone:
       break;
     }
   }
 
+  const char **argv = info.GetArguments().GetConstArgumentVector();
+
   // Change working directory
-  if (!info.wd.empty() && 0 != ::chdir(info.wd.c_str()))
+  if (info.GetWorkingDirectory() &&
+      0 != ::chdir(info.GetWorkingDirectory().GetCString()))
     ExitWithError(error_fd, "chdir");
 
-  if (info.disable_aslr)
-    DisableASLR(error_fd);
+  DisableASLRIfRequested(error_fd, info);
+  Environment env = info.GetEnvironment();
+  FixupEnvironment(env);
+  Environment::Envp envp = env.getEnvp();
 
   // Clear the signal mask to prevent the child from being affected by any
   // masking done by the parent.
@@ -154,7 +135,7 @@ struct ForkLaunchInfo {
       pthread_sigmask(SIG_SETMASK, &set, nullptr) != 0)
     ExitWithError(error_fd, "pthread_sigmask");
 
-  if (info.debug) {
+  if (info.GetFlags().Test(eLaunchFlagDebug)) {
     // Do not inherit setgid powers.
     if (setgid(getgid()) != 0)
       ExitWithError(error_fd, "setgid");
@@ -163,8 +144,6 @@ struct ForkLaunchInfo {
     // Close everything besides stdin, stdout, and stderr that has no file
     // action to avoid leaking. Only do this when debugging, as elsewhere we
     // actually rely on passing open descriptors to child processes.
-    // NB: This code is not async-signal safe, but we currently do not launch
-    // processes for debugging from within multithreaded contexts.
 
     const llvm::StringRef proc_fd_path = "/proc/self/fd";
     std::error_code ec;
@@ -179,7 +158,7 @@ struct ForkLaunchInfo {
 
         // Don't close first three entries since they are stdin, stdout and
         // stderr.
-        if (fd > 2 && !info.has_action(fd) && fd != error_fd)
+        if (fd > 2 && !info.GetFileActionForFD(fd) && fd != error_fd)
           files_to_close.push_back(fd);
       }
       for (int file_to_close : files_to_close)
@@ -188,7 +167,7 @@ struct ForkLaunchInfo {
       // Since /proc/self/fd didn't work, trying the slow way instead.
       int max_fd = sysconf(_SC_OPEN_MAX);
       for (int fd = 3; fd < max_fd; ++fd)
-        if (!info.has_action(fd) && fd != error_fd)
+        if (!info.GetFileActionForFD(fd) && fd != error_fd)
           close(fd);
     }
 
@@ -198,7 +177,7 @@ struct ForkLaunchInfo {
   }
 
   // Execute.  We should never return...
-  execve(info.argv[0], const_cast<char *const *>(info.argv), info.envp);
+  execve(argv[0], const_cast<char *const *>(argv), envp);
 
 #if defined(__linux__)
   if (errno == ETXTBSY) {
@@ -211,7 +190,7 @@ struct ForkLaunchInfo {
     // Since this state should clear up quickly, wait a while and then give it
     // one more go.
     usleep(50000);
-    execve(info.argv[0], const_cast<char *const *>(info.argv), info.envp);
+    execve(argv[0], const_cast<char *const *>(argv), envp);
   }
 #endif
 
@@ -220,51 +199,18 @@ struct ForkLaunchInfo {
   ExitWithError(error_fd, "execve");
 }
 
-// End of code running in the child process.
-
-ForkFileAction::ForkFileAction(const FileAction &act)
-    : action(act.GetAction()), fd(act.GetFD()), path(act.GetPath().str()),
-      arg(act.GetActionArgument()) {}
-
-static std::vector<ForkFileAction>
-MakeForkActions(const ProcessLaunchInfo &info) {
-  std::vector<ForkFileAction> result;
-  for (size_t i = 0; i < info.GetNumFileActions(); ++i)
-    result.emplace_back(*info.GetFileActionAtIndex(i));
-  return result;
-}
-
-static Environment::Envp FixupEnvironment(Environment env) {
-#ifdef __ANDROID__
-  // If there is no PATH variable specified inside the environment then set the
-  // path to /system/bin. It is required because the default path used by
-  // execve() is wrong on android.
-  env.try_emplace("PATH", "/system/bin");
-#endif
-  return env.getEnvp();
-}
-
-ForkLaunchInfo::ForkLaunchInfo(const ProcessLaunchInfo &info)
-    : separate_process_group(
-          info.GetFlags().Test(eLaunchFlagLaunchInSeparateProcessGroup)),
-      debug(info.GetFlags().Test(eLaunchFlagDebug)),
-      disable_aslr(info.GetFlags().Test(eLaunchFlagDisableASLR)),
-      wd(info.GetWorkingDirectory().GetPath()),
-      argv(info.GetArguments().GetConstArgumentVector()),
-      envp(FixupEnvironment(info.GetEnvironment())),
-      actions(MakeForkActions(info)) {}
-
 HostProcess
 ProcessLauncherPosixFork::LaunchProcess(const ProcessLaunchInfo &launch_info,
                                         Status &error) {
+  char exe_path[PATH_MAX];
+  launch_info.GetExecutableFile().GetPath(exe_path, sizeof(exe_path));
+
   // A pipe used by the child process to report errors.
   PipePosix pipe;
   const bool child_processes_inherit = false;
   error = pipe.CreateNew(child_processes_inherit);
   if (error.Fail())
     return HostProcess();
-
-  const ForkLaunchInfo fork_launch_info(launch_info);
 
   ::pid_t pid = ::fork();
   if (pid == -1) {
@@ -276,7 +222,7 @@ ProcessLauncherPosixFork::LaunchProcess(const ProcessLaunchInfo &launch_info,
   if (pid == 0) {
     // child process
     pipe.CloseReadFileDescriptor();
-    ChildFunc(pipe.ReleaseWriteFileDescriptor(), fork_launch_info);
+    ChildFunc(pipe.ReleaseWriteFileDescriptor(), launch_info);
   }
 
   // parent process

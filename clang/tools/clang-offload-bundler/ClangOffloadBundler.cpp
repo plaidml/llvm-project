@@ -180,19 +180,21 @@ struct OffloadTargetInfo {
   }
 };
 
-static StringRef getDeviceFileExtension(StringRef Device,
-                                        StringRef BundleFileName) {
+static StringRef getDeviceFileExtension(StringRef Device) {
   if (Device.contains("gfx"))
     return ".bc";
   if (Device.contains("sm_"))
     return ".cubin";
-  return sys::path::extension(BundleFileName);
+
+  WithColor::warning() << "Could not determine extension for archive"
+                          "members, using \".o\"\n";
+  return ".o";
 }
 
 static std::string getDeviceLibraryFileName(StringRef BundleFileName,
                                             StringRef Device) {
   StringRef LibName = sys::path::stem(BundleFileName);
-  StringRef Extension = getDeviceFileExtension(Device, BundleFileName);
+  StringRef Extension = getDeviceFileExtension(Device);
 
   std::string Result;
   Result += LibName;
@@ -356,7 +358,7 @@ class BinaryFileHandler final : public FileHandler {
   std::string CurWriteBundleTarget;
 
 public:
-  BinaryFileHandler() {}
+  BinaryFileHandler() : FileHandler() {}
 
   ~BinaryFileHandler() final {}
 
@@ -576,7 +578,8 @@ class ObjectFileHandler final : public FileHandler {
 
 public:
   ObjectFileHandler(std::unique_ptr<ObjectFile> ObjIn)
-      : Obj(std::move(ObjIn)), CurrentSection(Obj->section_begin()),
+      : FileHandler(), Obj(std::move(ObjIn)),
+        CurrentSection(Obj->section_begin()),
         NextSection(Obj->section_begin()) {}
 
   ~ObjectFileHandler() final {}
@@ -812,7 +815,8 @@ protected:
   }
 
 public:
-  TextFileHandler(StringRef Comment) : Comment(Comment), ReadChars(0) {
+  TextFileHandler(StringRef Comment)
+      : FileHandler(), Comment(Comment), ReadChars(0) {
     BundleStartString =
         "\n" + Comment.str() + " " OFFLOAD_BUNDLER_MAGIC_STR "__START__ ";
     BundleEndString =

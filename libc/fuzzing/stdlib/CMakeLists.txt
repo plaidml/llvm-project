@@ -7,9 +7,9 @@ add_libc_fuzzer(
 )
 
 add_libc_fuzzer(
-  atof_differential_fuzz
+  atof_fuzz
   SRCS
-    atof_differential_fuzz.cpp
+    atof_fuzz.cpp
   HDRS
     StringParserOutputDiff.h
   DEPENDS

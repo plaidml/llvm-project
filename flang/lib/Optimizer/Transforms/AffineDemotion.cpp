@@ -137,9 +137,9 @@ public:
 class AffineDialectDemotion
     : public AffineDialectDemotionBase<AffineDialectDemotion> {
 public:
-  void runOnOperation() override {
+  void runOnFunction() override {
     auto *context = &getContext();
-    auto function = getOperation();
+    auto function = getFunction();
     LLVM_DEBUG(llvm::dbgs() << "AffineDemotion: running on function:\n";
                function.print(llvm::dbgs()););
 

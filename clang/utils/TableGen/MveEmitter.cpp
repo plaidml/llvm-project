@@ -349,8 +349,13 @@ public:
   bool requiresFloat() const override { return false; };
   bool requiresMVE() const override { return true; }
   std::string llvmName() const override {
-    return "llvm::FixedVectorType::get(Builder.getInt1Ty(), " + utostr(Lanes) +
-           ")";
+    // Use <4 x i1> instead of <2 x i1> for two-lane vector types. See
+    // the comment in llvm/lib/Target/ARM/ARMInstrMVE.td for further
+    // explanation.
+    unsigned ModifiedLanes = (Lanes == 2 ? 4 : Lanes);
+
+    return "llvm::FixedVectorType::get(Builder.getInt1Ty(), " +
+           utostr(ModifiedLanes) + ")";
   }
 
   static bool classof(const Type *T) {
@@ -1489,7 +1494,8 @@ protected:
 class raw_self_contained_string_ostream : private string_holder,
                                           public raw_string_ostream {
 public:
-  raw_self_contained_string_ostream() : raw_string_ostream(S) {}
+  raw_self_contained_string_ostream()
+      : string_holder(), raw_string_ostream(S) {}
 };
 
 const char LLVMLicenseHeader[] =

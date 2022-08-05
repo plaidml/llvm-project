@@ -76,7 +76,8 @@ bool DeadMachineInstructionElim::isDead(const MachineInstr *MI) const {
     return false;
 
   // Examine each operand.
-  for (const MachineOperand &MO : MI->operands()) {
+  for (unsigned i = 0, e = MI->getNumOperands(); i != e; ++i) {
+    const MachineOperand &MO = MI->getOperand(i);
     if (MO.isReg() && MO.isDef()) {
       Register Reg = MO.getReg();
       if (Register::isPhysicalRegister(Reg)) {
@@ -86,7 +87,7 @@ bool DeadMachineInstructionElim::isDead(const MachineInstr *MI) const {
       } else {
         if (MO.isDead()) {
 #ifndef NDEBUG
-          // Baisc check on the register. All of them should be
+          // Sanity check on uses of this dead register. All of them should be
           // 'undef'.
           for (auto &U : MRI->use_nodbg_operands(Reg))
             assert(U.isUndef() && "'Undef' use on a 'dead' register is found!");
@@ -142,16 +143,17 @@ bool DeadMachineInstructionElim::eliminateDeadMI(MachineFunction &MF) {
       if (isDead(&MI)) {
         LLVM_DEBUG(dbgs() << "DeadMachineInstructionElim: DELETING: " << MI);
         // It is possible that some DBG_VALUE instructions refer to this
-        // instruction. They will be deleted in the live debug variable
-        // analysis.
-        MI.eraseFromParent();
+        // instruction.  They get marked as undef and will be deleted
+        // in the live debug variable analysis.
+        MI.eraseFromParentAndMarkDBGValuesForRemoval();
         AnyChanges = true;
         ++NumDeletes;
         continue;
       }
 
       // Record the physreg defs.
-      for (const MachineOperand &MO : MI.operands()) {
+      for (unsigned i = 0, e = MI.getNumOperands(); i != e; ++i) {
+        const MachineOperand &MO = MI.getOperand(i);
         if (MO.isReg() && MO.isDef()) {
           Register Reg = MO.getReg();
           if (Register::isPhysicalRegister(Reg)) {
@@ -169,7 +171,8 @@ bool DeadMachineInstructionElim::eliminateDeadMI(MachineFunction &MF) {
       }
       // Record the physreg uses, after the defs, in case a physreg is
       // both defined and used in the same instruction.
-      for (const MachineOperand &MO : MI.operands()) {
+      for (unsigned i = 0, e = MI.getNumOperands(); i != e; ++i) {
+        const MachineOperand &MO = MI.getOperand(i);
         if (MO.isReg() && MO.isUse()) {
           Register Reg = MO.getReg();
           if (Register::isPhysicalRegister(Reg)) {

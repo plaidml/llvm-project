@@ -26,9 +26,7 @@ using namespace _OMP;
 ///{
 
 /// Add worst-case padding so that future allocations are properly aligned.
-/// FIXME: The stack shouldn't require worst-case padding. Alignment needs to be
-/// passed in as an argument and the stack rewritten to support it.
-constexpr const uint32_t Alignment = 16;
+constexpr const uint32_t Alignment = 8;
 
 /// External symbol to access dynamic shared memory.
 extern unsigned char DynamicSharedBuffer[] __attribute__((aligned(Alignment)));
@@ -368,10 +366,8 @@ void *&state::lookupPtr(ValueKind Kind, bool IsReadonly) {
 
 void state::init(bool IsSPMD) {
   SharedMemorySmartStack.init(IsSPMD);
-  if (mapping::isInitialThreadInLevel0(IsSPMD)) {
+  if (mapping::isInitialThreadInLevel0(IsSPMD))
     TeamState.init(IsSPMD);
-    DebugEntryRAII::init();
-  }
 
   ThreadStates[mapping::getThreadIdInBlock()] = nullptr;
 }

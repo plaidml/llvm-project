@@ -6,9 +6,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_LIBC_FUZZING_MATH_REMQUO_H
-#define LLVM_LIBC_FUZZING_MATH_REMQUO_H
-
 #include "src/__support/FPUtil/FPBits.h"
 
 #include <math.h>
@@ -49,5 +46,3 @@ void RemQuoDiff(RemQuoFunc<T> func1, RemQuoFunc<T> func2, const uint8_t *data,
   if (bits1.uintval() != bits2.uintval())
     __builtin_trap();
 }
-
-#endif // LLVM_LIBC_FUZZING_MATH_REMQUO_H

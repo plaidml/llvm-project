@@ -168,14 +168,9 @@ public:
                       unsigned Update, VersionTuple SDKVersion) override;
   void emitBuildVersion(unsigned Platform, unsigned Major, unsigned Minor,
                         unsigned Update, VersionTuple SDKVersion) override;
-  void emitDarwinTargetVariantBuildVersion(unsigned Platform, unsigned Major,
-                                           unsigned Minor, unsigned Update,
-                                           VersionTuple SDKVersion) override;
   void emitThumbFunc(MCSymbol *Func) override;
 
   void emitAssignment(MCSymbol *Symbol, const MCExpr *Value) override;
-  void emitConditionalAssignment(MCSymbol *Symbol,
-                                 const MCExpr *Value) override;
   void emitWeakReference(MCSymbol *Alias, const MCSymbol *Symbol) override;
   bool emitSymbolAttribute(MCSymbol *Symbol, MCSymbolAttr Attribute) override;
 
@@ -620,8 +615,6 @@ void MCAsmStreamer::emitVersionMin(MCVersionMinType Type, unsigned Major,
 
 static const char *getPlatformName(MachO::PlatformType Type) {
   switch (Type) {
-  case MachO::PLATFORM_UNKNOWN: /* silence warning*/
-    break;
   case MachO::PLATFORM_MACOS:            return "macos";
   case MachO::PLATFORM_IOS:              return "ios";
   case MachO::PLATFORM_TVOS:             return "tvos";
@@ -645,12 +638,6 @@ void MCAsmStreamer::emitBuildVersion(unsigned Platform, unsigned Major,
     OS << ", " << Update;
   EmitSDKVersionSuffix(OS, SDKVersion);
   EmitEOL();
-}
-
-void MCAsmStreamer::emitDarwinTargetVariantBuildVersion(
-    unsigned Platform, unsigned Major, unsigned Minor, unsigned Update,
-    VersionTuple SDKVersion) {
-  emitBuildVersion(Platform, Major, Minor, Update, SDKVersion);
 }
 
 void MCAsmStreamer::emitThumbFunc(MCSymbol *Func) {
@@ -681,15 +668,6 @@ void MCAsmStreamer::emitAssignment(MCSymbol *Symbol, const MCExpr *Value) {
   }
 
   MCStreamer::emitAssignment(Symbol, Value);
-}
-
-void MCAsmStreamer::emitConditionalAssignment(MCSymbol *Symbol,
-                                              const MCExpr *Value) {
-  OS << ".lto_set_conditional ";
-  Symbol->print(OS, MAI);
-  OS << ", ";
-  Value->print(OS, MAI);
-  EmitEOL();
 }
 
 void MCAsmStreamer::emitWeakReference(MCSymbol *Alias, const MCSymbol *Symbol) {
@@ -1091,14 +1069,16 @@ void MCAsmStreamer::PrintQuotedString(StringRef Data, raw_ostream &OS) const {
   OS << '"';
 
   if (MAI->hasPairedDoubleQuoteStringConstants()) {
-    for (unsigned char C : Data) {
+    for (unsigned i = 0, e = Data.size(); i != e; ++i) {
+      unsigned char C = Data[i];
       if (C == '"')
         OS << "\"\"";
       else
         OS << (char)C;
     }
   } else {
-    for (unsigned char C : Data) {
+    for (unsigned i = 0, e = Data.size(); i != e; ++i) {
+      unsigned char C = Data[i];
       if (C == '"' || C == '\\') {
         OS << '\\' << (char)C;
         continue;

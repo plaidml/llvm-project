@@ -18,7 +18,7 @@
 
 namespace llvm {
 class BitVector;
-} // namespace llvm
+} // end namespace llvm
 
 namespace mlir {
 class TypeRange;
@@ -29,7 +29,7 @@ class ValueTypeRange;
 class Block : public IRObjectWithUseList<BlockOperand>,
               public llvm::ilist_node_with_parent<Block, Region> {
 public:
-  explicit Block() = default;
+  explicit Block() {}
   ~Block();
 
   void clear() {
@@ -88,20 +88,21 @@ public:
   bool args_empty() { return arguments.empty(); }
 
   /// Add one value to the argument list.
-  BlockArgument addArgument(Type type, Location loc);
+  BlockArgument addArgument(Type type, Optional<Location> loc = {});
 
   /// Insert one value to the position in the argument list indicated by the
   /// given iterator. The existing arguments are shifted. The block is expected
   /// not to have predecessors.
-  BlockArgument insertArgument(args_iterator it, Type type, Location loc);
+  BlockArgument insertArgument(args_iterator it, Type type,
+                               Optional<Location> loc = {});
 
   /// Add one argument to the argument list for each type specified in the list.
-  /// `locs` is required to have the same number of elements as `types`.
   iterator_range<args_iterator> addArguments(TypeRange types,
-                                             ArrayRef<Location> locs);
+                                             ArrayRef<Location> locs = {});
 
   /// Add one value to the argument list at the specified position.
-  BlockArgument insertArgument(unsigned index, Type type, Location loc);
+  BlockArgument insertArgument(unsigned index, Type type,
+                               Optional<Location> loc = {});
 
   /// Erase the argument at 'index' and remove it from the argument list.
   void eraseArgument(unsigned index);
@@ -363,6 +364,6 @@ private:
 
   friend struct llvm::ilist_traits<Block>;
 };
-} // namespace mlir
+} // end namespace mlir
 
 #endif // MLIR_IR_BLOCK_H

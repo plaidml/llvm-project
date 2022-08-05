@@ -669,7 +669,7 @@ WindowsManifestMerger::WindowsManifestMergerImpl::getMergedManifest() {
     std::unique_ptr<xmlDoc, XmlDeleter> OutputDoc(
         xmlNewDoc((const unsigned char *)"1.0"));
     xmlDocSetRootElement(OutputDoc.get(), CombinedRoot);
-    assert(nullptr == xmlDocGetRootElement(CombinedDoc));
+    assert(0 == xmlDocGetRootElement(CombinedDoc));
 
     xmlKeepBlanksDefault(0);
     xmlChar *Buff = nullptr;

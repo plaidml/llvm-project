@@ -57,8 +57,9 @@ DeltaAlgorithm::Delta(const changeset_ty &Changes,
 
   // Otherwise, partition the sets if possible; if not we are done.
   changesetlist_ty SplitSets;
-  for (const changeset_ty &Set : Sets)
-    Split(Set, SplitSets);
+  for (changesetlist_ty::const_iterator it = Sets.begin(),
+         ie = Sets.end(); it != ie; ++it)
+    Split(*it, SplitSets);
   if (SplitSets.size() == Sets.size())
     return Changes;
 

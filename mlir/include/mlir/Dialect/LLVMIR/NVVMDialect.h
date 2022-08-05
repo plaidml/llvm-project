@@ -30,9 +30,6 @@ std::pair<mlir::Type, unsigned> inferMMAType(mlir::NVVM::MMATypes type,
                                              mlir::MLIRContext *context);
 
 ///// Ops /////
-#define GET_ATTRDEF_CLASSES
-#include "mlir/Dialect/LLVMIR/NVVMOpsAttributes.h.inc"
-
 #define GET_OP_CLASSES
 #include "mlir/Dialect/LLVMIR/NVVMOps.h.inc"
 

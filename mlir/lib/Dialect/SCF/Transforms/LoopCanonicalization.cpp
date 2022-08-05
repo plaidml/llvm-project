@@ -14,7 +14,6 @@
 #include "PassDetail.h"
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
-#include "mlir/Dialect/SCF/AffineCanonicalizationUtils.h"
 #include "mlir/Dialect/SCF/Passes.h"
 #include "mlir/Dialect/SCF/SCF.h"
 #include "mlir/Dialect/SCF/Transforms.h"
@@ -32,9 +31,9 @@ using namespace mlir::scf;
 /// Note: This function handles only simple cases. Expand as needed.
 static bool isShapePreserving(ForOp forOp, int64_t arg) {
   auto yieldOp = cast<YieldOp>(forOp.getBody()->getTerminator());
-  assert(arg < static_cast<int64_t>(yieldOp.getResults().size()) &&
+  assert(arg < static_cast<int64_t>(yieldOp.results().size()) &&
          "arg is out of bounds");
-  Value value = yieldOp.getResults()[arg];
+  Value value = yieldOp.results()[arg];
   while (value) {
     if (value == forOp.getRegionIterArgs()[arg])
       return true;
@@ -155,17 +154,17 @@ struct AffineOpSCFCanonicalizationPattern : public OpRewritePattern<OpTy> {
                                 PatternRewriter &rewriter) const override {
     auto loopMatcher = [](Value iv, Value &lb, Value &ub, Value &step) {
       if (scf::ForOp forOp = scf::getForInductionVarOwner(iv)) {
-        lb = forOp.getLowerBound();
-        ub = forOp.getUpperBound();
-        step = forOp.getStep();
+        lb = forOp.lowerBound();
+        ub = forOp.upperBound();
+        step = forOp.step();
         return success();
       }
       if (scf::ParallelOp parOp = scf::getParallelForInductionVarOwner(iv)) {
         for (unsigned idx = 0; idx < parOp.getNumLoops(); ++idx) {
           if (parOp.getInductionVars()[idx] == iv) {
-            lb = parOp.getLowerBound()[idx];
-            ub = parOp.getUpperBound()[idx];
-            step = parOp.getStep()[idx];
+            lb = parOp.lowerBound()[idx];
+            ub = parOp.upperBound()[idx];
+            step = parOp.step()[idx];
             return success();
           }
         }
@@ -181,8 +180,8 @@ struct AffineOpSCFCanonicalizationPattern : public OpRewritePattern<OpTy> {
 
 struct SCFForLoopCanonicalization
     : public SCFForLoopCanonicalizationBase<SCFForLoopCanonicalization> {
-  void runOnOperation() override {
-    FuncOp funcOp = getOperation();
+  void runOnFunction() override {
+    FuncOp funcOp = getFunction();
     MLIRContext *ctx = funcOp.getContext();
     RewritePatternSet patterns(ctx);
     scf::populateSCFForLoopCanonicalizationPatterns(patterns);

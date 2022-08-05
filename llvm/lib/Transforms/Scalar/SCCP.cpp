@@ -101,7 +101,8 @@ static bool tryToReplaceWithConstant(SCCPSolver &Solver, Value *V) {
   Constant *Const = nullptr;
   if (V->getType()->isStructTy()) {
     std::vector<ValueLatticeElement> IVs = Solver.getStructLatticeValueFor(V);
-    if (llvm::any_of(IVs, isOverdefined))
+    if (any_of(IVs,
+               [](const ValueLatticeElement &LV) { return isOverdefined(LV); }))
       return false;
     std::vector<Constant *> ConstVals;
     auto *ST = cast<StructType>(V->getType());
@@ -486,7 +487,7 @@ bool llvm::runIPSCCP(
       // inaccessiblemem_or_argmemonly attributes do not hold any longer. Remove
       // them from both the function and callsites.
       if (ReplacedPointerArg) {
-        AttributeMask AttributesToRemove;
+        AttrBuilder AttributesToRemove;
         AttributesToRemove.addAttribute(Attribute::ArgMemOnly);
         AttributesToRemove.addAttribute(Attribute::InaccessibleMemOrArgMemOnly);
         F.removeFnAttrs(AttributesToRemove);

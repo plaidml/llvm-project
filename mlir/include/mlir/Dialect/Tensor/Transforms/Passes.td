@@ -11,14 +11,10 @@
 
 include "mlir/Pass/PassBase.td"
 
-def TensorBufferize : Pass<"tensor-bufferize", "FuncOp"> {
+def TensorBufferize : FunctionPass<"tensor-bufferize"> {
   let summary = "Bufferize the `tensor` dialect";
   let constructor = "mlir::createTensorBufferizePass()";
-  let dependentDialects = [
-    "bufferization::BufferizationDialect",
-    "memref::MemRefDialect",
-    "scf::SCFDialect"
-  ];
+  let dependentDialects = ["scf::SCFDialect", "memref::MemRefDialect"];
 }
 
 #endif // MLIR_DIALECT_TENSOR_TRANSFORMS_PASSES

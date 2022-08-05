@@ -82,7 +82,7 @@ struct MyFunctionPass : public PassWrapper<MyFunctionPass,
     });
   }
 };
-} // namespace
+} // end anonymous namespace
 
 /// Register this pass so that it can be built via from a textual pass pipeline.
 /// (Pass registration is discussed more below)

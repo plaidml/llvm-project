@@ -17,7 +17,6 @@
 
 #include "clang/AST/ASTFwd.h"
 #include "clang/AST/DeclCXX.h"
-#include "clang/AST/LambdaCapture.h"
 #include "clang/AST/NestedNameSpecifier.h"
 #include "clang/AST/TemplateBase.h"
 #include "clang/AST/TypeLoc.h"
@@ -65,7 +64,6 @@ public:
   static ASTNodeKind getFromNode(const Stmt &S);
   static ASTNodeKind getFromNode(const Type &T);
   static ASTNodeKind getFromNode(const TypeLoc &T);
-  static ASTNodeKind getFromNode(const LambdaCapture &L);
   static ASTNodeKind getFromNode(const OMPClause &C);
   static ASTNodeKind getFromNode(const Attr &A);
   /// \}
@@ -133,7 +131,6 @@ private:
     NKI_None,
     NKI_TemplateArgument,
     NKI_TemplateArgumentLoc,
-    NKI_LambdaCapture,
     NKI_TemplateName,
     NKI_NestedNameSpecifierLoc,
     NKI_QualType,
@@ -200,7 +197,6 @@ private:
 KIND_TO_KIND_ID(CXXCtorInitializer)
 KIND_TO_KIND_ID(TemplateArgument)
 KIND_TO_KIND_ID(TemplateArgumentLoc)
-KIND_TO_KIND_ID(LambdaCapture)
 KIND_TO_KIND_ID(TemplateName)
 KIND_TO_KIND_ID(NestedNameSpecifier)
 KIND_TO_KIND_ID(NestedNameSpecifierLoc)
@@ -543,10 +539,6 @@ struct DynTypedNode::BaseConverter<
 template <>
 struct DynTypedNode::BaseConverter<TemplateArgumentLoc, void>
     : public ValueConverter<TemplateArgumentLoc> {};
-
-template <>
-struct DynTypedNode::BaseConverter<LambdaCapture, void>
-    : public ValueConverter<LambdaCapture> {};
 
 template <>
 struct DynTypedNode::BaseConverter<

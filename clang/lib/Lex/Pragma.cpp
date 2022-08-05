@@ -526,8 +526,9 @@ static llvm::Optional<Token> LexHeader(Preprocessor &PP,
     return llvm::None;
 
   // Search include directories for this file.
+  const DirectoryLookup *CurDir;
   File = PP.LookupFile(FilenameTok.getLocation(), Filename, isAngled, nullptr,
-                       nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
+                       nullptr, CurDir, nullptr, nullptr, nullptr, nullptr,
                        nullptr);
   if (!File) {
     if (!SuppressIncludeNotFoundError)

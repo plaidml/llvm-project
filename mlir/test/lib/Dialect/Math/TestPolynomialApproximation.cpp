@@ -23,14 +23,12 @@ using namespace mlir;
 
 namespace {
 struct TestMathPolynomialApproximationPass
-    : public PassWrapper<TestMathPolynomialApproximationPass,
-                         OperationPass<FuncOp>> {
+    : public PassWrapper<TestMathPolynomialApproximationPass, FunctionPass> {
   TestMathPolynomialApproximationPass() = default;
   TestMathPolynomialApproximationPass(
-      const TestMathPolynomialApproximationPass &pass)
-      : PassWrapper(pass) {}
+      const TestMathPolynomialApproximationPass &pass) {}
 
-  void runOnOperation() override;
+  void runOnFunction() override;
   void getDependentDialects(DialectRegistry &registry) const override {
     registry.insert<arith::ArithmeticDialect, math::MathDialect,
                     vector::VectorDialect>();
@@ -50,13 +48,13 @@ struct TestMathPolynomialApproximationPass
                      "X86Vector dialect"),
       llvm::cl::init(false)};
 };
-} // namespace
+} // end anonymous namespace
 
-void TestMathPolynomialApproximationPass::runOnOperation() {
+void TestMathPolynomialApproximationPass::runOnFunction() {
   RewritePatternSet patterns(&getContext());
-  MathPolynomialApproximationOptions approxOptions;
-  approxOptions.enableAvx2 = enableAvx2;
-  populateMathPolynomialApproximationPatterns(patterns, approxOptions);
+  MathPolynomialApproximationOptions approx_options;
+  approx_options.enableAvx2 = enableAvx2;
+  populateMathPolynomialApproximationPatterns(patterns, approx_options);
   (void)applyPatternsAndFoldGreedily(getOperation(), std::move(patterns));
 }
 

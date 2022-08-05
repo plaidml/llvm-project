@@ -203,8 +203,8 @@ void SystemZInstrInfo::expandZExtPseudo(MachineInstr &MI, unsigned LowOpcode,
                Size, MI.getOperand(1).isKill(), MI.getOperand(1).isUndef());
 
   // Keep the remaining operands as-is.
-  for (const MachineOperand &MO : llvm::drop_begin(MI.operands(), 2))
-    MIB.add(MO);
+  for (unsigned I = 2; I < MI.getNumOperands(); ++I)
+    MIB.add(MI.getOperand(I));
 
   MI.eraseFromParent();
 }
@@ -943,9 +943,8 @@ static void transferMIFlag(MachineInstr *OldMI, MachineInstr *NewMI,
     NewMI->setFlag(Flag);
 }
 
-MachineInstr *
-SystemZInstrInfo::convertToThreeAddress(MachineInstr &MI, LiveVariables *LV,
-                                        LiveIntervals *LIS) const {
+MachineInstr *SystemZInstrInfo::convertToThreeAddress(MachineInstr &MI,
+                                                      LiveVariables *LV) const {
   MachineBasicBlock *MBB = MI.getParent();
 
   // Try to convert an AND into an RISBG-type instruction.
@@ -986,8 +985,6 @@ SystemZInstrInfo::convertToThreeAddress(MachineInstr &MI, LiveVariables *LV,
             LV->replaceKillInstruction(Op.getReg(), MI, *MIB);
         }
       }
-      if (LIS)
-        LIS->ReplaceMachineInstrInMaps(MI, *MIB);
       transferDeadCC(&MI, MIB);
       return MIB;
     }
@@ -1309,7 +1306,7 @@ MachineInstr *SystemZInstrInfo::foldMemoryOperandImpl(
     // allocated regs are in an FP reg-class per previous check above.
     for (const MachineOperand &MO : MIB->operands())
       if (MO.isReg() && Register::isVirtualRegister(MO.getReg())) {
-        Register Reg = MO.getReg();
+        unsigned Reg = MO.getReg();
         if (MRI.getRegClass(Reg) == &SystemZ::VR32BitRegClass)
           MRI.setRegClass(Reg, &SystemZ::FP32BitRegClass);
         else if (MRI.getRegClass(Reg) == &SystemZ::VR64BitRegClass)

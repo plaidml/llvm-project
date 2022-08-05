@@ -268,11 +268,6 @@ unsigned TargetTransformInfo::getAssumedAddrSpace(const Value *V) const {
   return TTIImpl->getAssumedAddrSpace(V);
 }
 
-std::pair<const Value *, unsigned>
-TargetTransformInfo::getPredicatedAddrSpace(const Value *V) const {
-  return TTIImpl->getPredicatedAddrSpace(V);
-}
-
 Value *TargetTransformInfo::rewriteIntrinsicWithAddressSpace(
     IntrinsicInst *II, Value *OldV, Value *NewV) const {
   return TTIImpl->rewriteIntrinsicWithAddressSpace(II, OldV, NewV);
@@ -406,16 +401,6 @@ bool TargetTransformInfo::isLegalMaskedGather(Type *DataType,
 bool TargetTransformInfo::isLegalMaskedScatter(Type *DataType,
                                                Align Alignment) const {
   return TTIImpl->isLegalMaskedScatter(DataType, Alignment);
-}
-
-bool TargetTransformInfo::forceScalarizeMaskedGather(VectorType *DataType,
-                                                     Align Alignment) const {
-  return TTIImpl->forceScalarizeMaskedGather(DataType, Alignment);
-}
-
-bool TargetTransformInfo::forceScalarizeMaskedScatter(VectorType *DataType,
-                                                      Align Alignment) const {
-  return TTIImpl->forceScalarizeMaskedScatter(DataType, Alignment);
 }
 
 bool TargetTransformInfo::isLegalMaskedCompressStore(Type *DataType) const {
@@ -617,10 +602,6 @@ unsigned TargetTransformInfo::getMinVectorRegisterBitWidth() const {
 
 Optional<unsigned> TargetTransformInfo::getMaxVScale() const {
   return TTIImpl->getMaxVScale();
-}
-
-Optional<unsigned> TargetTransformInfo::getVScaleForTuning() const {
-  return TTIImpl->getVScaleForTuning();
 }
 
 bool TargetTransformInfo::shouldMaximizeVectorBandwidth() const {
@@ -844,10 +825,19 @@ InstructionCost TargetTransformInfo::getVectorInstrCost(unsigned Opcode,
 }
 
 InstructionCost TargetTransformInfo::getReplicationShuffleCost(
-    Type *EltTy, int ReplicationFactor, int VF, const APInt &DemandedDstElts,
+    Type *EltTy, int ReplicationFactor, int VF, const APInt &DemandedSrcElts,
+    const APInt &DemandedReplicatedElts, TTI::TargetCostKind CostKind) {
+  InstructionCost Cost = TTIImpl->getReplicationShuffleCost(
+      EltTy, ReplicationFactor, VF, DemandedSrcElts, DemandedReplicatedElts,
+      CostKind);
+  assert(Cost >= 0 && "TTI should not produce negative costs!");
+  return Cost;
+}
+InstructionCost TargetTransformInfo::getReplicationShuffleCost(
+    Type *EltTy, int ReplicationFactor, int VF, ArrayRef<int> Mask,
     TTI::TargetCostKind CostKind) {
   InstructionCost Cost = TTIImpl->getReplicationShuffleCost(
-      EltTy, ReplicationFactor, VF, DemandedDstElts, CostKind);
+      EltTy, ReplicationFactor, VF, Mask, CostKind);
   assert(Cost >= 0 && "TTI should not produce negative costs!");
   return Cost;
 }
@@ -992,10 +982,10 @@ bool TargetTransformInfo::areInlineCompatible(const Function *Caller,
   return TTIImpl->areInlineCompatible(Caller, Callee);
 }
 
-bool TargetTransformInfo::areTypesABICompatible(
+bool TargetTransformInfo::areFunctionArgsABICompatible(
     const Function *Caller, const Function *Callee,
-    const ArrayRef<Type *> &Types) const {
-  return TTIImpl->areTypesABICompatible(Caller, Callee, Types);
+    SmallPtrSetImpl<Argument *> &Args) const {
+  return TTIImpl->areFunctionArgsABICompatible(Caller, Callee, Args);
 }
 
 bool TargetTransformInfo::isIndexedLoadLegal(MemIndexedMode Mode,
@@ -1082,13 +1072,8 @@ bool TargetTransformInfo::supportsScalableVectors() const {
   return TTIImpl->supportsScalableVectors();
 }
 
-bool TargetTransformInfo::enableScalableVectorization() const {
-  return TTIImpl->enableScalableVectorization();
-}
-
-bool TargetTransformInfo::hasActiveVectorLength(unsigned Opcode, Type *DataType,
-                                                Align Alignment) const {
-  return TTIImpl->hasActiveVectorLength(Opcode, DataType, Alignment);
+bool TargetTransformInfo::hasActiveVectorLength() const {
+  return TTIImpl->hasActiveVectorLength();
 }
 
 InstructionCost

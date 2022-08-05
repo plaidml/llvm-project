@@ -159,19 +159,4 @@ a:  if constexpr(sizeof(n) == 4) // expected-error {{redefinition}} expected-not
       surprise: {}
   }
 }
-
-namespace deduced_return_type_in_discareded_statement {
-
-template <typename T>
-auto a(const T &t) {
-  return t;
-}
-
-void f() {
-  if constexpr (false) {
-    a(a(0));
-  }
-}
-} // namespace deduced_return_type_in_discareded_statement
-
 #endif

@@ -1298,8 +1298,8 @@ bool ARMLoadStoreOpt::MergeBaseUpdateLSMultiple(MachineInstr *MI) {
 
   // Can't use an updating ld/st if the base register is also a dest
   // register. e.g. ldmdb r0!, {r0, r1, r2}. The behavior is undefined.
-  for (const MachineOperand &MO : llvm::drop_begin(MI->operands(), 2))
-    if (MO.getReg() == Base)
+  for (unsigned i = 2, e = MI->getNumOperands(); i != e; ++i)
+    if (MI->getOperand(i).getReg() == Base)
       return false;
 
   int Bytes = getLSMultipleTransferSize(MI);
@@ -1326,8 +1326,8 @@ bool ARMLoadStoreOpt::MergeBaseUpdateLSMultiple(MachineInstr *MI) {
         return false;
 
       bool HighRegsUsed = false;
-      for (const MachineOperand &MO : llvm::drop_begin(MI->operands(), 2))
-        if (MO.getReg() >= ARM::R8) {
+      for (unsigned i = 2, e = MI->getNumOperands(); i != e; ++i)
+        if (MI->getOperand(i).getReg() >= ARM::R8) {
           HighRegsUsed = true;
           break;
         }
@@ -1350,8 +1350,8 @@ bool ARMLoadStoreOpt::MergeBaseUpdateLSMultiple(MachineInstr *MI) {
     .addImm(Pred).addReg(PredReg);
 
   // Transfer the rest of operands.
-  for (const MachineOperand &MO : llvm::drop_begin(MI->operands(), 3))
-    MIB.add(MO);
+  for (unsigned OpNum = 3, e = MI->getNumOperands(); OpNum != e; ++OpNum)
+    MIB.add(MI->getOperand(OpNum));
 
   // Transfer memoperands.
   MIB.setMemRefs(MI->memoperands());
@@ -2119,9 +2119,11 @@ bool ARMLoadStoreOpt::runOnMachineFunction(MachineFunction &Fn) {
   isThumb1 = AFI->isThumbFunction() && !isThumb2;
 
   bool Modified = false;
-  for (MachineBasicBlock &MBB : Fn) {
+  for (MachineFunction::iterator MFI = Fn.begin(), E = Fn.end(); MFI != E;
+       ++MFI) {
+    MachineBasicBlock &MBB = *MFI;
     Modified |= LoadStoreMultipleOpti(MBB);
-    if (STI->hasV5TOps() && !AFI->shouldSignReturnAddress())
+    if (STI->hasV5TOps())
       Modified |= MergeReturnIntoLDM(MBB);
     if (isThumb1)
       Modified |= CombineMovBx(MBB);
@@ -2349,8 +2351,9 @@ bool ARMPreAllocLoadStoreOpt::RescheduleOps(MachineBasicBlock *MBB,
     unsigned LastOpcode = 0;
     unsigned LastBytes = 0;
     unsigned NumMove = 0;
-    for (MachineInstr *Op : llvm::reverse(Ops)) {
+    for (int i = Ops.size() - 1; i >= 0; --i) {
       // Make sure each operation has the same kind.
+      MachineInstr *Op = Ops[i];
       unsigned LSMOpcode
         = getLoadStoreMultipleOpcode(Op->getOpcode(), ARM_AM::ia);
       if (LastOpcode && LSMOpcode != LastOpcode)
@@ -2707,13 +2710,13 @@ static bool isLegalOrConvertableAddressImm(unsigned Opcode, int Imm,
   if (isLegalAddressImm(Opcode, Imm, TII))
     return true;
 
-  // We can convert AddrModeT2_i12 to AddrModeT2_i8neg.
+  // We can convert AddrModeT2_i12 to AddrModeT2_i8.
   const MCInstrDesc &Desc = TII->get(Opcode);
   unsigned AddrMode = (Desc.TSFlags & ARMII::AddrModeMask);
   switch (AddrMode) {
   case ARMII::AddrModeT2_i12:
     CodesizeEstimate += 1;
-    return Imm < 0 && -Imm < ((1 << 8) * 1);
+    return std::abs(Imm) < (((1 << 8) * 1) - 1);
   }
   return false;
 }

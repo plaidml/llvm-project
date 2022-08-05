@@ -3462,8 +3462,7 @@ rnb_err_t RNBRemote::HandlePacket_qSupported(const char *p) {
   uint32_t max_packet_size = 128 * 1024; // 128KBytes is a reasonable max packet
                                          // size--debugger can always use less
   char buf[256];
-  snprintf(buf, sizeof(buf),
-           "qXfer:features:read+;PacketSize=%x;qEcho+;native-signals+",
+  snprintf(buf, sizeof(buf), "qXfer:features:read+;PacketSize=%x;qEcho+",
            max_packet_size);
 
   bool enable_compression = false;
@@ -4921,6 +4920,7 @@ void GenerateTargetXMLRegister(std::ostringstream &s, const uint32_t reg_num,
   const char *gdb_type = default_gdb_type;
   const char *default_lldb_format = "hex";
   const char *lldb_format = default_lldb_format;
+  const char *lldb_set = NULL;
 
   switch (reg.nub_info.type) {
   case Uint:
@@ -4988,6 +4988,8 @@ void GenerateTargetXMLRegister(std::ostringstream &s, const uint32_t reg_num,
     lldb_format = "vector-uint128";
     break;
   };
+  if (reg_set_info && reg.nub_info.set < num_reg_sets)
+    lldb_set = reg_set_info[reg.nub_info.set].name;
 
   uint32_t indent = 2;
 

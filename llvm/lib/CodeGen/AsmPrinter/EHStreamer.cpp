@@ -162,7 +162,9 @@ bool EHStreamer::callToNoUnwindFunction(const MachineInstr *MI) {
   bool MarkedNoUnwind = false;
   bool SawFunc = false;
 
-  for (const MachineOperand &MO : MI->operands()) {
+  for (unsigned I = 0, E = MI->getNumOperands(); I != E; ++I) {
+    const MachineOperand &MO = MI->getOperand(I);
+
     if (!MO.isGlobal()) continue;
 
     const Function *F = dyn_cast<Function>(MO.getGlobal());
@@ -384,8 +386,8 @@ MCSymbol *EHStreamer::emitExceptionTable() {
   SmallVector<const LandingPadInfo *, 64> LandingPads;
   LandingPads.reserve(PadInfos.size());
 
-  for (const LandingPadInfo &LPI : PadInfos)
-    LandingPads.push_back(&LPI);
+  for (unsigned i = 0, N = PadInfos.size(); i != N; ++i)
+    LandingPads.push_back(&PadInfos[i]);
 
   // Order landing pads lexicographically by type id.
   llvm::sort(LandingPads, [](const LandingPadInfo *L, const LandingPadInfo *R) {

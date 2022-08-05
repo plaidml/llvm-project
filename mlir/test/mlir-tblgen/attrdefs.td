@@ -7,8 +7,8 @@ include "mlir/IR/OpBase.td"
 // DECL: #undef GET_ATTRDEF_CLASSES
 
 // DECL: namespace mlir {
-// DECL: class AsmParser;
-// DECL: class AsmPrinter;
+// DECL: class DialectAsmParser;
+// DECL: class DialectAsmPrinter;
 // DECL: } // namespace mlir
 
 // DEF: #ifdef GET_ATTRDEF_LIST
@@ -19,9 +19,9 @@ include "mlir/IR/OpBase.td"
 // DEF: ::test::SingleParameterAttr
 
 // DEF-LABEL: ::mlir::OptionalParseResult generatedAttributeParser(
-// DEF-SAME: ::mlir::AsmParser &parser,
-// DEF-SAME: ::llvm::StringRef mnemonic, ::mlir::Type type,
-// DEF-SAME: ::mlir::Attribute &value) {
+// DEF-NEXT: ::mlir::DialectAsmParser &parser,
+// DEF-NEXT: ::llvm::StringRef mnemonic, ::mlir::Type type,
+// DEF-NEXT: ::mlir::Attribute &value) {
 // DEF: if (mnemonic == ::test::CompoundAAttr::getMnemonic()) {
 // DEF-NEXT: value = ::test::CompoundAAttr::parse(parser, type);
 // DEF-NEXT: return ::mlir::success(!!value);
@@ -61,37 +61,41 @@ def B_CompoundAttrA : TestAttr<"CompoundA"> {
   let genVerifyDecl = 1;
 
 // DECL-LABEL: class CompoundAAttr : public ::mlir::Attribute
-// DECL: static CompoundAAttr getChecked(::llvm::function_ref<::mlir::InFlightDiagnostic()> emitError, ::mlir::MLIRContext *context, int widthOfSomething, ::test::SimpleTypeA exampleTdType, ::llvm::APFloat apFloat, ::llvm::ArrayRef<int> dims, ::mlir::Type inner);
+// DECL: static CompoundAAttr getChecked(llvm::function_ref<::mlir::InFlightDiagnostic()> emitError, ::mlir::MLIRContext *context, int widthOfSomething, ::test::SimpleTypeA exampleTdType, ::llvm::APFloat apFloat, ::llvm::ArrayRef<int> dims, ::mlir::Type inner);
 // DECL: static ::mlir::LogicalResult verify(::llvm::function_ref<::mlir::InFlightDiagnostic()> emitError, int widthOfSomething, ::test::SimpleTypeA exampleTdType, ::llvm::APFloat apFloat, ::llvm::ArrayRef<int> dims, ::mlir::Type inner);
 // DECL: static constexpr ::llvm::StringLiteral getMnemonic() {
-// DECL:   return {"cmpnd_a"};
+// DECL:   return ::llvm::StringLiteral("cmpnd_a");
 // DECL: }
 // DECL: static ::mlir::Attribute parse(
-// DECL-SAME: ::mlir::AsmParser &parser, ::mlir::Type type);
-// DECL: void print(::mlir::AsmPrinter &printer) const;
+// DECL-SAME: ::mlir::DialectAsmParser &parser, ::mlir::Type type);
+// DECL: void print(::mlir::DialectAsmPrinter &printer) const;
 // DECL: int getWidthOfSomething() const;
 // DECL: ::test::SimpleTypeA getExampleTdType() const;
 // DECL: ::llvm::APFloat getApFloat() const;
 
 // Check that AttributeSelfTypeParameter is handled properly.
 // DEF-LABEL: struct CompoundAAttrStorage
-// DEF: CompoundAAttrStorage(
-// DEF-SAME: : ::mlir::AttributeStorage(inner),
+// DEF: CompoundAAttrStorage (
+// DEF-NEXT: : ::mlir::AttributeStorage(inner),
 
 // DEF: bool operator==(const KeyTy &tblgenKey) const {
-// DEF-NEXT: return
-// DEF-SAME: (widthOfSomething == std::get<0>(tblgenKey)) &&
-// DEF-SAME: (exampleTdType == std::get<1>(tblgenKey)) &&
-// DEF-SAME: (apFloat.bitwiseIsEqual(std::get<2>(tblgenKey))) &&
-// DEF-SAME: (dims == std::get<3>(tblgenKey)) &&
-// DEF-SAME: (getType() == std::get<4>(tblgenKey));
+// DEF-NEXT: if (!(widthOfSomething == std::get<0>(tblgenKey)))
+// DEF-NEXT:   return false;
+// DEF-NEXT: if (!(exampleTdType == std::get<1>(tblgenKey)))
+// DEF-NEXT:   return false;
+// DEF-NEXT: if (!(apFloat.bitwiseIsEqual(std::get<2>(tblgenKey))))
+// DEF-NEXT:   return false;
+// DEF-NEXT: if (!(dims == std::get<3>(tblgenKey)))
+// DEF-NEXT:   return false;
+// DEF-NEXT: if (!(getType() == std::get<4>(tblgenKey)))
+// DEF-NEXT:   return false;
+// DEF-NEXT: return true;
 
 // DEF: static CompoundAAttrStorage *construct
 // DEF: return new (allocator.allocate<CompoundAAttrStorage>())
-// DEF-SAME: CompoundAAttrStorage(widthOfSomething, exampleTdType, apFloat, dims, inner);
+// DEF-NEXT: CompoundAAttrStorage(widthOfSomething, exampleTdType, apFloat, dims, inner);
 
-// DEF: ::mlir::Type CompoundAAttr::getInner() const {
-// DEF-NEXT: return getImpl()->getType().cast<::mlir::Type>();
+// DEF: ::mlir::Type CompoundAAttr::getInner() const { return getImpl()->getType().cast<::mlir::Type>(); }
 }
 
 def C_IndexAttr : TestAttr<"Index"> {
@@ -104,11 +108,11 @@ def C_IndexAttr : TestAttr<"Index"> {
 
 // DECL-LABEL: class IndexAttr : public ::mlir::Attribute
 // DECL: static constexpr ::llvm::StringLiteral getMnemonic() {
-// DECL:   return {"index"};
+// DECL:   return ::llvm::StringLiteral("index");
 // DECL: }
 // DECL: static ::mlir::Attribute parse(
-// DECL-SAME: ::mlir::AsmParser &parser, ::mlir::Type type);
-// DECL: void print(::mlir::AsmPrinter &printer) const;
+// DECL-SAME: ::mlir::DialectAsmParser &parser, ::mlir::Type type);
+// DECL: void print(::mlir::DialectAsmPrinter &printer) const;
 }
 
 def D_SingleParameterAttr : TestAttr<"SingleParameter"> {
@@ -118,7 +122,7 @@ def D_SingleParameterAttr : TestAttr<"SingleParameter"> {
   );
 // DECL-LABEL: struct SingleParameterAttrStorage;
 // DECL-LABEL: class SingleParameterAttr
-// DECL-SAME:  detail::SingleParameterAttrStorage
+// DECL-NEXT:                   detail::SingleParameterAttrStorage
 }
 
 // An attribute testing AttributeSelfTypeParameter.
@@ -129,8 +133,8 @@ def E_AttrWithTypeBuilder : TestAttr<"AttrWithTypeBuilder"> {
 }
 
 // DEF-LABEL: struct AttrWithTypeBuilderAttrStorage
-// DEF: AttrWithTypeBuilderAttrStorage(::mlir::IntegerAttr attr)
-// DEF-SAME: : ::mlir::AttributeStorage(attr.getType()), attr(attr)
+// DEF: AttrWithTypeBuilderAttrStorage (::mlir::IntegerAttr attr)
+// DEF-NEXT: : ::mlir::AttributeStorage(attr.getType()), attr(attr)
 
 def F_ParamWithAccessorTypeAttr : TestAttr<"ParamWithAccessorType"> {
   let parameters = (ins AttrParameter<"std::string", "", "StringRef">:$param);
@@ -139,5 +143,6 @@ def F_ParamWithAccessorTypeAttr : TestAttr<"ParamWithAccessorType"> {
 // DECL-LABEL: class ParamWithAccessorTypeAttr
 // DECL: StringRef getParam()
 // DEF: ParamWithAccessorTypeAttrStorage
-// DEF: ParamWithAccessorTypeAttrStorage(std::string param)
+// DEF-NEXT: ParamWithAccessorTypeAttrStorage (std::string param)
 // DEF: StringRef ParamWithAccessorTypeAttr::getParam()
+

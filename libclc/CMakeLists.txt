@@ -8,7 +8,6 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
   amdgcn-mesa3d/lib/SOURCES;
   amdgpu/lib/SOURCES;
   clspv/lib/SOURCES;
-  clspv64/lib/SOURCES;
   generic/lib/SOURCES;
   ptx/lib/SOURCES;
   ptx-nvidiacl/lib/SOURCES;
@@ -22,7 +21,6 @@ set( LIBCLC_TARGETS_ALL
   amdgcn--
   amdgcn--amdhsa
   clspv--
-  clspv64--
   r600--
   nvptx--
   nvptx64--
@@ -158,7 +156,6 @@ set( amdgcn--_devices tahiti )
 set( amdgcn-mesa-mesa3d_devices ${amdgcn--_devices} )
 set( amdgcn--amdhsa_devices none )
 set( clspv--_devices none )
-set( clspv64--_devices none )
 set( nvptx--_devices none )
 set( nvptx64--_devices none )
 set( nvptx--nvidiacl_devices none )
@@ -186,8 +183,8 @@ endif()
 
 # pkg-config file
 configure_file( libclc.pc.in libclc.pc @ONLY )
-install( FILES ${CMAKE_CURRENT_BINARY_DIR}/libclc.pc DESTINATION "${CMAKE_INSTALL_DATADIR}/pkgconfig" )
-install( DIRECTORY generic/include/clc DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}" )
+install( FILES ${CMAKE_CURRENT_BINARY_DIR}/libclc.pc DESTINATION ${CMAKE_INSTALL_DATADIR}/pkgconfig )
+install( DIRECTORY generic/include/clc DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} )
 
 if( ENABLE_RUNTIME_SUBNORMAL )
 	add_library( subnormal_use_default STATIC
@@ -195,7 +192,7 @@ if( ENABLE_RUNTIME_SUBNORMAL )
 	add_library( subnormal_disable STATIC
 		generic/lib/subnormal_disable.ll )
 	install( TARGETS subnormal_use_default subnormal_disable ARCHIVE
-		DESTINATION "${CMAKE_INSTALL_DATADIR}/clc" )
+		DESTINATION ${CMAKE_INSTALL_DATADIR}/clc )
 endif()
 
 find_package( Python3 REQUIRED COMPONENTS Interpreter )
@@ -217,8 +214,7 @@ foreach( t ${LIBCLC_TARGETS_TO_BUILD} )
 
 	set( dirs )
 
-	if ( NOT ${ARCH} STREQUAL spirv AND NOT ${ARCH} STREQUAL spirv64 AND
-			 NOT ${ARCH} STREQUAL clspv AND NOT ${ARCH} STREQUAL clspv64)
+	if ( NOT ${ARCH} STREQUAL spirv AND NOT ${ARCH} STREQUAL spirv64 AND NOT ${ARCH} STREQUAL clspv )
 		LIST( APPEND dirs generic )
 	endif()
 
@@ -249,8 +245,7 @@ foreach( t ${LIBCLC_TARGETS_TO_BUILD} )
 
 	# Add the generated convert.cl here to prevent adding
 	# the one listed in SOURCES
-	if( NOT ${ARCH} STREQUAL "spirv" AND NOT ${ARCH} STREQUAL "spirv64" AND
-			NOT ${ARCH} STREQUAL "clspv" AND NOT ${ARCH} STREQUAL "clspv64" )
+	if( NOT ${ARCH} STREQUAL "spirv" AND NOT ${ARCH} STREQUAL "spirv64" AND NOT ${ARCH} STREQUAL "clspv" )
 		set( rel_files convert.cl )
 		set( objects convert.cl )
 		if( NOT ENABLE_RUNTIME_SUBNORMAL )
@@ -304,10 +299,6 @@ foreach( t ${LIBCLC_TARGETS_TO_BUILD} )
 			set( t "spir--" )
 			set( build_flags )
 			set( opt_flags -O3 )
-		elseif( ${ARCH} STREQUAL "clspv64" )
-			set( t "spir64--" )
-			set( build_flags )
-			set( opt_flags -O3 )
 		else()
 			set( build_flags )
 			set( opt_flags -O3 )
@@ -352,7 +343,7 @@ foreach( t ${LIBCLC_TARGETS_TO_BUILD} )
 			add_custom_target( "prepare-${spv_suffix}" ALL
 			                   DEPENDS "${spv_suffix}" )
 			install( FILES ${CMAKE_CURRENT_BINARY_DIR}/${spv_suffix}
-				 DESTINATION "${CMAKE_INSTALL_DATADIR}/clc" )
+				 DESTINATION ${CMAKE_INSTALL_DATADIR}/clc )
 		else()
 
 			# Add prepare target
@@ -375,7 +366,7 @@ foreach( t ${LIBCLC_TARGETS_TO_BUILD} )
 					PROPERTIES ENVIRONMENT "LLVM_CONFIG=${LLVM_CONFIG}" )
 			endif()
 
-			install( FILES ${CMAKE_CURRENT_BINARY_DIR}/${obj_suffix} DESTINATION "${CMAKE_INSTALL_DATADIR}/clc" )
+			install( FILES ${CMAKE_CURRENT_BINARY_DIR}/${obj_suffix} DESTINATION ${CMAKE_INSTALL_DATADIR}/clc )
 			foreach( a ${${d}_aliases} )
 				set( alias_suffix "${a}-${t}.bc" )
 				add_custom_target( ${alias_suffix} ALL
@@ -383,7 +374,7 @@ foreach( t ${LIBCLC_TARGETS_TO_BUILD} )
 						   create_symlink ${obj_suffix}
 						   ${alias_suffix}
 				                   DEPENDS "prepare-${obj_suffix}" )
-				install( FILES ${CMAKE_CURRENT_BINARY_DIR}/${alias_suffix} DESTINATION "${CMAKE_INSTALL_DATADIR}/clc" )
+				install( FILES ${CMAKE_CURRENT_BINARY_DIR}/${alias_suffix} DESTINATION ${CMAKE_INSTALL_DATADIR}/clc )
 			endforeach( a )
 		endif()
 	endforeach( d )

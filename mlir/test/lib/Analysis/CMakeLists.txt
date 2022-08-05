@@ -7,7 +7,7 @@ add_mlir_library(MLIRTestAnalysis
   TestMemRefBoundCheck.cpp
   TestMemRefDependenceCheck.cpp
   TestMemRefStrideCalculation.cpp
-  TestSlice.cpp
+  TestNumberOfExecutions.cpp
 
 
   EXCLUDE_FROM_LIBMLIR

@@ -338,10 +338,9 @@ bool IRTranslator::translateCompare(const User &U,
     MIRBuilder.buildCopy(
         Res, getOrCreateVReg(*Constant::getAllOnesValue(U.getType())));
   else {
-    uint16_t Flags = 0;
-    if (CI)
-      Flags = MachineInstr::copyFlagsFromInstruction(*CI);
-    MIRBuilder.buildFCmp(Pred, Res, Op0, Op1, Flags);
+    assert(CI && "Instruction should be CmpInst");
+    MIRBuilder.buildFCmp(Pred, Res, Op0, Op1,
+                         MachineInstr::copyFlagsFromInstruction(*CI));
   }
 
   return true;
@@ -2503,19 +2502,32 @@ bool IRTranslator::translateInvoke(const User &U,
   if (!isa<LandingPadInst>(EHPadBB->getFirstNonPHI()))
     return false;
 
-  bool LowerInlineAsm = I.isInlineAsm();
-  bool NeedEHLabel = true;
-  // If it can't throw then use a fast-path without emitting EH labels.
-  if (LowerInlineAsm)
-    NeedEHLabel = (cast<InlineAsm>(I.getCalledOperand()))->canThrow();
+  bool LowerInlineAsm = false;
+  if (I.isInlineAsm()) {
+    const InlineAsm *IA = cast<InlineAsm>(I.getCalledOperand());
+    if (!IA->canThrow()) {
+      // Fast path without emitting EH_LABELs.
+
+      if (!translateInlineAsm(I, MIRBuilder))
+        return false;
+
+      MachineBasicBlock *InvokeMBB = &MIRBuilder.getMBB(),
+                        *ReturnMBB = &getMBB(*ReturnBB);
+
+      // Update successor info.
+      addSuccessorWithProb(InvokeMBB, ReturnMBB, BranchProbability::getOne());
+
+      MIRBuilder.buildBr(*ReturnMBB);
+      return true;
+    } else {
+      LowerInlineAsm = true;
+    }
+  }
 
   // Emit the actual call, bracketed by EH_LABELs so that the MF knows about
   // the region covered by the try.
-  MCSymbol *BeginSymbol = nullptr;
-  if (NeedEHLabel) {
-    BeginSymbol = Context.createTempSymbol();
-    MIRBuilder.buildInstr(TargetOpcode::EH_LABEL).addSym(BeginSymbol);
-  }
+  MCSymbol *BeginSymbol = Context.createTempSymbol();
+  MIRBuilder.buildInstr(TargetOpcode::EH_LABEL).addSym(BeginSymbol);
 
   if (LowerInlineAsm) {
     if (!translateInlineAsm(I, MIRBuilder))
@@ -2523,11 +2535,8 @@ bool IRTranslator::translateInvoke(const User &U,
   } else if (!translateCallBase(I, MIRBuilder))
     return false;
 
-  MCSymbol *EndSymbol = nullptr;
-  if (NeedEHLabel) {
-    EndSymbol = Context.createTempSymbol();
-    MIRBuilder.buildInstr(TargetOpcode::EH_LABEL).addSym(EndSymbol);
-  }
+  MCSymbol *EndSymbol = Context.createTempSymbol();
+  MIRBuilder.buildInstr(TargetOpcode::EH_LABEL).addSym(EndSymbol);
 
   SmallVector<std::pair<MachineBasicBlock *, BranchProbability>, 1> UnwindDests;
   BranchProbabilityInfo *BPI = FuncInfo.BPI;
@@ -2549,12 +2558,7 @@ bool IRTranslator::translateInvoke(const User &U,
   }
   InvokeMBB->normalizeSuccProbs();
 
-  if (NeedEHLabel) {
-    assert(BeginSymbol && "Expected a begin symbol!");
-    assert(EndSymbol && "Expected an end symbol!");
-    MF->addInvoke(&EHPadMBB, BeginSymbol, EndSymbol);
-  }
-
+  MF->addInvoke(&EHPadMBB, BeginSymbol, EndSymbol);
   MIRBuilder.buildBr(ReturnMBB);
   return true;
 }
@@ -3503,7 +3507,7 @@ bool IRTranslator::runOnMachineFunction(MachineFunction &CurMF) {
   // Get rid of the now empty basic block.
   EntryBB->removeSuccessor(&NewEntryBB);
   MF->remove(EntryBB);
-  MF->deleteMachineBasicBlock(EntryBB);
+  MF->DeleteMachineBasicBlock(EntryBB);
 
   assert(&MF->front() == &NewEntryBB &&
          "New entry wasn't next in the list of basic block!");

@@ -17,7 +17,6 @@
 #include "clang/StaticAnalyzer/Core/BugReporter/BugType.h"
 #include "clang/StaticAnalyzer/Core/Checker.h"
 #include "clang/StaticAnalyzer/Core/CheckerManager.h"
-#include "clang/StaticAnalyzer/Core/PathSensitive/CallDescription.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/CallEvent.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/CheckerContext.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/DynamicExtent.h"
@@ -1517,7 +1516,7 @@ void CStringChecker::evalStrcat(CheckerContext &C, const CallExpr *CE) const {
 }
 
 void CStringChecker::evalStrncat(CheckerContext &C, const CallExpr *CE) const {
-  // char *strncat(char *restrict s1, const char *restrict s2, size_t n);
+  //char *strncat(char *restrict s1, const char *restrict s2, size_t n);
   evalStrcpyCommon(C, CE,
                    /* ReturnEnd = */ false,
                    /* IsBounded = */ true,
@@ -2069,8 +2068,8 @@ void CStringChecker::evalStrcmpCommon(CheckerContext &C, const CallExpr *CE,
 }
 
 void CStringChecker::evalStrsep(CheckerContext &C, const CallExpr *CE) const {
-  // char *strsep(char **stringp, const char *delim);
-  // Verify whether the search string parameter matches the return type.
+  //char *strsep(char **stringp, const char *delim);
+  // Sanity: does the search string parameter match the return type?
   SourceArgExpr SearchStrPtr = {CE->getArg(0), 0};
 
   QualType CharPtrTy = SearchStrPtr.Expression->getType()->getPointeeType();
@@ -2272,10 +2271,11 @@ CStringChecker::FnCheck CStringChecker::identifyCall(const CallEvent &Call,
   if (!FD)
     return nullptr;
 
-  if (StdCopy.matches(Call))
+  if (Call.isCalled(StdCopy)) {
     return &CStringChecker::evalStdCopy;
-  if (StdCopyBackward.matches(Call))
+  } else if (Call.isCalled(StdCopyBackward)) {
     return &CStringChecker::evalStdCopyBackward;
+  }
 
   // Pro-actively check that argument types are safe to do arithmetic upon.
   // We do not want to crash if someone accidentally passes a structure

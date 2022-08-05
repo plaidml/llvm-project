@@ -34,8 +34,10 @@ TEST_MACROS();
 TEST_MACROS();
 #include <array>
 TEST_MACROS();
-#include <atomic>
+#ifndef _LIBCPP_HAS_NO_THREADS
+#    include <atomic>
 TEST_MACROS();
+#endif
 #ifndef _LIBCPP_HAS_NO_THREADS
 #    include <barrier>
 TEST_MACROS();
@@ -86,10 +88,6 @@ TEST_MACROS();
 TEST_MACROS();
 #include <condition_variable>
 TEST_MACROS();
-#ifndef _LIBCPP_HAS_NO_CXX20_COROUTINES
-#    include <coroutine>
-TEST_MACROS();
-#endif
 #include <csetjmp>
 TEST_MACROS();
 #include <csignal>
@@ -323,7 +321,7 @@ TEST_MACROS();
 #if __cplusplus >= 201103L
 #    include <experimental/algorithm>
 TEST_MACROS();
-#    ifndef _LIBCPP_HAS_NO_EXPERIMENTAL_COROUTINES
+#    if defined(__cpp_coroutines)
 #        include <experimental/coroutine>
 TEST_MACROS();
 #    endif

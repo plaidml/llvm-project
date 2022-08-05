@@ -77,7 +77,6 @@ static_library("LLVMRISCVCodeGen") {
     "RISCVMergeBaseOffset.cpp",
     "RISCVRegisterBankInfo.cpp",
     "RISCVRegisterInfo.cpp",
-    "RISCVSExtWRemoval.cpp",
     "RISCVSubtarget.cpp",
     "RISCVTargetMachine.cpp",
     "RISCVTargetObjectFile.cpp",

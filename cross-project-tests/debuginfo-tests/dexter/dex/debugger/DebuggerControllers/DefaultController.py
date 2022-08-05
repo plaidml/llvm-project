@@ -23,10 +23,11 @@ class EarlyExitCondition(object):
 
 class DefaultController(DebuggerControllerBase):
     def __init__(self, context, step_collection):
-        self.source_files = context.options.source_files
+        self.context = context
+        self.step_collection = step_collection
+        self.source_files = self.context.options.source_files
         self.watches = set()
         self.step_index = 0
-        super(DefaultController, self).__init__(context, step_collection)
 
     def _break_point_all_lines(self):
         for s in self.context.options.source_files:
@@ -72,10 +73,10 @@ class DefaultController(DebuggerControllerBase):
         return False
 
 
-    def _run_debugger_custom(self, cmdline):
+    def _run_debugger_custom(self):
         self.step_collection.debugger = self.debugger.debugger_info
         self._break_point_all_lines()
-        self.debugger.launch(cmdline)
+        self.debugger.launch()
 
         for command_obj in chain.from_iterable(self.step_collection.commands.values()):
             self.watches.update(command_obj.get_watches())

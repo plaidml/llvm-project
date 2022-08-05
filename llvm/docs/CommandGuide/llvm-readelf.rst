@@ -41,7 +41,7 @@ OPTIONS
 .. option:: --demangle, -C
 
  Display demangled symbol names in the output.
-
+ 
 .. option:: --dependent-libraries
 
  Display the dependent libraries section.
@@ -72,10 +72,9 @@ OPTIONS
 
 .. option:: --elf-output-style=<value>
 
- Format ELF information in the specified style. Valid options are ``LLVM``,
- ``GNU``, and ``JSON``. ``LLVM`` output is an expanded and structured format.
- ``GNU`` (the default) output mimics the equivalent GNU :program:`readelf`
- output. ``JSON`` is JSON formatted output intended for machine consumption.
+ Format ELF information in the specified style. Valid options are ``LLVM`` and
+ ``GNU``. ``LLVM`` output is an expanded and structured format, whilst ``GNU``
+ (the default) output mimics the equivalent GNU :program:`readelf` output.
 
 .. option:: --section-groups, -g
 
@@ -119,7 +118,7 @@ OPTIONS
 .. option:: --needed-libs
 
  Display the needed libraries.
-
+  
 .. option:: --no-demangle
 
  Do not display demangled symbol names in the output. On by default.
@@ -127,11 +126,6 @@ OPTIONS
 .. option:: --notes, -n
 
  Display all notes.
-
-.. option:: --pretty-print
-
- When used with :option:`--elf-output-style`, JSON output will be formatted in
- a more readable format.
 
 .. option:: --program-headers, --segments, -l
 
@@ -202,11 +196,11 @@ OPTIONS
 .. option:: --version-info, -V
 
  Display version sections.
-
+ 
 .. option:: --wide, -W
 
  Ignored for GNU readelf compatibility. The output is already similar to when using -W with GNU readelf.
-
+ 
 .. option:: @<FILE>
 
  Read command-line options from response file `<FILE>`.

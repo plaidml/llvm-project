@@ -21,19 +21,15 @@ void registerDialect(DialectRegistry &registry);
 
 namespace arith {
 class ArithmeticDialect;
-} // namespace arith
+} // end namespace arith
 
 namespace memref {
 class MemRefDialect;
-} // namespace memref
-
-namespace bufferization {
-class BufferizationDialect;
-} // namespace bufferization
+} // end namespace memref
 
 #define GEN_PASS_CLASSES
 #include "mlir/Transforms/Passes.h.inc"
 
-} // namespace mlir
+} // end namespace mlir
 
 #endif // TRANSFORMS_PASSDETAIL_H_

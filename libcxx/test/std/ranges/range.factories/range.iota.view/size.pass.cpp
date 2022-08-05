@@ -65,8 +65,7 @@ constexpr bool test() {
   }
   {
     const std::ranges::iota_view<int, int> io(0, std::numeric_limits<int>::max());
-    constexpr auto imax = std::numeric_limits<int>::max();
-    assert(io.size() == imax);
+    assert(io.size() == std::numeric_limits<int>::max());
   }
 
   // Neither are integer like.

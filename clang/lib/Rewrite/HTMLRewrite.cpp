@@ -203,7 +203,7 @@ std::string html::EscapeText(StringRef s, bool EscapeSpaces, bool ReplaceTabs) {
     }
   }
 
-  return Str;
+  return os.str();
 }
 
 static void AddLineNumber(RewriteBuffer &RB, unsigned LineNo,
@@ -542,7 +542,7 @@ void html::HighlightMacros(Rewriter &R, FileID FID, const Preprocessor& PP) {
 
   // Lex all the tokens in raw mode, to avoid entering #includes or expanding
   // macros.
-  while (true) {
+  while (1) {
     Token Tok;
     L.LexFromRawLexer(Tok);
 

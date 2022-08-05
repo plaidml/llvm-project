@@ -30,7 +30,11 @@ class MCStreamer;
 class MCSubtargetInfo;
 class MCTargetOptions;
 class MCTargetStreamer;
+class StringRef;
 class Target;
+class Triple;
+class raw_ostream;
+class raw_pwrite_stream;
 
 MCCodeEmitter *createAArch64MCCodeEmitter(const MCInstrInfo &MCII,
                                           const MCRegisterInfo &MRI,

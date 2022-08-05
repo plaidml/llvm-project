@@ -56,11 +56,9 @@ for.end:                                          ; preds = %for.body, %entry
 define void @ult_infinite_ub() mustprogress {
 ; CHECK-LABEL: 'ult_infinite_ub'
 ; CHECK-NEXT:  Determining loop execution counts for: @ult_infinite_ub
-; CHECK-NEXT:  Loop %for.body: backedge-taken count is 1
-; CHECK-NEXT:  Loop %for.body: max backedge-taken count is 1
-; CHECK-NEXT:  Loop %for.body: Predicated backedge-taken count is 1
-; CHECK-NEXT:   Predicates:
-; CHECK:       Loop %for.body: Trip multiple is 2
+; CHECK-NEXT:  Loop %for.body: Unpredictable backedge-taken count.
+; CHECK-NEXT:  Loop %for.body: Unpredictable max backedge-taken count.
+; CHECK-NEXT:  Loop %for.body: Unpredictable predicated backedge-taken count.
 ;
 entry:
   br label %for.body
@@ -342,11 +340,9 @@ for.end:                                          ; preds = %for.body, %entry
 define void @slt_infinite_ub() mustprogress {
 ; CHECK-LABEL: 'slt_infinite_ub'
 ; CHECK-NEXT:  Determining loop execution counts for: @slt_infinite_ub
-; CHECK-NEXT:  Loop %for.body: backedge-taken count is 0
-; CHECK-NEXT:  Loop %for.body: max backedge-taken count is 0
-; CHECK-NEXT:  Loop %for.body: Predicated backedge-taken count is 0
-; CHECK-NEXT:   Predicates:
-; CHECK:       Loop %for.body: Trip multiple is 1
+; CHECK-NEXT:  Loop %for.body: Unpredictable backedge-taken count.
+; CHECK-NEXT:  Loop %for.body: Unpredictable max backedge-taken count.
+; CHECK-NEXT:  Loop %for.body: Unpredictable predicated backedge-taken count.
 ;
 entry:
   br label %for.body

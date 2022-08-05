@@ -41,7 +41,7 @@ class ShapedTypeComponents {
 
 public:
   /// Default construction is an unranked shape.
-  ShapedTypeComponents() : elementType(nullptr), attr(nullptr){};
+  ShapedTypeComponents() : elementType(nullptr), attr(nullptr), ranked(false){};
   ShapedTypeComponents(Type elementType)
       : elementType(elementType), attr(nullptr), ranked(false) {}
   ShapedTypeComponents(ShapedType shapedType) : attr(nullptr) {
@@ -83,7 +83,7 @@ private:
   ShapeStorageT dims;
   Type elementType;
   Attribute attr;
-  bool ranked{false};
+  bool ranked;
 };
 
 /// Adaptor class to abstract the differences between whether value is from
@@ -165,7 +165,10 @@ public:
   ValueShapeRange(const std::initializer_list<Value> &values)
       : ValueShapeRange(ValueRange(values)) {}
 
-  ValueShapeRange(const ValueShapeRange &) = default;
+  ValueShapeRange(const ValueShapeRange &other) : RangeBaseT(other) {
+    operandShape = other.operandShape;
+    valueToShape = other.valueToShape;
+  }
 
   /// Sets the Value to ShapeAdaptor mapping function and returns this.
   ValueShapeRange &setValueToShapeMapping(ValueShapeMapFn fn) {

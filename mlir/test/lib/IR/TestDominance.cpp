@@ -90,16 +90,15 @@ private:
   DenseMap<Block *, size_t> blockIds;
 };
 
-struct TestDominancePass
-    : public PassWrapper<TestDominancePass, OperationPass<FuncOp>> {
+struct TestDominancePass : public PassWrapper<TestDominancePass, FunctionPass> {
   StringRef getArgument() const final { return "test-print-dominance"; }
   StringRef getDescription() const final {
     return "Print the dominance information for multiple regions.";
   }
 
-  void runOnOperation() override {
-    llvm::errs() << "Testing : " << getOperation().getName() << "\n";
-    DominanceTest dominanceTest(getOperation());
+  void runOnFunction() override {
+    llvm::errs() << "Testing : " << getFunction().getName() << "\n";
+    DominanceTest dominanceTest(getFunction());
 
     // Print dominance information.
     llvm::errs() << "--- DominanceInfo ---\n";
@@ -121,7 +120,7 @@ struct TestDominancePass
   }
 };
 
-} // namespace
+} // end anonymous namespace
 
 namespace mlir {
 namespace test {

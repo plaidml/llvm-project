@@ -1456,12 +1456,16 @@ void LoopReroll::DAGRootTracker::replace(const SCEV *BackedgeTakenCount) {
   }
 
   // Remove instructions associated with non-base iterations.
-  for (Instruction &Inst : llvm::make_early_inc_range(llvm::reverse(*Header))) {
-    unsigned I = Uses[&Inst].find_first();
+  for (BasicBlock::reverse_iterator J = Header->rbegin(), JE = Header->rend();
+       J != JE;) {
+    unsigned I = Uses[&*J].find_first();
     if (I > 0 && I < IL_All) {
-      LLVM_DEBUG(dbgs() << "LRR: removing: " << Inst << "\n");
-      Inst.eraseFromParent();
+      LLVM_DEBUG(dbgs() << "LRR: removing: " << *J << "\n");
+      J++->eraseFromParent();
+      continue;
     }
+
+    ++J;
   }
 
   // Rewrite each BaseInst using SCEV.

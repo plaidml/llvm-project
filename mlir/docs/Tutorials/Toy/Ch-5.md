@@ -56,7 +56,7 @@ for further optimization. To start off the lowering, we first define our
 conversion target:
 
 ```c++
-void ToyToAffineLoweringPass::runOnOperation() {
+void ToyToAffineLoweringPass::runOnFunction() {
   // The first thing to define is the conversion target. This will define the
   // final target for this lowering.
   mlir::ConversionTarget target(getContext());
@@ -147,7 +147,7 @@ struct TransposeOpLowering : public mlir::ConversionPattern {
 Now we can prepare the list of patterns to use during the lowering process:
 
 ```c++
-void ToyToAffineLoweringPass::runOnOperation() {
+void ToyToAffineLoweringPass::runOnFunction() {
   ...
 
   // Now that the conversion target has been defined, we just need to provide
@@ -166,13 +166,13 @@ for our purposes, we will perform a partial lowering, as we will not convert
 `toy.print` at this time.
 
 ```c++
-void ToyToAffineLoweringPass::runOnOperation() {
+void ToyToAffineLoweringPass::runOnFunction() {
   ...
 
   // With the target and rewrite patterns defined, we can now attempt the
   // conversion. The conversion will signal failure if any of our *illegal*
   // operations were not converted successfully.
-  mlir::FuncOp function = getOperation();
+  auto function = getFunction();
   if (mlir::failed(mlir::applyPartialConversion(function, target, patterns)))
     signalPassFailure();
 }

@@ -115,7 +115,7 @@ struct SymbolReplacementPass
     });
   }
 };
-} // namespace
+} // end anonymous namespace
 
 namespace mlir {
 void registerSymbolTestPasses() {

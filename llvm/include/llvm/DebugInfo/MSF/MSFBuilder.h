@@ -20,6 +20,7 @@
 
 namespace llvm {
 class FileBufferByteStream;
+class WritableBinaryStream;
 namespace msf {
 
 class MSFBuilder {

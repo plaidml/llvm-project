@@ -128,29 +128,24 @@ TEST(WrapperFunctionUtilsTest, WrapperFunctionMethodCallAndHandleRet) {
   EXPECT_EQ(Result, (int32_t)3);
 }
 
-static __orc_rt_CWrapperFunctionResult sumArrayWrapper(const char *ArgData,
-                                                       size_t ArgSize) {
-  return WrapperFunction<int8_t(SPSExecutorAddrRange)>::handle(
-             ArgData, ArgSize,
-             [](ExecutorAddrRange R) {
-               int8_t Sum = 0;
-               for (char C : R.toSpan<char>())
-                 Sum += C;
-               return Sum;
-             })
-      .release();
+// A non-SPS wrapper function that calculates the sum of a byte array.
+static __orc_rt_CWrapperFunctionResult sumArrayRawWrapper(const char *ArgData,
+                                                          size_t ArgSize) {
+  auto WFR = WrapperFunctionResult::allocate(1);
+  *WFR.data() = 0;
+  for (unsigned I = 0; I != ArgSize; ++I)
+    *WFR.data() += ArgData[I];
+  return WFR.release();
 }
 
 TEST(WrapperFunctionUtilsTest, SerializedWrapperFunctionCallTest) {
   {
-    // Check wrapper function calls.
+    // Check raw wrapper function calls.
     char A[] = {1, 2, 3, 4};
 
-    auto WFC =
-        cantFail(WrapperFunctionCall::Create<SPSArgList<SPSExecutorAddrRange>>(
-            ExecutorAddr::fromPtr(sumArrayWrapper),
-            ExecutorAddrRange(ExecutorAddr::fromPtr(A),
-                              ExecutorAddrDiff(sizeof(A)))));
+    WrapperFunctionCall WFC{ExecutorAddr::fromPtr(sumArrayRawWrapper),
+                            ExecutorAddrRange(ExecutorAddr::fromPtr(A),
+                                              ExecutorAddrDiff(sizeof(A)))};
 
     WrapperFunctionResult WFR(WFC.run());
     EXPECT_EQ(WFR.size(), 1U);
@@ -159,18 +154,20 @@ TEST(WrapperFunctionUtilsTest, SerializedWrapperFunctionCallTest) {
 
   {
     // Check calls to void functions.
-    auto WFC =
-        cantFail(WrapperFunctionCall::Create<SPSArgList<SPSExecutorAddrRange>>(
-            ExecutorAddr::fromPtr(voidNoopWrapper), ExecutorAddrRange()));
-    auto Err = WFC.runWithSPSRet<void>();
+    WrapperFunctionCall WFC{ExecutorAddr::fromPtr(voidNoopWrapper),
+                            ExecutorAddrRange()};
+    auto Err = WFC.runWithSPSRet();
     EXPECT_FALSE(!!Err);
   }
 
   {
     // Check calls with arguments and return values.
-    auto WFC =
-        cantFail(WrapperFunctionCall::Create<SPSArgList<int32_t, int32_t>>(
-            ExecutorAddr::fromPtr(addWrapper), 2, 4));
+    auto ArgWFR =
+        WrapperFunctionResult::fromSPSArgs<SPSArgList<int32_t, int32_t>>(2, 4);
+    WrapperFunctionCall WFC{
+        ExecutorAddr::fromPtr(addWrapper),
+        ExecutorAddrRange(ExecutorAddr::fromPtr(ArgWFR.data()),
+                          ExecutorAddrDiff(ArgWFR.size()))};
 
     int32_t Result = 0;
     auto Err = WFC.runWithSPSRet<int32_t>(Result);

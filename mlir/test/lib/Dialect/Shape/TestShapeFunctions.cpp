@@ -25,13 +25,13 @@ struct ReportShapeFnPass
     return "Test pass to report associated shape functions";
   }
 };
-} // namespace
+} // end anonymous namespace
 
 void ReportShapeFnPass::runOnOperation() {
   auto module = getOperation();
 
   // Report the shape function available to refine the op.
-  auto shapeFnId = StringAttr::get(&getContext(), "shape.function");
+  auto shapeFnId = Identifier::get("shape.function", &getContext());
   auto remarkShapeFn = [&](shape::FunctionLibraryOp shapeFnLib, Operation *op) {
     if (op->hasTrait<OpTrait::IsTerminator>())
       return true;

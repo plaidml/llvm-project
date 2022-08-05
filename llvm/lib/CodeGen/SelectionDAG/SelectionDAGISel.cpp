@@ -297,7 +297,7 @@ TargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
 #ifndef NDEBUG
   dbgs() << "If a target marks an instruction with "
           "'usesCustomInserter', it must implement "
-          "TargetLowering::EmitInstrWithCustomInserter!\n";
+          "TargetLowering::EmitInstrWithCustomInserter!";
 #endif
   llvm_unreachable(nullptr);
 }
@@ -1784,25 +1784,27 @@ SelectionDAGISel::FinishBasicBlock() {
     }
 
     // Update PHI Nodes
-    for (const std::pair<MachineInstr *, unsigned> &P :
-         FuncInfo->PHINodesToUpdate) {
-      MachineInstrBuilder PHI(*MF, P.first);
+    for (unsigned pi = 0, pe = FuncInfo->PHINodesToUpdate.size();
+         pi != pe; ++pi) {
+      MachineInstrBuilder PHI(*MF, FuncInfo->PHINodesToUpdate[pi].first);
       MachineBasicBlock *PHIBB = PHI->getParent();
       assert(PHI->isPHI() &&
              "This is not a machine PHI node that we are updating!");
       // This is "default" BB. We have two jumps to it. From "header" BB and
       // from last "case" BB, unless the latter was skipped.
       if (PHIBB == BTB.Default) {
-        PHI.addReg(P.second).addMBB(BTB.Parent);
+        PHI.addReg(FuncInfo->PHINodesToUpdate[pi].second).addMBB(BTB.Parent);
         if (!BTB.ContiguousRange) {
-          PHI.addReg(P.second).addMBB(BTB.Cases.back().ThisBB);
+          PHI.addReg(FuncInfo->PHINodesToUpdate[pi].second)
+              .addMBB(BTB.Cases.back().ThisBB);
          }
       }
       // One of "cases" BB.
-      for (const SwitchCG::BitTestCase &BT : BTB.Cases) {
-        MachineBasicBlock* cBB = BT.ThisBB;
+      for (unsigned j = 0, ej = BTB.Cases.size();
+           j != ej; ++j) {
+        MachineBasicBlock* cBB = BTB.Cases[j].ThisBB;
         if (cBB->isSuccessor(PHIBB))
-          PHI.addReg(P.second).addMBB(cBB);
+          PHI.addReg(FuncInfo->PHINodesToUpdate[pi].second).addMBB(cBB);
       }
     }
   }

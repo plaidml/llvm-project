@@ -972,8 +972,8 @@ namespace {
 } // end anonymous namespace
 
 bool DeadCodeElimination::isDead(unsigned R) const {
-  for (const MachineOperand &MO : MRI.use_operands(R)) {
-    const MachineInstr *UseI = MO.getParent();
+  for (auto I = MRI.use_begin(R), E = MRI.use_end(); I != E; ++I) {
+    MachineInstr *UseI = I->getParent();
     if (UseI->isDebugValue())
       continue;
     if (UseI->isPHI()) {
@@ -995,8 +995,8 @@ bool DeadCodeElimination::runOnNode(MachineDomTreeNode *N) {
 
   MachineBasicBlock *B = N->getBlock();
   std::vector<MachineInstr*> Instrs;
-  for (MachineInstr &MI : llvm::reverse(*B))
-    Instrs.push_back(&MI);
+  for (auto I = B->rbegin(), E = B->rend(); I != E; ++I)
+    Instrs.push_back(&*I);
 
   for (auto MI : Instrs) {
     unsigned Opc = MI->getOpcode();
@@ -3084,7 +3084,8 @@ void HexagonLoopRescheduling::moveGroup(InstrGroup &G, MachineBasicBlock &LB,
     .addMBB(&LB);
   RegMap.insert(std::make_pair(G.Inp.Reg, PhiR));
 
-  for (const MachineInstr *SI : llvm::reverse(G.Ins)) {
+  for (unsigned i = G.Ins.size(); i > 0; --i) {
+    const MachineInstr *SI = G.Ins[i-1];
     unsigned DR = getDefReg(SI);
     const TargetRegisterClass *RC = MRI->getRegClass(DR);
     Register NewDR = MRI->createVirtualRegister(RC);
@@ -3119,8 +3120,8 @@ bool HexagonLoopRescheduling::processLoop(LoopCand &C) {
     if (isConst(PR))
       continue;
     bool BadUse = false, GoodUse = false;
-    for (const MachineOperand &MO : MRI->use_operands(PR)) {
-      const MachineInstr *UseI = MO.getParent();
+    for (auto UI = MRI->use_begin(PR), UE = MRI->use_end(); UI != UE; ++UI) {
+      MachineInstr *UseI = UI->getParent();
       if (UseI->getParent() != C.LB) {
         BadUse = true;
         break;
@@ -3155,20 +3156,20 @@ bool HexagonLoopRescheduling::processLoop(LoopCand &C) {
   // if that instruction could potentially be moved to the front of the loop:
   // the output of the loop cannot be used in a non-shuffling instruction
   // in this loop.
-  for (MachineInstr &MI : llvm::reverse(*C.LB)) {
-    if (MI.isTerminator())
+  for (auto I = C.LB->rbegin(), E = C.LB->rend(); I != E; ++I) {
+    if (I->isTerminator())
       continue;
-    if (MI.isPHI())
+    if (I->isPHI())
       break;
 
     RegisterSet Defs;
-    HBS::getInstrDefs(MI, Defs);
+    HBS::getInstrDefs(*I, Defs);
     if (Defs.count() != 1)
       continue;
     Register DefR = Defs.find_first();
     if (!DefR.isVirtual())
       continue;
-    if (!isBitShuffle(&MI, DefR))
+    if (!isBitShuffle(&*I, DefR))
       continue;
 
     bool BadUse = false;
@@ -3182,7 +3183,8 @@ bool HexagonLoopRescheduling::processLoop(LoopCand &C) {
           if (UseI->getOperand(Idx+1).getMBB() != C.LB)
             BadUse = true;
         } else {
-          if (!llvm::is_contained(ShufIns, UseI))
+          auto F = find(ShufIns, UseI);
+          if (F == ShufIns.end())
             BadUse = true;
         }
       } else {
@@ -3197,7 +3199,7 @@ bool HexagonLoopRescheduling::processLoop(LoopCand &C) {
 
     if (BadUse)
       continue;
-    ShufIns.push_back(&MI);
+    ShufIns.push_back(&*I);
   }
 
   // Partition the list of shuffling instructions into instruction groups,
@@ -3260,12 +3262,13 @@ bool HexagonLoopRescheduling::processLoop(LoopCand &C) {
       dbgs() << "Group[" << i << "] inp: "
              << printReg(G.Inp.Reg, HRI, G.Inp.Sub)
              << "  out: " << printReg(G.Out.Reg, HRI, G.Out.Sub) << "\n";
-      for (const MachineInstr *MI : G.Ins)
-        dbgs() << "  " << MI;
+      for (unsigned j = 0, m = G.Ins.size(); j < m; ++j)
+        dbgs() << "  " << *G.Ins[j];
     }
   });
 
-  for (InstrGroup &G : Groups) {
+  for (unsigned i = 0, n = Groups.size(); i < n; ++i) {
+    InstrGroup &G = Groups[i];
     if (!isShuffleOf(G.Out.Reg, G.Inp.Reg))
       continue;
     auto LoopInpEq = [G] (const PhiInfo &P) -> bool {
@@ -3332,9 +3335,9 @@ bool HexagonLoopRescheduling::runOnMachineFunction(MachineFunction &MF) {
       continue;
     MachineBasicBlock *PB = nullptr;
     bool IsLoop = false;
-    for (MachineBasicBlock *Pred : B.predecessors()) {
-      if (Pred != &B)
-        PB = Pred;
+    for (auto PI = B.pred_begin(), PE = B.pred_end(); PI != PE; ++PI) {
+      if (*PI != &B)
+        PB = *PI;
       else
         IsLoop = true;
     }
@@ -3342,13 +3345,13 @@ bool HexagonLoopRescheduling::runOnMachineFunction(MachineFunction &MF) {
       continue;
 
     MachineBasicBlock *EB = nullptr;
-    for (MachineBasicBlock *Succ : B.successors()) {
-      if (Succ == &B)
+    for (auto SI = B.succ_begin(), SE = B.succ_end(); SI != SE; ++SI) {
+      if (*SI == &B)
         continue;
       // Set EP to the epilog block, if it has only 1 predecessor (i.e. the
       // edge from B to EP is non-critical.
-      if (Succ->pred_size() == 1)
-        EB = Succ;
+      if ((*SI)->pred_size() == 1)
+        EB = *SI;
       break;
     }
 

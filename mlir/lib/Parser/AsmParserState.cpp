@@ -23,7 +23,8 @@ struct AsmParserState::Impl {
 
   struct PartialOpDef {
     explicit PartialOpDef(const OperationName &opName) {
-      if (opName.hasTrait<OpTrait::SymbolTable>())
+      const auto *abstractOp = opName.getAbstractOperation();
+      if (abstractOp && abstractOp->hasTrait<OpTrait::SymbolTable>())
         symbolTable = std::make_unique<SymbolUseMap>();
     }
 
@@ -91,7 +92,7 @@ void AsmParserState::Impl::resolveSymbolUses() {
 //===----------------------------------------------------------------------===//
 
 AsmParserState::AsmParserState() : impl(std::make_unique<Impl>()) {}
-AsmParserState::~AsmParserState() = default;
+AsmParserState::~AsmParserState() {}
 AsmParserState &AsmParserState::operator=(AsmParserState &&other) {
   impl = std::move(other.impl);
   return *this;
@@ -257,9 +258,9 @@ void AsmParserState::addUses(Value value, ArrayRef<llvm::SMLoc> locations) {
     unsigned resultNo = result.getResultNumber();
     OperationDefinition &def = *impl->operations[existingIt->second];
     for (auto &resultGroup : llvm::reverse(def.resultGroups)) {
-      if (resultNo >= resultGroup.startIndex) {
+      if (resultNo >= resultGroup.first) {
         for (llvm::SMLoc loc : locations)
-          resultGroup.definition.uses.push_back(convertIdLocToRange(loc));
+          resultGroup.second.uses.push_back(convertIdLocToRange(loc));
         return;
       }
     }

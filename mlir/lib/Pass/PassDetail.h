@@ -119,6 +119,6 @@ private:
   std::unique_ptr<Impl> impl;
 };
 
-} // namespace detail
-} // namespace mlir
+} // end namespace detail
+} // end namespace mlir
 #endif // MLIR_PASS_PASSDETAIL_H_

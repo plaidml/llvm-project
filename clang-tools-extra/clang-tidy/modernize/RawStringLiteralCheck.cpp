@@ -25,7 +25,7 @@ bool containsEscapes(StringRef HayStack, StringRef Escapes) {
     return false;
 
   while (BackSlash != StringRef::npos) {
-    if (!Escapes.contains(HayStack[BackSlash + 1]))
+    if (Escapes.find(HayStack[BackSlash + 1]) == StringRef::npos)
       return false;
     BackSlash = HayStack.find('\\', BackSlash + 2);
   }

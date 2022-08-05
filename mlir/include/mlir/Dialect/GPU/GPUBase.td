@@ -53,7 +53,6 @@ def GPU_Dialect : Dialect {
   }];
 
   let dependentDialects = ["arith::ArithmeticDialect"];
-  let useDefaultAttributePrinterParser = 1;
 }
 
 def GPU_AsyncToken : DialectType<

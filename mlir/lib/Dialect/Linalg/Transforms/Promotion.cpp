@@ -13,7 +13,8 @@
 #include "PassDetail.h"
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
-#include "mlir/Dialect/Linalg/IR/Linalg.h"
+#include "mlir/Dialect/Linalg/IR/LinalgOps.h"
+#include "mlir/Dialect/Linalg/IR/LinalgTypes.h"
 #include "mlir/Dialect/Linalg/Passes.h"
 #include "mlir/Dialect/Linalg/Transforms/Transforms.h"
 #include "mlir/Dialect/Linalg/Utils/Utils.h"
@@ -27,7 +28,6 @@
 #include "llvm/ADT/MapVector.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Debug.h"
 
 using namespace mlir;
 using namespace mlir::linalg;
@@ -87,7 +87,7 @@ defaultAllocBufferCallBack(const LinalgPromotionOptions &options,
   auto one = b.createOrFold<arith::ConstantIndexOp>(1);
 
   Value allocSize = one;
-  for (const auto &size : llvm::enumerate(boundingSubViewSize))
+  for (auto size : llvm::enumerate(boundingSubViewSize))
     allocSize = b.createOrFold<arith::MulIOp>(allocSize, size.value());
   Value buffer = allocBuffer(b, options, viewType.getElementType(), allocSize,
                              layout, alignment);
@@ -212,23 +212,20 @@ LinalgOpInstancePromotionOptions::LinalgOpInstancePromotionOptions(
 // by a partial `copy` op.
 FailureOr<PromotionInfo> mlir::linalg::promoteSubviewAsNewBuffer(
     OpBuilder &b, Location loc, memref::SubViewOp subView,
-    const AllocBufferCallbackFn &allocationFn, DataLayout &layout) {
+    AllocBufferCallbackFn allocationFn, DataLayout &layout) {
   auto viewType = subView.getType();
   auto rank = viewType.getRank();
   SmallVector<Value, 4> fullSizes;
   SmallVector<OpFoldResult> partialSizes;
   fullSizes.reserve(rank);
   partialSizes.reserve(rank);
-  for (const auto &en : llvm::enumerate(subView.getOrCreateRanges(b, loc))) {
+  for (auto en : llvm::enumerate(subView.getOrCreateRanges(b, loc))) {
     auto rangeValue = en.value();
     // Try to extract a tight constant.
     LLVM_DEBUG(llvm::dbgs() << "Extract tightest: " << rangeValue.size << "\n");
-    FailureOr<int64_t> upperBound =
-        getConstantUpperBoundForIndex(rangeValue.size);
-    Value size =
-        failed(upperBound)
-            ? rangeValue.size
-            : b.create<arith::ConstantIndexOp>(loc, upperBound.getValue());
+    IntegerAttr sizeAttr = getSmallestBoundingIndex(rangeValue.size);
+    Value size = (!sizeAttr) ? rangeValue.size
+                             : b.create<arith::ConstantOp>(loc, sizeAttr);
     LLVM_DEBUG(llvm::dbgs() << "Extracted tightest: " << size << "\n");
     fullSizes.push_back(size);
     partialSizes.push_back(
@@ -379,7 +376,7 @@ mlir::linalg::promoteSubviewsPrecondition(Operation *op,
 
 FailureOr<LinalgOp>
 mlir::linalg::promoteSubViews(OpBuilder &builder, LinalgOp linalgOp,
-                              const LinalgPromotionOptions &options) {
+                              LinalgPromotionOptions options) {
   LinalgOpInstancePromotionOptions linalgOptions(linalgOp, options);
   auto layout = DataLayout::closest(linalgOp);
   ImplicitLocOpBuilder b(linalgOp.getLoc(), builder);
@@ -397,8 +394,8 @@ struct LinalgPromotionPass : public LinalgPromotionBase<LinalgPromotionPass> {
     this->useAlloca = useAlloca;
   }
 
-  void runOnOperation() override {
-    getOperation().walk([&](LinalgOp op) {
+  void runOnFunction() override {
+    getFunction().walk([&](LinalgOp op) {
       auto options = LinalgPromotionOptions()
                          .setDynamicBuffers(dynamicBuffers)
                          .setUseAlloca(useAlloca);

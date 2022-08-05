@@ -16,8 +16,7 @@ def RocketModel : SchedMachineModel {
   let IssueWidth = 1;        // 1 micro-op is dispatched per cycle.
   let LoadLatency = 3;
   let MispredictPenalty = 3;
-  let CompleteModel = false;
-  let UnsupportedFeatures = [HasStdExtZbkb, HasVInstructions, HasVInstructionsI64];
+  let UnsupportedFeatures = [HasStdExtV, HasStdExtZvamo, HasStdExtZvlsseg];
 }
 
 //===----------------------------------------------------------------------===//
@@ -237,8 +236,5 @@ def : ReadAdvance<ReadFClass64, 0>;
 defm : UnsupportedSchedV;
 defm : UnsupportedSchedZba;
 defm : UnsupportedSchedZbb;
-defm : UnsupportedSchedZbc;
-defm : UnsupportedSchedZbs;
-defm : UnsupportedSchedZbf;
 defm : UnsupportedSchedZfh;
 }

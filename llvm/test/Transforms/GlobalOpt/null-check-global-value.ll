@@ -1,4 +1,4 @@
-; RUN: opt -passes=globalopt -S < %s | FileCheck %s
+; RUN: opt -globalopt -S < %s | FileCheck %s
 
 %sometype = type { i8* }
 

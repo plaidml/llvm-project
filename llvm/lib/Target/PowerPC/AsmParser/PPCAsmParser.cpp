@@ -201,8 +201,7 @@ struct PPCOperand : public MCParsedAsmOperand {
     struct TLSRegOp TLSReg;
   };
 
-  PPCOperand(KindTy K) : Kind(K) {}
-
+  PPCOperand(KindTy K) : MCParsedAsmOperand(), Kind(K) {}
 public:
   PPCOperand(const PPCOperand &o) : MCParsedAsmOperand() {
     Kind = o.Kind;
@@ -1577,16 +1576,6 @@ bool PPCAsmParser::ParseInstruction(ParseInstructionInfo &Info, StringRef Name,
     std::swap(Operands[2], Operands[1]);
   }
 
-  // Handle base mnemonic for atomic loads where the EH bit is zero.
-  if (Name == "lqarx" || Name == "ldarx" || Name == "lwarx" ||
-      Name == "lharx" || Name == "lbarx") {
-    if (Operands.size() != 5)
-      return false;
-    PPCOperand &EHOp = (PPCOperand &)*Operands[4];
-    if (EHOp.isU1Imm() && EHOp.getImm() == 0)
-      Operands.pop_back();
-  }
-
   return false;
 }
 
@@ -1756,7 +1745,7 @@ unsigned PPCAsmParser::validateTargetOperandClass(MCParsedAsmOperand &AsmOp,
   }
 
   PPCOperand &Op = static_cast<PPCOperand &>(AsmOp);
-  if (Op.isU3Imm() && Op.getImm() == ImmVal)
+  if (Op.isImm() && Op.getImm() == ImmVal)
     return Match_Success;
 
   return Match_InvalidOperand;

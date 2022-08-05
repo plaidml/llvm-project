@@ -30,7 +30,6 @@ struct traits_sfinae_base<T, void_t<typename T::promise_type>> {
 
 template <class Ret, class... Args>
 struct coroutine_traits : public traits_sfinae_base<Ret> {};
-// expected-note@-1{{declared here}}
 } // namespace std::experimental
 
 struct suspend_never {
@@ -63,7 +62,7 @@ struct task {
 
 task<NoCopyNoMove> local2val() {
   NoCopyNoMove value;
-  co_return value; // expected-warning {{support for std::experimental::coroutine_traits will be removed}}
+  co_return value;
 }
 
 task<NoCopyNoMove &> local2ref() {

@@ -25,7 +25,6 @@
 
 #include "X86.h"
 #include "X86InstrBuilder.h"
-#include "X86MachineFunctionInfo.h"
 #include "X86RegisterInfo.h"
 #include "X86Subtarget.h"
 #include "llvm/CodeGen/MachineFunctionPass.h"
@@ -236,7 +235,6 @@ bool X86PreTileConfig::runOnMachineFunction(MachineFunction &MF) {
   const TargetInstrInfo *TII = ST.getInstrInfo();
   const TargetRegisterInfo *TRI = ST.getRegisterInfo();
   const TargetRegisterClass *RC = TRI->getRegClass(X86::TILERegClassID);
-  X86MachineFunctionInfo *X86FI = MF.getInfo<X86MachineFunctionInfo>();
 
   BitVector AMXRegs(TRI->getNumRegs());
   for (unsigned I = 0; I < RC->getNumRegs(); I++)
@@ -296,7 +294,6 @@ bool X86PreTileConfig::runOnMachineFunction(MachineFunction &MF) {
   // There's no AMX instruction if we didn't find a tile config live in point.
   if (CfgNeedInsert.empty())
     return false;
-  X86FI->setHasVirtualTileReg(true);
 
   // Avoid to insert ldtilecfg before any shape defs.
   SmallVector<MachineBasicBlock *, 8> WorkList;

@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 
-import os
 import sys
 
 if len(sys.argv) != 2:
     raise ValueError("unexpected number of args")
 
 if sys.argv[1] == "--gtest_list_tests":
-    print(f"""\
-Running main() from {os.getcwd()}/gtest_main.cc
+    print("""\
+Running main() from gtest_main.cc
 FirstTest.
   subTestA
   subTestB

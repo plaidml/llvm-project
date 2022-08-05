@@ -2,7 +2,6 @@
 
 # ORC runtime library implementation files.
 set(ORC_SOURCES
-  debug.cpp
   extensible_rtti.cpp
   log_error_to_stderr.cpp
   macho_ehframe_registration.cpp

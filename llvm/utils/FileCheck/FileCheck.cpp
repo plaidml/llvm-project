@@ -415,6 +415,7 @@ BuildInputAnnotations(const SourceMgr &SM, unsigned CheckFileBufferID,
                        "the check file or for an implicit pattern");
     if (DiagCountPerPattern[DiagItr->CheckLoc] > 1)
       Label << "'" << DiagIndexPerPattern[DiagItr->CheckLoc]++;
+    Label.flush();
     LabelWidth = std::max((std::string::size_type)LabelWidth, A.Label.size());
 
     A.Marker = GetMarker(DiagItr->MatchTy);

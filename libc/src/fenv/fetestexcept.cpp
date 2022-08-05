@@ -12,8 +12,6 @@
 
 namespace __llvm_libc {
 
-LLVM_LIBC_FUNCTION(int, fetestexcept, (int e)) {
-  return fputil::test_except(e);
-}
+LLVM_LIBC_FUNCTION(int, fetestexcept, (int e)) { return fputil::testExcept(e); }
 
 } // namespace __llvm_libc

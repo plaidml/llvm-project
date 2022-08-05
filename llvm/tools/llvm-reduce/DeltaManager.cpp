@@ -30,7 +30,6 @@
 #include "deltas/ReduceModuleData.h"
 #include "deltas/ReduceOperandBundles.h"
 #include "deltas/ReduceOperands.h"
-#include "deltas/ReduceOperandsSkip.h"
 #include "deltas/ReduceOperandsToArgs.h"
 #include "deltas/ReduceSpecialGlobals.h"
 #include "llvm/Support/CommandLine.h"
@@ -59,7 +58,6 @@ static cl::opt<std::string>
   DELTA_PASS("operands-one", reduceOperandsOneDeltaPass)                       \
   DELTA_PASS("operands-undef", reduceOperandsUndefDeltaPass)                   \
   DELTA_PASS("operands-to-args", reduceOperandsToArgsDeltaPass)                \
-  DELTA_PASS("operands-skip", reduceOperandsSkipDeltaPass)                     \
   DELTA_PASS("operand-bundles", reduceOperandBundesDeltaPass)                  \
   DELTA_PASS("attributes", reduceAttributesDeltaPass)                          \
   DELTA_PASS("module-data", reduceModuleDataDeltaPass)
@@ -89,7 +87,7 @@ static void runDeltaPassName(TestRunner &Tester, StringRef PassName) {
     DELTA_PASSES
   }
 #undef DELTA_PASS
-  errs() << "unknown pass \"" << PassName << "\"\n";
+  errs() << "unknown pass \"" << PassName << "\"";
   exit(1);
 }
 
@@ -103,32 +101,15 @@ void llvm::printDeltaPasses(raw_ostream &OS) {
 #undef DELTA_PASS
 }
 
-// FIXME: We might want to use a different metric than "number of
-// bytes in serialized IR" to detect non-progress of the main delta
-// loop
-static int getIRSize(TestRunner &Tester) {
-  std::string Str;
-  raw_string_ostream SS(Str);
-  Tester.getProgram().print(SS, /*AnnotationWriter=*/nullptr);
-  return Str.length();
-}
-
-void llvm::runDeltaPasses(TestRunner &Tester, int MaxPassIterations) {
-  int OldSize = getIRSize(Tester);
-  for (int Iter = 0; Iter < MaxPassIterations; ++Iter) {
-    if (DeltaPasses.empty()) {
-      runAllDeltaPasses(Tester);
-    } else {
-      StringRef Passes = DeltaPasses;
-      while (!Passes.empty()) {
-        auto Split = Passes.split(",");
-        runDeltaPassName(Tester, Split.first);
-        Passes = Split.second;
-      }
+void llvm::runDeltaPasses(TestRunner &Tester) {
+  if (DeltaPasses.empty()) {
+    runAllDeltaPasses(Tester);
+  } else {
+    StringRef Passes = DeltaPasses;
+    while (!Passes.empty()) {
+      auto Split = Passes.split(",");
+      runDeltaPassName(Tester, Split.first);
+      Passes = Split.second;
     }
-    int NewSize = getIRSize(Tester);
-    if (NewSize >= OldSize)
-      break;
-    OldSize = NewSize;
   }
 }

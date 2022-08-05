@@ -250,8 +250,7 @@ bool AddUsing::prepare(const Selection &Inputs) {
   for (; Node->Parent; Node = Node->Parent) {
     if (Node->ASTNode.get<NestedNameSpecifierLoc>()) {
       continue;
-    }
-    if (auto *T = Node->ASTNode.get<TypeLoc>()) {
+    } else if (auto *T = Node->ASTNode.get<TypeLoc>()) {
       if (T->getAs<ElaboratedTypeLoc>()) {
         break;
       } else if (Node->Parent->ASTNode.get<TypeLoc>() ||

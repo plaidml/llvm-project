@@ -863,13 +863,13 @@ void InstrInfoEmitter::run(raw_ostream &OS) {
 
   OS << "#ifdef GET_INSTRINFO_HELPER_DECLS\n";
   OS << "#undef GET_INSTRINFO_HELPER_DECLS\n\n";
-  emitTIIHelperMethods(OS, TargetName, /* ExpandDefinition = */ false);
+  emitTIIHelperMethods(OS, TargetName, /* ExpandDefintion = */false);
   OS << "\n";
   OS << "#endif // GET_INSTRINFO_HELPER_DECLS\n\n";
 
   OS << "#ifdef GET_INSTRINFO_HELPERS\n";
   OS << "#undef GET_INSTRINFO_HELPERS\n\n";
-  emitTIIHelperMethods(OS, TargetName, /* ExpandDefinition = */ true);
+  emitTIIHelperMethods(OS, TargetName, /* ExpandDefintion = */true);
   OS << "#endif // GET_INSTRINFO_HELPERS\n\n";
 
   OS << "#ifdef GET_INSTRINFO_CTOR_DTOR\n";

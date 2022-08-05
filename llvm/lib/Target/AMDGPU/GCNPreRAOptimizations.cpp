@@ -7,7 +7,7 @@
 //===----------------------------------------------------------------------===//
 //
 /// \file
-/// This pass combines split register tuple initialization into a single pseudo:
+/// This pass combines split register tuple initialization into a single psuedo:
 ///
 ///   undef %0.sub1:sreg_64 = S_MOV_B32 1
 ///   %0.sub0:sreg_64 = S_MOV_B32 2

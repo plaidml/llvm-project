@@ -43,7 +43,8 @@ public:
 
   // lldb_private::Platform functions
 
-  std::vector<lldb_private::ArchSpec> GetSupportedArchitectures() override;
+  bool GetSupportedArchitectureAtIndex(uint32_t idx,
+                                       lldb_private::ArchSpec &arch) override;
 
 protected:
   llvm::StringRef GetDeviceSupportDirectoryName() override;

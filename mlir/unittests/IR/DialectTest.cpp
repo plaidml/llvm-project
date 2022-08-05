@@ -142,4 +142,4 @@ TEST(Dialect, RepeatedInterfaceRegistrationDeath) {
 #endif
 }
 
-} // namespace
+} // end namespace

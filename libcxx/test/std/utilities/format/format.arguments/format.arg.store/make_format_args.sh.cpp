@@ -20,7 +20,6 @@
 // - otherwise, if T is char and char_type is wchar_t, initializes value with static_cast<wchar_t>(v);
 
 #include <format>
-#include <string>
 
 void test() {
   std::make_format_args<std::basic_format_context<

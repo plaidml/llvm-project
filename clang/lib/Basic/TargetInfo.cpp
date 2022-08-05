@@ -25,7 +25,7 @@ using namespace clang;
 static const LangASMap DefaultAddrSpaceMap = {0};
 
 // TargetInfo Constructor.
-TargetInfo::TargetInfo(const llvm::Triple &T) : Triple(T) {
+TargetInfo::TargetInfo(const llvm::Triple &T) : TargetOpts(), Triple(T) {
   // Set defaults.  Defaults are set for a 32-bit RISC platform, like PPC or
   // SPARC.  These should be overridden by concrete targets as needed.
   BigEndian = !T.isLittleEndian();
@@ -150,7 +150,6 @@ TargetInfo::TargetInfo(const llvm::Triple &T) : Triple(T) {
   PlatformMinVersion = VersionTuple();
 
   MaxOpenCLWorkGroupSize = 1024;
-  ProgramAddrSpace = 0;
 }
 
 // Out of line virtual dtor for TargetInfo.

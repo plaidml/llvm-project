@@ -23,9 +23,6 @@ using namespace llvm;
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeCSKYTarget() {
   RegisterTargetMachine<CSKYTargetMachine> X(getTheCSKYTarget());
-
-  PassRegistry *Registry = PassRegistry::getPassRegistry();
-  initializeCSKYConstantIslandsPass(*Registry);
 }
 
 static std::string computeDataLayout(const Triple &TT) {
@@ -95,7 +92,6 @@ public:
   }
 
   bool addInstSelector() override;
-  void addPreEmitPass() override;
 };
 
 } // namespace
@@ -108,8 +104,4 @@ bool CSKYPassConfig::addInstSelector() {
   addPass(createCSKYISelDag(getCSKYTargetMachine()));
 
   return false;
-}
-
-void CSKYPassConfig::addPreEmitPass() {
-  addPass(createCSKYConstantIslandPass());
 }

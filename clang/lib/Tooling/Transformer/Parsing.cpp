@@ -33,6 +33,7 @@ using namespace transformer;
 // much as possible with the AST Matchers parsing.
 
 namespace {
+using llvm::Error;
 using llvm::Expected;
 
 template <typename... Ts> using RangeSelectorOp = RangeSelector (*)(Ts...);

@@ -569,7 +569,7 @@ static bool IsHeaderFile(const std::string &Filename) {
     return false;
   }
 
-  std::string Ext = Filename.substr(DotPos + 1);
+  std::string Ext = std::string(Filename.begin()+DotPos+1, Filename.end());
   // C header: .h
   // C++ header: .hh or .H;
   return Ext == "h" || Ext == "hh" || Ext == "H";

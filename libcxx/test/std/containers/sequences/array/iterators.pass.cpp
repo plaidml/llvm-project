@@ -33,30 +33,11 @@ struct NoDefault {
     TEST_CONSTEXPR NoDefault(int) { }
 };
 
-template <class T>
-TEST_CONSTEXPR_CXX17 void check_noexcept(T& c) {
-    ASSERT_NOEXCEPT(c.begin());
-    ASSERT_NOEXCEPT(c.end());
-    ASSERT_NOEXCEPT(c.cbegin());
-    ASSERT_NOEXCEPT(c.cend());
-    ASSERT_NOEXCEPT(c.rbegin());
-    ASSERT_NOEXCEPT(c.rend());
-    ASSERT_NOEXCEPT(c.crbegin());
-    ASSERT_NOEXCEPT(c.crend());
-
-    const T& cc = c; (void)cc;
-    ASSERT_NOEXCEPT(cc.begin());
-    ASSERT_NOEXCEPT(cc.end());
-    ASSERT_NOEXCEPT(cc.rbegin());
-    ASSERT_NOEXCEPT(cc.rend());
-}
-
 TEST_CONSTEXPR_CXX17 bool tests()
 {
     {
         typedef std::array<int, 5> C;
         C array = {};
-        check_noexcept(array);
         typename C::iterator i = array.begin();
         typename C::const_iterator j = array.cbegin();
         assert(i == j);
@@ -64,7 +45,6 @@ TEST_CONSTEXPR_CXX17 bool tests()
     {
         typedef std::array<int, 0> C;
         C array = {};
-        check_noexcept(array);
         typename C::iterator i = array.begin();
         typename C::const_iterator j = array.cbegin();
         assert(i == j);
@@ -73,7 +53,6 @@ TEST_CONSTEXPR_CXX17 bool tests()
     {
         typedef std::array<int, 0> C;
         C array = {};
-        check_noexcept(array);
         typename C::iterator i = array.begin();
         typename C::const_iterator j = array.cbegin();
         assert(i == array.end());
@@ -82,7 +61,6 @@ TEST_CONSTEXPR_CXX17 bool tests()
     {
         typedef std::array<int, 1> C;
         C array = {1};
-        check_noexcept(array);
         typename C::iterator i = array.begin();
         assert(*i == 1);
         assert(&*i == array.data());
@@ -92,7 +70,6 @@ TEST_CONSTEXPR_CXX17 bool tests()
     {
         typedef std::array<int, 2> C;
         C array = {1, 2};
-        check_noexcept(array);
         typename C::iterator i = array.begin();
         assert(*i == 1);
         assert(&*i == array.data());
@@ -103,7 +80,6 @@ TEST_CONSTEXPR_CXX17 bool tests()
     {
         typedef std::array<double, 3> C;
         C array = {1, 2, 3.5};
-        check_noexcept(array);
         typename C::iterator i = array.begin();
         assert(*i == 1);
         assert(&*i == array.data());
@@ -134,7 +110,6 @@ TEST_CONSTEXPR_CXX17 bool tests()
             assert(!(ii1 != cii));
 
             C c = {};
-            check_noexcept(c);
             assert(c.begin()   == std::begin(c));
             assert(c.cbegin()  == std::cbegin(c));
             assert(c.rbegin()  == std::rbegin(c));
@@ -175,7 +150,6 @@ TEST_CONSTEXPR_CXX17 bool tests()
             assert(ii1 - cii == 0);
 
             C c = {};
-            check_noexcept(c);
             assert(c.begin()   == std::begin(c));
             assert(c.cbegin()  == std::cbegin(c));
             assert(c.rbegin()  == std::rbegin(c));

@@ -978,8 +978,8 @@ collectLocalBranchTargets(ArrayRef<uint8_t> Bytes, const MCInstrAnalysis *MIA,
                           const MCSubtargetInfo *STI, uint64_t SectionAddr,
                           uint64_t Start, uint64_t End,
                           std::unordered_map<uint64_t, std::string> &Labels) {
-  // So far only supports PowerPC and X86.
-  if (!STI->getTargetTriple().isPPC() && !STI->getTargetTriple().isX86())
+  // So far only supports X86.
+  if (!STI->getTargetTriple().isX86())
     return;
 
   Labels.clear();
@@ -999,11 +999,8 @@ collectLocalBranchTargets(ArrayRef<uint8_t> Bytes, const MCInstrAnalysis *MIA,
     if (Disassembled && MIA) {
       uint64_t Target;
       bool TargetKnown = MIA->evaluateBranch(Inst, Index, Size, Target);
-      // On PowerPC, if the address of a branch is the same as the target, it
-      // means that it's a function call. Do not mark the label for this case.
       if (TargetKnown && (Target >= Start && Target < End) &&
-          !Labels.count(Target) &&
-          !(STI->getTargetTriple().isPPC() && Target == Index))
+          !Labels.count(Target))
         Labels[Target] = ("L" + Twine(LabelCount++)).str();
     }
 
@@ -2248,7 +2245,7 @@ static void printPrivateFileHeaders(const ObjectFile *O, bool OnlyFirst) {
     return;
   }
   if (O->isCOFF())
-    return printCOFFFileHeader(cast<object::COFFObjectFile>(*O));
+    return printCOFFFileHeader(O);
   if (O->isWasm())
     return printWasmFileHeader(O);
   if (O->isMachO()) {
@@ -2715,7 +2712,7 @@ int main(int argc, char **argv) {
     return 0;
   }
   if (InputArgs.hasArg(HelpHiddenFlag)) {
-    T->printHelp(ToolName, /*ShowHidden=*/true);
+    T->printHelp(ToolName, /*show_hidden=*/true);
     return 0;
   }
 

@@ -95,8 +95,7 @@ class DbgEng(DebuggerBase):
         # but is something that should be considered in the future.
         raise NotImplementedError('delete_conditional_breakpoint is not yet implemented by dbgeng')
 
-    def launch(self, cmdline):
-        assert len(cmdline) == 0, "Command lines unimplemented for dbgeng right now"
+    def launch(self):
         # We are, by this point, already launched.
         self.step_info = probe_process.probe_state(self.client)
 

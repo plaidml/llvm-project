@@ -14,8 +14,6 @@
 
 #define DEBUG_TYPE "orc"
 
-using namespace llvm::orc::shared;
-
 namespace llvm {
 namespace orc {
 
@@ -29,8 +27,10 @@ EPCGenericRTDyldMemoryManager::CreateWithDefaultBootstrapSymbols(
            {SAs.Finalize, rt::SimpleExecutorMemoryManagerFinalizeWrapperName},
            {SAs.Deallocate,
             rt::SimpleExecutorMemoryManagerDeallocateWrapperName},
-           {SAs.RegisterEHFrame, rt::RegisterEHFrameSectionWrapperName},
-           {SAs.DeregisterEHFrame, rt::DeregisterEHFrameSectionWrapperName}}))
+           {SAs.RegisterEHFrame,
+            rt::RegisterEHFrameSectionCustomDirectWrapperName},
+           {SAs.DeregisterEHFrame,
+            rt::DeregisterEHFrameSectionCustomDirectWrapperName}}))
     return std::move(Err);
   return std::make_unique<EPCGenericRTDyldMemoryManager>(EPC, std::move(SAs));
 }
@@ -263,12 +263,10 @@ bool EPCGenericRTDyldMemoryManager::finalizeMemory(std::string *ErrMsg) {
 
     for (auto &Frame : ObjAllocs.UnfinalizedEHFrames)
       FR.Actions.push_back(
-          {cantFail(
-               WrapperFunctionCall::Create<SPSArgList<SPSExecutorAddrRange>>(
-                   SAs.RegisterEHFrame, Frame)),
-           cantFail(
-               WrapperFunctionCall::Create<SPSArgList<SPSExecutorAddrRange>>(
-                   SAs.DeregisterEHFrame, Frame))});
+          {{SAs.RegisterEHFrame,
+            {ExecutorAddr(Frame.Addr), ExecutorAddrDiff(Frame.Size)}},
+           {SAs.DeregisterEHFrame,
+            {ExecutorAddr(Frame.Addr), ExecutorAddrDiff(Frame.Size)}}});
 
     // We'll also need to make an extra allocation for the eh-frame wrapper call
     // arguments.

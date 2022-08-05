@@ -6,8 +6,6 @@ target_link_libraries(MLIRDialectTests
   MLIRIR
   MLIRDialect)
 
-add_subdirectory(Affine)
 add_subdirectory(Quant)
 add_subdirectory(SparseTensor)
 add_subdirectory(SPIRV)
-add_subdirectory(Utils)

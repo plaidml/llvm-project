@@ -106,6 +106,7 @@
 
 namespace llvm {
 
+class AllocaInst;
 class Function;
 class Instruction;
 class MemoryAccess;

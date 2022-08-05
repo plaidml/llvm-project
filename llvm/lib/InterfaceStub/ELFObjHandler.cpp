@@ -19,6 +19,7 @@
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/Process.h"
 
+using llvm::MemoryBufferRef;
 using llvm::object::ELFObjectFile;
 
 using namespace llvm;
@@ -371,7 +372,7 @@ Error appendToError(Error Err, StringRef After) {
 
 /// This function populates a DynamicEntries struct using an ELFT::DynRange.
 /// After populating the struct, the members are validated with
-/// some basic correctness checks.
+/// some basic sanity checks.
 ///
 /// @param Dyn Target DynamicEntries struct to populate.
 /// @param DynTable Source dynamic table.

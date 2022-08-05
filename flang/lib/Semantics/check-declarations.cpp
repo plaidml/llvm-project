@@ -237,13 +237,8 @@ void CheckHelper::Check(const Symbol &symbol) {
   }
   if (InPure()) {
     if (IsSaved(symbol)) {
-      if (IsInitialized(symbol)) {
-        messages_.Say(
-            "A pure subprogram may not initialize a variable"_err_en_US);
-      } else {
-        messages_.Say(
-            "A pure subprogram may not have a variable with the SAVE attribute"_err_en_US);
-      }
+      messages_.Say(
+          "A pure subprogram may not have a variable with the SAVE attribute"_err_en_US);
     }
     if (symbol.attrs().test(Attr::VOLATILE)) {
       messages_.Say(
@@ -377,7 +372,7 @@ void CheckHelper::CheckValue(
     messages_.Say(
         "VALUE attribute may not apply to an assumed-size array"_err_en_US);
   }
-  if (evaluate::IsCoarray(symbol)) {
+  if (IsCoarray(symbol)) {
     messages_.Say("VALUE attribute may not apply to a coarray"_err_en_US);
   }
   if (IsAllocatable(symbol)) {
@@ -437,7 +432,7 @@ void CheckHelper::CheckAssumedTypeEntity( // C709
             "Assumed-type argument '%s' cannot be INTENT(OUT)"_err_en_US,
             symbol.name());
       }
-      if (evaluate::IsCoarray(symbol)) {
+      if (IsCoarray(symbol)) {
         messages_.Say(
             "Assumed-type argument '%s' cannot be a coarray"_err_en_US,
             symbol.name());
@@ -460,7 +455,7 @@ void CheckHelper::CheckObjectEntity(
   CheckAssumedTypeEntity(symbol, details);
   WarnMissingFinal(symbol);
   if (!details.coshape().empty()) {
-    bool isDeferredCoshape{details.coshape().CanBeDeferredShape()};
+    bool isDeferredCoshape{details.coshape().IsDeferredShape()};
     if (IsAllocatable(symbol)) {
       if (!isDeferredCoshape) { // C827
         messages_.Say("'%s' is an ALLOCATABLE coarray and must have a deferred"
@@ -474,7 +469,7 @@ void CheckHelper::CheckObjectEntity(
                     " attribute%s"_err_en_US,
           symbol.name(), deferredMsg);
     } else {
-      if (!details.coshape().CanBeAssumedSize()) { // C828
+      if (!details.coshape().IsAssumedSize()) { // C828
         messages_.Say(
             "'%s' is a non-ALLOCATABLE coarray and must have an explicit coshape"_err_en_US,
             symbol.name());
@@ -491,7 +486,7 @@ void CheckHelper::CheckObjectEntity(
   if (details.isDummy()) {
     if (symbol.attrs().test(Attr::INTENT_OUT)) {
       if (FindUltimateComponent(symbol, [](const Symbol &x) {
-            return evaluate::IsCoarray(x) && IsAllocatable(x);
+            return IsCoarray(x) && IsAllocatable(x);
           })) { // C846
         messages_.Say(
             "An INTENT(OUT) dummy argument may not be, or contain, an ALLOCATABLE coarray"_err_en_US);
@@ -550,7 +545,7 @@ void CheckHelper::CheckObjectEntity(
         messages_.Say(
             "A dummy argument of an ELEMENTAL procedure may not be ALLOCATABLE"_err_en_US);
       }
-      if (evaluate::IsCoarray(symbol)) {
+      if (IsCoarray(symbol)) {
         messages_.Say(
             "A dummy argument of an ELEMENTAL procedure may not be a coarray"_err_en_US);
       }
@@ -675,18 +670,16 @@ void CheckHelper::CheckArraySpec(
     return;
   }
   bool isExplicit{arraySpec.IsExplicitShape()};
-  bool canBeDeferred{arraySpec.CanBeDeferredShape()};
-  bool canBeImplied{arraySpec.CanBeImpliedShape()};
-  bool canBeAssumedShape{arraySpec.CanBeAssumedShape()};
-  bool canBeAssumedSize{arraySpec.CanBeAssumedSize()};
+  bool isDeferred{arraySpec.IsDeferredShape()};
+  bool isImplied{arraySpec.IsImpliedShape()};
+  bool isAssumedShape{arraySpec.IsAssumedShape()};
+  bool isAssumedSize{arraySpec.IsAssumedSize()};
   bool isAssumedRank{arraySpec.IsAssumedRank()};
   std::optional<parser::MessageFixedText> msg;
-  if (symbol.test(Symbol::Flag::CrayPointee) && !isExplicit &&
-      !canBeAssumedSize) {
+  if (symbol.test(Symbol::Flag::CrayPointee) && !isExplicit && !isAssumedSize) {
     msg = "Cray pointee '%s' must have must have explicit shape or"
           " assumed size"_err_en_US;
-  } else if (IsAllocatableOrPointer(symbol) && !canBeDeferred &&
-      !isAssumedRank) {
+  } else if (IsAllocatableOrPointer(symbol) && !isDeferred && !isAssumedRank) {
     if (symbol.owner().IsDerivedType()) { // C745
       if (IsAllocatable(symbol)) {
         msg = "Allocatable array component '%s' must have"
@@ -704,22 +697,22 @@ void CheckHelper::CheckArraySpec(
       }
     }
   } else if (IsDummy(symbol)) {
-    if (canBeImplied && !canBeAssumedSize) { // C836
+    if (isImplied && !isAssumedSize) { // C836
       msg = "Dummy array argument '%s' may not have implied shape"_err_en_US;
     }
-  } else if (canBeAssumedShape && !canBeDeferred) {
+  } else if (isAssumedShape && !isDeferred) {
     msg = "Assumed-shape array '%s' must be a dummy argument"_err_en_US;
-  } else if (canBeAssumedSize && !canBeImplied) { // C833
+  } else if (isAssumedSize && !isImplied) { // C833
     msg = "Assumed-size array '%s' must be a dummy argument"_err_en_US;
   } else if (isAssumedRank) { // C837
     msg = "Assumed-rank array '%s' must be a dummy argument"_err_en_US;
-  } else if (canBeImplied) {
+  } else if (isImplied) {
     if (!IsNamedConstant(symbol)) { // C835, C836
       msg = "Implied-shape array '%s' must be a named constant or a "
             "dummy argument"_err_en_US;
     }
   } else if (IsNamedConstant(symbol)) {
-    if (!isExplicit && !canBeImplied) {
+    if (!isExplicit && !isImplied) {
       msg = "Named constant '%s' array must have constant or"
             " implied shape"_err_en_US;
     }
@@ -1455,7 +1448,7 @@ void CheckHelper::CheckVolatile(const Symbol &symbol,
   }
   if (symbol.has<UseDetails>() || symbol.has<HostAssocDetails>()) {
     const Symbol &ultimate{symbol.GetUltimate()};
-    if (evaluate::IsCoarray(ultimate)) {
+    if (IsCoarray(ultimate)) {
       messages_.Say(
           "VOLATILE attribute may not apply to a coarray accessed by USE or host association"_err_en_US);
     }
@@ -1972,13 +1965,15 @@ void CheckHelper::CheckDioVlistArg(
   if (CheckDioDummyIsData(subp, arg, argPosition)) {
     CheckDioDummyIsDefaultInteger(subp, *arg);
     CheckDioDummyAttrs(subp, *arg, Attr::INTENT_IN);
-    const auto *objectDetails{arg->detailsIf<ObjectEntityDetails>()};
-    if (!objectDetails || !objectDetails->shape().CanBeDeferredShape()) {
-      messages_.Say(arg->name(),
-          "Dummy argument '%s' of a defined input/output procedure must be"
-          " deferred shape"_err_en_US,
-          arg->name());
+    if (const auto *objectDetails{arg->detailsIf<ObjectEntityDetails>()}) {
+      if (objectDetails->shape().IsDeferredShape()) {
+        return;
+      }
     }
+    messages_.Say(arg->name(),
+        "Dummy argument '%s' of a defined input/output procedure must be"
+        " deferred shape"_err_en_US,
+        arg->name());
   }
 }
 

@@ -579,7 +579,6 @@ bool AggressiveDeadCodeElimination::updateDeadRegions() {
   // Don't compute the post ordering unless we needed it.
   bool HavePostOrder = false;
   bool Changed = false;
-  SmallVector<DominatorTree::UpdateType, 10> DeletedEdges;
 
   for (auto *BB : BlocksWithDeadTerminators) {
     auto &Info = BlockInfo[BB];
@@ -618,6 +617,7 @@ bool AggressiveDeadCodeElimination::updateDeadRegions() {
     makeUnconditional(BB, PreferredSucc->BB);
 
     // Inform the dominators about the deleted CFG edges.
+    SmallVector<DominatorTree::UpdateType, 4> DeletedEdges;
     for (auto *Succ : RemovedSuccessors) {
       // It might have happened that the same successor appeared multiple times
       // and the CFG edge wasn't really removed.
@@ -629,13 +629,12 @@ bool AggressiveDeadCodeElimination::updateDeadRegions() {
       }
     }
 
+    DomTreeUpdater(DT, &PDT, DomTreeUpdater::UpdateStrategy::Eager)
+        .applyUpdates(DeletedEdges);
+
     NumBranchesRemoved += 1;
     Changed = true;
   }
-
-  if (!DeletedEdges.empty())
-    DomTreeUpdater(DT, &PDT, DomTreeUpdater::UpdateStrategy::Eager)
-        .applyUpdates(DeletedEdges);
 
   return Changed;
 }

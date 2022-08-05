@@ -59,10 +59,13 @@ bool AffectedRangeManager::computeAffectedLines(
 
 bool AffectedRangeManager::affectsCharSourceRange(
     const CharSourceRange &Range) {
-  for (const CharSourceRange &R : Ranges)
-    if (!SourceMgr.isBeforeInTranslationUnit(Range.getEnd(), R.getBegin()) &&
-        !SourceMgr.isBeforeInTranslationUnit(R.getEnd(), Range.getBegin()))
+  for (SmallVectorImpl<CharSourceRange>::const_iterator I = Ranges.begin(),
+                                                        E = Ranges.end();
+       I != E; ++I) {
+    if (!SourceMgr.isBeforeInTranslationUnit(Range.getEnd(), I->getBegin()) &&
+        !SourceMgr.isBeforeInTranslationUnit(I->getEnd(), Range.getBegin()))
       return true;
+  }
   return false;
 }
 

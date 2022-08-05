@@ -25,6 +25,7 @@ class MachineFunction;
 class MachineInstr;
 class MachineOperand;
 class MachineRegisterInfo;
+class ScheduleDAG;
 class SIInstrInfo;
 class SIRegisterInfo;
 class GCNSubtarget;

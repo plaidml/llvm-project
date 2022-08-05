@@ -29,13 +29,13 @@ namespace runtime {
 //===----------------------------------------------------------------------===//
 
 // Runtime implementation of `async.token` data type.
-using AsyncToken = struct AsyncToken;
+typedef struct AsyncToken AsyncToken;
 
 // Runtime implementation of `async.group` data type.
-using AsyncGroup = struct AsyncGroup;
+typedef struct AsyncGroup AsyncGroup;
 
 // Runtime implementation of `async.value` data type.
-using AsyncValue = struct AsyncValue;
+typedef struct AsyncValue AsyncValue;
 
 // Async value payload stored in a memory owned by the async.value.
 using ValueStorage = void *;

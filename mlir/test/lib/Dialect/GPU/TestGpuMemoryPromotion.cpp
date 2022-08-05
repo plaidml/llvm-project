@@ -48,7 +48,7 @@ class TestGpuMemoryPromotionPass
     }
   }
 };
-} // namespace
+} // end namespace
 
 namespace mlir {
 void registerTestGpuMemoryPromotionPass() {

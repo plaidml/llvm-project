@@ -14,7 +14,6 @@
 #include "clang/StaticAnalyzer/Core/BugReporter/CommonBugCategories.h"
 #include "clang/StaticAnalyzer/Core/Checker.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/AnalysisManager.h"
-#include "clang/StaticAnalyzer/Core/PathSensitive/CallDescription.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/CallEvent.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/CheckerContext.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/ExplodedGraph.h"
@@ -86,17 +85,17 @@ class StatefulChecker : public Checker<check::PreCall> {
 
 public:
   void checkPreCall(const CallEvent &Call, CheckerContext &C) const {
-    if (CallDescription{"preventError", 0}.matches(Call)) {
+    if (Call.isCalled(CallDescription{"preventError", 0})) {
       C.addTransition(C.getState()->set<ErrorPrevented>(true));
       return;
     }
 
-    if (CallDescription{"allowError", 0}.matches(Call)) {
+    if (Call.isCalled(CallDescription{"allowError", 0})) {
       C.addTransition(C.getState()->set<ErrorPrevented>(false));
       return;
     }
 
-    if (CallDescription{"error", 0}.matches(Call)) {
+    if (Call.isCalled(CallDescription{"error", 0})) {
       if (C.getState()->get<ErrorPrevented>())
         return;
       const ExplodedNode *N = C.generateErrorNode();

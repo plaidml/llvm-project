@@ -26,6 +26,7 @@ class AAResults;
 class DataLayout;
 class Loop;
 class LoopAccessInfo;
+class OptimizationRemarkEmitter;
 class raw_ostream;
 class SCEV;
 class SCEVUnionPredicate;

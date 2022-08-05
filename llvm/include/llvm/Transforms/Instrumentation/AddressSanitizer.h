@@ -141,7 +141,7 @@ private:
   AsanDtorKind DestructorKind;
 };
 
-// Insert AddressSanitizer (address basic correctness checking) instrumentation
+// Insert AddressSanitizer (address sanity checking) instrumentation
 FunctionPass *createAddressSanitizerFunctionPass(
     bool CompileKernel = false, bool Recover = false,
     bool UseAfterScope = false,

@@ -10,7 +10,6 @@ add_mlir_dialect_library(MLIRArithmeticTransforms
 
   LINK_LIBS PUBLIC
   MLIRArithmetic
-  MLIRBufferizationTransforms
   MLIRIR
   MLIRMemRef
   MLIRPass

@@ -1,2 +1,5 @@
-# no targets defined here
-
+set(LLVM_TARGET_DEFINITIONS BufferizableOpInterface.td)
+mlir_tablegen(BufferizableOpInterface.h.inc -gen-op-interface-decls)
+mlir_tablegen(BufferizableOpInterface.cpp.inc -gen-op-interface-defs)
+add_public_tablegen_target(MLIRBufferizableOpInterfaceIncGen)
+add_dependencies(mlir-headers MLIRBufferizableOpInterfaceIncGen)

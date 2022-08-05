@@ -120,7 +120,8 @@ unsigned AMDGPUCustomBehaviour::handleWaitCnt(ArrayRef<InstRef> IssuedInst,
 
   // We will now look at each of the currently executing instructions
   // to find out if this wait instruction still needs to wait.
-  for (const InstRef &PrevIR : IssuedInst) {
+  for (auto I = IssuedInst.begin(), E = IssuedInst.end(); I != E; I++) {
+    const InstRef &PrevIR = *I;
     const Instruction &PrevInst = *PrevIR.getInstruction();
     const unsigned PrevInstIndex = PrevIR.getSourceIndex() % SrcMgr.size();
     const WaitCntInfo &PrevInstWaitInfo = InstrWaitCntInfo[PrevInstIndex];

@@ -10,7 +10,6 @@
 #include "mlir/Bindings/Python/PybindAdaptors.h"
 
 namespace py = pybind11;
-using namespace mlir::python::adaptors;
 
 PYBIND11_MODULE(_mlirPythonTest, m) {
   m.def(
@@ -24,20 +23,4 @@ PYBIND11_MODULE(_mlirPythonTest, m) {
         }
       },
       py::arg("context"), py::arg("load") = true);
-
-  mlir_attribute_subclass(m, "TestAttr",
-                          mlirAttributeIsAPythonTestTestAttribute)
-      .def_classmethod(
-          "get",
-          [](py::object cls, MlirContext ctx) {
-            return cls(mlirPythonTestTestAttributeGet(ctx));
-          },
-          py::arg("cls"), py::arg("context") = py::none());
-  mlir_type_subclass(m, "TestType", mlirTypeIsAPythonTestTestType)
-      .def_classmethod(
-          "get",
-          [](py::object cls, MlirContext ctx) {
-            return cls(mlirPythonTestTestTypeGet(ctx));
-          },
-          py::arg("cls"), py::arg("context") = py::none());
 }

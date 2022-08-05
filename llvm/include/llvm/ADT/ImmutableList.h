@@ -220,7 +220,8 @@ public:
 // Partially-specialized Traits.
 //===----------------------------------------------------------------------===//
 
-template <typename T> struct DenseMapInfo<ImmutableList<T>, void> {
+template<typename T> struct DenseMapInfo;
+template<typename T> struct DenseMapInfo<ImmutableList<T>> {
   static inline ImmutableList<T> getEmptyKey() {
     return reinterpret_cast<ImmutableListImpl<T>*>(-1);
   }

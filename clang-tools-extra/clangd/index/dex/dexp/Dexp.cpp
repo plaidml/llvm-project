@@ -334,8 +334,7 @@ public:
     }
 
     // Auto-detects input format when parsing
-    auto IndexIn = clang::clangd::readIndexFile(Buffer->get()->getBuffer(),
-                                                SymbolOrigin::Static);
+    auto IndexIn = clang::clangd::readIndexFile(Buffer->get()->getBuffer());
     if (!IndexIn) {
       llvm::errs() << llvm::toString(IndexIn.takeError()) << "\n";
       return;
@@ -375,7 +374,7 @@ std::unique_ptr<SymbolIndex> openIndex(llvm::StringRef Index) {
   return Index.startswith("remote:")
              ? remote::getClient(Index.drop_front(strlen("remote:")),
                                  ProjectRoot)
-             : loadIndex(Index, SymbolOrigin::Static, /*UseDex=*/true);
+             : loadIndex(Index, /*UseDex=*/true);
 }
 
 bool runCommand(std::string Request, const SymbolIndex &Index) {

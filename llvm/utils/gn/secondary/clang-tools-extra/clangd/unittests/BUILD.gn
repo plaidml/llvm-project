@@ -80,7 +80,6 @@ unittest("ClangdTests") {
     "IndexActionTests.cpp",
     "IndexTests.cpp",
     "InlayHintTests.cpp",
-    "InsertionPointTests.cpp",
     "JSONTransportTests.cpp",
     "LSPBinderTests.cpp",
     "LSPClient.cpp",

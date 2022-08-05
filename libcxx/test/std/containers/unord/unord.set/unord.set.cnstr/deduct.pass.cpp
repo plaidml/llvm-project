@@ -53,7 +53,6 @@
 #include <type_traits>
 #include <unordered_set>
 
-#include "deduction_guides_sfinae_checks.h"
 #include "test_allocator.h"
 
 int main(int, char**)
@@ -192,8 +191,6 @@ int main(int, char**)
     assert(std::is_permutation(s.begin(), s.end(), std::begin(expected_s), std::end(expected_s)));
     assert(s.get_allocator().get_id() == 42);
     }
-
-    UnorderedContainerDeductionGuidesSfinaeAway<std::unordered_set, std::unordered_set<int>>();
 
     return 0;
 }

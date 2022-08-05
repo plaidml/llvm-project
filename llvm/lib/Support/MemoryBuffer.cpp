@@ -220,16 +220,25 @@ public:
   MemoryBuffer::BufferKind getBufferKind() const override {
     return MemoryBuffer::MemoryBuffer_MMap;
   }
-
-  void dontNeedIfMmap() override { MFR.dontNeed(); }
 };
 } // namespace
 
 static ErrorOr<std::unique_ptr<WritableMemoryBuffer>>
 getMemoryBufferForStream(sys::fs::file_t FD, const Twine &BufferName) {
-  SmallString<sys::fs::DefaultReadChunkSize> Buffer;
-  if (Error E = sys::fs::readNativeFileToEOF(FD, Buffer))
-    return errorToErrorCode(std::move(E));
+  const ssize_t ChunkSize = 4096*4;
+  SmallString<ChunkSize> Buffer;
+  // Read into Buffer until we hit EOF.
+  for (;;) {
+    Buffer.reserve(Buffer.size() + ChunkSize);
+    Expected<size_t> ReadBytes = sys::fs::readNativeFile(
+        FD, makeMutableArrayRef(Buffer.end(), ChunkSize));
+    if (!ReadBytes)
+      return errorToErrorCode(ReadBytes.takeError());
+    if (*ReadBytes == 0)
+      break;
+    Buffer.set_size(Buffer.size() + *ReadBytes);
+  }
+
   return getMemBufferCopyImpl(Buffer, BufferName);
 }
 

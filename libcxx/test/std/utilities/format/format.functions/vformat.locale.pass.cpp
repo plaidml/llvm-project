@@ -28,7 +28,10 @@ auto test = []<class CharT, class... Args>(std::basic_string<CharT> expected,
                                            std::basic_string<CharT> fmt,
                                            const Args&... args) {
   std::basic_string<CharT> out = std::vformat(
-      std::locale(), fmt, std::make_format_args<context_t<CharT>>(args...));
+      std::locale(), fmt,
+      std::make_format_args<std::basic_format_context<
+          std::back_insert_iterator<std::basic_string<CharT>>, CharT>>(
+          args...));
   assert(out == expected);
 };
 
@@ -36,18 +39,22 @@ auto test_exception = []<class CharT, class... Args>(
     std::string_view what, std::basic_string<CharT> fmt, const Args&... args) {
 #ifndef TEST_HAS_NO_EXCEPTIONS
   try {
-    (void) std::vformat(std::locale(), fmt,
-                        std::make_format_args<context_t<CharT>>(args...));
+    std::vformat(
+        std::locale(), fmt,
+        std::make_format_args<std::basic_format_context<
+            std::back_insert_iterator<std::basic_string<CharT>>, CharT>>(
+            args...));
     assert(false);
-  } catch ([[maybe_unused]] std::format_error& e) {
+  } catch (std::format_error& e) {
     LIBCPP_ASSERT(e.what() == what);
     return;
   }
   assert(false);
-#endif
+#else
   (void)what;
   (void)fmt;
   (void)sizeof...(args);
+#endif
 };
 
 int main(int, char**) {

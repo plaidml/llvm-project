@@ -88,13 +88,16 @@ const Scope *FindPureProcedureContaining(const Scope &start) {
   }
 }
 
-// 7.5.2.4 "same derived type" test -- rely on IsTkCompatibleWith() and its
-// infrastructure to detect and handle comparisons on distinct (but "same")
-// sequence/bind(C) derived types
-static bool MightBeSameDerivedType(
+static bool MightHaveCompatibleDerivedtypes(
     const std::optional<evaluate::DynamicType> &lhsType,
     const std::optional<evaluate::DynamicType> &rhsType) {
-  return lhsType && rhsType && rhsType->IsTkCompatibleWith(*lhsType);
+  const DerivedTypeSpec *lhsDerived{evaluate::GetDerivedTypeSpec(lhsType)};
+  const DerivedTypeSpec *rhsDerived{evaluate::GetDerivedTypeSpec(rhsType)};
+  if (!lhsDerived || !rhsDerived) {
+    return false;
+  }
+  return *lhsDerived == *rhsDerived ||
+      lhsDerived->MightBeAssignmentCompatibleWith(*rhsDerived);
 }
 
 Tristate IsDefinedAssignment(
@@ -110,7 +113,7 @@ Tristate IsDefinedAssignment(
   } else if (lhsCat != TypeCategory::Derived) {
     return ToTristate(lhsCat != rhsCat &&
         (!IsNumericTypeCategory(lhsCat) || !IsNumericTypeCategory(rhsCat)));
-  } else if (MightBeSameDerivedType(lhsType, rhsType)) {
+  } else if (MightHaveCompatibleDerivedtypes(lhsType, rhsType)) {
     return Tristate::Maybe; // TYPE(t) = TYPE(t) can be defined or intrinsic
   } else {
     return Tristate::Yes;
@@ -623,6 +626,49 @@ bool IsSeparateModuleProcedureInterface(const Symbol *symbol) {
   return false;
 }
 
+// 3.11 automatic data object
+bool IsAutomatic(const Symbol &symbol) {
+  if (const auto *object{symbol.detailsIf<ObjectEntityDetails>()}) {
+    if (!object->isDummy() && !IsAllocatable(symbol) && !IsPointer(symbol)) {
+      if (const DeclTypeSpec * type{symbol.GetType()}) {
+        // If a type parameter value is not a constant expression, the
+        // object is automatic.
+        if (type->category() == DeclTypeSpec::Character) {
+          if (const auto &length{
+                  type->characterTypeSpec().length().GetExplicit()}) {
+            if (!evaluate::IsConstantExpr(*length)) {
+              return true;
+            }
+          }
+        } else if (const DerivedTypeSpec * derived{type->AsDerived()}) {
+          for (const auto &pair : derived->parameters()) {
+            if (const auto &value{pair.second.GetExplicit()}) {
+              if (!evaluate::IsConstantExpr(*value)) {
+                return true;
+              }
+            }
+          }
+        }
+      }
+      // If an array bound is not a constant expression, the object is
+      // automatic.
+      for (const ShapeSpec &dim : object->shape()) {
+        if (const auto &lb{dim.lbound().GetExplicit()}) {
+          if (!evaluate::IsConstantExpr(*lb)) {
+            return true;
+          }
+        }
+        if (const auto &ub{dim.ubound().GetExplicit()}) {
+          if (!evaluate::IsConstantExpr(*ub)) {
+            return true;
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
+
 bool IsFinalizable(
     const Symbol &symbol, std::set<const DerivedTypeSpec *> *inProgress) {
   if (IsPointer(symbol)) {
@@ -671,6 +717,37 @@ bool HasImpureFinal(const DerivedTypeSpec &derived) {
   } else {
     return false;
   }
+}
+
+bool IsCoarray(const Symbol &symbol) { return symbol.Corank() > 0; }
+
+bool IsAutomaticObject(const Symbol &symbol) {
+  if (IsDummy(symbol) || IsPointer(symbol) || IsAllocatable(symbol)) {
+    return false;
+  }
+  if (const DeclTypeSpec * type{symbol.GetType()}) {
+    if (type->category() == DeclTypeSpec::Character) {
+      ParamValue length{type->characterTypeSpec().length()};
+      if (length.isExplicit()) {
+        if (MaybeIntExpr lengthExpr{length.GetExplicit()}) {
+          if (!ToInt64(lengthExpr)) {
+            return true;
+          }
+        }
+      }
+    }
+  }
+  if (symbol.IsObjectArray()) {
+    for (const ShapeSpec &spec : symbol.get<ObjectEntityDetails>().shape()) {
+      auto &lbound{spec.lbound().GetExplicit()};
+      auto &ubound{spec.ubound().GetExplicit()};
+      if ((lbound && !evaluate::ToInt64(*lbound)) ||
+          (ubound && !evaluate::ToInt64(*ubound))) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 bool IsAssumedLengthCharacter(const Symbol &symbol) {
@@ -921,7 +998,7 @@ public:
 private:
   bool IsCoarrayObject(const parser::AllocateObject &allocateObject) {
     const parser::Name &name{GetLastName(allocateObject)};
-    return name.symbol && evaluate::IsCoarray(*name.symbol);
+    return name.symbol && IsCoarray(*name.symbol);
   }
 };
 
@@ -985,7 +1062,7 @@ parser::CharBlock GetImageControlStmtLocation(
 bool HasCoarray(const parser::Expr &expression) {
   if (const auto *expr{GetExpr(expression)}) {
     for (const Symbol &symbol : evaluate::CollectSymbols(*expr)) {
-      if (evaluate::IsCoarray(symbol)) {
+      if (IsCoarray(GetAssociationRoot(symbol))) {
         return true;
       }
     }
@@ -1245,8 +1322,7 @@ template class ComponentIterator<ComponentKind::Scope>;
 UltimateComponentIterator::const_iterator FindCoarrayUltimateComponent(
     const DerivedTypeSpec &derived) {
   UltimateComponentIterator ultimates{derived};
-  return std::find_if(ultimates.begin(), ultimates.end(),
-      [](const Symbol &symbol) { return evaluate::IsCoarray(symbol); });
+  return std::find_if(ultimates.begin(), ultimates.end(), IsCoarray);
 }
 
 UltimateComponentIterator::const_iterator FindPointerUltimateComponent(
@@ -1286,7 +1362,7 @@ FindPolymorphicAllocatableNonCoarrayUltimateComponent(
     const DerivedTypeSpec &derived) {
   UltimateComponentIterator ultimates{derived};
   return std::find_if(ultimates.begin(), ultimates.end(), [](const Symbol &x) {
-    return IsPolymorphicAllocatable(x) && !evaluate::IsCoarray(x);
+    return IsPolymorphicAllocatable(x) && !IsCoarray(x);
   });
 }
 
@@ -1342,15 +1418,13 @@ const Symbol *FindImmediateComponent(const DerivedTypeSpec &type,
   return nullptr;
 }
 
-const Symbol *IsFunctionResultWithSameNameAsFunction(const Symbol &symbol) {
+bool IsFunctionResultWithSameNameAsFunction(const Symbol &symbol) {
   if (IsFunctionResult(symbol)) {
     if (const Symbol * function{symbol.owner().symbol()}) {
-      if (symbol.name() == function->name()) {
-        return function;
-      }
+      return symbol.name() == function->name();
     }
   }
-  return nullptr;
+  return false;
 }
 
 void LabelEnforce::Post(const parser::GotoStmt &gotoStmt) {

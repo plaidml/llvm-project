@@ -161,7 +161,7 @@ struct TestIRVisitorsPass
     testNoSkipErasureCallbacks(op);
   }
 };
-} // namespace
+} // end anonymous namespace
 
 namespace mlir {
 namespace test {

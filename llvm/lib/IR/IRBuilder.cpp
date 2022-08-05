@@ -94,22 +94,11 @@ Value *IRBuilderBase::CreateVScale(Constant *Scaling, const Twine &Name) {
 }
 
 Value *IRBuilderBase::CreateStepVector(Type *DstType, const Twine &Name) {
-  Type *STy = DstType->getScalarType();
-  if (isa<ScalableVectorType>(DstType)) {
-    Type *StepVecType = DstType;
-    // TODO: We expect this special case (element type < 8 bits) to be
-    // temporary - once the intrinsic properly supports < 8 bits this code
-    // can be removed.
-    if (STy->getScalarSizeInBits() < 8)
-      StepVecType =
-          VectorType::get(getInt8Ty(), cast<ScalableVectorType>(DstType));
-    Value *Res = CreateIntrinsic(Intrinsic::experimental_stepvector,
-                                 {StepVecType}, {}, nullptr, Name);
-    if (StepVecType != DstType)
-      Res = CreateTrunc(Res, DstType);
-    return Res;
-  }
+  if (isa<ScalableVectorType>(DstType))
+    return CreateIntrinsic(Intrinsic::experimental_stepvector, {DstType}, {},
+                           nullptr, Name);
 
+  Type *STy = DstType->getScalarType();
   unsigned NumEls = cast<FixedVectorType>(DstType)->getNumElements();
 
   // Create a vector of consecutive numbers from zero to VF.
@@ -984,8 +973,10 @@ CallInst *IRBuilderBase::CreateConstrainedFPCall(
 
 Value *IRBuilderBase::CreateSelect(Value *C, Value *True, Value *False,
                                    const Twine &Name, Instruction *MDFrom) {
-  if (auto *V = Folder.FoldSelect(C, True, False))
-    return V;
+  if (auto *CC = dyn_cast<Constant>(C))
+    if (auto *TC = dyn_cast<Constant>(True))
+      if (auto *FC = dyn_cast<Constant>(False))
+        return Insert(Folder.CreateSelect(CC, TC, FC), Name);
 
   SelectInst *Sel = SelectInst::Create(C, True, False);
   if (MDFrom) {

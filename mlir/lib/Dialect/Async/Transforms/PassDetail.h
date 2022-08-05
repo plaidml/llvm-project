@@ -16,7 +16,7 @@ namespace mlir {
 
 namespace arith {
 class ArithmeticDialect;
-} // namespace arith
+} // end namespace arith
 
 namespace async {
 class AsyncDialect;

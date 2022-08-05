@@ -124,7 +124,6 @@ syn keyword llvmKeyword
       \ nocallback
       \ nocapture
       \ nocf_check
-      \ no_cfi
       \ noduplicate
       \ nofree
       \ noimplicitfloat

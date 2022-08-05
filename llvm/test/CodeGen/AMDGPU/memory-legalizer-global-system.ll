@@ -10,15 +10,17 @@
 define amdgpu_kernel void @global_system_unordered_load(
 ; GFX6-LABEL: global_system_unordered_load:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx4 s[0:3], s[4:5], 0x0
-; GFX6-NEXT:    s_mov_b32 s7, 0x100f000
-; GFX6-NEXT:    s_mov_b32 s6, -1
+; GFX6-NEXT:    s_load_dwordx4 s[4:7], s[4:5], 0x0
+; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
+; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    s_mov_b32 s4, s0
-; GFX6-NEXT:    s_mov_b32 s5, s1
-; GFX6-NEXT:    buffer_load_dword v0, off, s[4:7], 0
-; GFX6-NEXT:    s_mov_b32 s4, s2
-; GFX6-NEXT:    s_mov_b32 s5, s3
+; GFX6-NEXT:    s_mov_b32 s0, s4
+; GFX6-NEXT:    s_mov_b32 s1, s5
+; GFX6-NEXT:    buffer_load_dword v0, off, s[0:3], 0
+; GFX6-NEXT:    s_mov_b32 s4, s6
+; GFX6-NEXT:    s_mov_b32 s5, s7
+; GFX6-NEXT:    s_mov_b32 s6, s2
+; GFX6-NEXT:    s_mov_b32 s7, s3
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; GFX6-NEXT:    s_endpgm
@@ -29,11 +31,11 @@ define amdgpu_kernel void @global_system_unordered_load(
 ; GFX7-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX7-NEXT:    v_mov_b32_e32 v0, s0
 ; GFX7-NEXT:    v_mov_b32_e32 v1, s1
-; GFX7-NEXT:    flat_load_dword v2, v[0:1]
-; GFX7-NEXT:    v_mov_b32_e32 v0, s2
-; GFX7-NEXT:    v_mov_b32_e32 v1, s3
+; GFX7-NEXT:    flat_load_dword v0, v[0:1]
+; GFX7-NEXT:    v_mov_b32_e32 v2, s2
+; GFX7-NEXT:    v_mov_b32_e32 v3, s3
 ; GFX7-NEXT:    s_waitcnt vmcnt(0)
-; GFX7-NEXT:    flat_store_dword v[0:1], v2
+; GFX7-NEXT:    flat_store_dword v[2:3], v0
 ; GFX7-NEXT:    s_endpgm
 ;
 ; GFX10-WGP-LABEL: global_system_unordered_load:
@@ -58,15 +60,17 @@ define amdgpu_kernel void @global_system_unordered_load(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_unordered_load:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx4 s[0:3], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx4 s[4:7], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s4, s0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s5, s1
-; SKIP-CACHE-INV-NEXT:    buffer_load_dword v0, off, s[4:7], 0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s4, s2
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s5, s3
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s0, s4
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s1, s5
+; SKIP-CACHE-INV-NEXT:    buffer_load_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s4, s6
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s5, s7
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, s2
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, s3
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
@@ -100,15 +104,17 @@ entry:
 define amdgpu_kernel void @global_system_monotonic_load(
 ; GFX6-LABEL: global_system_monotonic_load:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx4 s[0:3], s[4:5], 0x0
-; GFX6-NEXT:    s_mov_b32 s7, 0x100f000
-; GFX6-NEXT:    s_mov_b32 s6, -1
+; GFX6-NEXT:    s_load_dwordx4 s[4:7], s[4:5], 0x0
+; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
+; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    s_mov_b32 s4, s0
-; GFX6-NEXT:    s_mov_b32 s5, s1
-; GFX6-NEXT:    buffer_load_dword v0, off, s[4:7], 0 glc
-; GFX6-NEXT:    s_mov_b32 s4, s2
-; GFX6-NEXT:    s_mov_b32 s5, s3
+; GFX6-NEXT:    s_mov_b32 s0, s4
+; GFX6-NEXT:    s_mov_b32 s1, s5
+; GFX6-NEXT:    buffer_load_dword v0, off, s[0:3], 0 glc
+; GFX6-NEXT:    s_mov_b32 s4, s6
+; GFX6-NEXT:    s_mov_b32 s5, s7
+; GFX6-NEXT:    s_mov_b32 s6, s2
+; GFX6-NEXT:    s_mov_b32 s7, s3
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; GFX6-NEXT:    s_endpgm
@@ -119,11 +125,11 @@ define amdgpu_kernel void @global_system_monotonic_load(
 ; GFX7-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX7-NEXT:    v_mov_b32_e32 v0, s0
 ; GFX7-NEXT:    v_mov_b32_e32 v1, s1
-; GFX7-NEXT:    flat_load_dword v2, v[0:1] glc
-; GFX7-NEXT:    v_mov_b32_e32 v0, s2
-; GFX7-NEXT:    v_mov_b32_e32 v1, s3
+; GFX7-NEXT:    flat_load_dword v0, v[0:1] glc
+; GFX7-NEXT:    v_mov_b32_e32 v2, s2
+; GFX7-NEXT:    v_mov_b32_e32 v3, s3
 ; GFX7-NEXT:    s_waitcnt vmcnt(0)
-; GFX7-NEXT:    flat_store_dword v[0:1], v2
+; GFX7-NEXT:    flat_store_dword v[2:3], v0
 ; GFX7-NEXT:    s_endpgm
 ;
 ; GFX10-WGP-LABEL: global_system_monotonic_load:
@@ -148,15 +154,17 @@ define amdgpu_kernel void @global_system_monotonic_load(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_monotonic_load:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx4 s[0:3], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx4 s[4:7], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s4, s0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s5, s1
-; SKIP-CACHE-INV-NEXT:    buffer_load_dword v0, off, s[4:7], 0 glc
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s4, s2
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s5, s3
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s0, s4
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s1, s5
+; SKIP-CACHE-INV-NEXT:    buffer_load_dword v0, off, s[0:3], 0 glc
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s4, s6
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s5, s7
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, s2
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, s3
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
@@ -190,17 +198,19 @@ entry:
 define amdgpu_kernel void @global_system_acquire_load(
 ; GFX6-LABEL: global_system_acquire_load:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx4 s[0:3], s[4:5], 0x0
-; GFX6-NEXT:    s_mov_b32 s7, 0x100f000
-; GFX6-NEXT:    s_mov_b32 s6, -1
+; GFX6-NEXT:    s_load_dwordx4 s[4:7], s[4:5], 0x0
+; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
+; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    s_mov_b32 s4, s0
-; GFX6-NEXT:    s_mov_b32 s5, s1
-; GFX6-NEXT:    buffer_load_dword v0, off, s[4:7], 0 glc
+; GFX6-NEXT:    s_mov_b32 s0, s4
+; GFX6-NEXT:    s_mov_b32 s1, s5
+; GFX6-NEXT:    buffer_load_dword v0, off, s[0:3], 0 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_wbinvl1
-; GFX6-NEXT:    s_mov_b32 s4, s2
-; GFX6-NEXT:    s_mov_b32 s5, s3
+; GFX6-NEXT:    s_mov_b32 s4, s6
+; GFX6-NEXT:    s_mov_b32 s5, s7
+; GFX6-NEXT:    s_mov_b32 s6, s2
+; GFX6-NEXT:    s_mov_b32 s7, s3
 ; GFX6-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; GFX6-NEXT:    s_endpgm
 ;
@@ -210,12 +220,12 @@ define amdgpu_kernel void @global_system_acquire_load(
 ; GFX7-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX7-NEXT:    v_mov_b32_e32 v0, s0
 ; GFX7-NEXT:    v_mov_b32_e32 v1, s1
-; GFX7-NEXT:    flat_load_dword v2, v[0:1] glc
+; GFX7-NEXT:    flat_load_dword v0, v[0:1] glc
 ; GFX7-NEXT:    s_waitcnt vmcnt(0)
 ; GFX7-NEXT:    buffer_wbinvl1_vol
-; GFX7-NEXT:    v_mov_b32_e32 v0, s2
-; GFX7-NEXT:    v_mov_b32_e32 v1, s3
-; GFX7-NEXT:    flat_store_dword v[0:1], v2
+; GFX7-NEXT:    v_mov_b32_e32 v2, s2
+; GFX7-NEXT:    v_mov_b32_e32 v3, s3
+; GFX7-NEXT:    flat_store_dword v[2:3], v0
 ; GFX7-NEXT:    s_endpgm
 ;
 ; GFX10-WGP-LABEL: global_system_acquire_load:
@@ -244,16 +254,18 @@ define amdgpu_kernel void @global_system_acquire_load(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_acquire_load:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx4 s[0:3], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx4 s[4:7], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s4, s0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s5, s1
-; SKIP-CACHE-INV-NEXT:    buffer_load_dword v0, off, s[4:7], 0 glc
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s0, s4
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s1, s5
+; SKIP-CACHE-INV-NEXT:    buffer_load_dword v0, off, s[0:3], 0 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s4, s2
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s5, s3
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s4, s6
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s5, s7
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, s2
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, s3
 ; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
@@ -290,18 +302,20 @@ entry:
 define amdgpu_kernel void @global_system_seq_cst_load(
 ; GFX6-LABEL: global_system_seq_cst_load:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx4 s[0:3], s[4:5], 0x0
-; GFX6-NEXT:    s_mov_b32 s7, 0x100f000
-; GFX6-NEXT:    s_mov_b32 s6, -1
+; GFX6-NEXT:    s_load_dwordx4 s[4:7], s[4:5], 0x0
+; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
+; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    s_mov_b32 s4, s0
-; GFX6-NEXT:    s_mov_b32 s5, s1
+; GFX6-NEXT:    s_mov_b32 s0, s4
+; GFX6-NEXT:    s_mov_b32 s1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX6-NEXT:    buffer_load_dword v0, off, s[4:7], 0 glc
+; GFX6-NEXT:    buffer_load_dword v0, off, s[0:3], 0 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_wbinvl1
-; GFX6-NEXT:    s_mov_b32 s4, s2
-; GFX6-NEXT:    s_mov_b32 s5, s3
+; GFX6-NEXT:    s_mov_b32 s4, s6
+; GFX6-NEXT:    s_mov_b32 s5, s7
+; GFX6-NEXT:    s_mov_b32 s6, s2
+; GFX6-NEXT:    s_mov_b32 s7, s3
 ; GFX6-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; GFX6-NEXT:    s_endpgm
 ;
@@ -312,12 +326,12 @@ define amdgpu_kernel void @global_system_seq_cst_load(
 ; GFX7-NEXT:    v_mov_b32_e32 v0, s0
 ; GFX7-NEXT:    v_mov_b32_e32 v1, s1
 ; GFX7-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX7-NEXT:    flat_load_dword v2, v[0:1] glc
+; GFX7-NEXT:    flat_load_dword v0, v[0:1] glc
 ; GFX7-NEXT:    s_waitcnt vmcnt(0)
 ; GFX7-NEXT:    buffer_wbinvl1_vol
-; GFX7-NEXT:    v_mov_b32_e32 v0, s2
-; GFX7-NEXT:    v_mov_b32_e32 v1, s3
-; GFX7-NEXT:    flat_store_dword v[0:1], v2
+; GFX7-NEXT:    v_mov_b32_e32 v2, s2
+; GFX7-NEXT:    v_mov_b32_e32 v3, s3
+; GFX7-NEXT:    flat_store_dword v[2:3], v0
 ; GFX7-NEXT:    s_endpgm
 ;
 ; GFX10-WGP-LABEL: global_system_seq_cst_load:
@@ -348,17 +362,19 @@ define amdgpu_kernel void @global_system_seq_cst_load(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_seq_cst_load:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx4 s[0:3], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx4 s[4:7], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s4, s0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s5, s1
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s0, s4
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s1, s5
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_load_dword v0, off, s[4:7], 0 glc
+; SKIP-CACHE-INV-NEXT:    buffer_load_dword v0, off, s[0:3], 0 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s4, s2
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s5, s3
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s4, s6
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s5, s7
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, s2
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, s3
 ; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
@@ -406,12 +422,12 @@ define amdgpu_kernel void @global_system_unordered_store(
 ;
 ; GFX7-LABEL: global_system_unordered_store:
 ; GFX7:       ; %bb.0: ; %entry
-; GFX7-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x2
 ; GFX7-NEXT:    s_load_dword s2, s[4:5], 0x0
+; GFX7-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x2
 ; GFX7-NEXT:    s_waitcnt lgkmcnt(0)
+; GFX7-NEXT:    v_mov_b32_e32 v2, s2
 ; GFX7-NEXT:    v_mov_b32_e32 v0, s0
 ; GFX7-NEXT:    v_mov_b32_e32 v1, s1
-; GFX7-NEXT:    v_mov_b32_e32 v2, s2
 ; GFX7-NEXT:    flat_store_dword v[0:1], v2
 ; GFX7-NEXT:    s_endpgm
 ;
@@ -439,8 +455,8 @@ define amdgpu_kernel void @global_system_unordered_store(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_unordered_store:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x2
+; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
 ; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
 ; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
@@ -487,12 +503,12 @@ define amdgpu_kernel void @global_system_monotonic_store(
 ;
 ; GFX7-LABEL: global_system_monotonic_store:
 ; GFX7:       ; %bb.0: ; %entry
-; GFX7-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x2
 ; GFX7-NEXT:    s_load_dword s2, s[4:5], 0x0
+; GFX7-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x2
 ; GFX7-NEXT:    s_waitcnt lgkmcnt(0)
+; GFX7-NEXT:    v_mov_b32_e32 v2, s2
 ; GFX7-NEXT:    v_mov_b32_e32 v0, s0
 ; GFX7-NEXT:    v_mov_b32_e32 v1, s1
-; GFX7-NEXT:    v_mov_b32_e32 v2, s2
 ; GFX7-NEXT:    flat_store_dword v[0:1], v2
 ; GFX7-NEXT:    s_endpgm
 ;
@@ -520,8 +536,8 @@ define amdgpu_kernel void @global_system_monotonic_store(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_monotonic_store:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x2
+; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
 ; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
 ; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
@@ -569,12 +585,12 @@ define amdgpu_kernel void @global_system_release_store(
 ;
 ; GFX7-LABEL: global_system_release_store:
 ; GFX7:       ; %bb.0: ; %entry
-; GFX7-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x2
 ; GFX7-NEXT:    s_load_dword s2, s[4:5], 0x0
+; GFX7-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x2
 ; GFX7-NEXT:    s_waitcnt lgkmcnt(0)
+; GFX7-NEXT:    v_mov_b32_e32 v2, s2
 ; GFX7-NEXT:    v_mov_b32_e32 v0, s0
 ; GFX7-NEXT:    v_mov_b32_e32 v1, s1
-; GFX7-NEXT:    v_mov_b32_e32 v2, s2
 ; GFX7-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
 ; GFX7-NEXT:    flat_store_dword v[0:1], v2
 ; GFX7-NEXT:    s_endpgm
@@ -607,8 +623,8 @@ define amdgpu_kernel void @global_system_release_store(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_release_store:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x2
+; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
 ; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
 ; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
@@ -661,12 +677,12 @@ define amdgpu_kernel void @global_system_seq_cst_store(
 ;
 ; GFX7-LABEL: global_system_seq_cst_store:
 ; GFX7:       ; %bb.0: ; %entry
-; GFX7-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x2
 ; GFX7-NEXT:    s_load_dword s2, s[4:5], 0x0
+; GFX7-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x2
 ; GFX7-NEXT:    s_waitcnt lgkmcnt(0)
+; GFX7-NEXT:    v_mov_b32_e32 v2, s2
 ; GFX7-NEXT:    v_mov_b32_e32 v0, s0
 ; GFX7-NEXT:    v_mov_b32_e32 v1, s1
-; GFX7-NEXT:    v_mov_b32_e32 v2, s2
 ; GFX7-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
 ; GFX7-NEXT:    flat_store_dword v[0:1], v2
 ; GFX7-NEXT:    s_endpgm
@@ -699,8 +715,8 @@ define amdgpu_kernel void @global_system_seq_cst_store(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_seq_cst_store:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x2
+; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
 ; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
 ; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
@@ -741,12 +757,12 @@ entry:
 define amdgpu_kernel void @global_system_monotonic_atomicrmw(
 ; GFX6-LABEL: global_system_monotonic_atomicrmw:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dword s6, s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dword s4, s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
 ; GFX6-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0
 ; GFX6-NEXT:    s_endpgm
 ;
@@ -785,19 +801,19 @@ define amdgpu_kernel void @global_system_monotonic_atomicrmw(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_monotonic_atomicrmw:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dword s0, s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_monotonic_atomicrmw:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -806,8 +822,8 @@ define amdgpu_kernel void @global_system_monotonic_atomicrmw(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_monotonic_atomicrmw:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -822,12 +838,12 @@ entry:
 define amdgpu_kernel void @global_system_acquire_atomicrmw(
 ; GFX6-LABEL: global_system_acquire_atomicrmw:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dword s6, s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dword s4, s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
 ; GFX6-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_wbinvl1
@@ -876,20 +892,20 @@ define amdgpu_kernel void @global_system_acquire_atomicrmw(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_acquire_atomicrmw:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dword s0, s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_acquire_atomicrmw:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -901,8 +917,8 @@ define amdgpu_kernel void @global_system_acquire_atomicrmw(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_acquire_atomicrmw:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -920,12 +936,12 @@ entry:
 define amdgpu_kernel void @global_system_release_atomicrmw(
 ; GFX6-LABEL: global_system_release_atomicrmw:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dword s6, s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dword s4, s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
 ; GFX6-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0
 ; GFX6-NEXT:    s_endpgm
@@ -970,20 +986,20 @@ define amdgpu_kernel void @global_system_release_atomicrmw(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_release_atomicrmw:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dword s0, s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_release_atomicrmw:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -994,8 +1010,8 @@ define amdgpu_kernel void @global_system_release_atomicrmw(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_release_atomicrmw:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -1012,12 +1028,12 @@ entry:
 define amdgpu_kernel void @global_system_acq_rel_atomicrmw(
 ; GFX6-LABEL: global_system_acq_rel_atomicrmw:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dword s6, s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dword s4, s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
 ; GFX6-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -1072,21 +1088,21 @@ define amdgpu_kernel void @global_system_acq_rel_atomicrmw(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_acq_rel_atomicrmw:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dword s0, s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_acq_rel_atomicrmw:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -1100,8 +1116,8 @@ define amdgpu_kernel void @global_system_acq_rel_atomicrmw(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_acq_rel_atomicrmw:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -1121,12 +1137,12 @@ entry:
 define amdgpu_kernel void @global_system_seq_cst_atomicrmw(
 ; GFX6-LABEL: global_system_seq_cst_atomicrmw:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dword s6, s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dword s4, s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
 ; GFX6-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -1181,21 +1197,21 @@ define amdgpu_kernel void @global_system_seq_cst_atomicrmw(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_seq_cst_atomicrmw:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dword s0, s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_seq_cst_atomicrmw:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -1209,8 +1225,8 @@ define amdgpu_kernel void @global_system_seq_cst_atomicrmw(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_seq_cst_atomicrmw:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -1230,12 +1246,12 @@ entry:
 define amdgpu_kernel void @global_system_acquire_ret_atomicrmw(
 ; GFX6-LABEL: global_system_acquire_ret_atomicrmw:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dword s6, s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dword s4, s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
 ; GFX6-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_wbinvl1
@@ -1288,21 +1304,21 @@ define amdgpu_kernel void @global_system_acquire_ret_atomicrmw(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_acquire_ret_atomicrmw:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dword s0, s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0 glc
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[4:7], 0 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_acquire_ret_atomicrmw:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -1315,8 +1331,8 @@ define amdgpu_kernel void @global_system_acquire_ret_atomicrmw(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_acquire_ret_atomicrmw:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -1336,12 +1352,12 @@ entry:
 define amdgpu_kernel void @global_system_acq_rel_ret_atomicrmw(
 ; GFX6-LABEL: global_system_acq_rel_ret_atomicrmw:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dword s6, s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dword s4, s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
 ; GFX6-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -1400,22 +1416,22 @@ define amdgpu_kernel void @global_system_acq_rel_ret_atomicrmw(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_acq_rel_ret_atomicrmw:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dword s0, s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0 glc
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[4:7], 0 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_acq_rel_ret_atomicrmw:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -1430,8 +1446,8 @@ define amdgpu_kernel void @global_system_acq_rel_ret_atomicrmw(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_acq_rel_ret_atomicrmw:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -1453,12 +1469,12 @@ entry:
 define amdgpu_kernel void @global_system_seq_cst_ret_atomicrmw(
 ; GFX6-LABEL: global_system_seq_cst_ret_atomicrmw:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dword s6, s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dword s4, s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
 ; GFX6-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -1517,22 +1533,22 @@ define amdgpu_kernel void @global_system_seq_cst_ret_atomicrmw(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_seq_cst_ret_atomicrmw:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dword s0, s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0 glc
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[4:7], 0 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_seq_cst_ret_atomicrmw:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -1547,8 +1563,8 @@ define amdgpu_kernel void @global_system_seq_cst_ret_atomicrmw(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_seq_cst_ret_atomicrmw:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -1570,13 +1586,13 @@ entry:
 define amdgpu_kernel void @global_system_monotonic_monotonic_cmpxchg(
 ; GFX6-LABEL: global_system_monotonic_monotonic_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
 ; GFX6-NEXT:    s_endpgm
 ;
@@ -1620,34 +1636,34 @@ define amdgpu_kernel void @global_system_monotonic_monotonic_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_monotonic_monotonic_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_monotonic_monotonic_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_monotonic_monotonic_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -1659,13 +1675,13 @@ entry:
 define amdgpu_kernel void @global_system_acquire_monotonic_cmpxchg(
 ; GFX6-LABEL: global_system_acquire_monotonic_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_wbinvl1
@@ -1719,25 +1735,25 @@ define amdgpu_kernel void @global_system_acquire_monotonic_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_acquire_monotonic_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_acquire_monotonic_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -1745,12 +1761,12 @@ define amdgpu_kernel void @global_system_acquire_monotonic_cmpxchg(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_acquire_monotonic_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -1765,13 +1781,13 @@ entry:
 define amdgpu_kernel void @global_system_release_monotonic_cmpxchg(
 ; GFX6-LABEL: global_system_release_monotonic_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
 ; GFX6-NEXT:    s_endpgm
@@ -1821,39 +1837,39 @@ define amdgpu_kernel void @global_system_release_monotonic_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_release_monotonic_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_release_monotonic_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_release_monotonic_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -1865,13 +1881,13 @@ entry:
 define amdgpu_kernel void @global_system_acq_rel_monotonic_cmpxchg(
 ; GFX6-LABEL: global_system_acq_rel_monotonic_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -1931,28 +1947,28 @@ define amdgpu_kernel void @global_system_acq_rel_monotonic_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_acq_rel_monotonic_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_acq_rel_monotonic_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -1960,14 +1976,14 @@ define amdgpu_kernel void @global_system_acq_rel_monotonic_cmpxchg(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_acq_rel_monotonic_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -1982,13 +1998,13 @@ entry:
 define amdgpu_kernel void @global_system_seq_cst_monotonic_cmpxchg(
 ; GFX6-LABEL: global_system_seq_cst_monotonic_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -2048,28 +2064,28 @@ define amdgpu_kernel void @global_system_seq_cst_monotonic_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_seq_cst_monotonic_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_seq_cst_monotonic_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -2077,14 +2093,14 @@ define amdgpu_kernel void @global_system_seq_cst_monotonic_cmpxchg(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_seq_cst_monotonic_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -2099,13 +2115,13 @@ entry:
 define amdgpu_kernel void @global_system_monotonic_acquire_cmpxchg(
 ; GFX6-LABEL: global_system_monotonic_acquire_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_wbinvl1
@@ -2159,25 +2175,25 @@ define amdgpu_kernel void @global_system_monotonic_acquire_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_monotonic_acquire_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_monotonic_acquire_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -2185,12 +2201,12 @@ define amdgpu_kernel void @global_system_monotonic_acquire_cmpxchg(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_monotonic_acquire_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -2205,13 +2221,13 @@ entry:
 define amdgpu_kernel void @global_system_acquire_acquire_cmpxchg(
 ; GFX6-LABEL: global_system_acquire_acquire_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_wbinvl1
@@ -2265,25 +2281,25 @@ define amdgpu_kernel void @global_system_acquire_acquire_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_acquire_acquire_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_acquire_acquire_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -2291,12 +2307,12 @@ define amdgpu_kernel void @global_system_acquire_acquire_cmpxchg(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_acquire_acquire_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -2311,13 +2327,13 @@ entry:
 define amdgpu_kernel void @global_system_release_acquire_cmpxchg(
 ; GFX6-LABEL: global_system_release_acquire_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -2377,28 +2393,28 @@ define amdgpu_kernel void @global_system_release_acquire_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_release_acquire_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_release_acquire_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -2406,14 +2422,14 @@ define amdgpu_kernel void @global_system_release_acquire_cmpxchg(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_release_acquire_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -2428,13 +2444,13 @@ entry:
 define amdgpu_kernel void @global_system_acq_rel_acquire_cmpxchg(
 ; GFX6-LABEL: global_system_acq_rel_acquire_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -2494,28 +2510,28 @@ define amdgpu_kernel void @global_system_acq_rel_acquire_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_acq_rel_acquire_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_acq_rel_acquire_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -2523,14 +2539,14 @@ define amdgpu_kernel void @global_system_acq_rel_acquire_cmpxchg(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_acq_rel_acquire_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -2545,13 +2561,13 @@ entry:
 define amdgpu_kernel void @global_system_seq_cst_acquire_cmpxchg(
 ; GFX6-LABEL: global_system_seq_cst_acquire_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -2611,28 +2627,28 @@ define amdgpu_kernel void @global_system_seq_cst_acquire_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_seq_cst_acquire_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_seq_cst_acquire_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -2640,14 +2656,14 @@ define amdgpu_kernel void @global_system_seq_cst_acquire_cmpxchg(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_seq_cst_acquire_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -2662,13 +2678,13 @@ entry:
 define amdgpu_kernel void @global_system_seq_cst_seq_cst_cmpxchg(
 ; GFX6-LABEL: global_system_seq_cst_seq_cst_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -2728,28 +2744,28 @@ define amdgpu_kernel void @global_system_seq_cst_seq_cst_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_seq_cst_seq_cst_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_seq_cst_seq_cst_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -2757,14 +2773,14 @@ define amdgpu_kernel void @global_system_seq_cst_seq_cst_cmpxchg(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_seq_cst_seq_cst_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -2779,13 +2795,13 @@ entry:
 define amdgpu_kernel void @global_system_monotonic_monotonic_ret_cmpxchg(
 ; GFX6-LABEL: global_system_monotonic_monotonic_ret_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_store_dword v0, off, s[0:3], 0
@@ -2839,40 +2855,40 @@ define amdgpu_kernel void @global_system_monotonic_monotonic_ret_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_monotonic_monotonic_ret_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_monotonic_monotonic_ret_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_monotonic_monotonic_ret_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -2886,13 +2902,13 @@ entry:
 define amdgpu_kernel void @global_system_acquire_monotonic_ret_cmpxchg(
 ; GFX6-LABEL: global_system_acquire_monotonic_ret_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_wbinvl1
@@ -2952,44 +2968,44 @@ define amdgpu_kernel void @global_system_acquire_monotonic_ret_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_acquire_monotonic_ret_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_acquire_monotonic_ret_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_acquire_monotonic_ret_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -3003,13 +3019,13 @@ entry:
 define amdgpu_kernel void @global_system_acq_rel_monotonic_ret_cmpxchg(
 ; GFX6-LABEL: global_system_acq_rel_monotonic_ret_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -3075,49 +3091,49 @@ define amdgpu_kernel void @global_system_acq_rel_monotonic_ret_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_acq_rel_monotonic_ret_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_acq_rel_monotonic_ret_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_acq_rel_monotonic_ret_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -3131,13 +3147,13 @@ entry:
 define amdgpu_kernel void @global_system_seq_cst_monotonic_ret_cmpxchg(
 ; GFX6-LABEL: global_system_seq_cst_monotonic_ret_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -3203,49 +3219,49 @@ define amdgpu_kernel void @global_system_seq_cst_monotonic_ret_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_seq_cst_monotonic_ret_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_seq_cst_monotonic_ret_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_seq_cst_monotonic_ret_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -3259,13 +3275,13 @@ entry:
 define amdgpu_kernel void @global_system_monotonic_acquire_ret_cmpxchg(
 ; GFX6-LABEL: global_system_monotonic_acquire_ret_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_wbinvl1
@@ -3325,44 +3341,44 @@ define amdgpu_kernel void @global_system_monotonic_acquire_ret_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_monotonic_acquire_ret_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_monotonic_acquire_ret_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_monotonic_acquire_ret_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -3376,13 +3392,13 @@ entry:
 define amdgpu_kernel void @global_system_acquire_acquire_ret_cmpxchg(
 ; GFX6-LABEL: global_system_acquire_acquire_ret_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_wbinvl1
@@ -3442,44 +3458,44 @@ define amdgpu_kernel void @global_system_acquire_acquire_ret_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_acquire_acquire_ret_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_acquire_acquire_ret_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_acquire_acquire_ret_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -3493,13 +3509,13 @@ entry:
 define amdgpu_kernel void @global_system_release_acquire_ret_cmpxchg(
 ; GFX6-LABEL: global_system_release_acquire_ret_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -3565,49 +3581,49 @@ define amdgpu_kernel void @global_system_release_acquire_ret_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_release_acquire_ret_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_release_acquire_ret_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_release_acquire_ret_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -3621,13 +3637,13 @@ entry:
 define amdgpu_kernel void @global_system_acq_rel_acquire_ret_cmpxchg(
 ; GFX6-LABEL: global_system_acq_rel_acquire_ret_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -3693,49 +3709,49 @@ define amdgpu_kernel void @global_system_acq_rel_acquire_ret_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_acq_rel_acquire_ret_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_acq_rel_acquire_ret_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_acq_rel_acquire_ret_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -3749,13 +3765,13 @@ entry:
 define amdgpu_kernel void @global_system_seq_cst_acquire_ret_cmpxchg(
 ; GFX6-LABEL: global_system_seq_cst_acquire_ret_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -3821,49 +3837,49 @@ define amdgpu_kernel void @global_system_seq_cst_acquire_ret_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_seq_cst_acquire_ret_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_seq_cst_acquire_ret_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_seq_cst_acquire_ret_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -3877,13 +3893,13 @@ entry:
 define amdgpu_kernel void @global_system_monotonic_seq_cst_ret_cmpxchg(
 ; GFX6-LABEL: global_system_monotonic_seq_cst_ret_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -3949,49 +3965,49 @@ define amdgpu_kernel void @global_system_monotonic_seq_cst_ret_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_monotonic_seq_cst_ret_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_monotonic_seq_cst_ret_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_monotonic_seq_cst_ret_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -4005,13 +4021,13 @@ entry:
 define amdgpu_kernel void @global_system_acquire_seq_cst_ret_cmpxchg(
 ; GFX6-LABEL: global_system_acquire_seq_cst_ret_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -4077,49 +4093,49 @@ define amdgpu_kernel void @global_system_acquire_seq_cst_ret_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_acquire_seq_cst_ret_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_acquire_seq_cst_ret_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_acquire_seq_cst_ret_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -4133,13 +4149,13 @@ entry:
 define amdgpu_kernel void @global_system_relese_seq_cst_ret_cmpxchg(
 ; GFX6-LABEL: global_system_relese_seq_cst_ret_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -4205,49 +4221,49 @@ define amdgpu_kernel void @global_system_relese_seq_cst_ret_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_relese_seq_cst_ret_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_relese_seq_cst_ret_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_relese_seq_cst_ret_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -4261,13 +4277,13 @@ entry:
 define amdgpu_kernel void @global_system_acq_rel_seq_cst_ret_cmpxchg(
 ; GFX6-LABEL: global_system_acq_rel_seq_cst_ret_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -4333,49 +4349,49 @@ define amdgpu_kernel void @global_system_acq_rel_seq_cst_ret_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_acq_rel_seq_cst_ret_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_acq_rel_seq_cst_ret_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_acq_rel_seq_cst_ret_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -4389,13 +4405,13 @@ entry:
 define amdgpu_kernel void @global_system_seq_cst_seq_cst_ret_cmpxchg(
 ; GFX6-LABEL: global_system_seq_cst_seq_cst_ret_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -4461,49 +4477,49 @@ define amdgpu_kernel void @global_system_seq_cst_seq_cst_ret_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_seq_cst_seq_cst_ret_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_seq_cst_seq_cst_ret_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_seq_cst_seq_cst_ret_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0) lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -4517,15 +4533,17 @@ entry:
 define amdgpu_kernel void @global_system_one_as_unordered_load(
 ; GFX6-LABEL: global_system_one_as_unordered_load:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx4 s[0:3], s[4:5], 0x0
-; GFX6-NEXT:    s_mov_b32 s7, 0x100f000
-; GFX6-NEXT:    s_mov_b32 s6, -1
+; GFX6-NEXT:    s_load_dwordx4 s[4:7], s[4:5], 0x0
+; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
+; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    s_mov_b32 s4, s0
-; GFX6-NEXT:    s_mov_b32 s5, s1
-; GFX6-NEXT:    buffer_load_dword v0, off, s[4:7], 0
-; GFX6-NEXT:    s_mov_b32 s4, s2
-; GFX6-NEXT:    s_mov_b32 s5, s3
+; GFX6-NEXT:    s_mov_b32 s0, s4
+; GFX6-NEXT:    s_mov_b32 s1, s5
+; GFX6-NEXT:    buffer_load_dword v0, off, s[0:3], 0
+; GFX6-NEXT:    s_mov_b32 s4, s6
+; GFX6-NEXT:    s_mov_b32 s5, s7
+; GFX6-NEXT:    s_mov_b32 s6, s2
+; GFX6-NEXT:    s_mov_b32 s7, s3
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; GFX6-NEXT:    s_endpgm
@@ -4536,11 +4554,11 @@ define amdgpu_kernel void @global_system_one_as_unordered_load(
 ; GFX7-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX7-NEXT:    v_mov_b32_e32 v0, s0
 ; GFX7-NEXT:    v_mov_b32_e32 v1, s1
-; GFX7-NEXT:    flat_load_dword v2, v[0:1]
-; GFX7-NEXT:    v_mov_b32_e32 v0, s2
-; GFX7-NEXT:    v_mov_b32_e32 v1, s3
+; GFX7-NEXT:    flat_load_dword v0, v[0:1]
+; GFX7-NEXT:    v_mov_b32_e32 v2, s2
+; GFX7-NEXT:    v_mov_b32_e32 v3, s3
 ; GFX7-NEXT:    s_waitcnt vmcnt(0)
-; GFX7-NEXT:    flat_store_dword v[0:1], v2
+; GFX7-NEXT:    flat_store_dword v[2:3], v0
 ; GFX7-NEXT:    s_endpgm
 ;
 ; GFX10-WGP-LABEL: global_system_one_as_unordered_load:
@@ -4565,15 +4583,17 @@ define amdgpu_kernel void @global_system_one_as_unordered_load(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_unordered_load:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx4 s[0:3], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx4 s[4:7], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s4, s0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s5, s1
-; SKIP-CACHE-INV-NEXT:    buffer_load_dword v0, off, s[4:7], 0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s4, s2
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s5, s3
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s0, s4
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s1, s5
+; SKIP-CACHE-INV-NEXT:    buffer_load_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s4, s6
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s5, s7
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, s2
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, s3
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
@@ -4607,15 +4627,17 @@ entry:
 define amdgpu_kernel void @global_system_one_as_monotonic_load(
 ; GFX6-LABEL: global_system_one_as_monotonic_load:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx4 s[0:3], s[4:5], 0x0
-; GFX6-NEXT:    s_mov_b32 s7, 0x100f000
-; GFX6-NEXT:    s_mov_b32 s6, -1
+; GFX6-NEXT:    s_load_dwordx4 s[4:7], s[4:5], 0x0
+; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
+; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    s_mov_b32 s4, s0
-; GFX6-NEXT:    s_mov_b32 s5, s1
-; GFX6-NEXT:    buffer_load_dword v0, off, s[4:7], 0 glc
-; GFX6-NEXT:    s_mov_b32 s4, s2
-; GFX6-NEXT:    s_mov_b32 s5, s3
+; GFX6-NEXT:    s_mov_b32 s0, s4
+; GFX6-NEXT:    s_mov_b32 s1, s5
+; GFX6-NEXT:    buffer_load_dword v0, off, s[0:3], 0 glc
+; GFX6-NEXT:    s_mov_b32 s4, s6
+; GFX6-NEXT:    s_mov_b32 s5, s7
+; GFX6-NEXT:    s_mov_b32 s6, s2
+; GFX6-NEXT:    s_mov_b32 s7, s3
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; GFX6-NEXT:    s_endpgm
@@ -4626,11 +4648,11 @@ define amdgpu_kernel void @global_system_one_as_monotonic_load(
 ; GFX7-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX7-NEXT:    v_mov_b32_e32 v0, s0
 ; GFX7-NEXT:    v_mov_b32_e32 v1, s1
-; GFX7-NEXT:    flat_load_dword v2, v[0:1] glc
-; GFX7-NEXT:    v_mov_b32_e32 v0, s2
-; GFX7-NEXT:    v_mov_b32_e32 v1, s3
+; GFX7-NEXT:    flat_load_dword v0, v[0:1] glc
+; GFX7-NEXT:    v_mov_b32_e32 v2, s2
+; GFX7-NEXT:    v_mov_b32_e32 v3, s3
 ; GFX7-NEXT:    s_waitcnt vmcnt(0)
-; GFX7-NEXT:    flat_store_dword v[0:1], v2
+; GFX7-NEXT:    flat_store_dword v[2:3], v0
 ; GFX7-NEXT:    s_endpgm
 ;
 ; GFX10-WGP-LABEL: global_system_one_as_monotonic_load:
@@ -4655,15 +4677,17 @@ define amdgpu_kernel void @global_system_one_as_monotonic_load(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_monotonic_load:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx4 s[0:3], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx4 s[4:7], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s4, s0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s5, s1
-; SKIP-CACHE-INV-NEXT:    buffer_load_dword v0, off, s[4:7], 0 glc
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s4, s2
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s5, s3
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s0, s4
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s1, s5
+; SKIP-CACHE-INV-NEXT:    buffer_load_dword v0, off, s[0:3], 0 glc
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s4, s6
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s5, s7
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, s2
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, s3
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
@@ -4697,17 +4721,19 @@ entry:
 define amdgpu_kernel void @global_system_one_as_acquire_load(
 ; GFX6-LABEL: global_system_one_as_acquire_load:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx4 s[0:3], s[4:5], 0x0
-; GFX6-NEXT:    s_mov_b32 s7, 0x100f000
-; GFX6-NEXT:    s_mov_b32 s6, -1
+; GFX6-NEXT:    s_load_dwordx4 s[4:7], s[4:5], 0x0
+; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
+; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    s_mov_b32 s4, s0
-; GFX6-NEXT:    s_mov_b32 s5, s1
-; GFX6-NEXT:    buffer_load_dword v0, off, s[4:7], 0 glc
+; GFX6-NEXT:    s_mov_b32 s0, s4
+; GFX6-NEXT:    s_mov_b32 s1, s5
+; GFX6-NEXT:    buffer_load_dword v0, off, s[0:3], 0 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_wbinvl1
-; GFX6-NEXT:    s_mov_b32 s4, s2
-; GFX6-NEXT:    s_mov_b32 s5, s3
+; GFX6-NEXT:    s_mov_b32 s4, s6
+; GFX6-NEXT:    s_mov_b32 s5, s7
+; GFX6-NEXT:    s_mov_b32 s6, s2
+; GFX6-NEXT:    s_mov_b32 s7, s3
 ; GFX6-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; GFX6-NEXT:    s_endpgm
 ;
@@ -4717,12 +4743,12 @@ define amdgpu_kernel void @global_system_one_as_acquire_load(
 ; GFX7-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX7-NEXT:    v_mov_b32_e32 v0, s0
 ; GFX7-NEXT:    v_mov_b32_e32 v1, s1
-; GFX7-NEXT:    flat_load_dword v2, v[0:1] glc
+; GFX7-NEXT:    flat_load_dword v0, v[0:1] glc
 ; GFX7-NEXT:    s_waitcnt vmcnt(0)
 ; GFX7-NEXT:    buffer_wbinvl1_vol
-; GFX7-NEXT:    v_mov_b32_e32 v0, s2
-; GFX7-NEXT:    v_mov_b32_e32 v1, s3
-; GFX7-NEXT:    flat_store_dword v[0:1], v2
+; GFX7-NEXT:    v_mov_b32_e32 v2, s2
+; GFX7-NEXT:    v_mov_b32_e32 v3, s3
+; GFX7-NEXT:    flat_store_dword v[2:3], v0
 ; GFX7-NEXT:    s_endpgm
 ;
 ; GFX10-WGP-LABEL: global_system_one_as_acquire_load:
@@ -4751,16 +4777,18 @@ define amdgpu_kernel void @global_system_one_as_acquire_load(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_acquire_load:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx4 s[0:3], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx4 s[4:7], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s4, s0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s5, s1
-; SKIP-CACHE-INV-NEXT:    buffer_load_dword v0, off, s[4:7], 0 glc
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s0, s4
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s1, s5
+; SKIP-CACHE-INV-NEXT:    buffer_load_dword v0, off, s[0:3], 0 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s4, s2
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s5, s3
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s4, s6
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s5, s7
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, s2
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, s3
 ; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
@@ -4797,18 +4825,20 @@ entry:
 define amdgpu_kernel void @global_system_one_as_seq_cst_load(
 ; GFX6-LABEL: global_system_one_as_seq_cst_load:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx4 s[0:3], s[4:5], 0x0
-; GFX6-NEXT:    s_mov_b32 s7, 0x100f000
-; GFX6-NEXT:    s_mov_b32 s6, -1
+; GFX6-NEXT:    s_load_dwordx4 s[4:7], s[4:5], 0x0
+; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
+; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    s_mov_b32 s4, s0
-; GFX6-NEXT:    s_mov_b32 s5, s1
+; GFX6-NEXT:    s_mov_b32 s0, s4
+; GFX6-NEXT:    s_mov_b32 s1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
-; GFX6-NEXT:    buffer_load_dword v0, off, s[4:7], 0 glc
+; GFX6-NEXT:    buffer_load_dword v0, off, s[0:3], 0 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_wbinvl1
-; GFX6-NEXT:    s_mov_b32 s4, s2
-; GFX6-NEXT:    s_mov_b32 s5, s3
+; GFX6-NEXT:    s_mov_b32 s4, s6
+; GFX6-NEXT:    s_mov_b32 s5, s7
+; GFX6-NEXT:    s_mov_b32 s6, s2
+; GFX6-NEXT:    s_mov_b32 s7, s3
 ; GFX6-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; GFX6-NEXT:    s_endpgm
 ;
@@ -4819,12 +4849,12 @@ define amdgpu_kernel void @global_system_one_as_seq_cst_load(
 ; GFX7-NEXT:    v_mov_b32_e32 v0, s0
 ; GFX7-NEXT:    v_mov_b32_e32 v1, s1
 ; GFX7-NEXT:    s_waitcnt vmcnt(0)
-; GFX7-NEXT:    flat_load_dword v2, v[0:1] glc
+; GFX7-NEXT:    flat_load_dword v0, v[0:1] glc
 ; GFX7-NEXT:    s_waitcnt vmcnt(0)
 ; GFX7-NEXT:    buffer_wbinvl1_vol
-; GFX7-NEXT:    v_mov_b32_e32 v0, s2
-; GFX7-NEXT:    v_mov_b32_e32 v1, s3
-; GFX7-NEXT:    flat_store_dword v[0:1], v2
+; GFX7-NEXT:    v_mov_b32_e32 v2, s2
+; GFX7-NEXT:    v_mov_b32_e32 v3, s3
+; GFX7-NEXT:    flat_store_dword v[2:3], v0
 ; GFX7-NEXT:    s_endpgm
 ;
 ; GFX10-WGP-LABEL: global_system_one_as_seq_cst_load:
@@ -4855,17 +4885,19 @@ define amdgpu_kernel void @global_system_one_as_seq_cst_load(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_seq_cst_load:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx4 s[0:3], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx4 s[4:7], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s4, s0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s5, s1
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s0, s4
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s1, s5
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_load_dword v0, off, s[4:7], 0 glc
+; SKIP-CACHE-INV-NEXT:    buffer_load_dword v0, off, s[0:3], 0 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s4, s2
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s5, s3
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s4, s6
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s5, s7
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, s2
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, s3
 ; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
@@ -4913,12 +4945,12 @@ define amdgpu_kernel void @global_system_one_as_unordered_store(
 ;
 ; GFX7-LABEL: global_system_one_as_unordered_store:
 ; GFX7:       ; %bb.0: ; %entry
-; GFX7-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x2
 ; GFX7-NEXT:    s_load_dword s2, s[4:5], 0x0
+; GFX7-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x2
 ; GFX7-NEXT:    s_waitcnt lgkmcnt(0)
+; GFX7-NEXT:    v_mov_b32_e32 v2, s2
 ; GFX7-NEXT:    v_mov_b32_e32 v0, s0
 ; GFX7-NEXT:    v_mov_b32_e32 v1, s1
-; GFX7-NEXT:    v_mov_b32_e32 v2, s2
 ; GFX7-NEXT:    flat_store_dword v[0:1], v2
 ; GFX7-NEXT:    s_endpgm
 ;
@@ -4946,8 +4978,8 @@ define amdgpu_kernel void @global_system_one_as_unordered_store(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_unordered_store:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x2
+; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
 ; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
 ; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
@@ -4994,12 +5026,12 @@ define amdgpu_kernel void @global_system_one_as_monotonic_store(
 ;
 ; GFX7-LABEL: global_system_one_as_monotonic_store:
 ; GFX7:       ; %bb.0: ; %entry
-; GFX7-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x2
 ; GFX7-NEXT:    s_load_dword s2, s[4:5], 0x0
+; GFX7-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x2
 ; GFX7-NEXT:    s_waitcnt lgkmcnt(0)
+; GFX7-NEXT:    v_mov_b32_e32 v2, s2
 ; GFX7-NEXT:    v_mov_b32_e32 v0, s0
 ; GFX7-NEXT:    v_mov_b32_e32 v1, s1
-; GFX7-NEXT:    v_mov_b32_e32 v2, s2
 ; GFX7-NEXT:    flat_store_dword v[0:1], v2
 ; GFX7-NEXT:    s_endpgm
 ;
@@ -5027,8 +5059,8 @@ define amdgpu_kernel void @global_system_one_as_monotonic_store(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_monotonic_store:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x2
+; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
 ; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
 ; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
@@ -5076,12 +5108,12 @@ define amdgpu_kernel void @global_system_one_as_release_store(
 ;
 ; GFX7-LABEL: global_system_one_as_release_store:
 ; GFX7:       ; %bb.0: ; %entry
-; GFX7-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x2
 ; GFX7-NEXT:    s_load_dword s2, s[4:5], 0x0
+; GFX7-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x2
 ; GFX7-NEXT:    s_waitcnt lgkmcnt(0)
+; GFX7-NEXT:    v_mov_b32_e32 v2, s2
 ; GFX7-NEXT:    v_mov_b32_e32 v0, s0
 ; GFX7-NEXT:    v_mov_b32_e32 v1, s1
-; GFX7-NEXT:    v_mov_b32_e32 v2, s2
 ; GFX7-NEXT:    s_waitcnt vmcnt(0)
 ; GFX7-NEXT:    flat_store_dword v[0:1], v2
 ; GFX7-NEXT:    s_endpgm
@@ -5114,8 +5146,8 @@ define amdgpu_kernel void @global_system_one_as_release_store(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_release_store:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x2
+; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
 ; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
 ; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
@@ -5168,12 +5200,12 @@ define amdgpu_kernel void @global_system_one_as_seq_cst_store(
 ;
 ; GFX7-LABEL: global_system_one_as_seq_cst_store:
 ; GFX7:       ; %bb.0: ; %entry
-; GFX7-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x2
 ; GFX7-NEXT:    s_load_dword s2, s[4:5], 0x0
+; GFX7-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x2
 ; GFX7-NEXT:    s_waitcnt lgkmcnt(0)
+; GFX7-NEXT:    v_mov_b32_e32 v2, s2
 ; GFX7-NEXT:    v_mov_b32_e32 v0, s0
 ; GFX7-NEXT:    v_mov_b32_e32 v1, s1
-; GFX7-NEXT:    v_mov_b32_e32 v2, s2
 ; GFX7-NEXT:    s_waitcnt vmcnt(0)
 ; GFX7-NEXT:    flat_store_dword v[0:1], v2
 ; GFX7-NEXT:    s_endpgm
@@ -5206,8 +5238,8 @@ define amdgpu_kernel void @global_system_one_as_seq_cst_store(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_seq_cst_store:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x2
+; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
 ; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
 ; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
@@ -5248,12 +5280,12 @@ entry:
 define amdgpu_kernel void @global_system_one_as_monotonic_atomicrmw(
 ; GFX6-LABEL: global_system_one_as_monotonic_atomicrmw:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dword s6, s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dword s4, s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
 ; GFX6-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0
 ; GFX6-NEXT:    s_endpgm
 ;
@@ -5292,19 +5324,19 @@ define amdgpu_kernel void @global_system_one_as_monotonic_atomicrmw(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_monotonic_atomicrmw:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dword s0, s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_monotonic_atomicrmw:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -5313,8 +5345,8 @@ define amdgpu_kernel void @global_system_one_as_monotonic_atomicrmw(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_monotonic_atomicrmw:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -5329,12 +5361,12 @@ entry:
 define amdgpu_kernel void @global_system_one_as_acquire_atomicrmw(
 ; GFX6-LABEL: global_system_one_as_acquire_atomicrmw:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dword s6, s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dword s4, s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
 ; GFX6-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_wbinvl1
@@ -5383,20 +5415,20 @@ define amdgpu_kernel void @global_system_one_as_acquire_atomicrmw(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_acquire_atomicrmw:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dword s0, s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_acquire_atomicrmw:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -5408,8 +5440,8 @@ define amdgpu_kernel void @global_system_one_as_acquire_atomicrmw(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_acquire_atomicrmw:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -5427,12 +5459,12 @@ entry:
 define amdgpu_kernel void @global_system_one_as_release_atomicrmw(
 ; GFX6-LABEL: global_system_one_as_release_atomicrmw:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dword s6, s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dword s4, s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0
 ; GFX6-NEXT:    s_endpgm
@@ -5477,20 +5509,20 @@ define amdgpu_kernel void @global_system_one_as_release_atomicrmw(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_release_atomicrmw:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dword s0, s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_release_atomicrmw:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -5501,8 +5533,8 @@ define amdgpu_kernel void @global_system_one_as_release_atomicrmw(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_release_atomicrmw:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -5519,12 +5551,12 @@ entry:
 define amdgpu_kernel void @global_system_one_as_acq_rel_atomicrmw(
 ; GFX6-LABEL: global_system_one_as_acq_rel_atomicrmw:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dword s6, s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dword s4, s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -5579,21 +5611,21 @@ define amdgpu_kernel void @global_system_one_as_acq_rel_atomicrmw(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_acq_rel_atomicrmw:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dword s0, s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_acq_rel_atomicrmw:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -5607,8 +5639,8 @@ define amdgpu_kernel void @global_system_one_as_acq_rel_atomicrmw(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_acq_rel_atomicrmw:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -5628,12 +5660,12 @@ entry:
 define amdgpu_kernel void @global_system_one_as_seq_cst_atomicrmw(
 ; GFX6-LABEL: global_system_one_as_seq_cst_atomicrmw:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dword s6, s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dword s4, s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -5688,21 +5720,21 @@ define amdgpu_kernel void @global_system_one_as_seq_cst_atomicrmw(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_seq_cst_atomicrmw:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dword s0, s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_seq_cst_atomicrmw:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -5716,8 +5748,8 @@ define amdgpu_kernel void @global_system_one_as_seq_cst_atomicrmw(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_seq_cst_atomicrmw:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -5737,12 +5769,12 @@ entry:
 define amdgpu_kernel void @global_system_one_as_acquire_ret_atomicrmw(
 ; GFX6-LABEL: global_system_one_as_acquire_ret_atomicrmw:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dword s6, s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dword s4, s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
 ; GFX6-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_wbinvl1
@@ -5795,21 +5827,21 @@ define amdgpu_kernel void @global_system_one_as_acquire_ret_atomicrmw(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_acquire_ret_atomicrmw:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dword s0, s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0 glc
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[4:7], 0 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_acquire_ret_atomicrmw:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -5822,8 +5854,8 @@ define amdgpu_kernel void @global_system_one_as_acquire_ret_atomicrmw(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_acquire_ret_atomicrmw:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -5843,12 +5875,12 @@ entry:
 define amdgpu_kernel void @global_system_one_as_acq_rel_ret_atomicrmw(
 ; GFX6-LABEL: global_system_one_as_acq_rel_ret_atomicrmw:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dword s6, s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dword s4, s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -5907,22 +5939,22 @@ define amdgpu_kernel void @global_system_one_as_acq_rel_ret_atomicrmw(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_acq_rel_ret_atomicrmw:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dword s0, s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0 glc
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[4:7], 0 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_acq_rel_ret_atomicrmw:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -5937,8 +5969,8 @@ define amdgpu_kernel void @global_system_one_as_acq_rel_ret_atomicrmw(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_acq_rel_ret_atomicrmw:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -5960,12 +5992,12 @@ entry:
 define amdgpu_kernel void @global_system_one_as_seq_cst_ret_atomicrmw(
 ; GFX6-LABEL: global_system_one_as_seq_cst_ret_atomicrmw:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dword s6, s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dword s4, s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -6024,22 +6056,22 @@ define amdgpu_kernel void @global_system_one_as_seq_cst_ret_atomicrmw(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_seq_cst_ret_atomicrmw:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dword s4, s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dword s0, s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[0:3], 0 glc
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_swap v0, off, s[4:7], 0 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_seq_cst_ret_atomicrmw:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -6054,8 +6086,8 @@ define amdgpu_kernel void @global_system_one_as_seq_cst_ret_atomicrmw(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_seq_cst_ret_atomicrmw:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dword s2, s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v0, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v1, s2
@@ -6077,13 +6109,13 @@ entry:
 define amdgpu_kernel void @global_system_one_as_monotonic_monotonic_cmpxchg(
 ; GFX6-LABEL: global_system_one_as_monotonic_monotonic_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
 ; GFX6-NEXT:    s_endpgm
 ;
@@ -6127,34 +6159,34 @@ define amdgpu_kernel void @global_system_one_as_monotonic_monotonic_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_monotonic_monotonic_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_monotonic_monotonic_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_monotonic_monotonic_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -6166,13 +6198,13 @@ entry:
 define amdgpu_kernel void @global_system_one_as_acquire_monotonic_cmpxchg(
 ; GFX6-LABEL: global_system_one_as_acquire_monotonic_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_wbinvl1
@@ -6226,25 +6258,25 @@ define amdgpu_kernel void @global_system_one_as_acquire_monotonic_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_acquire_monotonic_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_acquire_monotonic_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -6252,12 +6284,12 @@ define amdgpu_kernel void @global_system_one_as_acquire_monotonic_cmpxchg(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_acquire_monotonic_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -6272,13 +6304,13 @@ entry:
 define amdgpu_kernel void @global_system_one_as_release_monotonic_cmpxchg(
 ; GFX6-LABEL: global_system_one_as_release_monotonic_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
 ; GFX6-NEXT:    s_endpgm
@@ -6328,39 +6360,39 @@ define amdgpu_kernel void @global_system_one_as_release_monotonic_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_release_monotonic_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_release_monotonic_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_release_monotonic_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -6372,13 +6404,13 @@ entry:
 define amdgpu_kernel void @global_system_one_as_acq_rel_monotonic_cmpxchg(
 ; GFX6-LABEL: global_system_one_as_acq_rel_monotonic_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -6438,28 +6470,28 @@ define amdgpu_kernel void @global_system_one_as_acq_rel_monotonic_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_acq_rel_monotonic_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_acq_rel_monotonic_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -6467,14 +6499,14 @@ define amdgpu_kernel void @global_system_one_as_acq_rel_monotonic_cmpxchg(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_acq_rel_monotonic_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -6489,13 +6521,13 @@ entry:
 define amdgpu_kernel void @global_system_one_as_seq_cst_monotonic_cmpxchg(
 ; GFX6-LABEL: global_system_one_as_seq_cst_monotonic_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -6555,28 +6587,28 @@ define amdgpu_kernel void @global_system_one_as_seq_cst_monotonic_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_seq_cst_monotonic_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_seq_cst_monotonic_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -6584,14 +6616,14 @@ define amdgpu_kernel void @global_system_one_as_seq_cst_monotonic_cmpxchg(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_seq_cst_monotonic_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -6606,13 +6638,13 @@ entry:
 define amdgpu_kernel void @global_system_one_as_monotonic_acquire_cmpxchg(
 ; GFX6-LABEL: global_system_one_as_monotonic_acquire_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_wbinvl1
@@ -6666,25 +6698,25 @@ define amdgpu_kernel void @global_system_one_as_monotonic_acquire_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_monotonic_acquire_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_monotonic_acquire_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -6692,12 +6724,12 @@ define amdgpu_kernel void @global_system_one_as_monotonic_acquire_cmpxchg(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_monotonic_acquire_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -6712,13 +6744,13 @@ entry:
 define amdgpu_kernel void @global_system_one_as_acquire_acquire_cmpxchg(
 ; GFX6-LABEL: global_system_one_as_acquire_acquire_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_wbinvl1
@@ -6772,25 +6804,25 @@ define amdgpu_kernel void @global_system_one_as_acquire_acquire_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_acquire_acquire_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_acquire_acquire_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -6798,12 +6830,12 @@ define amdgpu_kernel void @global_system_one_as_acquire_acquire_cmpxchg(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_acquire_acquire_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -6818,13 +6850,13 @@ entry:
 define amdgpu_kernel void @global_system_one_as_release_acquire_cmpxchg(
 ; GFX6-LABEL: global_system_one_as_release_acquire_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -6884,28 +6916,28 @@ define amdgpu_kernel void @global_system_one_as_release_acquire_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_release_acquire_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_release_acquire_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -6913,14 +6945,14 @@ define amdgpu_kernel void @global_system_one_as_release_acquire_cmpxchg(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_release_acquire_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -6935,13 +6967,13 @@ entry:
 define amdgpu_kernel void @global_system_one_as_acq_rel_acquire_cmpxchg(
 ; GFX6-LABEL: global_system_one_as_acq_rel_acquire_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -7001,28 +7033,28 @@ define amdgpu_kernel void @global_system_one_as_acq_rel_acquire_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_acq_rel_acquire_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_acq_rel_acquire_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -7030,14 +7062,14 @@ define amdgpu_kernel void @global_system_one_as_acq_rel_acquire_cmpxchg(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_acq_rel_acquire_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -7052,13 +7084,13 @@ entry:
 define amdgpu_kernel void @global_system_one_as_seq_cst_acquire_cmpxchg(
 ; GFX6-LABEL: global_system_one_as_seq_cst_acquire_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -7118,28 +7150,28 @@ define amdgpu_kernel void @global_system_one_as_seq_cst_acquire_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_seq_cst_acquire_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_seq_cst_acquire_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -7147,14 +7179,14 @@ define amdgpu_kernel void @global_system_one_as_seq_cst_acquire_cmpxchg(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_seq_cst_acquire_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -7169,13 +7201,13 @@ entry:
 define amdgpu_kernel void @global_system_one_as_monotonic_seq_cst_cmpxchg(
 ; GFX6-LABEL: global_system_one_as_monotonic_seq_cst_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -7235,28 +7267,28 @@ define amdgpu_kernel void @global_system_one_as_monotonic_seq_cst_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_monotonic_seq_cst_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_monotonic_seq_cst_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -7264,14 +7296,14 @@ define amdgpu_kernel void @global_system_one_as_monotonic_seq_cst_cmpxchg(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_monotonic_seq_cst_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -7286,13 +7318,13 @@ entry:
 define amdgpu_kernel void @global_system_one_as_acquire_seq_cst_cmpxchg(
 ; GFX6-LABEL: global_system_one_as_acquire_seq_cst_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -7352,28 +7384,28 @@ define amdgpu_kernel void @global_system_one_as_acquire_seq_cst_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_acquire_seq_cst_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_acquire_seq_cst_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -7381,14 +7413,14 @@ define amdgpu_kernel void @global_system_one_as_acquire_seq_cst_cmpxchg(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_acquire_seq_cst_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -7403,13 +7435,13 @@ entry:
 define amdgpu_kernel void @global_system_one_as_release_seq_cst_cmpxchg(
 ; GFX6-LABEL: global_system_one_as_release_seq_cst_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -7469,28 +7501,28 @@ define amdgpu_kernel void @global_system_one_as_release_seq_cst_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_release_seq_cst_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_release_seq_cst_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -7498,14 +7530,14 @@ define amdgpu_kernel void @global_system_one_as_release_seq_cst_cmpxchg(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_release_seq_cst_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -7520,13 +7552,13 @@ entry:
 define amdgpu_kernel void @global_system_one_as_acq_rel_seq_cst_cmpxchg(
 ; GFX6-LABEL: global_system_one_as_acq_rel_seq_cst_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -7586,28 +7618,28 @@ define amdgpu_kernel void @global_system_one_as_acq_rel_seq_cst_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_acq_rel_seq_cst_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_acq_rel_seq_cst_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -7615,14 +7647,14 @@ define amdgpu_kernel void @global_system_one_as_acq_rel_seq_cst_cmpxchg(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_acq_rel_seq_cst_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -7637,13 +7669,13 @@ entry:
 define amdgpu_kernel void @global_system_one_as_seq_cst_seq_cst_cmpxchg(
 ; GFX6-LABEL: global_system_one_as_seq_cst_seq_cst_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -7703,28 +7735,28 @@ define amdgpu_kernel void @global_system_one_as_seq_cst_seq_cst_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_seq_cst_seq_cst_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_seq_cst_seq_cst_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -7732,14 +7764,14 @@ define amdgpu_kernel void @global_system_one_as_seq_cst_seq_cst_cmpxchg(
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_seq_cst_seq_cst_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[2:3] offset:16
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v2, v[0:1], s[0:1] offset:16
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
@@ -7754,13 +7786,13 @@ entry:
 define amdgpu_kernel void @global_system_one_as_monotonic_monotonic_ret_cmpxchg(
 ; GFX6-LABEL: global_system_one_as_monotonic_monotonic_ret_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_store_dword v0, off, s[0:3], 0
@@ -7814,40 +7846,40 @@ define amdgpu_kernel void @global_system_one_as_monotonic_monotonic_ret_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_monotonic_monotonic_ret_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_monotonic_monotonic_ret_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_monotonic_monotonic_ret_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -7861,13 +7893,13 @@ entry:
 define amdgpu_kernel void @global_system_one_as_acquire_monotonic_ret_cmpxchg(
 ; GFX6-LABEL: global_system_one_as_acquire_monotonic_ret_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_wbinvl1
@@ -7927,44 +7959,44 @@ define amdgpu_kernel void @global_system_one_as_acquire_monotonic_ret_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_acquire_monotonic_ret_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_acquire_monotonic_ret_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_acquire_monotonic_ret_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -7978,13 +8010,13 @@ entry:
 define amdgpu_kernel void @global_system_one_as_release_monotonic_ret_cmpxchg(
 ; GFX6-LABEL: global_system_one_as_release_monotonic_ret_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -8044,45 +8076,45 @@ define amdgpu_kernel void @global_system_one_as_release_monotonic_ret_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_release_monotonic_ret_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_release_monotonic_ret_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_release_monotonic_ret_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -8096,13 +8128,13 @@ entry:
 define amdgpu_kernel void @global_system_one_as_acq_rel_monotonic_ret_cmpxchg(
 ; GFX6-LABEL: global_system_one_as_acq_rel_monotonic_ret_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -8168,49 +8200,49 @@ define amdgpu_kernel void @global_system_one_as_acq_rel_monotonic_ret_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_acq_rel_monotonic_ret_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_acq_rel_monotonic_ret_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_acq_rel_monotonic_ret_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -8224,13 +8256,13 @@ entry:
 define amdgpu_kernel void @global_system_one_as_seq_cst_monotonic_ret_cmpxchg(
 ; GFX6-LABEL: global_system_one_as_seq_cst_monotonic_ret_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -8296,49 +8328,49 @@ define amdgpu_kernel void @global_system_one_as_seq_cst_monotonic_ret_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_seq_cst_monotonic_ret_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_seq_cst_monotonic_ret_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_seq_cst_monotonic_ret_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -8352,13 +8384,13 @@ entry:
 define amdgpu_kernel void @global_system_one_as_monotonic_acquire_ret_cmpxchg(
 ; GFX6-LABEL: global_system_one_as_monotonic_acquire_ret_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_wbinvl1
@@ -8418,44 +8450,44 @@ define amdgpu_kernel void @global_system_one_as_monotonic_acquire_ret_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_monotonic_acquire_ret_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_monotonic_acquire_ret_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_monotonic_acquire_ret_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -8469,13 +8501,13 @@ entry:
 define amdgpu_kernel void @global_system_one_as_acquire_acquire_ret_cmpxchg(
 ; GFX6-LABEL: global_system_one_as_acquire_acquire_ret_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_wbinvl1
@@ -8535,44 +8567,44 @@ define amdgpu_kernel void @global_system_one_as_acquire_acquire_ret_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_acquire_acquire_ret_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_acquire_acquire_ret_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_acquire_acquire_ret_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -8586,13 +8618,13 @@ entry:
 define amdgpu_kernel void @global_system_one_as_release_acquire_ret_cmpxchg(
 ; GFX6-LABEL: global_system_one_as_release_acquire_ret_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -8658,49 +8690,49 @@ define amdgpu_kernel void @global_system_one_as_release_acquire_ret_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_release_acquire_ret_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_release_acquire_ret_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_release_acquire_ret_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -8714,13 +8746,13 @@ entry:
 define amdgpu_kernel void @global_system_one_as_acq_rel_acquire_ret_cmpxchg(
 ; GFX6-LABEL: global_system_one_as_acq_rel_acquire_ret_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -8786,49 +8818,49 @@ define amdgpu_kernel void @global_system_one_as_acq_rel_acquire_ret_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_acq_rel_acquire_ret_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_acq_rel_acquire_ret_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_acq_rel_acquire_ret_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -8842,13 +8874,13 @@ entry:
 define amdgpu_kernel void @global_system_one_as_seq_cst_acquire_ret_cmpxchg(
 ; GFX6-LABEL: global_system_one_as_seq_cst_acquire_ret_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -8914,49 +8946,49 @@ define amdgpu_kernel void @global_system_one_as_seq_cst_acquire_ret_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_seq_cst_acquire_ret_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_seq_cst_acquire_ret_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_seq_cst_acquire_ret_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -8970,13 +9002,13 @@ entry:
 define amdgpu_kernel void @global_system_one_as_monotonic_seq_cst_ret_cmpxchg(
 ; GFX6-LABEL: global_system_one_as_monotonic_seq_cst_ret_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -9042,49 +9074,49 @@ define amdgpu_kernel void @global_system_one_as_monotonic_seq_cst_ret_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_monotonic_seq_cst_ret_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_monotonic_seq_cst_ret_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_monotonic_seq_cst_ret_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -9098,13 +9130,13 @@ entry:
 define amdgpu_kernel void @global_system_one_as_acquire_seq_cst_ret_cmpxchg(
 ; GFX6-LABEL: global_system_one_as_acquire_seq_cst_ret_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -9170,49 +9202,49 @@ define amdgpu_kernel void @global_system_one_as_acquire_seq_cst_ret_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_acquire_seq_cst_ret_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_acquire_seq_cst_ret_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_acquire_seq_cst_ret_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -9226,13 +9258,13 @@ entry:
 define amdgpu_kernel void @global_system_one_as_release_seq_cst_ret_cmpxchg(
 ; GFX6-LABEL: global_system_one_as_release_seq_cst_ret_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -9298,49 +9330,49 @@ define amdgpu_kernel void @global_system_one_as_release_seq_cst_ret_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_release_seq_cst_ret_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_release_seq_cst_ret_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_release_seq_cst_ret_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -9354,13 +9386,13 @@ entry:
 define amdgpu_kernel void @global_system_one_as_acq_rel_seq_cst_ret_cmpxchg(
 ; GFX6-LABEL: global_system_one_as_acq_rel_seq_cst_ret_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -9426,49 +9458,49 @@ define amdgpu_kernel void @global_system_one_as_acq_rel_seq_cst_ret_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_acq_rel_seq_cst_ret_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_acq_rel_seq_cst_ret_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_acq_rel_seq_cst_ret_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:
@@ -9482,13 +9514,13 @@ entry:
 define amdgpu_kernel void @global_system_one_as_seq_cst_seq_cst_ret_cmpxchg(
 ; GFX6-LABEL: global_system_one_as_seq_cst_seq_cst_ret_cmpxchg:
 ; GFX6:       ; %bb.0: ; %entry
-; GFX6-NEXT:    s_load_dwordx2 s[6:7], s[4:5], 0x2
 ; GFX6-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX6-NEXT:    s_load_dwordx2 s[4:5], s[4:5], 0x2
 ; GFX6-NEXT:    s_mov_b32 s3, 0x100f000
 ; GFX6-NEXT:    s_mov_b32 s2, -1
 ; GFX6-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX6-NEXT:    v_mov_b32_e32 v0, s6
-; GFX6-NEXT:    v_mov_b32_e32 v1, s7
+; GFX6-NEXT:    v_mov_b32_e32 v0, s4
+; GFX6-NEXT:    v_mov_b32_e32 v1, s5
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
 ; GFX6-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
 ; GFX6-NEXT:    s_waitcnt vmcnt(0)
@@ -9554,49 +9586,49 @@ define amdgpu_kernel void @global_system_one_as_seq_cst_seq_cst_ret_cmpxchg(
 ;
 ; SKIP-CACHE-INV-LABEL: global_system_one_as_seq_cst_seq_cst_ret_cmpxchg:
 ; SKIP-CACHE-INV:       ; %bb.0: ; %entry
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x2
-; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0x0
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s3, 0xf000
-; SKIP-CACHE-INV-NEXT:    s_mov_b32 s2, -1
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[4:5], s[0:1], 0x9
+; SKIP-CACHE-INV-NEXT:    s_load_dwordx2 s[0:1], s[0:1], 0xb
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s7, 0xf000
+; SKIP-CACHE-INV-NEXT:    s_mov_b32 s6, -1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt lgkmcnt(0)
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s4
-; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s5
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v0, s0
+; SKIP-CACHE-INV-NEXT:    v_mov_b32_e32 v1, s1
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[0:3], 0 offset:16 glc
+; SKIP-CACHE-INV-NEXT:    buffer_atomic_cmpswap v[0:1], off, s[4:7], 0 offset:16 glc
 ; SKIP-CACHE-INV-NEXT:    s_waitcnt vmcnt(0)
-; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[0:3], 0
+; SKIP-CACHE-INV-NEXT:    buffer_store_dword v0, off, s[4:7], 0
 ; SKIP-CACHE-INV-NEXT:    s_endpgm
 ;
 ; GFX90A-NOTTGSPLIT-LABEL: global_system_one_as_seq_cst_seq_cst_ret_cmpxchg:
 ; GFX90A-NOTTGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-NOTTGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-NOTTGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-NOTTGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-NOTTGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-NOTTGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-NOTTGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-NOTTGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-NOTTGSPLIT-NEXT:    s_endpgm
 ;
 ; GFX90A-TGSPLIT-LABEL: global_system_one_as_seq_cst_seq_cst_ret_cmpxchg:
 ; GFX90A-TGSPLIT:       ; %bb.0: ; %entry
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x8
-; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[0:1], s[4:5], 0x0
+; GFX90A-TGSPLIT-NEXT:    s_load_dwordx2 s[2:3], s[4:5], 0x8
 ; GFX90A-TGSPLIT-NEXT:    v_mov_b32_e32 v2, 0
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt lgkmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[0:1], s[0:1] op_sel:[0,1]
+; GFX90A-TGSPLIT-NEXT:    v_pk_mov_b32 v[0:1], s[2:3], s[2:3] op_sel:[0,1]
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbl2
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
-; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[2:3] offset:16 glc
+; GFX90A-TGSPLIT-NEXT:    global_atomic_cmpswap v0, v2, v[0:1], s[0:1] offset:16 glc
 ; GFX90A-TGSPLIT-NEXT:    s_waitcnt vmcnt(0)
 ; GFX90A-TGSPLIT-NEXT:    buffer_invl2
 ; GFX90A-TGSPLIT-NEXT:    buffer_wbinvl1_vol
-; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[2:3]
+; GFX90A-TGSPLIT-NEXT:    global_store_dword v2, v0, s[0:1]
 ; GFX90A-TGSPLIT-NEXT:    s_endpgm
     i32 addrspace(1)* %out, i32 %in, i32 %old) {
 entry:

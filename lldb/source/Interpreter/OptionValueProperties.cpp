@@ -48,8 +48,7 @@ void OptionValueProperties::AppendProperty(ConstString name,
                                            ConstString desc,
                                            bool is_global,
                                            const OptionValueSP &value_sp) {
-  Property property(name.GetStringRef(), desc.GetStringRef(), is_global,
-                    value_sp);
+  Property property(name, desc, is_global, value_sp);
   m_name_to_index.Append(name, m_properties.size());
   m_properties.push_back(property);
   value_sp->SetParent(shared_from_this());
@@ -224,17 +223,6 @@ OptionValueProperties::GetPropertyAtIndexAsOptionValueLanguage(
   if (property)
     return property->GetValue()->GetAsLanguage();
   return nullptr;
-}
-
-bool OptionValueProperties::SetPropertyAtIndexAsLanguage(
-    const ExecutionContext *exe_ctx, uint32_t idx, const LanguageType lang) {
-  const Property *property = GetPropertyAtIndex(exe_ctx, true, idx);
-  if (property) {
-    OptionValue *value = property->GetValue().get();
-    if (value)
-      return value->SetLanguageValue(lang);
-  }
-  return false;
 }
 
 bool OptionValueProperties::GetPropertyAtIndexAsArgs(

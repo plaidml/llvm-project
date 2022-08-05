@@ -21,6 +21,7 @@
 namespace llvm {
 
 class GCNTargetMachine;
+class LLVMContext;
 class GCNSubtarget;
 class MachineIRBuilder;
 
@@ -108,8 +109,8 @@ public:
                                      Register Den) const;
 
   void legalizeUnsignedDIV_REM64Impl(MachineIRBuilder &B, Register DstDivReg,
-                                     Register DstRemReg, Register Num,
-                                     Register Den) const;
+                                     Register DstRemReg, Register Numer,
+                                     Register Denom) const;
 
   bool legalizeSignedDIV_REM(MachineInstr &MI, MachineRegisterInfo &MRI,
                              MachineIRBuilder &B) const;

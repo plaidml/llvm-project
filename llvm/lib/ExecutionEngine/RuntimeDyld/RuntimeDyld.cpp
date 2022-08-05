@@ -124,10 +124,8 @@ void RuntimeDyldImpl::resolveRelocations() {
   std::lock_guard<sys::Mutex> locked(lock);
 
   // Print out the sections prior to relocation.
-  LLVM_DEBUG({
-    for (SectionEntry &S : Sections)
-      dumpSectionMemory(S, "before relocations");
-  });
+  LLVM_DEBUG(for (int i = 0, e = Sections.size(); i != e; ++i)
+                 dumpSectionMemory(Sections[i], "before relocations"););
 
   // First, resolve relocations associated with external symbols.
   if (auto Err = resolveExternalSymbols()) {
@@ -138,23 +136,21 @@ void RuntimeDyldImpl::resolveRelocations() {
   resolveLocalRelocations();
 
   // Print out sections after relocation.
-  LLVM_DEBUG({
-    for (SectionEntry &S : Sections)
-      dumpSectionMemory(S, "after relocations");
-  });
+  LLVM_DEBUG(for (int i = 0, e = Sections.size(); i != e; ++i)
+                 dumpSectionMemory(Sections[i], "after relocations"););
 }
 
 void RuntimeDyldImpl::resolveLocalRelocations() {
   // Iterate over all outstanding relocations
-  for (const auto &Rel : Relocations) {
+  for (auto it = Relocations.begin(), e = Relocations.end(); it != e; ++it) {
     // The Section here (Sections[i]) refers to the section in which the
     // symbol for the relocation is located.  The SectionID in the relocation
     // entry provides the section to which the relocation will be applied.
-    unsigned Idx = Rel.first;
+    unsigned Idx = it->first;
     uint64_t Addr = getSectionLoadAddress(Idx);
     LLVM_DEBUG(dbgs() << "Resolving relocations Section #" << Idx << "\t"
                       << format("%p", (uintptr_t)Addr) << "\n");
-    resolveRelocationList(Rel.second, Addr);
+    resolveRelocationList(it->second, Addr);
   }
   Relocations.clear();
 }
@@ -461,9 +457,9 @@ static uint64_t
 computeAllocationSizeForSections(std::vector<uint64_t> &SectionSizes,
                                  uint64_t Alignment) {
   uint64_t TotalSize = 0;
-  for (uint64_t SectionSize : SectionSizes) {
+  for (size_t Idx = 0, Cnt = SectionSizes.size(); Idx < Cnt; Idx++) {
     uint64_t AlignedSize =
-        (SectionSize + Alignment - 1) / Alignment * Alignment;
+        (SectionSizes[Idx] + Alignment - 1) / Alignment * Alignment;
     TotalSize += AlignedSize;
   }
   return TotalSize;

@@ -123,7 +123,7 @@ private:
   /// A symbol table to use when resolving call lookups.
   SymbolTableCollection &symbolTable;
 };
-} // namespace
+} // end anonymous namespace
 
 CGUseList::CGUseList(Operation *op, CallGraph &cg,
                      SymbolTableCollection &symbolTable)
@@ -279,7 +279,7 @@ private:
   std::vector<CallGraphNode *> nodes;
   llvm::scc_iterator<const CallGraph *> &parentIterator;
 };
-} // namespace
+} // end anonymous namespace
 
 /// Run a given transformation over the SCCs of the callgraph in a bottom up
 /// traversal.
@@ -311,7 +311,7 @@ struct ResolvedCall {
   CallOpInterface call;
   CallGraphNode *sourceNode, *targetNode;
 };
-} // namespace
+} // end anonymous namespace
 
 /// Collect all of the callable operations within the given range of blocks. If
 /// `traverseNestedCGNodes` is true, this will also collect call operations
@@ -435,7 +435,7 @@ static LogicalResult inlineCallsInSCC(Inliner &inliner, CGUseList &useList,
   auto &calls = inliner.calls;
 
   // A set of dead nodes to remove after inlining.
-  llvm::SmallSetVector<CallGraphNode *, 1> deadNodes;
+  SmallVector<CallGraphNode *, 1> deadNodes;
 
   // Collect all of the direct calls within the nodes of the current SCC. We
   // don't traverse nested callgraph nodes, because they are handled separately
@@ -446,7 +446,7 @@ static LogicalResult inlineCallsInSCC(Inliner &inliner, CGUseList &useList,
 
     // Don't collect calls if the node is already dead.
     if (useList.isDead(node)) {
-      deadNodes.insert(node);
+      deadNodes.push_back(node);
     } else {
       collectCallOps(*node->getCallableRegion(), node, cg, inliner.symbolTable,
                      calls, /*traverseNestedCGNodes=*/false);
@@ -457,8 +457,6 @@ static LogicalResult inlineCallsInSCC(Inliner &inliner, CGUseList &useList,
   // here as more calls may be added during inlining.
   bool inlinedAnyCalls = false;
   for (unsigned i = 0; i != calls.size(); ++i) {
-    if (deadNodes.contains(calls[i].sourceNode))
-      continue;
     ResolvedCall it = calls[i];
     bool doInline = shouldInline(it);
     CallOpInterface call = it.call;
@@ -495,7 +493,7 @@ static LogicalResult inlineCallsInSCC(Inliner &inliner, CGUseList &useList,
     // If we inlined in place, mark the node for deletion.
     if (inlineInPlace) {
       useList.eraseNode(it.targetNode);
-      deadNodes.insert(it.targetNode);
+      deadNodes.push_back(it.targetNode);
     }
   }
 
@@ -561,11 +559,11 @@ private:
   /// during optimization.
   SmallVector<llvm::StringMap<OpPassManager>, 8> opPipelines;
 };
-} // namespace
+} // end anonymous namespace
 
 InlinerPass::InlinerPass() : InlinerPass(defaultInlinerOptPipeline) {}
 InlinerPass::InlinerPass(std::function<void(OpPassManager &)> defaultPipeline)
-    : defaultPipeline(std::move(defaultPipeline)) {
+    : defaultPipeline(defaultPipeline) {
   opPipelines.push_back({});
 
   // Initialize the pass options with the provided arguments.
@@ -665,7 +663,7 @@ LogicalResult InlinerPass::optimizeSCC(CallGraph &cg, CGUseList &useList,
 
   // Optimize each of the nodes within the SCC in parallel.
   if (failed(optimizeSCCAsync(nodesToVisit, context)))
-    return failure();
+      return failure();
 
   // Recompute the uses held by each of the nodes.
   for (CallGraphNode *node : nodesToVisit)
@@ -676,12 +674,11 @@ LogicalResult InlinerPass::optimizeSCC(CallGraph &cg, CGUseList &useList,
 LogicalResult
 InlinerPass::optimizeSCCAsync(MutableArrayRef<CallGraphNode *> nodesToVisit,
                               MLIRContext *ctx) {
-  // We must maintain a fixed pool of pass managers which is at least as large
-  // as the maximum parallelism of the failableParallelForEach below.
-  // Note: The number of pass managers here needs to remain constant
+  // Ensure that there are enough pipeline maps for the optimizer to run in
+  // parallel. Note: The number of pass managers here needs to remain constant
   // to prevent issues with pass instrumentations that rely on having the same
   // pass manager for the main thread.
-  size_t numThreads = ctx->getNumThreads();
+  size_t numThreads = llvm::hardware_concurrency().compute_thread_count();
   if (opPipelines.size() < numThreads) {
     // Reserve before resizing so that we can use a reference to the first
     // element.
@@ -703,8 +700,6 @@ InlinerPass::optimizeSCCAsync(MutableArrayRef<CallGraphNode *> nodesToVisit,
       bool expectedInactive = false;
       return isActive.compare_exchange_strong(expectedInactive, true);
     });
-    assert(it != activePMs.end() &&
-           "could not find inactive pass manager for thread");
     unsigned pmIndex = it - activePMs.begin();
 
     // Optimize this callable node.
@@ -754,10 +749,16 @@ LogicalResult InlinerPass::initializeOptions(StringRef options) {
     // Skip empty pipelines.
     if (pipeline.empty())
       continue;
-    FailureOr<OpPassManager> pm = parsePassPipeline(pipeline);
-    if (failed(pm))
+
+    // Pipelines are expected to be of the form `<op-name>(<pipeline>)`.
+    size_t pipelineStart = pipeline.find_first_of('(');
+    if (pipelineStart == StringRef::npos || !pipeline.consume_back(")"))
       return failure();
-    pipelines.try_emplace(pm->getOpName(), std::move(*pm));
+    StringRef opName = pipeline.take_front(pipelineStart);
+    OpPassManager pm(opName);
+    if (failed(parsePassPipeline(pipeline.drop_front(1 + pipelineStart), pm)))
+      return failure();
+    pipelines.try_emplace(opName, std::move(pm));
   }
   opPipelines.assign({std::move(pipelines)});
 

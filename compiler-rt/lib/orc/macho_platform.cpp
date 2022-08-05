@@ -50,7 +50,6 @@ extern "C" SEL sel_registerName(const char *) ORC_RT_WEAK_IMPORT;
 // Swift types.
 class ProtocolRecord;
 class ProtocolConformanceRecord;
-class TypeMetadataRecord;
 
 extern "C" void
 swift_registerProtocols(const ProtocolRecord *begin,
@@ -59,10 +58,6 @@ swift_registerProtocols(const ProtocolRecord *begin,
 extern "C" void swift_registerProtocolConformances(
     const ProtocolConformanceRecord *begin,
     const ProtocolConformanceRecord *end) ORC_RT_WEAK_IMPORT;
-
-extern "C" void swift_registerTypeMetadataRecords(
-    const TypeMetadataRecord *begin,
-    const TypeMetadataRecord *end) ORC_RT_WEAK_IMPORT;
 
 namespace {
 
@@ -177,21 +172,6 @@ Error registerSwift5ProtocolConformances(
   return Error::success();
 }
 
-Error registerSwift5Types(const std::vector<ExecutorAddrRange> &Sections,
-                          const MachOJITDylibInitializers &MOJDIs) {
-
-  if (ORC_RT_UNLIKELY(!Sections.empty() && !swift_registerTypeMetadataRecords))
-    return make_error<StringError>(
-        "swift_registerTypeMetadataRecords is not available");
-
-  for (const auto &Section : Sections)
-    swift_registerTypeMetadataRecords(
-        Section.Start.toPtr<const TypeMetadataRecord *>(),
-        Section.End.toPtr<const TypeMetadataRecord *>());
-
-  return Error::success();
-}
-
 Error runModInits(const std::vector<ExecutorAddrRange> &ModInitsSections,
                   const MachOJITDylibInitializers &MOJDIs) {
 
@@ -281,7 +261,6 @@ private:
        {"__DATA,__objc_classlist", registerObjCClasses},
        {"__TEXT,__swift5_protos", registerSwift5Protocols},
        {"__TEXT,__swift5_proto", registerSwift5ProtocolConformances},
-       {"__TEXT,__swift5_types", registerSwift5Types},
        {"__DATA,__mod_init_func", runModInits}};
 
   // FIXME: Move to thread-state.
@@ -329,7 +308,7 @@ Error MachOPlatformRuntimeState::registerThreadDataSection(
 Error MachOPlatformRuntimeState::deregisterThreadDataSection(
     span<const char> ThreadDataSection) {
   std::lock_guard<std::mutex> Lock(ThreadDataSectionsMutex);
-  auto I = ThreadDataSections.find(ThreadDataSection.data());
+  auto I = ThreadDataSections.find(ThreadDataSection.end());
   if (I == ThreadDataSections.end())
     return make_error<StringError>("Attempt to deregister unknown thread data "
                                    "section");
@@ -568,7 +547,7 @@ void destroyMachOTLVMgr(void *MachOTLVMgr) {
 
 Error runWrapperFunctionCalls(std::vector<WrapperFunctionCall> WFCs) {
   for (auto &WFC : WFCs)
-    if (auto Err = WFC.runWithSPSRet<void>())
+    if (auto Err = WFC.runWithSPSRet())
       return Err;
   return Error::success();
 }
@@ -593,22 +572,28 @@ __orc_rt_macho_platform_shutdown(char *ArgData, size_t ArgSize) {
 
 ORC_RT_INTERFACE __orc_rt_CWrapperFunctionResult
 __orc_rt_macho_register_thread_data_section(char *ArgData, size_t ArgSize) {
-  return WrapperFunction<SPSError(SPSExecutorAddrRange)>::handle(
-             ArgData, ArgSize,
-             [](ExecutorAddrRange R) {
+  // NOTE: Does not use SPS to deserialize arg buffer, instead the arg buffer
+  // is taken to be the range of the thread data section.
+  return WrapperFunction<SPSError()>::handle(
+             nullptr, 0,
+             [&]() {
                return MachOPlatformRuntimeState::get()
-                   .registerThreadDataSection(R.toSpan<const char>());
+                   .registerThreadDataSection(
+                       span<const char>(ArgData, ArgSize));
              })
       .release();
 }
 
 ORC_RT_INTERFACE __orc_rt_CWrapperFunctionResult
 __orc_rt_macho_deregister_thread_data_section(char *ArgData, size_t ArgSize) {
-  return WrapperFunction<SPSError(SPSExecutorAddrRange)>::handle(
-             ArgData, ArgSize,
-             [](ExecutorAddrRange R) {
+  // NOTE: Does not use SPS to deserialize arg buffer, instead the arg buffer
+  // is taken to be the range of the thread data section.
+  return WrapperFunction<SPSError()>::handle(
+             nullptr, 0,
+             [&]() {
                return MachOPlatformRuntimeState::get()
-                   .deregisterThreadDataSection(R.toSpan<const char>());
+                   .deregisterThreadDataSection(
+                       span<const char>(ArgData, ArgSize));
              })
       .release();
 }

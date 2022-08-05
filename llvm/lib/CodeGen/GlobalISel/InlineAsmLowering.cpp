@@ -297,7 +297,9 @@ bool InlineAsmLowering::lowerInlineAsm(
     GISelAsmOperandInfo &OpInfo = ConstraintOperands.back();
 
     // Compute the value type for each operand.
-    if (OpInfo.hasArg()) {
+    if (OpInfo.Type == InlineAsm::isInput ||
+        (OpInfo.Type == InlineAsm::isOutput && OpInfo.isIndirect)) {
+
       OpInfo.CallOperandVal = const_cast<Value *>(Call.getArgOperand(ArgNo++));
 
       if (isa<BasicBlock>(OpInfo.CallOperandVal)) {

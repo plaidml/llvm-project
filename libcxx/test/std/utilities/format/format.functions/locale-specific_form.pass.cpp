@@ -10,13 +10,8 @@
 // UNSUPPORTED: libcpp-has-no-localization
 // UNSUPPORTED: libcpp-has-no-incomplete-format
 
-// The issue is caused in __format_spec::__determine_grouping().
-// There a string iterator is modified. The string is returned
-// from the dylib's use_facet<numpunct<_CharT>>::grouping()
-// XFAIL: LIBCXX-DEBUG-FIXME
-
-// TODO FMT Evaluate gcc-11 status
-// UNSUPPORTED: gcc-11
+// TODO(mordante): Investigate these localization/format failures since updating the Docker image in CI
+// UNSUPPORTED: stdlib=libc++
 
 // REQUIRES: locale.en_US.UTF-8
 
@@ -49,15 +44,17 @@
 //    Out format_to(Out out, const locale& loc, wstring_view fmt, const Args&... args);
 //
 //  template<class Out>
-//    Out vformat_to(Out out, string_view fmt, format_args args);
+//    Out vformat_to(Out out, string_view fmt,
+//                   format_args_t<type_identity_t<Out>, char> args);
 //  template<class Out>
-//    Out vformat_to(Out out, wstring_view fmt, wformat_args args);
+//    Out vformat_to(Out out, wstring_view fmt,
+//                   format_args_t<type_identity_t<Out>, wchar_t> args);
 //  template<class Out>
 //    Out vformat_to(Out out, const locale& loc, string_view fmt,
-//                   format_args args);
+//                   format_args_t<type_identity_t<Out>, char> args);
 //  template<class Out>
 //    Out vformat_to(Out out, const locale& loc, wstring_view fmt,
-//                   wformat_arg args);
+//                   format_args_t<type_identity_t<Out>, wchar_t> args);
 //
 //  template<class Out> struct format_to_n_result {
 //    Out out;
@@ -96,7 +93,6 @@
 #include "test_macros.h"
 #include "make_string.h"
 #include "platform_support.h" // locale name macros
-#include "format_tests.h"
 
 #define STR(S) MAKE_STRING(CharT, S)
 
@@ -137,8 +133,10 @@ void test(std::basic_string<CharT> expected, std::basic_string<CharT> fmt,
   }
   // *** vformat ***
   {
-    std::basic_string<CharT> out =
-        std::vformat(fmt, std::make_format_args<context_t<CharT>>(args...));
+    std::basic_string<CharT> out = std::vformat(
+        fmt, std::make_format_args<std::basic_format_context<
+                 std::back_insert_iterator<std::basic_string<CharT>>, CharT>>(
+                 args...));
     assert(out == expected);
   }
   // *** format_to ***
@@ -151,8 +149,10 @@ void test(std::basic_string<CharT> expected, std::basic_string<CharT> fmt,
   // *** vformat_to ***
   {
     std::basic_string<CharT> out(expected.size(), CharT(' '));
-    auto it = std::vformat_to(out.begin(), fmt,
-                              std::make_format_args<context_t<CharT>>(args...));
+    auto it = std::vformat_to(
+        out.begin(), fmt,
+        std::make_format_args<std::basic_format_context<
+            typename std::basic_string<CharT>::iterator, CharT>>(args...));
     assert(it == out.end());
     assert(out == expected);
   }
@@ -190,7 +190,10 @@ void test(std::basic_string<CharT> expected, std::locale loc,
   // *** vformat ***
   {
     std::basic_string<CharT> out = std::vformat(
-        loc, fmt, std::make_format_args<context_t<CharT>>(args...));
+        loc, fmt,
+        std::make_format_args<std::basic_format_context<
+            std::back_insert_iterator<std::basic_string<CharT>>, CharT>>(
+            args...));
     assert(out == expected);
   }
   // *** format_to ***
@@ -203,8 +206,10 @@ void test(std::basic_string<CharT> expected, std::locale loc,
   // *** vformat_to ***
   {
     std::basic_string<CharT> out(expected.size(), CharT(' '));
-    auto it = std::vformat_to(out.begin(), loc, fmt,
-                              std::make_format_args<context_t<CharT>>(args...));
+    auto it = std::vformat_to(
+        out.begin(), loc, fmt,
+        std::make_format_args<std::basic_format_context<
+            typename std::basic_string<CharT>::iterator, CharT>>(args...));
     assert(it == out.end());
     assert(out == expected);
   }
@@ -227,7 +232,7 @@ void test(std::basic_string<CharT> expected, std::locale loc,
   }
 }
 
-#ifndef TEST_HAS_NO_UNICODE
+#ifndef _LIBCPP_HAS_NO_UNICODE
 template <class CharT>
 struct numpunct_unicode;
 
@@ -244,7 +249,7 @@ struct numpunct_unicode<wchar_t> : std::numpunct<wchar_t> {
   string_type do_falsename() const override { return L"ungültig"; }
 };
 #endif
-#endif // TEST_HAS_NO_UNICODE
+#endif // _LIBCPP_HAS_NO_UNICODE
 
 template <class CharT>
 void test_bool() {
@@ -265,7 +270,7 @@ void test_bool() {
   test(STR("true"), std::locale(LOCALE_en_US_UTF_8), STR("{:L}"), true);
   test(STR("false"), std::locale(LOCALE_en_US_UTF_8), STR("{:L}"), false);
 
-#ifndef TEST_HAS_NO_UNICODE
+#ifndef _LIBCPP_HAS_NO_UNICODE
   std::locale loc_unicode =
       std::locale(std::locale(), new numpunct_unicode<CharT>());
 
@@ -276,7 +281,7 @@ void test_bool() {
   test(STR("gültig!!!"), loc_unicode, STR("{:!<9L}"), true);
   test(STR("_gültig__"), loc_unicode, STR("{:_^9L}"), true);
   test(STR("   gültig"), loc_unicode, STR("{:>9L}"), true);
-#endif // TEST_HAS_NO_UNICODE
+#endif
 }
 
 template <class CharT>

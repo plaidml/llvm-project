@@ -44,8 +44,9 @@ public:
 
     // Save all named attributes except "type" attribute.
     for (const auto &attr : op->getAttrs()) {
-      if (attr.getName() == "type")
+      if (attr.first == "type") {
         continue;
+      }
       globalVarAttrs.push_back(attr);
     }
 

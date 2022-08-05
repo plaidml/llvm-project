@@ -13,10 +13,6 @@ namespace NS {
 namespace {
   // Don't warn about functions in anonymous namespaces.
   void f() { }
-  // Even if they're in nested namespaces within an anonymous namespace.
-  namespace NS {
-    void f() { }
-  }
 }
 
 struct A {

@@ -93,37 +93,38 @@ struct AllHeuristicsBoundsWellConfigured {
 static_assert(AllHeuristicsBoundsWellConfigured::Value, "");
 } // namespace
 
-static constexpr llvm::StringLiteral DefaultAbbreviations = "addr=address;"
-                                                            "arr=array;"
-                                                            "attr=attribute;"
-                                                            "buf=buffer;"
-                                                            "cl=client;"
-                                                            "cnt=count;"
-                                                            "col=column;"
-                                                            "cpy=copy;"
-                                                            "dest=destination;"
-                                                            "dist=distance"
-                                                            "dst=distance;"
-                                                            "elem=element;"
-                                                            "hght=height;"
-                                                            "i=index;"
-                                                            "idx=index;"
-                                                            "len=length;"
-                                                            "ln=line;"
-                                                            "lst=list;"
-                                                            "nr=number;"
-                                                            "num=number;"
-                                                            "pos=position;"
-                                                            "ptr=pointer;"
-                                                            "ref=reference;"
-                                                            "src=source;"
-                                                            "srv=server;"
-                                                            "stmt=statement;"
-                                                            "str=string;"
-                                                            "val=value;"
-                                                            "var=variable;"
-                                                            "vec=vector;"
-                                                            "wdth=width";
+static const std::string DefaultAbbreviations =
+    optutils::serializeStringList({"addr=address",
+                                   "arr=array",
+                                   "attr=attribute",
+                                   "buf=buffer",
+                                   "cl=client",
+                                   "cnt=count",
+                                   "col=column",
+                                   "cpy=copy",
+                                   "dest=destination",
+                                   "dist=distance"
+                                   "dst=distance",
+                                   "elem=element",
+                                   "hght=height",
+                                   "i=index",
+                                   "idx=index",
+                                   "len=length",
+                                   "ln=line",
+                                   "lst=list",
+                                   "nr=number",
+                                   "num=number",
+                                   "pos=position",
+                                   "ptr=pointer",
+                                   "ref=reference",
+                                   "src=source",
+                                   "srv=server",
+                                   "stmt=statement",
+                                   "str=string",
+                                   "val=value",
+                                   "var=variable",
+                                   "vec=vector",
+                                   "wdth=width"});
 
 static constexpr std::size_t SmallVectorSize =
     SuspiciousCallArgumentCheck::SmallVectorSize;

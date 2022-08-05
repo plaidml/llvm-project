@@ -108,7 +108,8 @@ static void GetObjCImageInfo(Module &M, unsigned &Version, unsigned &Flags,
 //                                  ELF
 //===----------------------------------------------------------------------===//
 
-TargetLoweringObjectFileELF::TargetLoweringObjectFileELF() {
+TargetLoweringObjectFileELF::TargetLoweringObjectFileELF()
+    : TargetLoweringObjectFile() {
   SupportDSOLocalEquivalentLowering = true;
 }
 
@@ -477,11 +478,6 @@ static SectionKind getELFKindForNamedSection(StringRef Name, SectionKind K) {
   return K;
 }
 
-static bool hasPrefix(StringRef SectionName, StringRef Prefix) {
-  return SectionName.consume_front(Prefix) &&
-         (SectionName.empty() || SectionName[0] == '.');
-}
-
 static unsigned getELFSectionType(StringRef Name, SectionKind K) {
   // Use SHT_NOTE for section whose name starts with ".note" to allow
   // emitting ELF notes from C variable declaration.
@@ -489,13 +485,13 @@ static unsigned getELFSectionType(StringRef Name, SectionKind K) {
   if (Name.startswith(".note"))
     return ELF::SHT_NOTE;
 
-  if (hasPrefix(Name, ".init_array"))
+  if (Name == ".init_array")
     return ELF::SHT_INIT_ARRAY;
 
-  if (hasPrefix(Name, ".fini_array"))
+  if (Name == ".fini_array")
     return ELF::SHT_FINI_ARRAY;
 
-  if (hasPrefix(Name, ".preinit_array"))
+  if (Name == ".preinit_array")
     return ELF::SHT_PREINIT_ARRAY;
 
   if (K.isBSS() || K.isThreadBSS())
@@ -1086,7 +1082,7 @@ const MCExpr *TargetLoweringObjectFileELF::lowerRelativeReference(
   if (!LHS->hasGlobalUnnamedAddr() || !LHS->getValueType()->isFunctionTy())
     return nullptr;
 
-  // Basic correctness checks.
+  // Basic sanity checks.
   if (LHS->getType()->getPointerAddressSpace() != 0 ||
       RHS->getType()->getPointerAddressSpace() != 0 || LHS->isThreadLocal() ||
       RHS->isThreadLocal())
@@ -1143,7 +1139,8 @@ TargetLoweringObjectFileELF::InitializeELF(bool UseInitArray_) {
 //                                 MachO
 //===----------------------------------------------------------------------===//
 
-TargetLoweringObjectFileMachO::TargetLoweringObjectFileMachO() {
+TargetLoweringObjectFileMachO::TargetLoweringObjectFileMachO()
+  : TargetLoweringObjectFile() {
   SupportIndirectSymViaGOTPCRel = true;
 }
 
@@ -1188,7 +1185,6 @@ void TargetLoweringObjectFileMachO::emitModuleMetadata(MCStreamer &Streamer,
   StringRef SectionVal;
 
   GetObjCImageInfo(M, VersionVal, ImageInfoFlags, SectionVal);
-  emitCGProfileMetadata(Streamer, M);
 
   // The section is mandatory. If we don't have it, then we don't have GC info.
   if (SectionVal.empty())
@@ -2139,7 +2135,7 @@ const MCExpr *TargetLoweringObjectFileWasm::lowerRelativeReference(
   if (!LHS->hasGlobalUnnamedAddr() || !LHS->getValueType()->isFunctionTy())
     return nullptr;
 
-  // Basic correctness checks.
+  // Basic sanity checks.
   if (LHS->getType()->getPointerAddressSpace() != 0 ||
       RHS->getType()->getPointerAddressSpace() != 0 || LHS->isThreadLocal() ||
       RHS->isThreadLocal())
@@ -2547,7 +2543,8 @@ MCSection *TargetLoweringObjectFileXCOFF::getSectionForTOCEntry(
 //===----------------------------------------------------------------------===//
 //                                  GOFF
 //===----------------------------------------------------------------------===//
-TargetLoweringObjectFileGOFF::TargetLoweringObjectFileGOFF() {}
+TargetLoweringObjectFileGOFF::TargetLoweringObjectFileGOFF()
+    : TargetLoweringObjectFile() {}
 
 MCSection *TargetLoweringObjectFileGOFF::getExplicitSectionGlobal(
     const GlobalObject *GO, SectionKind Kind, const TargetMachine &TM) const {

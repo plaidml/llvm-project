@@ -140,7 +140,7 @@ public:
         return ++RelI;
     }
 
-    // Validate the relocation type.
+    // Sanity check relocation type.
     switch (RelType) {
     UNIMPLEMENTED_RELOC(MachO::ARM_RELOC_PAIR);
     UNIMPLEMENTED_RELOC(MachO::ARM_RELOC_SECTDIFF);

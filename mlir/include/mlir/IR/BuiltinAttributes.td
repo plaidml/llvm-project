@@ -174,8 +174,9 @@ def Builtin_DenseIntOrFPElementsAttr : Builtin_Attr<
                         "ArrayRef<char>":$rawData);
   let extraClassDeclaration = [{
     using DenseElementsAttr::empty;
+    using DenseElementsAttr::getFlatValue;
     using DenseElementsAttr::getNumElements;
-    using DenseElementsAttr::getElementType;
+    using DenseElementsAttr::getValue;
     using DenseElementsAttr::getValues;
     using DenseElementsAttr::isSplat;
     using DenseElementsAttr::size;
@@ -312,8 +313,9 @@ def Builtin_DenseStringElementsAttr : Builtin_Attr<
   ];
   let extraClassDeclaration = [{
     using DenseElementsAttr::empty;
+    using DenseElementsAttr::getFlatValue;
     using DenseElementsAttr::getNumElements;
-    using DenseElementsAttr::getElementType;
+    using DenseElementsAttr::getValue;
     using DenseElementsAttr::getValues;
     using DenseElementsAttr::isSplat;
     using DenseElementsAttr::size;
@@ -381,15 +383,15 @@ def Builtin_DictionaryAttr : Builtin_Attr<"Dictionary", [
 
     /// Return the specified attribute if present, null otherwise.
     Attribute get(StringRef name) const;
-    Attribute get(StringAttr name) const;
+    Attribute get(Identifier name) const;
 
     /// Return the specified named attribute if present, None otherwise.
     Optional<NamedAttribute> getNamed(StringRef name) const;
-    Optional<NamedAttribute> getNamed(StringAttr name) const;
+    Optional<NamedAttribute> getNamed(Identifier name) const;
 
     /// Return whether the specified attribute is present.
     bool contains(StringRef name) const;
-    bool contains(StringAttr name) const;
+    bool contains(Identifier name) const;
 
     /// Support range iteration.
     using iterator = llvm::ArrayRef<NamedAttribute>::iterator;
@@ -643,11 +645,11 @@ def Builtin_OpaqueAttr : Builtin_Attr<"Opaque"> {
     #dialect<"opaque attribute data">
     ```
   }];
-  let parameters = (ins "StringAttr":$dialectNamespace,
+  let parameters = (ins "Identifier":$dialectNamespace,
                         StringRefParameter<"">:$attrData,
                         AttributeSelfTypeParameter<"">:$type);
   let builders = [
-    AttrBuilderWithInferredContext<(ins "StringAttr":$dialect,
+    AttrBuilderWithInferredContext<(ins "Identifier":$dialect,
                                         "StringRef":$attrData,
                                         "Type":$type), [{
       return $_get(dialect.getContext(), dialect, attrData, type);
@@ -690,11 +692,11 @@ def Builtin_OpaqueElementsAttr : Builtin_Attr<
 
   // TODO: Provide a way to avoid copying content of large opaque
   // tensors This will likely require a new reference attribute kind.
-  let parameters = (ins "StringAttr":$dialect,
+  let parameters = (ins "Identifier":$dialect,
                         StringRefParameter<"">:$value,
                         AttributeSelfTypeParameter<"", "ShapedType">:$type);
   let builders = [
-    AttrBuilderWithInferredContext<(ins "StringAttr":$dialect,
+    AttrBuilderWithInferredContext<(ins "Identifier":$dialect,
                                         "ShapedType":$type,
                                         "StringRef":$value), [{
       return $_get(dialect.getContext(), dialect, value, type);
@@ -703,12 +705,16 @@ def Builtin_OpaqueElementsAttr : Builtin_Attr<
                                         "ShapedType":$type,
                                         "StringRef":$value), [{
       MLIRContext *ctxt = dialect->getContext();
-      StringAttr dialectName = StringAttr::get(ctxt, dialect->getNamespace());
+      Identifier dialectName = Identifier::get(dialect->getNamespace(), ctxt);
       return $_get(ctxt, dialectName, value, type);
     }]>
   ];
   let extraClassDeclaration = [{
     using ValueType = StringRef;
+
+    /// Return the value at the given index. The 'index' is expected to refer to
+    /// a valid element.
+    Attribute getValue(ArrayRef<uint64_t> index) const;
 
     /// Decodes the attribute value using dialect-specific decoding hook.
     /// Returns false if decoding is successful. If not, returns true and leaves
@@ -796,7 +802,6 @@ def Builtin_SparseElementsAttr : Builtin_Attr<
       // String types.
       StringRef
     >;
-    using ElementsAttr::Trait<SparseElementsAttr>::getValues;
 
     /// Provide a `value_begin_impl` to enable iteration within ElementsAttr.
     template <typename T>
@@ -812,7 +817,13 @@ def Builtin_SparseElementsAttr : Builtin_Attr<
     /// Return the values of this attribute in the form of the given type 'T'.
     /// 'T'  may be any of Attribute, APInt, APFloat, c++ integer/float types,
     /// etc.
+    template <typename T> llvm::iterator_range<iterator<T>> getValues() const;
     template <typename T> iterator<T> value_begin() const;
+    template <typename T> iterator<T> value_end() const;
+
+    /// Return the value of the element at the given index. The 'index' is
+    /// expected to refer to a valid element.
+    Attribute getValue(ArrayRef<uint64_t> index) const;
 
   private:
     /// Get a zero APFloat for the given sparse attribute.
@@ -917,38 +928,6 @@ def Builtin_StringAttr : Builtin_Attr<"String"> {
   let extraClassDeclaration = [{
     using ValueType = StringRef;
 
-    /// If the value of this string is prefixed with a dialect namespace,
-    /// returns the dialect corresponding to that namespace if it is loaded,
-    /// nullptr otherwise. For example, the string `llvm.fastmathflags` would
-    /// return the LLVM dialect, assuming it is loaded in the context.
-    Dialect *getReferencedDialect() const;
-
-    /// Enable conversion to StringRef.
-    operator StringRef() const { return getValue(); }
-
-    /// Returns the underlying string value
-    StringRef strref() const { return getValue(); }
-
-    /// Convert the underling value to an std::string.
-    std::string str() const { return getValue().str(); }
-
-    /// Return a pointer to the start of the string data.
-    const char *data() const { return getValue().data(); }
-
-    /// Return the number of bytes in this string.
-    size_t size() const { return getValue().size(); }
-
-    /// Iterate over the underlying string data.
-    StringRef::iterator begin() const { return getValue().begin(); }
-    StringRef::iterator end() const { return getValue().end(); }
-
-    /// Compare the underlying string value to the one in `rhs`.
-    int compare(StringAttr rhs) const {
-      if (*this == rhs)
-        return 0;
-      return getValue().compare(rhs.getValue());
-    }
-
   private:
     /// Return an empty StringAttr with NoneType type. This is a special variant
     /// of the `get` method that is used by the MLIRContext to cache the
@@ -957,7 +936,6 @@ def Builtin_StringAttr : Builtin_Attr<"String"> {
     friend MLIRContext;
   public:
   }];
-  let genStorageClass = 0;
   let skipDefaultBuilders = 1;
 }
 

@@ -3,16 +3,8 @@
 template <typename T>
 struct Iterator {
   void operator++();
-  T &operator*() const;
-  bool operator!=(const Iterator &) const;
-  typedef const T &const_reference;
-};
-
-template <typename T>
-struct ConstIterator {
-  void operator++();
   const T &operator*() const;
-  bool operator!=(const ConstIterator &) const;
+  bool operator!=(const Iterator &) const;
   typedef const T &const_reference;
 };
 
@@ -23,27 +15,14 @@ struct ExpensiveToCopyType {
   using ConstRef = const ExpensiveToCopyType &;
   ConstRef referenceWithAlias() const;
   const ExpensiveToCopyType *pointer() const;
+  Iterator<ExpensiveToCopyType> begin() const;
+  Iterator<ExpensiveToCopyType> end() const;
   void nonConstMethod();
   bool constMethod() const;
   template <typename A>
   const A &templatedAccessor() const;
   operator int() const; // Implicit conversion to int.
 };
-
-template <typename T>
-struct Container {
-  bool empty() const;
-  const T& operator[](int) const;
-  const T& operator[](int);
-  Iterator<T> begin();
-  Iterator<T> end();
-  ConstIterator<T> begin() const;
-  ConstIterator<T> end() const;
-  void nonConstMethod();
-  bool constMethod() const;
-};
-
-using ExpensiveToCopyContainerAlias = Container<ExpensiveToCopyType>;
 
 struct TrivialToCopyType {
   const TrivialToCopyType &reference() const;
@@ -156,94 +135,6 @@ void PositiveMethodCallConstPointerParam(const ExpensiveToCopyType *const Obj) {
   const ExpensiveToCopyType VarCopyConstructed(Obj->reference());
   // CHECK-MESSAGES: [[@LINE-1]]:29: warning: the const qualified variable 'VarCopyConstructed'
   // CHECK-FIXES: const ExpensiveToCopyType& VarCopyConstructed(Obj->reference());
-  VarCopyConstructed.constMethod();
-}
-
-void PositiveOperatorCallConstReferenceParam(const Container<ExpensiveToCopyType> &C) {
-  const auto AutoAssigned = C[42];
-  // CHECK-MESSAGES: [[@LINE-1]]:14: warning: the const qualified variable 'AutoAssigned'
-  // CHECK-FIXES: const auto& AutoAssigned = C[42];
-  AutoAssigned.constMethod();
-
-  const auto AutoCopyConstructed(C[42]);
-  // CHECK-MESSAGES: [[@LINE-1]]:14: warning: the const qualified variable 'AutoCopyConstructed'
-  // CHECK-FIXES: const auto& AutoCopyConstructed(C[42]);
-  AutoCopyConstructed.constMethod();
-
-  const ExpensiveToCopyType VarAssigned = C[42];
-  // CHECK-MESSAGES: [[@LINE-1]]:29: warning: the const qualified variable 'VarAssigned'
-  // CHECK-FIXES: const ExpensiveToCopyType& VarAssigned = C[42];
-  VarAssigned.constMethod();
-
-  const ExpensiveToCopyType VarCopyConstructed(C[42]);
-  // CHECK-MESSAGES: [[@LINE-1]]:29: warning: the const qualified variable 'VarCopyConstructed'
-  // CHECK-FIXES: const ExpensiveToCopyType& VarCopyConstructed(C[42]);
-  VarCopyConstructed.constMethod();
-}
-
-void PositiveOperatorCallConstValueParam(const Container<ExpensiveToCopyType> C) {
-  const auto AutoAssigned = C[42];
-  // CHECK-MESSAGES: [[@LINE-1]]:14: warning: the const qualified variable 'AutoAssigned'
-  // CHECK-FIXES: const auto& AutoAssigned = C[42];
-  AutoAssigned.constMethod();
-
-  const auto AutoCopyConstructed(C[42]);
-  // CHECK-MESSAGES: [[@LINE-1]]:14: warning: the const qualified variable 'AutoCopyConstructed'
-  // CHECK-FIXES: const auto& AutoCopyConstructed(C[42]);
-  AutoCopyConstructed.constMethod();
-
-  const ExpensiveToCopyType VarAssigned = C[42];
-  // CHECK-MESSAGES: [[@LINE-1]]:29: warning: the const qualified variable 'VarAssigned'
-  // CHECK-FIXES: const ExpensiveToCopyType& VarAssigned = C[42];
-  VarAssigned.constMethod();
-
-  const ExpensiveToCopyType VarCopyConstructed(C[42]);
-  // CHECK-MESSAGES: [[@LINE-1]]:29: warning: the const qualified variable 'VarCopyConstructed'
-  // CHECK-FIXES: const ExpensiveToCopyType& VarCopyConstructed(C[42]);
-  VarCopyConstructed.constMethod();
-}
-
-void PositiveOperatorCallConstValueParamAlias(const ExpensiveToCopyContainerAlias C) {
-  const auto AutoAssigned = C[42];
-  // CHECK-MESSAGES: [[@LINE-1]]:14: warning: the const qualified variable 'AutoAssigned'
-  // CHECK-FIXES: const auto& AutoAssigned = C[42];
-  AutoAssigned.constMethod();
-
-  const auto AutoCopyConstructed(C[42]);
-  // CHECK-MESSAGES: [[@LINE-1]]:14: warning: the const qualified variable 'AutoCopyConstructed'
-  // CHECK-FIXES: const auto& AutoCopyConstructed(C[42]);
-  AutoCopyConstructed.constMethod();
-
-  const ExpensiveToCopyType VarAssigned = C[42];
-  // CHECK-MESSAGES: [[@LINE-1]]:29: warning: the const qualified variable 'VarAssigned'
-  // CHECK-FIXES: const ExpensiveToCopyType& VarAssigned = C[42];
-  VarAssigned.constMethod();
-
-  const ExpensiveToCopyType VarCopyConstructed(C[42]);
-  // CHECK-MESSAGES: [[@LINE-1]]:29: warning: the const qualified variable 'VarCopyConstructed'
-  // CHECK-FIXES: const ExpensiveToCopyType& VarCopyConstructed(C[42]);
-  VarCopyConstructed.constMethod();
-}
-
-void PositiveOperatorCallConstValueParam(const Container<ExpensiveToCopyType>* C) {
-  const auto AutoAssigned = (*C)[42];
-  // TODO-MESSAGES: [[@LINE-1]]:14: warning: the const qualified variable 'AutoAssigned'
-  // TODO-FIXES: const auto& AutoAssigned = (*C)[42];
-  AutoAssigned.constMethod();
-
-  const auto AutoCopyConstructed((*C)[42]);
-  // TODO-MESSAGES: [[@LINE-1]]:14: warning: the const qualified variable 'AutoCopyConstructed'
-  // TODO-FIXES: const auto& AutoCopyConstructed((*C)[42]);
-  AutoCopyConstructed.constMethod();
-
-  const ExpensiveToCopyType VarAssigned = C->operator[](42);
-  // TODO-MESSAGES: [[@LINE-1]]:29: warning: the const qualified variable 'VarAssigned'
-  // TODO-FIXES: const ExpensiveToCopyType& VarAssigned = C->operator[](42);
-  VarAssigned.constMethod();
-
-  const ExpensiveToCopyType VarCopyConstructed(C->operator[](42));
-  // TODO-MESSAGES: [[@LINE-1]]:29: warning: the const qualified variable 'VarCopyConstructed'
-  // TODO-FIXES: const ExpensiveToCopyType& VarCopyConstructed(C->operator[](42));
   VarCopyConstructed.constMethod();
 }
 
@@ -552,9 +443,21 @@ void WarningOnlyMultiDeclStmt() {
 }
 
 class Element {};
+class Container {
+public:
+  class Iterator {
+  public:
+    void operator++();
+    Element operator*();
+    bool operator!=(const Iterator &);
+    WeirdCopyCtorType c;
+  };
+  const Iterator &begin() const;
+  const Iterator &end() const;
+};
 
 void implicitVarFalsePositive() {
-  for (const Element &E : Container<Element>()) {
+  for (const Element &E : Container()) {
   }
 }
 
@@ -718,30 +621,8 @@ void positiveUnusedReferenceIsRemoved() {
   // CHECK-FIXES: // Comments on a new line should not be deleted.
 }
 
-void positiveLoopedOverObjectIsConst() {
-  const Container<ExpensiveToCopyType> Orig;
-  for (const auto &Element : Orig) {
-    const auto Copy = Element;
-    // CHECK-MESSAGES: [[@LINE-1]]:16: warning: local copy 'Copy'
-    // CHECK-FIXES: const auto& Copy = Element;
-    Orig.constMethod();
-    Copy.constMethod();
-  }
-
-  auto Lambda = []() {
-    const Container<ExpensiveToCopyType> Orig;
-    for (const auto &Element : Orig) {
-      const auto Copy = Element;
-      // CHECK-MESSAGES: [[@LINE-1]]:18: warning: local copy 'Copy'
-      // CHECK-FIXES: const auto& Copy = Element;
-      Orig.constMethod();
-      Copy.constMethod();
-    }
-  };
-}
-
-void negativeLoopedOverObjectIsModified() {
-  Container<ExpensiveToCopyType> Orig;
+void negativeloopedOverObjectIsModified() {
+  ExpensiveToCopyType Orig;
   for (const auto &Element : Orig) {
     const auto Copy = Element;
     Orig.nonConstMethod();
@@ -749,7 +630,7 @@ void negativeLoopedOverObjectIsModified() {
   }
 
   auto Lambda = []() {
-    Container<ExpensiveToCopyType> Orig;
+    ExpensiveToCopyType Orig;
     for (const auto &Element : Orig) {
       const auto Copy = Element;
       Orig.nonConstMethod();

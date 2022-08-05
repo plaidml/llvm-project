@@ -60,6 +60,12 @@ YieldOp::getMutableSuccessorOperands(Optional<unsigned> index) {
 
 constexpr char kOperandSegmentSizesAttr[] = "operand_segment_sizes";
 
+void ExecuteOp::getNumRegionInvocations(
+    ArrayRef<Attribute>, SmallVectorImpl<int64_t> &countPerRegion) {
+  assert(countPerRegion.empty());
+  countPerRegion.push_back(1);
+}
+
 OperandRange ExecuteOp::getSuccessorEntryOperands(unsigned index) {
   assert(index == 0 && "invalid region index");
   return operands();
@@ -107,8 +113,7 @@ void ExecuteOp::build(OpBuilder &builder, OperationState &result,
   for (Value operand : operands) {
     auto valueType = operand.getType().dyn_cast<ValueType>();
     bodyBlock.addArgument(valueType ? valueType.getValueType()
-                                    : operand.getType(),
-                          operand.getLoc());
+                                    : operand.getType());
   }
 
   // Create the default terminator if the builder is not provided and if the
@@ -145,7 +150,6 @@ static void print(OpAsmPrinter &p, ExecuteOp op) {
   p.printOptionalArrowTypeList(llvm::drop_begin(op.getResultTypes()));
   p.printOptionalAttrDictWithKeyword(op->getAttrs(),
                                      {kOperandSegmentSizesAttr});
-  p << ' ';
   p.printRegion(op.body(), /*printEntryBlockArgs=*/false);
 }
 
@@ -221,7 +225,6 @@ static ParseResult parseExecuteOp(OpAsmParser &parser, OperationState &result) {
   Region *body = result.addRegion();
   if (parser.parseRegion(*body, /*arguments=*/{unwrappedArgs},
                          /*argTypes=*/{unwrappedTypes},
-                         /*argLocations=*/{},
                          /*enableNameShadowing=*/false))
     return failure();
 
@@ -335,17 +338,37 @@ static LogicalResult verify(AwaitOp op) {
 #define GET_TYPEDEF_CLASSES
 #include "mlir/Dialect/Async/IR/AsyncOpsTypes.cpp.inc"
 
-void ValueType::print(AsmPrinter &printer) const {
+void ValueType::print(DialectAsmPrinter &printer) const {
+  printer << getMnemonic();
   printer << "<";
   printer.printType(getValueType());
   printer << '>';
 }
 
-Type ValueType::parse(mlir::AsmParser &parser) {
+Type ValueType::parse(mlir::DialectAsmParser &parser) {
   Type ty;
   if (parser.parseLess() || parser.parseType(ty) || parser.parseGreater()) {
     parser.emitError(parser.getNameLoc(), "failed to parse async value type");
     return Type();
   }
   return ValueType::get(ty);
+}
+
+/// Print a type registered to this dialect.
+void AsyncDialect::printType(Type type, DialectAsmPrinter &os) const {
+  if (failed(generatedTypePrinter(type, os)))
+    llvm_unreachable("unexpected 'async' type kind");
+}
+
+/// Parse a type registered to this dialect.
+Type AsyncDialect::parseType(DialectAsmParser &parser) const {
+  StringRef typeTag;
+  if (parser.parseKeyword(&typeTag))
+    return Type();
+  Type genType;
+  auto parseResult = generatedTypeParser(parser, typeTag, genType);
+  if (parseResult.hasValue())
+    return genType;
+  parser.emitError(parser.getNameLoc(), "unknown async type: ") << typeTag;
+  return {};
 }

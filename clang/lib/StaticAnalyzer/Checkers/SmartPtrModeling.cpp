@@ -23,7 +23,6 @@
 #include "clang/StaticAnalyzer/Core/BugReporter/BugType.h"
 #include "clang/StaticAnalyzer/Core/Checker.h"
 #include "clang/StaticAnalyzer/Core/CheckerManager.h"
-#include "clang/StaticAnalyzer/Core/PathSensitive/CallDescription.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/CallEvent.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/CheckerContext.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/CheckerHelpers.h"
@@ -286,7 +285,7 @@ bool SmartPtrModeling::evalCall(const CallEvent &Call,
   if (ModelSmartPtrDereference && isStdOstreamOperatorCall(Call))
     return handleOstreamOperator(Call, C);
 
-  if (StdSwapCall.matches(Call)) {
+  if (Call.isCalled(StdSwapCall)) {
     // Check the first arg, if it is of std::unique_ptr type.
     assert(Call.getNumArgs() == 2 && "std::swap should have two arguments");
     const Expr *FirstArg = Call.getArgExpr(0);
@@ -295,7 +294,8 @@ bool SmartPtrModeling::evalCall(const CallEvent &Call,
     return handleSwap(State, Call.getArgSVal(0), Call.getArgSVal(1), C);
   }
 
-  if (matchesAny(Call, StdMakeUniqueCall, StdMakeUniqueForOverwriteCall)) {
+  if (Call.isCalled(StdMakeUniqueCall) ||
+      Call.isCalled(StdMakeUniqueForOverwriteCall)) {
     if (!ModelSmartPtrDereference)
       return false;
     

@@ -49,7 +49,7 @@ struct SimpleOperationInfo : public llvm::DenseMapInfo<Operation *> {
         OperationEquivalence::IgnoreLocations);
   }
 };
-} // namespace
+} // end anonymous namespace
 
 namespace {
 /// Simple common sub-expression elimination.
@@ -91,7 +91,7 @@ private:
   std::vector<Operation *> opsToErase;
   DominanceInfo *domInfo = nullptr;
 };
-} // namespace
+} // end anonymous namespace
 
 /// Attempt to eliminate a redundant operation.
 LogicalResult CSE::simplifyOperation(ScopedMapTy &knownValues, Operation *op,

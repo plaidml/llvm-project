@@ -6,8 +6,7 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file is a part of AddressSanitizer, an address basic correctness
-// checker.
+// This file is a part of AddressSanitizer, an address sanity checker.
 // Details of the algorithm:
 //  https://github.com/google/sanitizers/wiki/AddressSanitizerAlgorithm
 //

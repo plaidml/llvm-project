@@ -25,7 +25,9 @@ namespace llvm {
 
 class ConstantFP;
 class ConstantInt;
+class DbgVariable;
 class DwarfCompileUnit;
+class MachineOperand;
 class MCDwarfDwoLineTable;
 class MCSymbol;
 
@@ -223,9 +225,6 @@ public:
 
   /// Add thrown types.
   void addThrownTypes(DIE &Die, DINodeArray ThrownTypes);
-
-  /// Add the accessibility attribute.
-  void addAccess(DIE &Die, DINode::DIFlags Flags);
 
   /// Add a new type attribute to the specified entity.
   ///

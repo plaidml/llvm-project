@@ -51,9 +51,10 @@ static bool tryToreplicateChunks(uint64_t UImm,
     ++Counts[getChunk(UImm, Idx)];
 
   // Traverse the chunks to find one which occurs more than once.
-  for (const auto &Chunk : Counts) {
-    const uint64_t ChunkVal = Chunk.first;
-    const unsigned Count = Chunk.second;
+  for (CountMap::const_iterator Chunk = Counts.begin(), End = Counts.end();
+       Chunk != End; ++Chunk) {
+    const uint64_t ChunkVal = Chunk->first;
+    const unsigned Count = Chunk->second;
 
     uint64_t Encoding = 0;
 

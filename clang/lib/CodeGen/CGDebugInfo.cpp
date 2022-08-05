@@ -247,7 +247,7 @@ PrintingPolicy CGDebugInfo::getPrintingPolicy() const {
   PP.SuppressInlineNamespace = false;
   PP.PrintCanonicalTypes = true;
   PP.UsePreferredNames = false;
-  PP.AlwaysIncludeTypeForTemplateArgument = true;
+  PP.UseIntegerTypeSuffixesAlways = true;
 
   // Apply -fdebug-prefix-map.
   PP.Callbacks = &PrintCB;
@@ -354,9 +354,13 @@ CGDebugInfo::computeChecksum(FileID FID, SmallString<32> &Checksum) const {
   if (!MemBuffer)
     return None;
 
-  llvm::toHex(
-      llvm::MD5::hash(llvm::arrayRefFromStringRef(MemBuffer->getBuffer())),
-      /*LowerCase*/ true, Checksum);
+  llvm::MD5 Hash;
+  llvm::MD5::MD5Result Result;
+
+  Hash.update(MemBuffer->getBuffer());
+  Hash.final(Result);
+
+  Hash.stringifyResult(Result, Checksum);
   return llvm::DIFile::CSK_MD5;
 }
 
@@ -718,7 +722,7 @@ llvm::DIType *CGDebugInfo::CreateType(const BuiltinType *BT) {
       auto *LowerBound =
           llvm::ConstantAsMetadata::get(llvm::ConstantInt::getSigned(
               llvm::Type::getInt64Ty(CGM.getLLVMContext()), 0));
-      SmallVector<uint64_t, 9> Expr(
+      SmallVector<int64_t, 9> Expr(
           {llvm::dwarf::DW_OP_constu, NumElemsPerVG, llvm::dwarf::DW_OP_bregx,
            /* AArch64::VG */ 46, 0, llvm::dwarf::DW_OP_mul,
            llvm::dwarf::DW_OP_constu, 1, llvm::dwarf::DW_OP_minus});
@@ -764,7 +768,7 @@ llvm::DIType *CGDebugInfo::CreateType(const BuiltinType *BT) {
       }
 
       // Element count = (VLENB / SEW) x LMUL
-      SmallVector<uint64_t, 12> Expr(
+      SmallVector<int64_t, 9> Expr(
           // The DW_OP_bregx operation has two operands: a register which is
           // specified by an unsigned LEB128 number, followed by a signed LEB128
           // offset.
@@ -778,8 +782,6 @@ llvm::DIType *CGDebugInfo::CreateType(const BuiltinType *BT) {
         Expr.push_back(llvm::dwarf::DW_OP_div);
       else
         Expr.push_back(llvm::dwarf::DW_OP_mul);
-      // Element max index = count - 1
-      Expr.append({llvm::dwarf::DW_OP_constu, 1, llvm::dwarf::DW_OP_minus});
 
       auto *LowerBound =
           llvm::ConstantAsMetadata::get(llvm::ConstantInt::getSigned(
@@ -882,9 +884,9 @@ llvm::DIType *CGDebugInfo::CreateType(const AutoType *Ty) {
   return DBuilder.createUnspecifiedType("auto");
 }
 
-llvm::DIType *CGDebugInfo::CreateType(const BitIntType *Ty) {
+llvm::DIType *CGDebugInfo::CreateType(const ExtIntType *Ty) {
 
-  StringRef Name = Ty->isUnsigned() ? "unsigned _BitInt" : "_BitInt";
+  StringRef Name = Ty->isUnsigned() ? "unsigned _ExtInt" : "_ExtInt";
   llvm::dwarf::TypeKind Encoding = Ty->isUnsigned()
                                        ? llvm::dwarf::DW_ATE_unsigned
                                        : llvm::dwarf::DW_ATE_signed;
@@ -3351,9 +3353,6 @@ static QualType UnwrapTypeForDebugInfo(QualType T, const ASTContext &C) {
     case Type::Elaborated:
       T = cast<ElaboratedType>(T)->getNamedType();
       break;
-    case Type::Using:
-      T = cast<UsingType>(T)->getUnderlyingType();
-      break;
     case Type::Paren:
       T = cast<ParenType>(T)->getInnerType();
       break;
@@ -3532,8 +3531,8 @@ llvm::DIType *CGDebugInfo::CreateTypeNode(QualType Ty, llvm::DIFile *Unit,
   case Type::Atomic:
     return CreateType(cast<AtomicType>(Ty), Unit);
 
-  case Type::BitInt:
-    return CreateType(cast<BitIntType>(Ty));
+  case Type::ExtInt:
+    return CreateType(cast<ExtIntType>(Ty));
   case Type::Pipe:
     return CreateType(cast<PipeType>(Ty), Unit);
 
@@ -3546,7 +3545,6 @@ llvm::DIType *CGDebugInfo::CreateTypeNode(QualType Ty, llvm::DIFile *Unit,
   case Type::Decayed:
   case Type::DeducedTemplateSpecialization:
   case Type::Elaborated:
-  case Type::Using:
   case Type::Paren:
   case Type::MacroQualified:
   case Type::SubstTemplateTypeParm:
@@ -3635,9 +3633,6 @@ llvm::DICompositeType *CGDebugInfo::CreateLimitedType(const RecordType *Ty) {
     // Record exports it symbols to the containing structure.
     if (CXXRD->isAnonymousStructOrUnion())
         Flags |= llvm::DINode::FlagExportSymbols;
-
-    Flags |= getAccessFlag(CXXRD->getAccess(),
-                           dyn_cast<CXXRecordDecl>(CXXRD->getDeclContext()));
   }
 
   llvm::DINodeArray Annotations = CollectBTFDeclTagAnnotations(D);
@@ -3686,7 +3681,7 @@ void CGDebugInfo::CollectContainingType(const CXXRecordDecl *RD,
   const ASTRecordLayout &RL = CGM.getContext().getASTRecordLayout(RD);
   if (const CXXRecordDecl *PBase = RL.getPrimaryBase()) {
     // Seek non-virtual primary base root.
-    while (true) {
+    while (1) {
       const ASTRecordLayout &BRL = CGM.getContext().getASTRecordLayout(PBase);
       const CXXRecordDecl *PBT = BRL.getPrimaryBase();
       if (PBT && !BRL.isPrimaryBaseVirtual())
@@ -4321,7 +4316,7 @@ void CGDebugInfo::CreateLexicalBlock(SourceLocation Loc) {
 }
 
 void CGDebugInfo::AppendAddressSpaceXDeref(
-    unsigned AddressSpace, SmallVectorImpl<uint64_t> &Expr) const {
+    unsigned AddressSpace, SmallVectorImpl<int64_t> &Expr) const {
   Optional<unsigned> DWARFAddressSpace =
       CGM.getTarget().getDWARFAddressSpace(AddressSpace);
   if (!DWARFAddressSpace)
@@ -4490,7 +4485,7 @@ llvm::DILocalVariable *CGDebugInfo::EmitDeclare(const VarDecl *VD,
     Line = getLineNumber(VD->getLocation());
     Column = getColumnNumber(VD->getLocation());
   }
-  SmallVector<uint64_t, 13> Expr;
+  SmallVector<int64_t, 13> Expr;
   llvm::DINode::DIFlags Flags = llvm::DINode::FlagZero;
   if (VD->isImplicit())
     Flags |= llvm::DINode::FlagArtificial;
@@ -4716,7 +4711,7 @@ void CGDebugInfo::EmitDeclareOfBlockDeclRefVariable(
       target.getStructLayout(blockInfo.StructureType)
           ->getElementOffset(blockInfo.getCapture(VD).getIndex()));
 
-  SmallVector<uint64_t, 9> addr;
+  SmallVector<int64_t, 9> addr;
   addr.push_back(llvm::dwarf::DW_OP_deref);
   addr.push_back(llvm::dwarf::DW_OP_plus_uconst);
   addr.push_back(offset.getQuantity());
@@ -5187,7 +5182,7 @@ void CGDebugInfo::EmitGlobalVariable(llvm::GlobalVariable *Var,
   } else {
     auto Align = getDeclAlignIfRequired(D, CGM.getContext());
 
-    SmallVector<uint64_t, 4> Expr;
+    SmallVector<int64_t, 4> Expr;
     unsigned AddressSpace =
         CGM.getContext().getTargetAddressSpace(D->getType());
     if (CGM.getLangOpts().CUDA && CGM.getLangOpts().CUDAIsDevice) {

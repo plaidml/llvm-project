@@ -178,8 +178,4 @@ def ReifyRankedShapedTypeOpInterface :
   ];
 }
 
-// Op has the same operand and result type.
-// TODO: Change from hard coded to utilizing type inference trait.
-def SameOperandsAndResultType : NativeOpTrait<"SameOperandsAndResultType">;
-
 #endif // MLIR_INFERTYPEOPINTERFACE

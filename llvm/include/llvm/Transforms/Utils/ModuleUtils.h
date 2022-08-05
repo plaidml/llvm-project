@@ -92,7 +92,7 @@ void appendToCompilerUsed(Module &M, ArrayRef<GlobalValue *> Values);
 /// DeadComdatFunctions are those where every member of the comdat is listed
 /// and thus removing them is safe (provided *all* are removed).
 void filterDeadComdatFunctions(
-    SmallVectorImpl<Function *> &DeadComdatFunctions);
+    Module &M, SmallVectorImpl<Function *> &DeadComdatFunctions);
 
 /// Produce a unique identifier for this module by taking the MD5 sum of
 /// the names of the module's strong external symbols that are not comdat

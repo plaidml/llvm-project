@@ -150,14 +150,14 @@ private:
   MLIRContext &context;
 };
 
-} // namespace detail
-} // namespace LLVM
-} // namespace mlir
+} // end namespace detail
+} // end namespace LLVM
+} // end namespace mlir
 
 LLVM::TypeFromLLVMIRTranslator::TypeFromLLVMIRTranslator(MLIRContext &context)
     : impl(new detail::TypeFromLLVMIRTranslatorImpl(context)) {}
 
-LLVM::TypeFromLLVMIRTranslator::~TypeFromLLVMIRTranslator() = default;
+LLVM::TypeFromLLVMIRTranslator::~TypeFromLLVMIRTranslator() {}
 
 Type LLVM::TypeFromLLVMIRTranslator::translateType(llvm::Type *type) {
   return impl->translateType(type);

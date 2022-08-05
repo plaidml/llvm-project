@@ -13,7 +13,7 @@
 #include "../PassDetail.h"
 #include "mlir/Conversion/TosaToLinalg/TosaToLinalg.h"
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
-#include "mlir/Dialect/Linalg/IR/Linalg.h"
+#include "mlir/Dialect/Linalg/IR/LinalgOps.h"
 #include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/Dialect/SCF/SCF.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
@@ -26,7 +26,6 @@
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
-#include "mlir/Transforms/Passes.h"
 
 using namespace mlir;
 
@@ -39,7 +38,7 @@ public:
                     tensor::TensorDialect, scf::SCFDialect>();
   }
 
-  void runOnOperation() override {
+  void runOnFunction() override {
     RewritePatternSet patterns(&getContext());
     ConversionTarget target(getContext());
     target.addLegalDialect<linalg::LinalgDialect, StandardOpsDialect,
@@ -51,11 +50,10 @@ public:
     target.addLegalOp<tosa::IfOp>();
     target.addLegalOp<tosa::ConstOp>();
     target.addLegalOp<tosa::WhileOp>();
-    target.addLegalOp<tosa::SliceOp>();
 
     target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
 
-    FuncOp func = getOperation();
+    FuncOp func = getFunction();
     mlir::tosa::populateTosaToLinalgConversionPatterns(&patterns);
     if (failed(applyFullConversion(func, target, std::move(patterns))))
       signalPassFailure();
@@ -68,13 +66,6 @@ std::unique_ptr<Pass> mlir::tosa::createTosaToLinalg() {
 }
 
 void mlir::tosa::addTosaToLinalgPasses(OpPassManager &pm) {
-  // Optional decompositions are designed to benefit linalg.
-  pm.addNestedPass<FuncOp>(mlir::tosa::createTosaOptionalDecompositions());
-  pm.addNestedPass<FuncOp>(mlir::createCanonicalizerPass());
-
-  pm.addNestedPass<FuncOp>(tosa::createTosaMakeBroadcastablePass());
-  pm.addNestedPass<FuncOp>(tosa::createTosaToLinalgNamed());
-  pm.addNestedPass<FuncOp>(mlir::createCanonicalizerPass());
-  pm.addNestedPass<FuncOp>(tosa::createTosaMakeBroadcastablePass());
-  pm.addNestedPass<FuncOp>(tosa::createTosaToLinalg());
+  pm.addNestedPass<FuncOp>(createTosaMakeBroadcastablePass());
+  pm.addNestedPass<FuncOp>(createTosaToLinalg());
 }

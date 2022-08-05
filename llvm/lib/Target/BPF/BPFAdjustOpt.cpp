@@ -131,10 +131,10 @@ bool BPFAdjustOptImpl::adjustICmpToBuiltin() {
 
         auto ConstOp1Val = ConstOp1->getValue().getZExtValue();
         auto Op = Icmp->getPredicate();
-        if (Op == ICmpInst::ICMP_ULT || Op == ICmpInst::ICMP_UGE) {
+        if (Op == ICmpInst::ICMP_ULT) {
           if ((ConstOp1Val - 1) & ConstOp1Val)
             continue;
-        } else if (Op == ICmpInst::ICMP_ULE || Op == ICmpInst::ICMP_UGT) {
+        } else if (Op == ICmpInst::ICMP_ULE) {
           if (ConstOp1Val & (ConstOp1Val + 1))
             continue;
         } else {

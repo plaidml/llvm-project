@@ -150,7 +150,7 @@ int main(int argc, const char *argv[]) {
 
   std::unique_ptr<ProfileGeneratorBase> Generator =
       ProfileGeneratorBase::create(Binary.get(), Reader->getSampleCounters(),
-                                   Reader->profileIsCSFlat());
+                                   Reader->profileIsCS());
   Generator->generateProfile();
   Generator->write();
 

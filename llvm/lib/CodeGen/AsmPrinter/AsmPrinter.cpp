@@ -180,7 +180,7 @@ Align AsmPrinter::getGVAlignment(const GlobalObject *GV, const DataLayout &DL,
     Alignment = InAlign;
 
   // If the GV has a specified alignment, take it into account.
-  const MaybeAlign GVAlign(GV->getAlign());
+  const MaybeAlign GVAlign(GV->getAlignment());
   if (!GVAlign)
     return Alignment;
 
@@ -247,11 +247,6 @@ void AsmPrinter::emitInitialRawDwarfLocDirective(const MachineFunction &MF) {
   if (DD) {
     assert(OutStreamer->hasRawTextSupport() &&
            "Expected assembly output mode.");
-    // This is NVPTX specific and it's unclear why.
-    // PR51079: If we have code without debug information we need to give up.
-    DISubprogram *MFSP = MF.getFunction().getSubprogram();
-    if (!MFSP)
-      return;
     (void)DD->emitInitialLocDirective(MF, /*CUID=*/0);
   }
 }
@@ -293,11 +288,7 @@ bool AsmPrinter::doInitialization(Module &M) {
   // use the directive, where it would need the same conditionalization
   // anyway.
   const Triple &Target = TM.getTargetTriple();
-  Triple TVT(M.getDarwinTargetVariantTriple());
-  OutStreamer->emitVersionForTarget(
-      Target, M.getSDKVersion(),
-      M.getDarwinTargetVariantTriple().empty() ? nullptr : &TVT,
-      M.getDarwinTargetVariantSDKVersion());
+  OutStreamer->emitVersionForTarget(Target, M.getSDKVersion());
 
   // Allow the target to emit any magic that it wants at the start of the file.
   emitStartOfAsmFile(M);
@@ -818,9 +809,9 @@ void AsmPrinter::emitFunctionHeader() {
   // so that we don't get references to undefined symbols.
   std::vector<MCSymbol*> DeadBlockSyms;
   MMI->takeDeletedSymbolsForFunction(&F, DeadBlockSyms);
-  for (MCSymbol *DeadBlockSym : DeadBlockSyms) {
+  for (unsigned i = 0, e = DeadBlockSyms.size(); i != e; ++i) {
     OutStreamer->AddComment("Address taken block that was later removed");
-    OutStreamer->emitLabel(DeadBlockSym);
+    OutStreamer->emitLabel(DeadBlockSyms[i]);
   }
 
   if (CurrentFnBegin) {
@@ -919,7 +910,8 @@ static void emitKill(const MachineInstr *MI, AsmPrinter &AP) {
   std::string Str;
   raw_string_ostream OS(Str);
   OS << "kill:";
-  for (const MachineOperand &Op : MI->operands()) {
+  for (unsigned i = 0, e = MI->getNumOperands(); i != e; ++i) {
+    const MachineOperand &Op = MI->getOperand(i);
     assert(Op.isReg() && "KILL instruction must have only register operands");
     OS << ' ' << (Op.isDef() ? "def " : "killed ")
        << printReg(Op.getReg(), AP.MF->getSubtarget().getRegisterInfo());
@@ -1865,17 +1857,6 @@ bool AsmPrinter::doFinalization(Module &M) {
         continue;
       OutStreamer->emitSymbolAttribute(getSymbol(&GO), MCSA_WeakReference);
     }
-    if (shouldEmitWeakSwiftAsyncExtendedFramePointerFlags()) {
-      auto SymbolName = "swift_async_extendedFramePointerFlags";
-      auto Global = M.getGlobalVariable(SymbolName);
-      if (!Global) {
-        auto Int8PtrTy = Type::getInt8PtrTy(M.getContext());
-        Global = new GlobalVariable(M, Int8PtrTy, false,
-                                    GlobalValue::ExternalWeakLinkage, nullptr,
-                                    SymbolName);
-        OutStreamer->emitSymbolAttribute(getSymbol(Global), MCSA_WeakReference);
-      }
-    }
   }
 
   // Print aliases in topological order, that is, for each alias a = b,
@@ -2169,7 +2150,8 @@ void AsmPrinter::emitJumpTableInfo() {
       SmallPtrSet<const MachineBasicBlock*, 16> EmittedSets;
       const TargetLowering *TLI = MF->getSubtarget().getTargetLowering();
       const MCExpr *Base = TLI->getPICJumpTableRelocBaseExpr(MF,JTI,OutContext);
-      for (const MachineBasicBlock *MBB : JTBBs) {
+      for (unsigned ii = 0, ee = JTBBs.size(); ii != ee; ++ii) {
+        const MachineBasicBlock *MBB = JTBBs[ii];
         if (!EmittedSets.insert(MBB).second)
           continue;
 
@@ -2195,8 +2177,8 @@ void AsmPrinter::emitJumpTableInfo() {
     MCSymbol* JTISymbol = GetJTISymbol(JTI);
     OutStreamer->emitLabel(JTISymbol);
 
-    for (const MachineBasicBlock *MBB : JTBBs)
-      emitJumpTableEntry(MJTI, MBB, JTI);
+    for (unsigned ii = 0, ee = JTBBs.size(); ii != ee; ++ii)
+      emitJumpTableEntry(MJTI, JTBBs[ii], JTI);
   }
   if (!JTInDiffSection)
     OutStreamer->emitDataRegion(MCDR_DataRegionEnd);
@@ -2482,8 +2464,7 @@ void AsmPrinter::emitLabelPlusOffset(const MCSymbol *Label, uint64_t Offset,
 // two boundary.  If a global value is specified, and if that global has
 // an explicit alignment requested, it will override the alignment request
 // if required for correctness.
-void AsmPrinter::emitAlignment(Align Alignment, const GlobalObject *GV,
-                               unsigned MaxBytesToEmit) const {
+void AsmPrinter::emitAlignment(Align Alignment, const GlobalObject *GV) const {
   if (GV)
     Alignment = getGVAlignment(GV, GV->getParent()->getDataLayout(), Alignment);
 
@@ -2496,9 +2477,9 @@ void AsmPrinter::emitAlignment(Align Alignment, const GlobalObject *GV,
       STI = &getSubtargetInfo();
     else
       STI = TM.getMCSubtargetInfo();
-    OutStreamer->emitCodeAlignment(Alignment.value(), STI, MaxBytesToEmit);
+    OutStreamer->emitCodeAlignment(Alignment.value(), STI);
   } else
-    OutStreamer->emitValueToAlignment(Alignment.value(), 0, 1, MaxBytesToEmit);
+    OutStreamer->emitValueToAlignment(Alignment.value());
 }
 
 //===----------------------------------------------------------------------===//
@@ -2522,9 +2503,6 @@ const MCExpr *AsmPrinter::lowerConstant(const Constant *CV) {
 
   if (const auto *Equiv = dyn_cast<DSOLocalEquivalent>(CV))
     return getObjFileLowering().lowerDSOLocalEquivalent(Equiv, TM);
-
-  if (const NoCFIValue *NC = dyn_cast<NoCFIValue>(CV))
-    return MCSymbolRefExpr::create(getSymbol(NC->getGlobalValue()), Ctx);
 
   const ConstantExpr *CE = dyn_cast<ConstantExpr>(CV);
   if (!CE) {
@@ -3292,7 +3270,7 @@ void AsmPrinter::emitBasicBlockStart(const MachineBasicBlock &MBB) {
   // Emit an alignment directive for this block, if needed.
   const Align Alignment = MBB.getAlignment();
   if (Alignment != Align(1))
-    emitAlignment(Alignment, nullptr, MBB.getMaxBytesForAlignment());
+    emitAlignment(Alignment);
 
   // Switch to a new section if this basic block must begin a section. The
   // entry block is always placed in the function section and is handled
@@ -3652,12 +3630,6 @@ bool AsmPrinter::isDwarf64() const {
 unsigned int AsmPrinter::getDwarfOffsetByteSize() const {
   return dwarf::getDwarfOffsetByteSize(
       OutStreamer->getContext().getDwarfFormat());
-}
-
-dwarf::FormParams AsmPrinter::getDwarfFormParams() const {
-  return {getDwarfVersion(), uint8_t(getPointerSize()),
-          OutStreamer->getContext().getDwarfFormat(),
-          MAI->doesDwarfUseRelocationsAcrossSections()};
 }
 
 unsigned int AsmPrinter::getUnitLengthFieldByteSize() const {

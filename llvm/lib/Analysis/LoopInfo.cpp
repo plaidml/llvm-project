@@ -301,16 +301,15 @@ PHINode *Loop::getInductionVariable(ScalarEvolution &SE) const {
   if (!CmpInst)
     return nullptr;
 
-  Value *LatchCmpOp0 = CmpInst->getOperand(0);
-  Value *LatchCmpOp1 = CmpInst->getOperand(1);
+  Instruction *LatchCmpOp0 = dyn_cast<Instruction>(CmpInst->getOperand(0));
+  Instruction *LatchCmpOp1 = dyn_cast<Instruction>(CmpInst->getOperand(1));
 
   for (PHINode &IndVar : Header->phis()) {
     InductionDescriptor IndDesc;
     if (!InductionDescriptor::isInductionPHI(&IndVar, this, &SE, IndDesc))
       continue;
 
-    BasicBlock *Latch = getLoopLatch();
-    Value *StepInst = IndVar.getIncomingValueForBlock(Latch);
+    Instruction *StepInst = IndDesc.getInductionBinOp();
 
     // case 1:
     // IndVar = phi[{InitialValue, preheader}, {StepInst, latch}]

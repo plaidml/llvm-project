@@ -172,7 +172,7 @@ static bool lowerRISCVVMachineInstrToMCInst(const MachineInstr *MI,
     default:
       llvm_unreachable("Unknown operand type");
     case MachineOperand::MO_Register: {
-      Register Reg = MO.getReg();
+      unsigned Reg = MO.getReg();
 
       if (RISCV::VRM2RegClass.contains(Reg) ||
           RISCV::VRM4RegClass.contains(Reg) ||

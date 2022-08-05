@@ -66,14 +66,14 @@ static constexpr const char kCompositeSpecConstituentsName[] = "constituents";
 
 /// Returns true if the given op is a function-like op or nested in a
 /// function-like op without a module-like op in the middle.
-static bool isNestedInFunctionOpInterface(Operation *op) {
+static bool isNestedInFunctionLikeOp(Operation *op) {
   if (!op)
     return false;
   if (op->hasTrait<OpTrait::SymbolTable>())
     return false;
-  if (isa<FunctionOpInterface>(op))
+  if (op->hasTrait<OpTrait::FunctionLike>())
     return true;
-  return isNestedInFunctionOpInterface(op->getParentOp());
+  return isNestedInFunctionLikeOp(op->getParentOp());
 }
 
 /// Returns true if the given op is an module-like op that maintains a symbol
@@ -669,7 +669,7 @@ getElementType(Type type, Attribute indices,
     emitErrorFn("expected a 32-bit integer array attribute for 'indices'");
     return nullptr;
   }
-  if (indicesArrayAttr.empty()) {
+  if (!indicesArrayAttr.size()) {
     emitErrorFn("expected at least one index for spv.CompositeExtract");
     return nullptr;
   }
@@ -756,28 +756,14 @@ static void printAtomicUpdateOp(Operation *op, OpAsmPrinter &printer) {
           << "\" " << op->getOperands() << " : " << op->getOperand(0).getType();
 }
 
-template <typename T>
-static StringRef stringifyTypeName();
-
-template <>
-StringRef stringifyTypeName<IntegerType>() {
-  return "integer";
-}
-
-template <>
-StringRef stringifyTypeName<FloatType>() {
-  return "float";
-}
-
 // Verifies an atomic update op.
-template <typename ExpectedElementType>
 static LogicalResult verifyAtomicUpdateOp(Operation *op) {
   auto ptrType = op->getOperand(0).getType().cast<spirv::PointerType>();
   auto elementType = ptrType.getPointeeType();
-  if (!elementType.isa<ExpectedElementType>())
-    return op->emitOpError() << "pointer operand must point to an "
-                             << stringifyTypeName<ExpectedElementType>()
-                             << " value, found " << elementType;
+  if (!elementType.isa<IntegerType>())
+    return op->emitOpError(
+               "pointer operand must point to an integer value, found ")
+           << elementType;
 
   if (op->getNumOperands() > 1) {
     auto valueType = op->getOperand(1).getType();
@@ -1929,7 +1915,7 @@ static void print(spirv::ExecutionModeOp execModeOp, OpAsmPrinter &printer) {
   printer << " \"" << stringifyExecutionMode(execModeOp.execution_mode())
           << "\"";
   auto values = execModeOp.values();
-  if (values.empty())
+  if (!values.size())
     return;
   printer << ", ";
   llvm::interleaveComma(values, printer, [&](Attribute a) {
@@ -1942,12 +1928,11 @@ static void print(spirv::ExecutionModeOp execModeOp, OpAsmPrinter &printer) {
 //===----------------------------------------------------------------------===//
 
 static ParseResult parseFuncOp(OpAsmParser &parser, OperationState &state) {
-  SmallVector<OpAsmParser::OperandType> entryArgs;
-  SmallVector<NamedAttrList> argAttrs;
-  SmallVector<NamedAttrList> resultAttrs;
-  SmallVector<Type> argTypes;
-  SmallVector<Type> resultTypes;
-  SmallVector<Location> argLocations;
+  SmallVector<OpAsmParser::OperandType, 4> entryArgs;
+  SmallVector<NamedAttrList, 4> argAttrs;
+  SmallVector<NamedAttrList, 4> resultAttrs;
+  SmallVector<Type, 4> argTypes;
+  SmallVector<Type, 4> resultTypes;
   auto &builder = parser.getBuilder();
 
   // Parse the name as a symbol.
@@ -1958,13 +1943,13 @@ static ParseResult parseFuncOp(OpAsmParser &parser, OperationState &state) {
 
   // Parse the function signature.
   bool isVariadic = false;
-  if (function_interface_impl::parseFunctionSignature(
+  if (function_like_impl::parseFunctionSignature(
           parser, /*allowVariadic=*/false, entryArgs, argTypes, argAttrs,
-          argLocations, isVariadic, resultTypes, resultAttrs))
+          isVariadic, resultTypes, resultAttrs))
     return failure();
 
   auto fnType = builder.getFunctionType(argTypes, resultTypes);
-  state.addAttribute(FunctionOpInterface::getTypeAttrName(),
+  state.addAttribute(function_like_impl::getTypeAttrName(),
                      TypeAttr::get(fnType));
 
   // Parse the optional function control keyword.
@@ -1979,8 +1964,8 @@ static ParseResult parseFuncOp(OpAsmParser &parser, OperationState &state) {
   // Add the attributes to the function arguments.
   assert(argAttrs.size() == argTypes.size());
   assert(resultAttrs.size() == resultTypes.size());
-  function_interface_impl::addArgAndResultAttrs(builder, state, argAttrs,
-                                                resultAttrs);
+  function_like_impl::addArgAndResultAttrs(builder, state, argAttrs,
+                                           resultAttrs);
 
   // Parse the optional function body.
   auto *body = state.addRegion();
@@ -1994,22 +1979,20 @@ static void print(spirv::FuncOp fnOp, OpAsmPrinter &printer) {
   printer << " ";
   printer.printSymbolName(fnOp.sym_name());
   auto fnType = fnOp.getType();
-  function_interface_impl::printFunctionSignature(
-      printer, fnOp, fnType.getInputs(),
-      /*isVariadic=*/false, fnType.getResults());
+  function_like_impl::printFunctionSignature(printer, fnOp, fnType.getInputs(),
+                                             /*isVariadic=*/false,
+                                             fnType.getResults());
   printer << " \"" << spirv::stringifyFunctionControl(fnOp.function_control())
           << "\"";
-  function_interface_impl::printFunctionAttributes(
+  function_like_impl::printFunctionAttributes(
       printer, fnOp, fnType.getNumInputs(), fnType.getNumResults(),
       {spirv::attributeName<spirv::FunctionControl>()});
 
   // Print the body if this is not an external function.
   Region &body = fnOp.body();
-  if (!body.empty()) {
-    printer << ' ';
+  if (!body.empty())
     printer.printRegion(body, /*printEntryBlockArgs=*/false,
                         /*printBlockTerminators=*/true);
-  }
 }
 
 LogicalResult spirv::FuncOp::verifyType() {
@@ -2398,6 +2381,12 @@ static LogicalResult verify(spirv::SubgroupBlockWriteINTELOp blockWriteOp) {
 // spv.GroupNonUniformElectOp
 //===----------------------------------------------------------------------===//
 
+void spirv::GroupNonUniformElectOp::build(OpBuilder &builder,
+                                          OperationState &state,
+                                          spirv::Scope scope) {
+  build(builder, state, builder.getI1Type(), scope);
+}
+
 static LogicalResult verify(spirv::GroupNonUniformElectOp groupOp) {
   spirv::Scope scope = groupOp.execution_scope();
   if (scope != spirv::Scope::Workgroup && scope != spirv::Scope::Subgroup)
@@ -2488,7 +2477,6 @@ static void print(spirv::LoopOp loopOp, OpAsmPrinter &printer) {
   auto control = loopOp.loop_control();
   if (control != spirv::LoopControl::None)
     printer << " control(" << spirv::stringifyLoopControl(control) << ")";
-  printer << ' ';
   printer.printRegion(op->getRegion(0), /*printEntryBlockArgs=*/false,
                       /*printBlockTerminators=*/true);
 }
@@ -2730,7 +2718,6 @@ static void print(spirv::ModuleOp moduleOp, OpAsmPrinter &printer) {
   }
 
   printer.printOptionalAttrDictWithKeyword(moduleOp->getAttrs(), elidedAttrs);
-  printer << ' ';
   printer.printRegion(moduleOp.getRegion());
 }
 
@@ -2848,6 +2835,11 @@ static LogicalResult verify(spirv::ReturnValueOp retValOp) {
 // spv.Select
 //===----------------------------------------------------------------------===//
 
+void spirv::SelectOp::build(OpBuilder &builder, OperationState &state,
+                            Value cond, Value trueValue, Value falseValue) {
+  build(builder, state, trueValue.getType(), cond, trueValue, falseValue);
+}
+
 static LogicalResult verify(spirv::SelectOp op) {
   if (auto conditionTy = op.condition().getType().dyn_cast<VectorType>()) {
     auto resultVectorTy = op.result().getType().dyn_cast<VectorType>();
@@ -2880,7 +2872,6 @@ static void print(spirv::SelectionOp selectionOp, OpAsmPrinter &printer) {
   auto control = selectionOp.selection_control();
   if (control != spirv::SelectionControl::None)
     printer << " control(" << spirv::stringifySelectionControl(control) << ")";
-  printer << ' ';
   printer.printRegion(op->getRegion(0), /*printEntryBlockArgs=*/false,
                       /*printBlockTerminators=*/true);
 }
@@ -3256,13 +3247,13 @@ static ParseResult parseCooperativeMatrixLoadNVOp(OpAsmParser &parser,
   return success();
 }
 
-static void print(spirv::CooperativeMatrixLoadNVOp m, OpAsmPrinter &printer) {
-  printer << " " << m.pointer() << ", " << m.stride() << ", "
-          << m.columnmajor();
+static void print(spirv::CooperativeMatrixLoadNVOp M, OpAsmPrinter &printer) {
+  printer << " " << M.pointer() << ", " << M.stride() << ", "
+          << M.columnmajor();
   // Print optional memory access attribute.
-  if (auto memAccess = m.memory_access())
+  if (auto memAccess = M.memory_access())
     printer << " [\"" << stringifyMemoryAccess(*memAccess) << "\"]";
-  printer << " : " << m.pointer().getType() << " as " << m.getType();
+  printer << " : " << M.pointer().getType() << " as " << M.getType();
 }
 
 static LogicalResult verifyPointerAndCoopMatrixType(Operation *op, Type pointer,

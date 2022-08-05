@@ -54,7 +54,9 @@ void ARMElfTargetObjectFile::Initialize(MCContext &Ctx,
   }
 }
 
-MCRegister ARMElfTargetObjectFile::getStaticBase() const { return ARM::R9; }
+const MCRegister ARMElfTargetObjectFile::getStaticBase() const {
+  return ARM::R9;
+}
 
 const MCExpr *ARMElfTargetObjectFile::
 getIndirectSymViaRWPI(const MCSymbol *Sym) const {

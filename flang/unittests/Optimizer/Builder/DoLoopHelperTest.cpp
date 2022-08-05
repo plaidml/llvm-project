@@ -15,9 +15,9 @@
 struct DoLoopHelperTest : public testing::Test {
 public:
   void SetUp() {
-    kindMap = std::make_unique<fir::KindMapping>(&context);
+    fir::KindMapping kindMap(&context);
     mlir::OpBuilder builder(&context);
-    firBuilder = new fir::FirOpBuilder(builder, *kindMap);
+    firBuilder = new fir::FirOpBuilder(builder, kindMap);
     fir::support::loadDialects(context);
   }
   void TearDown() { delete firBuilder; }
@@ -25,7 +25,6 @@ public:
   fir::FirOpBuilder &getBuilder() { return *firBuilder; }
 
   mlir::MLIRContext context;
-  std::unique_ptr<fir::KindMapping> kindMap;
   fir::FirOpBuilder *firBuilder;
 };
 
@@ -47,9 +46,9 @@ TEST_F(DoLoopHelperTest, createLoopWithCountTest) {
   checkConstantValue(loop.lowerBound(), 0);
   EXPECT_TRUE(mlir::isa<arith::SubIOp>(loop.upperBound().getDefiningOp()));
   auto subOp = dyn_cast<arith::SubIOp>(loop.upperBound().getDefiningOp());
-  EXPECT_EQ(c10, subOp.getLhs());
-  checkConstantValue(subOp.getRhs(), 1);
-  checkConstantValue(loop.getStep(), 1);
+  EXPECT_EQ(c10, subOp.lhs());
+  checkConstantValue(subOp.rhs(), 1);
+  checkConstantValue(loop.step(), 1);
 }
 
 TEST_F(DoLoopHelperTest, createLoopWithLowerAndUpperBound) {
@@ -62,9 +61,9 @@ TEST_F(DoLoopHelperTest, createLoopWithLowerAndUpperBound) {
       firBuilder.getUnknownLoc(), firBuilder.getIndexType(), 20);
   auto loop =
       helper.createLoop(lb, ub, [&](fir::FirOpBuilder &, mlir::Value index) {});
-  checkConstantValue(loop.getLowerBound(), 1);
-  checkConstantValue(loop.getUpperBound(), 20);
-  checkConstantValue(loop.getStep(), 1);
+  checkConstantValue(loop.lowerBound(), 1);
+  checkConstantValue(loop.upperBound(), 20);
+  checkConstantValue(loop.step(), 1);
 }
 
 TEST_F(DoLoopHelperTest, createLoopWithStep) {
@@ -79,7 +78,7 @@ TEST_F(DoLoopHelperTest, createLoopWithStep) {
       firBuilder.getUnknownLoc(), firBuilder.getIndexType(), 2);
   auto loop = helper.createLoop(
       lb, ub, step, [&](fir::FirOpBuilder &, mlir::Value index) {});
-  checkConstantValue(loop.getLowerBound(), 1);
-  checkConstantValue(loop.getUpperBound(), 20);
-  checkConstantValue(loop.getStep(), 2);
+  checkConstantValue(loop.lowerBound(), 1);
+  checkConstantValue(loop.upperBound(), 20);
+  checkConstantValue(loop.step(), 2);
 }

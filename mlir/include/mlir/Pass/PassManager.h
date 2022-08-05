@@ -23,23 +23,23 @@
 
 namespace llvm {
 class Any;
-} // namespace llvm
+} // end namespace llvm
 
 namespace mlir {
 class AnalysisManager;
+class Identifier;
 class MLIRContext;
 class Operation;
 class Pass;
 class PassInstrumentation;
 class PassInstrumentor;
-class StringAttr;
 
 namespace detail {
 struct OpPassManagerImpl;
 class OpToOpPassAdaptor;
 class PassCrashReproducerGenerator;
 struct PassExecutionState;
-} // namespace detail
+} // end namespace detail
 
 //===----------------------------------------------------------------------===//
 // OpPassManager
@@ -51,7 +51,7 @@ struct PassExecutionState;
 class OpPassManager {
 public:
   enum class Nesting { Implicit, Explicit };
-  OpPassManager(StringAttr name, Nesting nesting = Nesting::Explicit);
+  OpPassManager(Identifier name, Nesting nesting = Nesting::Explicit);
   OpPassManager(StringRef name, Nesting nesting = Nesting::Explicit);
   OpPassManager(OpPassManager &&rhs);
   OpPassManager(const OpPassManager &rhs);
@@ -75,7 +75,7 @@ public:
 
   /// Nest a new operation pass manager for the given operation kind under this
   /// pass manager.
-  OpPassManager &nest(StringAttr nestedName);
+  OpPassManager &nest(Identifier nestedName);
   OpPassManager &nest(StringRef nestedName);
   template <typename OpT> OpPassManager &nest() {
     return nest(OpT::getOperationName());
@@ -98,7 +98,7 @@ public:
   size_t size() const;
 
   /// Return the operation name that this pass manager operates on.
-  StringAttr getOpName(MLIRContext &context) const;
+  Identifier getOpName(MLIRContext &context) const;
 
   /// Return the operation name that this pass manager operates on.
   StringRef getOpName() const;
@@ -421,6 +421,6 @@ void applyPassManagerCLOptions(PassManager &pm);
 /// to the pass manager.
 void applyDefaultTimingPassManagerCLOptions(PassManager &pm);
 
-} // namespace mlir
+} // end namespace mlir
 
 #endif // MLIR_PASS_PASSMANAGER_H

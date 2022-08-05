@@ -156,7 +156,6 @@ public:
     CodeGenOpts.setDebuggerTuning(CI.getCodeGenOpts().getDebuggerTuning());
     CodeGenOpts.DebugPrefixMap =
         CI.getInvocation().getCodeGenOpts().DebugPrefixMap;
-    CodeGenOpts.DebugStrictDwarf = CI.getCodeGenOpts().DebugStrictDwarf;
   }
 
   ~PCHContainerGenerator() override = default;

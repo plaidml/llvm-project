@@ -269,9 +269,7 @@ def err_bad_character_encoding : Error<
 def warn_bad_character_encoding : ExtWarn<
   "illegal character encoding in character literal">,
   InGroup<InvalidSourceEncoding>;
-def err_lexing_string : Error<"failure when lexing a string literal">;
-def err_lexing_char : Error<"failure when lexing a character literal">;
-def err_lexing_numeric : Error<"failure when lexing a numeric literal">;
+def err_lexing_string : Error<"failure when lexing a string">;
 def err_placeholder_in_source : Error<"editor placeholder in source file">;
 
 //===----------------------------------------------------------------------===//
@@ -566,7 +564,7 @@ def note_pp_macro_annotation :
 def warn_pragma_final_macro :
   ExtWarn<"macro %0 has been marked as final and should not be "
           "%select{undefined|redefined}1">,
-  InGroup<FinalMacro>,  ShowInSystemHeader;
+  InGroup<FinalMacro>;
 
 // - #pragma execution_character_set(...)
 def warn_pragma_exec_charset_expected :

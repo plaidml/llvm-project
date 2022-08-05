@@ -13,7 +13,8 @@
 #include "Symbols.h"
 #include "SyntheticSections.h"
 #include "Target.h"
-#include "lld/Common/CommonLinkerContext.h"
+#include "lld/Common/ErrorHandler.h"
+#include "lld/Common/Memory.h"
 #include "llvm/BinaryFormat/MachO.h"
 #include "llvm/Support/ScopedPrinter.h"
 #include "llvm/Support/TimeProfiler.h"
@@ -123,13 +124,13 @@ bool ConcatOutputSection::needsThunks() const {
   if (!target->usesThunks())
     return false;
   uint64_t isecAddr = addr;
-  for (ConcatInputSection *isec : inputs)
+  for (InputSection *isec : inputs)
     isecAddr = alignTo(isecAddr, isec->align) + isec->getSize();
   if (isecAddr - addr + in.stubs->getSize() <=
       std::min(target->backwardBranchRange, target->forwardBranchRange))
     return false;
   // Yes, this program is large enough to need thunks.
-  for (ConcatInputSection *isec : inputs) {
+  for (InputSection *isec : inputs) {
     for (Reloc &r : isec->relocs) {
       if (!target->hasAttr(r.type, RelocAttrBits::BRANCH))
         continue;
@@ -142,8 +143,9 @@ bool ConcatOutputSection::needsThunks() const {
       // might need to create more for this referent at the time we are
       // estimating distance to __stubs in estimateStubsInRangeVA().
       ++thunkInfo.callSiteCount;
-      // We can avoid work on InputSections that have no BRANCH relocs.
-      isec->hasCallSites = true;
+      // Knowing InputSection call site count will help us avoid work on those
+      // that have no BRANCH relocs.
+      ++isec->callSiteCount;
     }
   }
   return true;
@@ -243,12 +245,12 @@ void ConcatOutputSection::finalize() {
     // contains several branch instructions in succession, then the distance
     // from the current position to the position where the thunks are inserted
     // grows. So leave room for a bunch of thunks.
-    unsigned slop = 256 * thunkSize;
+    unsigned slop = 100 * thunkSize;
     while (finalIdx < endIdx && isecAddr + inputs[finalIdx]->getSize() <
                                     isecVA + forwardBranchRange - slop)
       finalizeOne(inputs[finalIdx++]);
 
-    if (!isec->hasCallSites)
+    if (isec->callSiteCount == 0)
       continue;
 
     if (finalIdx == endIdx && stubsInRangeVA == TargetInfo::outOfRangeVA) {
@@ -321,13 +323,13 @@ void ConcatOutputSection::finalize() {
       // get written are happy.
       thunkInfo.isec->live = true;
 
-      StringRef thunkName = saver().save(funcSym->getName() + ".thunk." +
-                                         std::to_string(thunkInfo.sequence++));
+      StringRef thunkName = saver.save(funcSym->getName() + ".thunk." +
+                                       std::to_string(thunkInfo.sequence++));
       r.referent = thunkInfo.sym = symtab->addDefined(
           thunkName, /*file=*/nullptr, thunkInfo.isec, /*value=*/0,
           /*size=*/thunkSize, /*isWeakDef=*/false, /*isPrivateExtern=*/true,
           /*isThumb=*/false, /*isReferencedDynamically=*/false,
-          /*noDeadStrip=*/false, /*isWeakDefCanBeHidden=*/false);
+          /*noDeadStrip=*/false);
       thunkInfo.sym->used = true;
       target->populateThunk(thunkInfo.isec, funcSym);
       finalizeOne(thunkInfo.isec);

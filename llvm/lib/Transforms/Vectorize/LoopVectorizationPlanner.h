@@ -45,17 +45,16 @@ class VPBuilder {
   VPBasicBlock::iterator InsertPt = VPBasicBlock::iterator();
 
   VPInstruction *createInstruction(unsigned Opcode,
-                                   ArrayRef<VPValue *> Operands, DebugLoc DL) {
-    VPInstruction *Instr = new VPInstruction(Opcode, Operands, DL);
+                                   ArrayRef<VPValue *> Operands) {
+    VPInstruction *Instr = new VPInstruction(Opcode, Operands);
     if (BB)
       BB->insert(Instr, InsertPt);
     return Instr;
   }
 
   VPInstruction *createInstruction(unsigned Opcode,
-                                   std::initializer_list<VPValue *> Operands,
-                                   DebugLoc DL) {
-    return createInstruction(Opcode, ArrayRef<VPValue *>(Operands), DL);
+                                   std::initializer_list<VPValue *> Operands) {
+    return createInstruction(Opcode, ArrayRef<VPValue *>(Operands));
   }
 
 public:
@@ -124,33 +123,30 @@ public:
   /// its underlying Instruction.
   VPValue *createNaryOp(unsigned Opcode, ArrayRef<VPValue *> Operands,
                         Instruction *Inst = nullptr) {
-    DebugLoc DL;
-    if (Inst)
-      DL = Inst->getDebugLoc();
-    VPInstruction *NewVPInst = createInstruction(Opcode, Operands, DL);
+    VPInstruction *NewVPInst = createInstruction(Opcode, Operands);
     NewVPInst->setUnderlyingValue(Inst);
     return NewVPInst;
   }
-  VPValue *createNaryOp(unsigned Opcode, ArrayRef<VPValue *> Operands,
-                        DebugLoc DL) {
-    return createInstruction(Opcode, Operands, DL);
+  VPValue *createNaryOp(unsigned Opcode,
+                        std::initializer_list<VPValue *> Operands,
+                        Instruction *Inst = nullptr) {
+    return createNaryOp(Opcode, ArrayRef<VPValue *>(Operands), Inst);
   }
 
-  VPValue *createNot(VPValue *Operand, DebugLoc DL) {
-    return createInstruction(VPInstruction::Not, {Operand}, DL);
+  VPValue *createNot(VPValue *Operand) {
+    return createInstruction(VPInstruction::Not, {Operand});
   }
 
-  VPValue *createAnd(VPValue *LHS, VPValue *RHS, DebugLoc DL) {
-    return createInstruction(Instruction::BinaryOps::And, {LHS, RHS}, DL);
+  VPValue *createAnd(VPValue *LHS, VPValue *RHS) {
+    return createInstruction(Instruction::BinaryOps::And, {LHS, RHS});
   }
 
-  VPValue *createOr(VPValue *LHS, VPValue *RHS, DebugLoc DL) {
-    return createInstruction(Instruction::BinaryOps::Or, {LHS, RHS}, DL);
+  VPValue *createOr(VPValue *LHS, VPValue *RHS) {
+    return createInstruction(Instruction::BinaryOps::Or, {LHS, RHS});
   }
 
-  VPValue *createSelect(VPValue *Cond, VPValue *TrueVal, VPValue *FalseVal,
-                        DebugLoc DL) {
-    return createNaryOp(Instruction::Select, {Cond, TrueVal, FalseVal}, DL);
+  VPValue *createSelect(VPValue *Cond, VPValue *TrueVal, VPValue *FalseVal) {
+    return createNaryOp(Instruction::Select, {Cond, TrueVal, FalseVal});
   }
 
   //===--------------------------------------------------------------------===//
@@ -307,9 +303,12 @@ public:
 
   /// Look through the existing plans and return true if we have one with all
   /// the vectorization factors in question.
-  bool hasPlanWithVF(ElementCount VF) const {
-    return any_of(VPlans,
-                  [&](const VPlanPtr &Plan) { return Plan->hasVF(VF); });
+  bool hasPlanWithVFs(const ArrayRef<ElementCount> VFs) const {
+    return any_of(VPlans, [&](const VPlanPtr &Plan) {
+      return all_of(VFs, [&](const ElementCount &VF) {
+        return Plan->hasVF(VF);
+      });
+    });
   }
 
   /// Test a \p Predicate on a \p Range of VF's. Return the value of applying

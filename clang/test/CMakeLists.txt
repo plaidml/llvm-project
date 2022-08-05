@@ -11,7 +11,6 @@ string(REPLACE ${CMAKE_CFG_INTDIR} ${LLVM_BUILD_MODE} CLANG_TOOLS_DIR ${LLVM_RUN
 
 llvm_canonicalize_cmake_booleans(
   CLANG_BUILD_EXAMPLES
-  CLANG_DEFAULT_PIE_ON_LINUX
   CLANG_ENABLE_ARCMT
   CLANG_ENABLE_STATIC_ANALYZER
   CLANG_SPAWN_CC1
@@ -20,9 +19,7 @@ llvm_canonicalize_cmake_booleans(
   LLVM_ENABLE_ZLIB
   LLVM_ENABLE_PER_TARGET_RUNTIME_DIR
   LLVM_ENABLE_PLUGINS
-  LLVM_ENABLE_THREADS
-  LLVM_WITH_Z3
-  )
+  LLVM_ENABLE_THREADS)
 
 configure_lit_site_cfg(
   ${CMAKE_CURRENT_SOURCE_DIR}/lit.site.cfg.py.in
@@ -126,7 +123,6 @@ if( NOT CLANG_BUILT_STANDALONE )
     llvm-nm
     llvm-objcopy
     llvm-objdump
-    llvm-pdbutil
     llvm-profdata
     llvm-rc
     llvm-readelf

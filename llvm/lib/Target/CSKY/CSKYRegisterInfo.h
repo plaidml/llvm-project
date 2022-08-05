@@ -38,18 +38,6 @@ public:
   void eliminateFrameIndex(MachineBasicBlock::iterator MI, int SPAdj,
                            unsigned FIOperandNum,
                            RegScavenger *RS) const override;
-
-  bool requiresFrameIndexScavenging(const MachineFunction &MF) const override {
-    return true;
-  }
-
-  bool requiresRegisterScavenging(const MachineFunction &MF) const override {
-    return true;
-  }
-
-  bool useFPForScavengingIndex(const MachineFunction &MF) const override {
-    return false;
-  }
 };
 
 } // namespace llvm

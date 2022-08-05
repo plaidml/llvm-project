@@ -1,3 +1,5 @@
+// REQUIRES: arm-registered-target
+// REQUIRES: aarch64-registered-target
 // RUN: %clang_cc1 -triple thumbv7-apple-darwin9 \
 // RUN:   -target-abi aapcs \
 // RUN:   -target-cpu cortex-a8 \
@@ -14,9 +16,6 @@
 // RUN: %clang_cc1 -triple arm64-apple-darwin9 -target-feature +neon \
 // RUN:   -ffreestanding \
 // RUN:   -emit-llvm -w -o - %s | FileCheck -check-prefix=CHECK64 %s
-
-// REQUIRES: arm-registered-target
-// REQUIRES: aarch64-registered-target
 
 #include <arm_neon.h>
 

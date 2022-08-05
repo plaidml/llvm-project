@@ -44,6 +44,7 @@
 namespace llvm {
 
 class BasicBlock;
+class CallInst;
 class Function;
 class LLVMTargetMachine;
 class MMIAddrLabelMap;

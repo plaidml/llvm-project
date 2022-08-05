@@ -14,7 +14,6 @@
 
 #include "clang/StaticAnalyzer/Checkers/BuiltinCheckerRegistration.h"
 #include "clang/StaticAnalyzer/Core/BugReporter/BugType.h"
-#include "clang/StaticAnalyzer/Core/PathSensitive/CallDescription.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/CallEvent.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/CheckerContext.h"
 
@@ -37,7 +36,7 @@ public:
 
 bool StringChecker::isCharToStringCtor(const CallEvent &Call,
                                        const ASTContext &ACtx) const {
-  if (!TwoParamStdStringCtor.matches(Call))
+  if (!Call.isCalled(TwoParamStdStringCtor))
     return false;
   const auto *FD = dyn_cast<FunctionDecl>(Call.getDecl());
   assert(FD);

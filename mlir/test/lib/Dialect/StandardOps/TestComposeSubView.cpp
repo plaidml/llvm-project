@@ -19,12 +19,12 @@ using namespace mlir;
 
 namespace {
 struct TestComposeSubViewPass
-    : public PassWrapper<TestComposeSubViewPass, OperationPass<FuncOp>> {
+    : public PassWrapper<TestComposeSubViewPass, FunctionPass> {
   StringRef getArgument() const final { return "test-compose-subview"; }
   StringRef getDescription() const final {
     return "Test combining composed subviews";
   }
-  void runOnOperation() override;
+  void runOnFunction() override;
   void getDependentDialects(DialectRegistry &registry) const override;
 };
 
@@ -33,7 +33,7 @@ void TestComposeSubViewPass::getDependentDialects(
   registry.insert<AffineDialect>();
 }
 
-void TestComposeSubViewPass::runOnOperation() {
+void TestComposeSubViewPass::runOnFunction() {
   OwningRewritePatternList patterns(&getContext());
   populateComposeSubViewPatterns(patterns, &getContext());
   (void)applyPatternsAndFoldGreedily(getOperation(), std::move(patterns));

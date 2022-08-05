@@ -307,11 +307,6 @@ static cl::opt<bool>
                   cl::desc("Enable KernelMemorySanitizer instrumentation"),
                   cl::Hidden, cl::init(false));
 
-static cl::opt<bool>
-    ClDisableChecks("msan-disable-checks",
-                    cl::desc("Apply no_sanitize to the whole file"), cl::Hidden,
-                    cl::init(false));
-
 // This is an experiment to enable handling of cases where shadow is a non-zero
 // compile-time constant. For some unexplainable reason they were silently
 // ignored in the instrumentation.
@@ -492,7 +487,7 @@ class MemorySanitizer {
 public:
   MemorySanitizer(Module &M, MemorySanitizerOptions Options)
       : CompileKernel(Options.Kernel), TrackOrigins(Options.TrackOrigins),
-        Recover(Options.Recover), EagerChecks(Options.EagerChecks) {
+        Recover(Options.Recover) {
     initializeModule(M);
   }
 
@@ -522,7 +517,6 @@ private:
   /// Track origins (allocation points) of uninitialized values.
   int TrackOrigins;
   bool Recover;
-  bool EagerChecks;
 
   LLVMContext *C;
   Type *IntptrTy;
@@ -666,12 +660,10 @@ template <class T> T getOptOrDefault(const cl::opt<T> &Opt, T Default) {
 
 } // end anonymous namespace
 
-MemorySanitizerOptions::MemorySanitizerOptions(int TO, bool R, bool K,
-                                               bool EagerChecks)
+MemorySanitizerOptions::MemorySanitizerOptions(int TO, bool R, bool K)
     : Kernel(getOptOrDefault(ClEnableKmsan, K)),
       TrackOrigins(getOptOrDefault(ClTrackOrigins, Kernel ? 2 : TO)),
-      Recover(getOptOrDefault(ClKeepGoing, Kernel || R)),
-      EagerChecks(getOptOrDefault(ClEagerChecks, EagerChecks)) {}
+      Recover(getOptOrDefault(ClKeepGoing, Kernel || R)) {}
 
 PreservedAnalyses MemorySanitizerPass::run(Function &F,
                                            FunctionAnalysisManager &FAM) {
@@ -698,8 +690,6 @@ void MemorySanitizerPass::printPipeline(
     OS << "recover;";
   if (Options.Kernel)
     OS << "kernel;";
-  if (Options.EagerChecks)
-    OS << "eager-checks;";
   OS << "track-origins=" << Options.TrackOrigins;
   OS << ">";
 }
@@ -1105,8 +1095,7 @@ struct MemorySanitizerVisitor : public InstVisitor<MemorySanitizerVisitor> {
   MemorySanitizerVisitor(Function &F, MemorySanitizer &MS,
                          const TargetLibraryInfo &TLI)
       : F(F), MS(MS), VAHelper(CreateVarArgHelper(F, MS, *this)), TLI(&TLI) {
-    bool SanitizeFunction =
-        F.hasFnAttribute(Attribute::SanitizeMemory) && !ClDisableChecks;
+    bool SanitizeFunction = F.hasFnAttribute(Attribute::SanitizeMemory);
     InsertChecks = SanitizeFunction;
     PropagateShadow = SanitizeFunction;
     PoisonStack = SanitizeFunction && ClPoisonStack;
@@ -1225,7 +1214,7 @@ struct MemorySanitizerVisitor : public InstVisitor<MemorySanitizerVisitor> {
       Value *Shadow = SI->isAtomic() ? getCleanShadow(Val) : getShadow(Val);
       Value *ShadowPtr, *OriginPtr;
       Type *ShadowTy = Shadow->getType();
-      const Align Alignment = SI->getAlign();
+      const Align Alignment = assumeAligned(SI->getAlignment());
       const Align OriginAlignment = std::max(kMinOriginAlignment, Alignment);
       std::tie(ShadowPtr, OriginPtr) =
           getShadowOriginPtr(Addr, IRB, ShadowTy, Alignment, /*isStore*/ true);
@@ -1672,8 +1661,9 @@ struct MemorySanitizerVisitor : public InstVisitor<MemorySanitizerVisitor> {
   /// This function either returns the value set earlier with setShadow,
   /// or extracts if from ParamTLS (for function arguments).
   Value *getShadow(Value *V) {
+    if (!PropagateShadow) return getCleanShadow(V);
     if (Instruction *I = dyn_cast<Instruction>(V)) {
-      if (!PropagateShadow || I->getMetadata("nosanitize"))
+      if (I->getMetadata("nosanitize"))
         return getCleanShadow(V);
       // For instructions the shadow is already stored in the map.
       Value *Shadow = ShadowMap[V];
@@ -1685,8 +1675,7 @@ struct MemorySanitizerVisitor : public InstVisitor<MemorySanitizerVisitor> {
       return Shadow;
     }
     if (UndefValue *U = dyn_cast<UndefValue>(V)) {
-      Value *AllOnes = (PropagateShadow && PoisonUndef) ? getPoisonedShadow(V)
-                                                        : getCleanShadow(V);
+      Value *AllOnes = PoisonUndef ? getPoisonedShadow(V) : getCleanShadow(V);
       LLVM_DEBUG(dbgs() << "Undef: " << *U << " ==> " << *AllOnes << "\n");
       (void)U;
       return AllOnes;
@@ -1706,13 +1695,22 @@ struct MemorySanitizerVisitor : public InstVisitor<MemorySanitizerVisitor> {
           continue;
         }
 
-        unsigned Size = FArg.hasByValAttr()
-                            ? DL.getTypeAllocSize(FArg.getParamByValType())
-                            : DL.getTypeAllocSize(FArg.getType());
+        bool FArgByVal = FArg.hasByValAttr();
+        bool FArgNoUndef = FArg.hasAttribute(Attribute::NoUndef);
+        bool FArgEagerCheck = ClEagerChecks && !FArgByVal && FArgNoUndef;
+        unsigned Size =
+            FArg.hasByValAttr()
+                ? DL.getTypeAllocSize(FArg.getParamByValType())
+                : DL.getTypeAllocSize(FArg.getType());
 
         if (A == &FArg) {
           bool Overflow = ArgOffset + Size > kParamTLSSize;
-          if (FArg.hasByValAttr()) {
+          if (FArgEagerCheck) {
+            *ShadowPtr = getCleanShadow(V);
+            setOrigin(A, getCleanOrigin());
+            break;
+          } else if (FArgByVal) {
+            Value *Base = getShadowPtrForArgument(&FArg, EntryIRB, ArgOffset);
             // ByVal pointer itself has clean shadow. We copy the actual
             // argument shadow to the underlying memory.
             // Figure out maximal valid memcpy alignment.
@@ -1723,38 +1721,40 @@ struct MemorySanitizerVisitor : public InstVisitor<MemorySanitizerVisitor> {
                                    /*isStore*/ true)
                     .first;
             // TODO(glider): need to copy origins.
-            if (!PropagateShadow || Overflow) {
+            if (Overflow) {
               // ParamTLS overflow.
               EntryIRB.CreateMemSet(
                   CpShadowPtr, Constant::getNullValue(EntryIRB.getInt8Ty()),
                   Size, ArgAlign);
             } else {
-              Value *Base = getShadowPtrForArgument(&FArg, EntryIRB, ArgOffset);
               const Align CopyAlign = std::min(ArgAlign, kShadowTLSAlignment);
               Value *Cpy = EntryIRB.CreateMemCpy(CpShadowPtr, CopyAlign, Base,
                                                  CopyAlign, Size);
               LLVM_DEBUG(dbgs() << "  ByValCpy: " << *Cpy << "\n");
               (void)Cpy;
             }
-          }
-
-          if (!PropagateShadow || Overflow || FArg.hasByValAttr() ||
-              (MS.EagerChecks && FArg.hasAttribute(Attribute::NoUndef))) {
             *ShadowPtr = getCleanShadow(V);
-            setOrigin(A, getCleanOrigin());
           } else {
             // Shadow over TLS
             Value *Base = getShadowPtrForArgument(&FArg, EntryIRB, ArgOffset);
-            *ShadowPtr = EntryIRB.CreateAlignedLoad(getShadowTy(&FArg), Base,
-                                                    kShadowTLSAlignment);
-            if (MS.TrackOrigins) {
-              Value *OriginPtr =
-                  getOriginPtrForArgument(&FArg, EntryIRB, ArgOffset);
-              setOrigin(A, EntryIRB.CreateLoad(MS.OriginTy, OriginPtr));
+            if (Overflow) {
+              // ParamTLS overflow.
+              *ShadowPtr = getCleanShadow(V);
+            } else {
+              *ShadowPtr = EntryIRB.CreateAlignedLoad(getShadowTy(&FArg), Base,
+                                                      kShadowTLSAlignment);
             }
           }
           LLVM_DEBUG(dbgs()
                      << "  ARG:    " << FArg << " ==> " << **ShadowPtr << "\n");
+          if (MS.TrackOrigins && !Overflow) {
+            Value *OriginPtr =
+                getOriginPtrForArgument(&FArg, EntryIRB, ArgOffset);
+            setOrigin(A, EntryIRB.CreateLoad(MS.OriginTy, OriginPtr));
+          } else {
+            setOrigin(A, getCleanOrigin());
+          }
+
           break;
         }
 
@@ -3658,7 +3658,7 @@ struct MemorySanitizerVisitor : public InstVisitor<MemorySanitizerVisitor> {
       // will become a non-readonly function after it is instrumented by us. To
       // prevent this code from being optimized out, mark that function
       // non-readonly in advance.
-      AttributeMask B;
+      AttrBuilder B;
       B.addAttribute(Attribute::ReadOnly)
           .addAttribute(Attribute::ReadNone)
           .addAttribute(Attribute::WriteOnly)
@@ -3673,7 +3673,7 @@ struct MemorySanitizerVisitor : public InstVisitor<MemorySanitizerVisitor> {
       maybeMarkSanitizerLibraryCallNoBuiltin(Call, TLI);
     }
     IRBuilder<> IRB(&CB);
-    bool MayCheckCall = MS.EagerChecks;
+    bool MayCheckCall = ClEagerChecks;
     if (Function *Func = CB.getCalledFunction()) {
       // __sanitizer_unaligned_{load,store} functions may be called by users
       // and always expects shadows in the TLS. So don't check them.
@@ -3691,6 +3691,15 @@ struct MemorySanitizerVisitor : public InstVisitor<MemorySanitizerVisitor> {
         continue;
       }
       unsigned Size = 0;
+      Value *Store = nullptr;
+      // Compute the Shadow for arg even if it is ByVal, because
+      // in that case getShadow() will copy the actual arg shadow to
+      // __msan_param_tls.
+      Value *ArgShadow = getShadow(A);
+      Value *ArgShadowBase = getShadowPtrForArgument(A, IRB, ArgOffset);
+      LLVM_DEBUG(dbgs() << "  Arg#" << i << ": " << *A
+                        << " Shadow: " << *ArgShadow << "\n");
+      bool ArgIsInitialized = false;
       const DataLayout &DL = F.getParent()->getDataLayout();
 
       bool ByVal = CB.paramHasAttr(i, Attribute::ByVal);
@@ -3701,15 +3710,6 @@ struct MemorySanitizerVisitor : public InstVisitor<MemorySanitizerVisitor> {
         insertShadowCheck(A, &CB);
         Size = DL.getTypeAllocSize(A->getType());
       } else {
-        bool ArgIsInitialized = false;
-        Value *Store = nullptr;
-        // Compute the Shadow for arg even if it is ByVal, because
-        // in that case getShadow() will copy the actual arg shadow to
-        // __msan_param_tls.
-        Value *ArgShadow = getShadow(A);
-        Value *ArgShadowBase = getShadowPtrForArgument(A, IRB, ArgOffset);
-        LLVM_DEBUG(dbgs() << "  Arg#" << i << ": " << *A
-                          << " Shadow: " << *ArgShadow << "\n");
         if (ByVal) {
           // ByVal requires some special handling as it's too big for a single
           // load
@@ -3726,14 +3726,10 @@ struct MemorySanitizerVisitor : public InstVisitor<MemorySanitizerVisitor> {
               getShadowOriginPtr(A, IRB, IRB.getInt8Ty(), Alignment,
                                  /*isStore*/ false)
                   .first;
-          if (!PropagateShadow) {
-            Store = IRB.CreateMemSet(ArgShadowBase,
-                                     Constant::getNullValue(IRB.getInt8Ty()),
-                                     Size, Alignment);
-          } else {
-            Store = IRB.CreateMemCpy(ArgShadowBase, Alignment, AShadowPtr,
-                                     Alignment, Size);
-          }
+
+          Store = IRB.CreateMemCpy(ArgShadowBase, Alignment, AShadowPtr,
+                                   Alignment, Size);
+          // TODO(glider): need to copy origins.
         } else {
           // Any other parameters mean we need bit-grained tracking of uninit
           // data
@@ -3830,10 +3826,10 @@ struct MemorySanitizerVisitor : public InstVisitor<MemorySanitizerVisitor> {
     Value *ShadowPtr = getShadowPtrForRetval(RetVal, IRB);
     bool HasNoUndef =
         F.hasRetAttribute(Attribute::NoUndef);
-    bool StoreShadow = !(MS.EagerChecks && HasNoUndef);
+    bool StoreShadow = !(ClEagerChecks && HasNoUndef);
     // FIXME: Consider using SpecialCaseList to specify a list of functions that
     // must always return fully initialized values. For now, we hardcode "main".
-    bool EagerCheck = (MS.EagerChecks && HasNoUndef) || (F.getName() == "main");
+    bool EagerCheck = (ClEagerChecks && HasNoUndef) || (F.getName() == "main");
 
     Value *Shadow = getShadow(RetVal);
     bool StoreOrigin = true;
@@ -3891,7 +3887,8 @@ struct MemorySanitizerVisitor : public InstVisitor<MemorySanitizerVisitor> {
           &I, IRB, IRB.getInt8Ty(), Align(1), /*isStore*/ true);
 
       Value *PoisonValue = IRB.getInt8(PoisonStack ? ClPoisonStackPattern : 0);
-      IRB.CreateMemSet(ShadowBase, PoisonValue, Len, I.getAlign());
+      IRB.CreateMemSet(ShadowBase, PoisonValue, Len,
+                       MaybeAlign(I.getAlignment()));
     }
 
     if (PoisonStack && MS.TrackOrigins) {
@@ -5357,7 +5354,7 @@ bool MemorySanitizer::sanitizeFunction(Function &F, TargetLibraryInfo &TLI) {
   MemorySanitizerVisitor Visitor(F, *this, TLI);
 
   // Clear out readonly/readnone attributes.
-  AttributeMask B;
+  AttrBuilder B;
   B.addAttribute(Attribute::ReadOnly)
       .addAttribute(Attribute::ReadNone)
       .addAttribute(Attribute::WriteOnly)

@@ -28,7 +28,7 @@
 
 namespace llvm {
 class StringRef;
-} // namespace llvm
+} // end namespace llvm
 
 namespace mlir {
 namespace tblgen {
@@ -61,7 +61,7 @@ struct NamedTypeConstraint {
 // Operation argument: either attribute or operand
 using Argument = llvm::PointerUnion<NamedAttribute *, NamedTypeConstraint *>;
 
-} // namespace tblgen
-} // namespace mlir
+} // end namespace tblgen
+} // end namespace mlir
 
 #endif // MLIR_TABLEGEN_ARGUMENT_H_

@@ -17,12 +17,11 @@
 #ifndef FORTRAN_RUNTIME_TRANSFORMATIONAL_H_
 #define FORTRAN_RUNTIME_TRANSFORMATIONAL_H_
 
+#include "flang/Runtime/descriptor.h"
 #include "flang/Runtime/entry-names.h"
-#include <cinttypes>
+#include "flang/Runtime/memory.h"
 
 namespace Fortran::runtime {
-
-class Descriptor;
 
 extern "C" {
 

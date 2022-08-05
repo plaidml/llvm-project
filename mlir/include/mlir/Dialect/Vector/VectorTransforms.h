@@ -6,8 +6,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef MLIR_DIALECT_VECTOR_VECTORTRANSFORMS_H
-#define MLIR_DIALECT_VECTOR_VECTORTRANSFORMS_H
+#ifndef DIALECT_VECTOR_VECTORTRANSFORMS_H_
+#define DIALECT_VECTOR_VECTORTRANSFORMS_H_
 
 #include "mlir/Dialect/Vector/VectorRewritePatterns.h"
 #include "mlir/Dialect/Vector/VectorUtils.h"
@@ -16,8 +16,6 @@ namespace mlir {
 class MLIRContext;
 class VectorTransferOpInterface;
 class RewritePatternSet;
-class RewriterBase;
-
 using OwningRewritePatternList = RewritePatternSet;
 
 namespace scf {
@@ -63,7 +61,7 @@ namespace vector {
 ///  must be equal. This will be relaxed in the future but requires
 ///  rank-reducing subviews.
 LogicalResult splitFullAndPartialTransfer(
-    RewriterBase &b, VectorTransferOpInterface xferOp,
+    OpBuilder &b, VectorTransferOpInterface xferOp,
     VectorTransformsOptions options = VectorTransformsOptions(),
     scf::IfOp *ifOp = nullptr);
 
@@ -96,4 +94,4 @@ void transferOpflowOpt(FuncOp func);
 } // namespace vector
 } // namespace mlir
 
-#endif // MLIR_DIALECT_VECTOR_VECTORTRANSFORMS_H
+#endif // DIALECT_VECTOR_VECTORTRANSFORMS_H_

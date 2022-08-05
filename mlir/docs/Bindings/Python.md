@@ -898,7 +898,7 @@ include "mlir/Dialect/StandardOps/IR/Ops.td"
 ```
 
 In the main repository, building the wrapper is done via the CMake function
-`declare_mlir_dialect_python_bindings`, which invokes:
+`add_mlir_dialect_python_bindings`, which invokes:
 
 ```
 mlir-tblgen -gen-python-op-bindings -bind-dialect={DIALECT_NAMESPACE} \

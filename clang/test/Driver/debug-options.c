@@ -279,8 +279,7 @@
 // NOG_PS4-NOT: "-dwarf-version=
 //
 // G_PS4: "-cc1"
-/// PS4 will stay on v4 even if the generic default version changes.
-// G_PS4: "-dwarf-version=4"
+// G_PS4: "-dwarf-version=
 // G_PS4: "-generate-arange-section"
 //
 // G_ERR: error: unknown argument:

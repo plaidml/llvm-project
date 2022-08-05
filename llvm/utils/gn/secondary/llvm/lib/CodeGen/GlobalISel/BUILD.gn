@@ -30,7 +30,6 @@ static_library("GlobalISel") {
     "Legalizer.cpp",
     "LegalizerHelper.cpp",
     "LegalizerInfo.cpp",
-    "LoadStoreOpt.cpp",
     "Localizer.cpp",
     "LostDebugLocObserver.cpp",
     "MachineIRBuilder.cpp",

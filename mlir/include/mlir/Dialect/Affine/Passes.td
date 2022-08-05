@@ -15,7 +15,7 @@
 
 include "mlir/Pass/PassBase.td"
 
-def AffineDataCopyGeneration : Pass<"affine-data-copy-generate", "FuncOp"> {
+def AffineDataCopyGeneration : FunctionPass<"affine-data-copy-generate"> {
   let summary = "Generate explicit copying for affine memory operations";
   let constructor = "mlir::createAffineDataCopyGenerationPass()";
   let dependentDialects = ["memref::MemRefDialect"];
@@ -44,12 +44,12 @@ def AffineDataCopyGeneration : Pass<"affine-data-copy-generate", "FuncOp"> {
 }
 
 def AffineLoopInvariantCodeMotion
-    : Pass<"affine-loop-invariant-code-motion", "FuncOp"> {
+    : FunctionPass<"affine-loop-invariant-code-motion"> {
   let summary = "Hoist loop invariant instructions outside of affine loops";
   let constructor = "mlir::createAffineLoopInvariantCodeMotionPass()";
 }
 
-def AffineLoopTiling : Pass<"affine-loop-tile", "FuncOp"> {
+def AffineLoopTiling : FunctionPass<"affine-loop-tile"> {
   let summary = "Tile affine loop nests";
   let constructor = "mlir::createLoopTilingPass()";
   let options = [
@@ -66,7 +66,7 @@ def AffineLoopTiling : Pass<"affine-loop-tile", "FuncOp"> {
   ];
 }
 
-def AffineLoopUnroll : Pass<"affine-loop-unroll", "FuncOp"> {
+def AffineLoopUnroll : FunctionPass<"affine-loop-unroll"> {
   let summary = "Unroll affine loops";
   let constructor = "mlir::createLoopUnrollPass()";
   let options = [
@@ -84,7 +84,7 @@ def AffineLoopUnroll : Pass<"affine-loop-unroll", "FuncOp"> {
   ];
 }
 
-def AffineLoopUnrollAndJam : Pass<"affine-loop-unroll-jam", "FuncOp"> {
+def AffineLoopUnrollAndJam : FunctionPass<"affine-loop-unroll-jam"> {
   let summary = "Unroll and jam affine loops";
   let constructor = "mlir::createLoopUnrollAndJamPass()";
   let options = [
@@ -94,7 +94,7 @@ def AffineLoopUnrollAndJam : Pass<"affine-loop-unroll-jam", "FuncOp"> {
   ];
 }
 
-def AffineScalarReplacement : Pass<"affine-scalrep", "FuncOp"> {
+def AffineScalarReplacement : FunctionPass<"affine-scalrep"> {
   let summary = "Replace affine memref acceses by scalars by forwarding stores "
                 "to loads and eliminating redundant loads";
   let description = [{
@@ -107,7 +107,7 @@ def AffineScalarReplacement : Pass<"affine-scalrep", "FuncOp"> {
     ```mlir
     func @store_load_affine_apply() -> memref<10x10xf32> {
       %cf7 = arith.constant 7.0 : f32
-      %m = memref.alloc() : memref<10x10xf32>
+      %m = alloc() : memref<10x10xf32>
       affine.for %i0 = 0 to 10 {
         affine.for %i1 = 0 to 10 {
           affine.store %cf7, %m[%i0, %i1] : memref<10x10xf32>
@@ -125,7 +125,7 @@ def AffineScalarReplacement : Pass<"affine-scalrep", "FuncOp"> {
     module {
       func @store_load_affine_apply() -> memref<10x10xf32> {
         %cst = arith.constant 7.000000e+00 : f32
-        %0 = memref.alloc() : memref<10x10xf32>
+        %0 = alloc() : memref<10x10xf32>
         affine.for %arg0 = 0 to 10 {
           affine.for %arg1 = 0 to 10 {
             affine.store %cst, %0[%arg0, %arg1] : memref<10x10xf32>
@@ -140,7 +140,7 @@ def AffineScalarReplacement : Pass<"affine-scalrep", "FuncOp"> {
   let constructor = "mlir::createAffineScalarReplacementPass()";
 }
 
-def AffineVectorize : Pass<"affine-super-vectorize", "FuncOp"> {
+def AffineVectorize : FunctionPass<"affine-super-vectorize"> {
   let summary = "Vectorize to a target independent n-D vector abstraction";
   let constructor = "mlir::createSuperVectorizePass()";
   let dependentDialects = ["vector::VectorDialect"];
@@ -166,7 +166,7 @@ def AffineVectorize : Pass<"affine-super-vectorize", "FuncOp"> {
   ];
 }
 
-def AffineParallelize : Pass<"affine-parallelize", "FuncOp"> {
+def AffineParallelize : FunctionPass<"affine-parallelize"> {
   let summary = "Convert affine.for ops into 1-D affine.parallel";
   let constructor = "mlir::createAffineParallelizePass()";
   let options = [
@@ -179,12 +179,12 @@ def AffineParallelize : Pass<"affine-parallelize", "FuncOp"> {
   ];
 }
 
-def AffineLoopNormalize : Pass<"affine-loop-normalize", "FuncOp"> {
+def AffineLoopNormalize : FunctionPass<"affine-loop-normalize"> {
   let summary = "Apply normalization transformations to affine loop-like ops";
   let constructor = "mlir::createAffineLoopNormalizePass()";
 }
 
-def SimplifyAffineStructures : Pass<"simplify-affine-structures", "FuncOp"> {
+def SimplifyAffineStructures : FunctionPass<"simplify-affine-structures"> {
   let summary = "Simplify affine expressions in maps/sets and normalize "
                 "memrefs";
   let constructor = "mlir::createSimplifyAffineStructuresPass()";

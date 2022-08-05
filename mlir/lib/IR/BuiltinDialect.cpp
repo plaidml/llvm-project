@@ -59,7 +59,7 @@ struct BuiltinOpAsmDialectInterface : public OpAsmDialectInterface {
     return AliasResult::NoAlias;
   }
 };
-} // namespace
+} // end anonymous namespace.
 
 void BuiltinDialect::initialize() {
   registerTypes();
@@ -108,23 +108,24 @@ void FuncOp::build(OpBuilder &builder, OperationState &state, StringRef name,
   if (argAttrs.empty())
     return;
   assert(type.getNumInputs() == argAttrs.size());
-  function_interface_impl::addArgAndResultAttrs(builder, state, argAttrs,
-                                                /*resultAttrs=*/llvm::None);
+  function_like_impl::addArgAndResultAttrs(builder, state, argAttrs,
+                                           /*resultAttrs=*/llvm::None);
 }
 
 static ParseResult parseFuncOp(OpAsmParser &parser, OperationState &result) {
-  auto buildFuncType =
-      [](Builder &builder, ArrayRef<Type> argTypes, ArrayRef<Type> results,
-         function_interface_impl::VariadicFlag,
-         std::string &) { return builder.getFunctionType(argTypes, results); };
+  auto buildFuncType = [](Builder &builder, ArrayRef<Type> argTypes,
+                          ArrayRef<Type> results,
+                          function_like_impl::VariadicFlag, std::string &) {
+    return builder.getFunctionType(argTypes, results);
+  };
 
-  return function_interface_impl::parseFunctionOp(
+  return function_like_impl::parseFunctionLikeOp(
       parser, result, /*allowVariadic=*/false, buildFuncType);
 }
 
 static void print(FuncOp op, OpAsmPrinter &p) {
   FunctionType fnType = op.getType();
-  function_interface_impl::printFunctionOp(
+  function_like_impl::printFunctionLikeOp(
       p, op, fnType.getInputs(), /*isVariadic=*/false, fnType.getResults());
 }
 
@@ -152,17 +153,12 @@ static LogicalResult verify(FuncOp op) {
 /// from this function to dest.
 void FuncOp::cloneInto(FuncOp dest, BlockAndValueMapping &mapper) {
   // Add the attributes of this function to dest.
-  llvm::MapVector<StringAttr, Attribute> newAttrMap;
+  llvm::MapVector<Identifier, Attribute> newAttrs;
   for (const auto &attr : dest->getAttrs())
-    newAttrMap.insert({attr.getName(), attr.getValue()});
+    newAttrs.insert(attr);
   for (const auto &attr : (*this)->getAttrs())
-    newAttrMap.insert({attr.getName(), attr.getValue()});
-
-  auto newAttrs = llvm::to_vector(llvm::map_range(
-      newAttrMap, [](std::pair<StringAttr, Attribute> attrPair) {
-        return NamedAttribute(attrPair.first, attrPair.second);
-      }));
-  dest->setAttrs(DictionaryAttr::get(getContext(), newAttrs));
+    newAttrs.insert(attr);
+  dest->setAttrs(DictionaryAttr::get(getContext(), newAttrs.takeVector()));
 
   // Clone the body.
   getBody().cloneInto(&dest.getBody(), mapper);
@@ -239,9 +235,10 @@ DataLayoutSpecInterface ModuleOp::getDataLayoutSpec() {
   // Take the first and only (if present) attribute that implements the
   // interface. This needs a linear search, but is called only once per data
   // layout object construction that is used for repeated queries.
-  for (NamedAttribute attr : getOperation()->getAttrs())
-    if (auto spec = attr.getValue().dyn_cast<DataLayoutSpecInterface>())
+  for (Attribute attr : llvm::make_second_range(getOperation()->getAttrs())) {
+    if (auto spec = attr.dyn_cast<DataLayoutSpecInterface>())
       return spec;
+  }
   return {};
 }
 
@@ -249,30 +246,29 @@ static LogicalResult verify(ModuleOp op) {
   // Check that none of the attributes are non-dialect attributes, except for
   // the symbol related attributes.
   for (auto attr : op->getAttrs()) {
-    if (!attr.getName().strref().contains('.') &&
+    if (!attr.first.strref().contains('.') &&
         !llvm::is_contained(
             ArrayRef<StringRef>{mlir::SymbolTable::getSymbolAttrName(),
                                 mlir::SymbolTable::getVisibilityAttrName()},
-            attr.getName().strref()))
+            attr.first.strref()))
       return op.emitOpError() << "can only contain attributes with "
                                  "dialect-prefixed names, found: '"
-                              << attr.getName().getValue() << "'";
+                              << attr.first << "'";
   }
 
   // Check that there is at most one data layout spec attribute.
   StringRef layoutSpecAttrName;
   DataLayoutSpecInterface layoutSpec;
   for (const NamedAttribute &na : op->getAttrs()) {
-    if (auto spec = na.getValue().dyn_cast<DataLayoutSpecInterface>()) {
+    if (auto spec = na.second.dyn_cast<DataLayoutSpecInterface>()) {
       if (layoutSpec) {
         InFlightDiagnostic diag =
             op.emitOpError() << "expects at most one data layout attribute";
         diag.attachNote() << "'" << layoutSpecAttrName
                           << "' is a data layout attribute";
-        diag.attachNote() << "'" << na.getName().getValue()
-                          << "' is a data layout attribute";
+        diag.attachNote() << "'" << na.first << "' is a data layout attribute";
       }
-      layoutSpecAttrName = na.getName().strref();
+      layoutSpecAttrName = na.first.strref();
       layoutSpec = spec;
     }
   }

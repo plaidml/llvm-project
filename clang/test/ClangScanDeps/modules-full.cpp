@@ -46,6 +46,9 @@
 // CHECK-NEXT:       "clang-modulemap-file": "[[PREFIX]]/Inputs/module.modulemap",
 // CHECK-NEXT:       "command-line": [
 // CHECK-NEXT:         "-cc1"
+// CHECK-NO-ABS-NOT:   "-fmodule-map-file={{.*}}"
+// CHECK-ABS:          "-fmodule-map-file=[[PREFIX]]/Inputs/module.modulemap"
+// CHECK-CUSTOM:       "-fmodule-map-file=[[PREFIX]]/Inputs/module.modulemap"
 // CHECK:              "-emit-module"
 // CHECK-NO-ABS-NOT:   "-fmodule-file={{.*}}"
 // CHECK-ABS:          "-fmodule-file=[[PREFIX]]/module-cache{{(_clangcl)?}}/[[HASH_H2_DINCLUDE]]/header2-{{[A-Z0-9]+}}.pcm"
@@ -108,6 +111,9 @@
 // CHECK-NO-ABS-NOT:   "-fmodule-file={{.*}}"
 // CHECK-ABS-NEXT:     "-fmodule-file=[[PREFIX]]/module-cache{{(_clangcl)?}}/[[HASH_H1]]/header1-{{[A-Z0-9]+}}.pcm"
 // CHECK-CUSTOM-NEXT:  "-fmodule-file=[[PREFIX]]/custom/[[HASH_H1]]/header1-{{[A-Z0-9]+}}.pcm"
+// CHECK-NO-ABS-NOT:   "-fmodule-map-file={{.*}}"
+// CHECK-ABS-NEXT:     "-fmodule-map-file=[[PREFIX]]/Inputs/module.modulemap"
+// CHECK-CUSTOM-NEXT:  "-fmodule-map-file=[[PREFIX]]/Inputs/module.modulemap"
 // CHECK-NEXT:       ],
 // CHECK-NEXT:       "file-deps": [
 // CHECK-NEXT:         "[[PREFIX]]/modules_cdb_input.cpp"
@@ -128,6 +134,9 @@
 // CHECK-NO-ABS-NOT:   "-fmodule-file={{.*}},
 // CHECK-ABS-NEXT:     "-fmodule-file=[[PREFIX]]/module-cache{{(_clangcl)?}}/[[HASH_H1]]/header1-{{[A-Z0-9]+}}.pcm"
 // CHECK-CUSTOM-NEXT:  "-fmodule-file=[[PREFIX]]/custom/[[HASH_H1]]/header1-{{[A-Z0-9]+}}.pcm"
+// CHECK-NO-ABS-NOT:   "-fmodule-map-file={{.*}}
+// CHECK-ABS-NEXT:     "-fmodule-map-file=[[PREFIX]]/Inputs/module.modulemap"
+// CHECK-CUSTOM-NEXT:  "-fmodule-map-file=[[PREFIX]]/Inputs/module.modulemap"
 // CHECK-NEXT:       ],
 // CHECK-NEXT:       "file-deps": [
 // CHECK-NEXT:         "[[PREFIX]]/modules_cdb_input.cpp"
@@ -148,6 +157,9 @@
 // CHECK-NO-ABS-NOT:   "-fmodule-file={{.*}}"
 // CHECK-ABS-NEXT:     "-fmodule-file=[[PREFIX]]/module-cache{{(_clangcl)?}}/[[HASH_H1]]/header1-{{[A-Z0-9]+}}.pcm"
 // CHECK-CUSTOM-NEXT:  "-fmodule-file=[[PREFIX]]/custom/[[HASH_H1]]/header1-{{[A-Z0-9]+}}.pcm"
+// CHECK-NO-ABS-NOT:   "-fmodule-map-file={{.*}}"
+// CHECK-ABS-NEXT:     "-fmodule-map-file=[[PREFIX]]/Inputs/module.modulemap"
+// CHECK-CUSTOM-NEXT:  "-fmodule-map-file=[[PREFIX]]/Inputs/module.modulemap"
 // CHECK-NEXT:       ],
 // CHECK-NEXT:       "file-deps": [
 // CHECK-NEXT:         "[[PREFIX]]/modules_cdb_input.cpp"
@@ -170,6 +182,11 @@
 // CHECK-ABS-NEXT:     "-fmodule-file=[[PREFIX]]/module-cache{{(_clangcl)?}}/[[HASH_H1_DINCLUDE]]/header1-{{[A-Z0-9]+}}.pcm"
 // CHECK-CUSTOM-NEXT:  "-fmodule-file=[[PREFIX]]/custom/[[HASH_H2_DINCLUDE]]/header2-{{[A-Z0-9]+}}.pcm"
 // CHECK-CUSTOM-NEXT:  "-fmodule-file=[[PREFIX]]/custom/[[HASH_H1_DINCLUDE]]/header1-{{[A-Z0-9]+}}.pcm"
+// CHECK-NO-ABS-NOT:   "-fmodule-map-file={{.*}}"
+// CHECK-ABS-NEXT:     "-fmodule-map-file=[[PREFIX]]/Inputs/module.modulemap"
+// CHECK-ABS-NEXT:     "-fmodule-map-file=[[PREFIX]]/Inputs/module.modulemap"
+// CHECK-CUSTOM-NEXT:  "-fmodule-map-file=[[PREFIX]]/Inputs/module.modulemap"
+// CHECK-CUSTOM-NEXT:  "-fmodule-map-file=[[PREFIX]]/Inputs/module.modulemap"
 // CHECK-NEXT:       ],
 // CHECK-NEXT:       "file-deps": [
 // CHECK-NEXT:         "[[PREFIX]]/modules_cdb_input2.cpp"

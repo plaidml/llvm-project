@@ -75,16 +75,17 @@ ToolChain::ToolChain(const Driver &D, const llvm::Triple &T,
                      const ArgList &Args)
     : D(D), Triple(T), Args(Args), CachedRTTIArg(GetRTTIArgument(Args)),
       CachedRTTIMode(CalculateRTTIMode(Args, Triple, CachedRTTIArg)) {
-  auto addIfExists = [this](path_list &List, const std::string &Path) {
-    if (getVFS().exists(Path))
-      List.push_back(Path);
-  };
+  std::string RuntimePath = getRuntimePath();
+  if (getVFS().exists(RuntimePath))
+    getLibraryPaths().push_back(RuntimePath);
 
-  for (const auto &Path : getRuntimePaths())
-    addIfExists(getLibraryPaths(), Path);
-  for (const auto &Path : getStdlibPaths())
-    addIfExists(getFilePaths(), Path);
-  addIfExists(getFilePaths(), getArchSpecificLibPath());
+  std::string StdlibPath = getStdlibPath();
+  if (getVFS().exists(StdlibPath))
+    getFilePaths().push_back(StdlibPath);
+
+  std::string CandidateLibPath = getArchSpecificLibPath();
+  if (getVFS().exists(CandidateLibPath))
+    getFilePaths().push_back(CandidateLibPath);
 }
 
 void ToolChain::setTripleEnvironment(llvm::Triple::EnvironmentType Env) {
@@ -109,11 +110,14 @@ bool ToolChain::useRelaxRelocations() const {
   return ENABLE_X86_RELAX_RELOCATIONS;
 }
 
-SanitizerArgs
-ToolChain::getSanitizerArgs(const llvm::opt::ArgList &JobArgs) const {
-  SanitizerArgs SanArgs(*this, JobArgs, !SanitizerArgsChecked);
-  SanitizerArgsChecked = true;
-  return SanArgs;
+bool ToolChain::isNoExecStackDefault() const {
+    return false;
+}
+
+const SanitizerArgs& ToolChain::getSanitizerArgs() const {
+  if (!SanitizerArguments.get())
+    SanitizerArguments.reset(new SanitizerArgs(*this, Args));
+  return *SanitizerArguments.get();
 }
 
 const XRayArgs& ToolChain::getXRayArgs() const {
@@ -259,7 +263,7 @@ bool ToolChain::IsUnwindTablesDefault(const ArgList &Args) const {
 
 Tool *ToolChain::getClang() const {
   if (!Clang)
-    Clang.reset(new tools::Clang(*this, useIntegratedBackend()));
+    Clang.reset(new tools::Clang(*this));
   return Clang.get();
 }
 
@@ -484,35 +488,16 @@ const char *ToolChain::getCompilerRTArgString(const llvm::opt::ArgList &Args,
   return Args.MakeArgString(getCompilerRT(Args, Component, Type));
 }
 
-ToolChain::path_list ToolChain::getRuntimePaths() const {
-  path_list Paths;
-  auto addPathForTriple = [this, &Paths](const llvm::Triple &Triple) {
-    SmallString<128> P(D.ResourceDir);
-    llvm::sys::path::append(P, "lib", Triple.str());
-    Paths.push_back(std::string(P.str()));
-  };
-
-  addPathForTriple(getTriple());
-
-  // Android targets may include an API level at the end. We still want to fall
-  // back on a path without the API level.
-  if (getTriple().isAndroid() &&
-      getTriple().getEnvironmentName() != "android") {
-    llvm::Triple TripleWithoutLevel = getTriple();
-    TripleWithoutLevel.setEnvironmentName("android");
-    addPathForTriple(TripleWithoutLevel);
-  }
-
-  return Paths;
+std::string ToolChain::getRuntimePath() const {
+  SmallString<128> P(D.ResourceDir);
+  llvm::sys::path::append(P, "lib", getTripleString());
+  return std::string(P.str());
 }
 
-ToolChain::path_list ToolChain::getStdlibPaths() const {
-  path_list Paths;
+std::string ToolChain::getStdlibPath() const {
   SmallString<128> P(D.Dir);
   llvm::sys::path::append(P, "..", "lib", getTripleString());
-  Paths.push_back(std::string(P.str()));
-
-  return Paths;
+  return std::string(P.str());
 }
 
 std::string ToolChain::getArchSpecificLibPath() const {
@@ -559,9 +544,12 @@ std::string ToolChain::GetProgramPath(const char *Name) const {
   return D.GetProgramPath(Name, *this);
 }
 
-std::string ToolChain::GetLinkerPath(bool *LinkerIsLLD) const {
+std::string ToolChain::GetLinkerPath(bool *LinkerIsLLD,
+                                     bool *LinkerIsLLDDarwinNew) const {
   if (LinkerIsLLD)
     *LinkerIsLLD = false;
+  if (LinkerIsLLDDarwinNew)
+    *LinkerIsLLDDarwinNew = false;
 
   // Get -fuse-ld= first to prevent -Wunused-command-line-argument. -fuse-ld= is
   // considered as the linker flavor, e.g. "bfd", "gold", or "lld".
@@ -614,8 +602,11 @@ std::string ToolChain::GetLinkerPath(bool *LinkerIsLLD) const {
 
     std::string LinkerPath(GetProgramPath(LinkerName.c_str()));
     if (llvm::sys::fs::can_execute(LinkerPath)) {
+      // FIXME: Remove LinkerIsLLDDarwinNew once there's only one MachO lld.
       if (LinkerIsLLD)
-        *LinkerIsLLD = UseLinker == "lld";
+        *LinkerIsLLD = UseLinker == "lld" || UseLinker == "lld.darwinold";
+      if (LinkerIsLLDDarwinNew)
+        *LinkerIsLLDDarwinNew = UseLinker == "lld";
       return LinkerPath;
     }
   }

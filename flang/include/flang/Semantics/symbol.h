@@ -107,7 +107,7 @@ private:
 };
 
 // For SubprogramNameDetails, the kind indicates whether it is the name
-// of a module subprogram or an internal subprogram or ENTRY.
+// of a module subprogram or internal subprogram.
 ENUM_CLASS(SubprogramKind, Module, Internal)
 
 // Symbol with SubprogramNameDetails is created when we scan for module and
@@ -121,16 +121,10 @@ public:
   SubprogramNameDetails() = delete;
   SubprogramKind kind() const { return kind_; }
   ProgramTree &node() const { return *node_; }
-  bool isEntryStmt() const { return isEntryStmt_; }
-  SubprogramNameDetails &set_isEntryStmt(bool yes = true) {
-    isEntryStmt_ = yes;
-    return *this;
-  }
 
 private:
   SubprogramKind kind_;
   common::Reference<ProgramTree> node_;
-  bool isEntryStmt_{false};
 };
 
 // A name from an entity-decl -- could be object or function.
@@ -194,11 +188,11 @@ public:
   }
   bool IsArray() const { return !shape_.empty(); }
   bool IsCoarray() const { return !coshape_.empty(); }
-  bool CanBeAssumedShape() const {
-    return isDummy() && shape_.CanBeAssumedShape();
+  bool IsAssumedShape() const { return isDummy() && shape_.IsAssumedShape(); }
+  bool IsDeferredShape() const {
+    return !isDummy() && shape_.IsDeferredShape();
   }
-  bool CanBeDeferredShape() const { return shape_.CanBeDeferredShape(); }
-  bool IsAssumedSize() const { return isDummy() && shape_.CanBeAssumedSize(); }
+  bool IsAssumedSize() const { return isDummy() && shape_.IsAssumedSize(); }
   bool IsAssumedRank() const { return isDummy() && shape_.IsAssumedRank(); }
 
 private:
@@ -261,7 +255,6 @@ public:
   const std::list<SourceName> &paramNames() const { return paramNames_; }
   const SymbolVector &paramDecls() const { return paramDecls_; }
   bool sequence() const { return sequence_; }
-  bool isDECStructure() const { return isDECStructure_; }
   std::map<SourceName, SymbolRef> &finals() { return finals_; }
   const std::map<SourceName, SymbolRef> &finals() const { return finals_; }
   bool isForwardReferenced() const { return isForwardReferenced_; }
@@ -269,7 +262,6 @@ public:
   void add_paramDecl(const Symbol &symbol) { paramDecls_.push_back(symbol); }
   void add_component(const Symbol &);
   void set_sequence(bool x = true) { sequence_ = x; }
-  void set_isDECStructure(bool x = true) { isDECStructure_ = x; }
   void set_isForwardReferenced(bool value) { isForwardReferenced_ = value; }
   const std::list<SourceName> &componentNames() const {
     return componentNames_;
@@ -300,7 +292,6 @@ private:
   std::list<SourceName> componentNames_;
   std::map<SourceName, SymbolRef> finals_; // FINAL :: subr
   bool sequence_{false};
-  bool isDECStructure_{false};
   bool isForwardReferenced_{false};
   friend llvm::raw_ostream &operator<<(
       llvm::raw_ostream &, const DerivedTypeDetails &);
@@ -504,8 +495,8 @@ public:
       LocalityLocal, // named in LOCAL locality-spec
       LocalityLocalInit, // named in LOCAL_INIT locality-spec
       LocalityShared, // named in SHARED locality-spec
-      InDataStmt, // initialized in a DATA statement, =>object, or /init/
-      InNamelist, // in a Namelist group
+      InDataStmt, // initialized in a DATA statement
+      InNamelist, // flag is set if the symbol is in Namelist statement
       CompilerCreated,
       // OpenACC data-sharing attribute
       AccPrivate, AccFirstPrivate, AccShared,

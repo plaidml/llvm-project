@@ -8,8 +8,6 @@
 // RUN:   -disable-O0-optnone -S -emit-llvm -fno-legacy-pass-manager -o - %s \
 // RUN: | opt -S -mem2reg | FileCheck %s
 
-// REQUIRES: aarch64-registered-target || arm-registered-target
-
 #include <arm_neon.h>
 
 // CHECK-LABEL: @test_vbfdot_f32(

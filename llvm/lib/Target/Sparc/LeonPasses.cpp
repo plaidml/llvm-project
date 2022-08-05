@@ -42,7 +42,8 @@ bool InsertNOPLoad::runOnMachineFunction(MachineFunction &MF) {
   DebugLoc DL = DebugLoc();
 
   bool Modified = false;
-  for (MachineBasicBlock &MBB : MF) {
+  for (auto MFI = MF.begin(), E = MF.end(); MFI != E; ++MFI) {
+    MachineBasicBlock &MBB = *MFI;
     for (auto MBBI = MBB.begin(), E = MBB.end(); MBBI != E; ++MBBI) {
       MachineInstr &MI = *MBBI;
       unsigned Opcode = MI.getOpcode();
@@ -76,8 +77,10 @@ bool DetectRoundChange::runOnMachineFunction(MachineFunction &MF) {
   Subtarget = &MF.getSubtarget<SparcSubtarget>();
 
   bool Modified = false;
-  for (MachineBasicBlock &MBB : MF) {
-    for (MachineInstr &MI : MBB) {
+  for (auto MFI = MF.begin(), E = MF.end(); MFI != E; ++MFI) {
+    MachineBasicBlock &MBB = *MFI;
+    for (auto MBBI = MBB.begin(), E = MBB.end(); MBBI != E; ++MBBI) {
+      MachineInstr &MI = *MBBI;
       unsigned Opcode = MI.getOpcode();
       if (Opcode == SP::CALL && MI.getNumOperands() > 0) {
         MachineOperand &MO = MI.getOperand(0);
@@ -126,7 +129,8 @@ bool FixAllFDIVSQRT::runOnMachineFunction(MachineFunction &MF) {
   DebugLoc DL = DebugLoc();
 
   bool Modified = false;
-  for (MachineBasicBlock &MBB : MF) {
+  for (auto MFI = MF.begin(), E = MF.end(); MFI != E; ++MFI) {
+    MachineBasicBlock &MBB = *MFI;
     for (auto MBBI = MBB.begin(), E = MBB.end(); MBBI != E; ++MBBI) {
       MachineInstr &MI = *MBBI;
       unsigned Opcode = MI.getOpcode();

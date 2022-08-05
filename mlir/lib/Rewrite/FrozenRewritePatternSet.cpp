@@ -66,17 +66,19 @@ FrozenRewritePatternSet::FrozenRewritePatternSet(
   // Functor used to walk all of the operations registered in the context. This
   // is useful for patterns that get applied to multiple operations, such as
   // interface and trait based patterns.
-  std::vector<RegisteredOperationName> opInfos;
-  auto addToOpsWhen =
-      [&](std::unique_ptr<RewritePattern> &pattern,
-          function_ref<bool(RegisteredOperationName)> callbackFn) {
-        if (opInfos.empty())
-          opInfos = pattern->getContext()->getRegisteredOperations();
-        for (RegisteredOperationName info : opInfos)
-          if (callbackFn(info))
-            impl->nativeOpSpecificPatternMap[info].push_back(pattern.get());
-        impl->nativeOpSpecificPatternList.push_back(std::move(pattern));
-      };
+  std::vector<AbstractOperation *> abstractOps;
+  auto addToOpsWhen = [&](std::unique_ptr<RewritePattern> &pattern,
+                          function_ref<bool(AbstractOperation *)> callbackFn) {
+    if (abstractOps.empty())
+      abstractOps = pattern->getContext()->getRegisteredOperations();
+    for (AbstractOperation *absOp : abstractOps) {
+      if (callbackFn(absOp)) {
+        OperationName opName(absOp);
+        impl->nativeOpSpecificPatternMap[opName].push_back(pattern.get());
+      }
+    }
+    impl->nativeOpSpecificPatternList.push_back(std::move(pattern));
+  };
 
   for (std::unique_ptr<RewritePattern> &pat : patterns.getNativePatterns()) {
     // Don't add patterns that haven't been enabled by the user.
@@ -104,14 +106,14 @@ FrozenRewritePatternSet::FrozenRewritePatternSet(
       continue;
     }
     if (Optional<TypeID> interfaceID = pat->getRootInterfaceID()) {
-      addToOpsWhen(pat, [&](RegisteredOperationName info) {
-        return info.hasInterface(*interfaceID);
+      addToOpsWhen(pat, [&](AbstractOperation *absOp) {
+        return absOp->hasInterface(*interfaceID);
       });
       continue;
     }
     if (Optional<TypeID> traitID = pat->getRootTraitID()) {
-      addToOpsWhen(pat, [&](RegisteredOperationName info) {
-        return info.hasTrait(*traitID);
+      addToOpsWhen(pat, [&](AbstractOperation *absOp) {
+        return absOp->hasTrait(*traitID);
       });
       continue;
     }
@@ -133,4 +135,4 @@ FrozenRewritePatternSet::FrozenRewritePatternSet(
       pdlPatterns.takeRewriteFunctions());
 }
 
-FrozenRewritePatternSet::~FrozenRewritePatternSet() = default;
+FrozenRewritePatternSet::~FrozenRewritePatternSet() {}

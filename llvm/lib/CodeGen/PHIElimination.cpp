@@ -213,7 +213,7 @@ bool PHIElimination::runOnMachineFunction(MachineFunction &MF) {
   for (auto &I : LoweredPHIs) {
     if (LIS)
       LIS->RemoveMachineInstrFromMaps(*I.first);
-    MF.deleteMachineInstr(I.first);
+    MF.DeleteMachineInstr(I.first);
   }
 
   // TODO: we should use the incremental DomTree updater here.
@@ -626,7 +626,7 @@ void PHIElimination::LowerPHINode(MachineBasicBlock &MBB,
   if (reusedIncoming || !IncomingReg) {
     if (LIS)
       LIS->RemoveMachineInstrFromMaps(*MPhi);
-    MF.deleteMachineInstr(MPhi);
+    MF.DeleteMachineInstr(MPhi);
   }
 }
 

@@ -133,10 +133,10 @@ void Lexer::InitLexer(const char *BufStart, const char *BufPtr,
 /// assumes that the associated file buffer and Preprocessor objects will
 /// outlive it, so it doesn't take ownership of either of them.
 Lexer::Lexer(FileID FID, const llvm::MemoryBufferRef &InputFile,
-             Preprocessor &PP, bool IsFirstIncludeOfFile)
+             Preprocessor &PP)
     : PreprocessorLexer(&PP, FID),
       FileLoc(PP.getSourceManager().getLocForStartOfFile(FID)),
-      LangOpts(PP.getLangOpts()), IsFirstTimeLexingFile(IsFirstIncludeOfFile) {
+      LangOpts(PP.getLangOpts()) {
   InitLexer(InputFile.getBufferStart(), InputFile.getBufferStart(),
             InputFile.getBufferEnd());
 
@@ -147,10 +147,8 @@ Lexer::Lexer(FileID FID, const llvm::MemoryBufferRef &InputFile,
 /// suitable for calls to 'LexFromRawLexer'.  This lexer assumes that the text
 /// range will outlive it, so it doesn't take ownership of it.
 Lexer::Lexer(SourceLocation fileloc, const LangOptions &langOpts,
-             const char *BufStart, const char *BufPtr, const char *BufEnd,
-             bool IsFirstIncludeOfFile)
-    : FileLoc(fileloc), LangOpts(langOpts),
-      IsFirstTimeLexingFile(IsFirstIncludeOfFile) {
+             const char *BufStart, const char *BufPtr, const char *BufEnd)
+    : FileLoc(fileloc), LangOpts(langOpts) {
   InitLexer(BufStart, BufPtr, BufEnd);
 
   // We *are* in raw mode.
@@ -161,11 +159,9 @@ Lexer::Lexer(SourceLocation fileloc, const LangOptions &langOpts,
 /// suitable for calls to 'LexFromRawLexer'.  This lexer assumes that the text
 /// range will outlive it, so it doesn't take ownership of it.
 Lexer::Lexer(FileID FID, const llvm::MemoryBufferRef &FromFile,
-             const SourceManager &SM, const LangOptions &langOpts,
-             bool IsFirstIncludeOfFile)
+             const SourceManager &SM, const LangOptions &langOpts)
     : Lexer(SM.getLocForStartOfFile(FID), langOpts, FromFile.getBufferStart(),
-            FromFile.getBufferStart(), FromFile.getBufferEnd(),
-            IsFirstIncludeOfFile) {}
+            FromFile.getBufferStart(), FromFile.getBufferEnd()) {}
 
 void Lexer::resetExtendedTokenMode() {
   assert(PP && "Cannot reset token mode without a preprocessor");
@@ -2548,9 +2544,9 @@ static bool isEndOfBlockCommentWithEscapedNewLine(const char *CurPtr,
   assert(CurPtr[0] == '\n' || CurPtr[0] == '\r');
 
   // Position of the first trigraph in the ending sequence.
-  const char *TrigraphPos = nullptr;
+  const char *TrigraphPos = 0;
   // Position of the first whitespace after a '\' in the ending sequence.
-  const char *SpacePos = nullptr;
+  const char *SpacePos = 0;
 
   while (true) {
     // Back up off the newline.

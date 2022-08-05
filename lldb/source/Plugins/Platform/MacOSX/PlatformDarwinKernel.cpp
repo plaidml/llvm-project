@@ -911,14 +911,13 @@ Status PlatformDarwinKernel::ExamineKextForMatchingUUID(
   return {};
 }
 
-std::vector<ArchSpec> PlatformDarwinKernel::GetSupportedArchitectures() {
-  std::vector<ArchSpec> result;
+bool PlatformDarwinKernel::GetSupportedArchitectureAtIndex(uint32_t idx,
+                                                           ArchSpec &arch) {
 #if defined(__arm__) || defined(__arm64__) || defined(__aarch64__)
-  ARMGetSupportedArchitectures(result);
+  return ARMGetSupportedArchitectureAtIndex(idx, arch);
 #else
-  x86GetSupportedArchitectures(result);
+  return x86GetSupportedArchitectureAtIndex(idx, arch);
 #endif
-  return result;
 }
 
 void PlatformDarwinKernel::CalculateTrapHandlerSymbolNames() {

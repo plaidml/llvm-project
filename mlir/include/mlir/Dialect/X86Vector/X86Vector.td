@@ -13,7 +13,6 @@
 #ifndef X86VECTOR_OPS
 #define X86VECTOR_OPS
 
-include "mlir/Interfaces/InferTypeOpInterface.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 include "mlir/Dialect/LLVMIR/LLVMOpBase.td"
 

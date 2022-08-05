@@ -14,7 +14,6 @@
 #include "clang/AST/ASTImporterLookupTable.h"
 #include "clang/AST/Decl.h"
 #include "clang/AST/RecursiveASTVisitor.h"
-#include "llvm/Support/FormatVariadic.h"
 
 namespace clang {
 
@@ -94,19 +93,10 @@ void ASTImporterLookupTable::add(DeclContext *DC, NamedDecl *ND) {
 }
 
 void ASTImporterLookupTable::remove(DeclContext *DC, NamedDecl *ND) {
-  const DeclarationName Name = ND->getDeclName();
-  DeclList &Decls = LookupTable[DC][Name];
+  DeclList &Decls = LookupTable[DC][ND->getDeclName()];
   bool EraseResult = Decls.remove(ND);
   (void)EraseResult;
-#ifndef NDEBUG
-  if (!EraseResult) {
-    std::string Message =
-        llvm::formatv("Trying to remove not contained Decl '{0}' of type {1}",
-                      Name.getAsString(), DC->getDeclKindName())
-            .str();
-    llvm_unreachable(Message.c_str());
-  }
-#endif
+  assert(EraseResult == true && "Trying to remove not contained Decl");
 }
 
 void ASTImporterLookupTable::add(NamedDecl *ND) {
@@ -137,11 +127,6 @@ void ASTImporterLookupTable::update(NamedDecl *ND, DeclContext *OldDC) {
   }
 
   remove(OldDC, ND);
-  add(ND);
-}
-
-void ASTImporterLookupTable::updateForced(NamedDecl *ND, DeclContext *OldDC) {
-  LookupTable[OldDC][ND->getDeclName()].remove(ND);
   add(ND);
 }
 

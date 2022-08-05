@@ -40,8 +40,7 @@ public:
   Defined *addDefined(StringRef name, InputFile *, InputSection *,
                       uint64_t value, uint64_t size, bool isWeakDef,
                       bool isPrivateExtern, bool isThumb,
-                      bool isReferencedDynamically, bool noDeadStrip,
-                      bool isWeakDefCanBeHidden);
+                      bool isReferencedDynamically, bool noDeadStrip);
 
   Symbol *addUndefined(StringRef name, InputFile *, bool isWeakRef);
 
@@ -51,9 +50,8 @@ public:
   Symbol *addDylib(StringRef name, DylibFile *file, bool isWeakDef, bool isTlv);
   Symbol *addDynamicLookup(StringRef name);
 
-  Symbol *addLazyArchive(StringRef name, ArchiveFile *file,
-                         const llvm::object::Archive::Symbol &sym);
-  Symbol *addLazyObject(StringRef name, InputFile &file);
+  Symbol *addLazy(StringRef name, ArchiveFile *file,
+                  const llvm::object::Archive::Symbol &sym);
 
   Defined *addSynthetic(StringRef name, InputSection *, uint64_t value,
                         bool isPrivateExtern, bool includeInSymtab,
@@ -71,7 +69,7 @@ private:
 
 void treatUndefinedSymbol(const Undefined &, StringRef source = "");
 
-extern std::unique_ptr<SymbolTable> symtab;
+extern SymbolTable *symtab;
 
 } // namespace macho
 } // namespace lld

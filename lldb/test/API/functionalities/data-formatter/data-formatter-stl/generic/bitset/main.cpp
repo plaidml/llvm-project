@@ -20,12 +20,9 @@ int main() {
   std::bitset<0> empty;
   std::bitset<13> small;
   fill(small);
-  std::bitset<70> medium;
-  fill(medium);
-  std::bitset<1000> large;
+  std::bitset<70> large;
   fill(large);
   by_ref_and_ptr(small, &small); // break here
-  by_ref_and_ptr(medium, &medium);
   by_ref_and_ptr(large, &large);
   return 0;
 }

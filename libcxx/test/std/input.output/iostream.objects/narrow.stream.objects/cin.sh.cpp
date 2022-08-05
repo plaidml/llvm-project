@@ -10,7 +10,6 @@
 
 // istream cin;
 
-// UNSUPPORTED: executor-has-no-bash
 // FILE_DEPENDENCIES: ../send-stdin.sh
 // RUN: %{build}
 // RUN: %{exec} bash send-stdin.sh "%t.exe" "1234"

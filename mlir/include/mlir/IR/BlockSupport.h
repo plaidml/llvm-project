@@ -10,8 +10,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef MLIR_IR_BLOCKSUPPORT_H
-#define MLIR_IR_BLOCKSUPPORT_H
+#ifndef MLIR_IR_BLOCK_SUPPORT_H
+#define MLIR_IR_BLOCK_SUPPORT_H
 
 #include "mlir/IR/Value.h"
 #include "llvm/ADT/PointerUnion.h"
@@ -171,8 +171,8 @@ public:
   /// Allow implicit conversion to the underlying block iterator.
   operator const IteratorT &() const { return this->wrapped(); }
 };
-} // namespace detail
-} // namespace mlir
+} // end namespace detail
+} // end namespace mlir
 
 namespace llvm {
 
@@ -223,7 +223,7 @@ protected:
   static pointer getValuePtr(node_type *N);
   static const_pointer getValuePtr(const node_type *N);
 };
-} // namespace ilist_detail
+} // end namespace ilist_detail
 
 template <> struct ilist_traits<::mlir::Operation> {
   using Operation = ::mlir::Operation;
@@ -257,6 +257,6 @@ private:
   mlir::Region *getParentRegion();
 };
 
-} // namespace llvm
+} // end namespace llvm
 
-#endif // MLIR_IR_BLOCKSUPPORT_H
+#endif // MLIR_IR_BLOCK_SUPPORT_H

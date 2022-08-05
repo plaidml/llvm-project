@@ -151,6 +151,4 @@ int main(int, char**)
     }
     assert(A::count == 0);
 #endif
-
-    return 0;
 }

@@ -17,7 +17,6 @@
 #include "mlir/Pass/PassOptions.h"
 #include "mlir/Support/TypeID.h"
 #include <functional>
-#include <utility>
 
 namespace mlir {
 class OpPassManager;
@@ -25,7 +24,7 @@ class Pass;
 
 namespace detail {
 class PassOptions;
-} // namespace detail
+} // end namespace detail
 
 /// A registry function that adds passes to the given pass manager. This should
 /// also parse options and return success() if parsing succeeded.
@@ -77,7 +76,7 @@ protected:
       std::function<void(function_ref<void(const detail::PassOptions &)>)>
           optHandler)
       : arg(arg), description(description), builder(builder),
-        optHandler(std::move(optHandler)) {}
+        optHandler(optHandler) {}
 
 private:
   /// The argument with which to invoke the pass via mlir-opt.
@@ -101,7 +100,7 @@ public:
       StringRef arg, StringRef description, const PassRegistryFunction &builder,
       std::function<void(function_ref<void(const detail::PassOptions &)>)>
           optHandler)
-      : PassRegistryEntry(arg, description, builder, std::move(optHandler)) {}
+      : PassRegistryEntry(arg, description, builder, optHandler) {}
 };
 
 /// A structure to represent the information for a derived pass class.
@@ -183,9 +182,8 @@ struct PassPipelineRegistration {
 /// Convenience specialization of PassPipelineRegistration for EmptyPassOptions
 /// that does not pass an empty options struct to the pass builder function.
 template <> struct PassPipelineRegistration<EmptyPipelineOptions> {
-  PassPipelineRegistration(
-      StringRef arg, StringRef description,
-      const std::function<void(OpPassManager &)> &builder) {
+  PassPipelineRegistration(StringRef arg, StringRef description,
+                           std::function<void(OpPassManager &)> builder) {
     registerPassPipeline(
         arg, description,
         [builder](OpPassManager &pm, StringRef optionsStr,
@@ -199,20 +197,12 @@ template <> struct PassPipelineRegistration<EmptyPipelineOptions> {
   }
 };
 
-/// Parse the textual representation of a pass pipeline, adding the result to
-/// 'pm' on success. Returns failure if the given pipeline was invalid.
-/// 'errorStream' is the output stream used to emit errors found during parsing.
+/// This function parses the textual representation of a pass pipeline, and adds
+/// the result to 'pm' on success. This function returns failure if the given
+/// pipeline was invalid. 'errorStream' is the output stream used to emit errors
+/// found during parsing.
 LogicalResult parsePassPipeline(StringRef pipeline, OpPassManager &pm,
                                 raw_ostream &errorStream = llvm::errs());
-
-/// Parse the given textual representation of a pass pipeline, and return the
-/// parsed pipeline on success. The given pipeline string should be wrapped with
-/// the desired type of operation to root the created operation, i.e.
-/// `builtin.module(cse)` over `cse`. Returns failure if the given pipeline was
-/// invalid. 'errorStream' is the output stream used to emit errors found during
-/// parsing.
-FailureOr<OpPassManager>
-parsePassPipeline(StringRef pipeline, raw_ostream &errorStream = llvm::errs());
 
 //===----------------------------------------------------------------------===//
 // PassPipelineCLParser
@@ -220,7 +210,7 @@ parsePassPipeline(StringRef pipeline, raw_ostream &errorStream = llvm::errs());
 
 namespace detail {
 struct PassPipelineCLParserImpl;
-} // namespace detail
+} // end namespace detail
 
 /// This class implements a command-line parser for MLIR passes. It registers a
 /// cl option with a given argument and description. This parser will register
@@ -272,6 +262,6 @@ private:
   std::unique_ptr<detail::PassPipelineCLParserImpl> impl;
 };
 
-} // namespace mlir
+} // end namespace mlir
 
 #endif // MLIR_PASS_PASSREGISTRY_H_

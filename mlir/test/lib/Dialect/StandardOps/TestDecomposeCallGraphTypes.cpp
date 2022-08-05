@@ -88,7 +88,7 @@ struct TestDecomposeCallGraphTypes
   }
 };
 
-} // namespace
+} // end anonymous namespace
 
 namespace mlir {
 namespace test {

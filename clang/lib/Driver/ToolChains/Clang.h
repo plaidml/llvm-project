@@ -6,8 +6,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLVM_CLANG_LIB_DRIVER_TOOLCHAINS_CLANG_H
-#define LLVM_CLANG_LIB_DRIVER_TOOLCHAINS_CLANG_H
+#ifndef LLVM_CLANG_LIB_DRIVER_TOOLCHAINS_Clang_H
+#define LLVM_CLANG_LIB_DRIVER_TOOLCHAINS_Clang_H
 
 #include "MSVC.h"
 #include "clang/Basic/DebugInfoOptions.h"
@@ -26,10 +26,6 @@ namespace tools {
 
 /// Clang compiler tool.
 class LLVM_LIBRARY_VISIBILITY Clang : public Tool {
-  // Indicates whether this instance has integrated backend using
-  // internal LLVM infrastructure.
-  bool HasBackend;
-
 public:
   static const char *getBaseInputName(const llvm::opt::ArgList &Args,
                                       const InputInfo &Input);
@@ -103,12 +99,11 @@ private:
       const InputInfo &Input, const llvm::opt::ArgList &Args) const;
 
 public:
-  Clang(const ToolChain &TC, bool HasIntegratedBackend = true);
+  Clang(const ToolChain &TC);
   ~Clang() override;
 
   bool hasGoodDiagnostics() const override { return true; }
   bool hasIntegratedAssembler() const override { return true; }
-  bool hasIntegratedBackend() const override { return HasBackend; }
   bool hasIntegratedCPP() const override { return true; }
   bool canEmitIR() const override { return true; }
 

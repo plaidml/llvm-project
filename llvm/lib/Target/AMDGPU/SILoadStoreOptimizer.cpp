@@ -146,7 +146,7 @@ class SILoadStoreOptimizer : public MachineFunctionPass {
         if (!AddrOp->isReg())
           return false;
 
-        // TODO: We should be able to merge physical reg addresses.
+        // TODO: We should be able to merge physical reg addreses.
         if (AddrOp->getReg().isPhysical())
           return false;
 
@@ -652,7 +652,7 @@ static bool canMoveInstsAcrossMemOp(MachineInstr &MemOp,
 }
 
 // This function assumes that \p A and \p B have are identical except for
-// size and offset, and they reference adjacent memory.
+// size and offset, and they referecne adjacent memory.
 static MachineMemOperand *combineKnownAdjacentMMOs(MachineFunction &MF,
                                                    const MachineMemOperand *A,
                                                    const MachineMemOperand *B) {
@@ -1542,36 +1542,49 @@ unsigned SILoadStoreOptimizer::getNewOpcode(const CombineInfo &CI,
 std::pair<unsigned, unsigned>
 SILoadStoreOptimizer::getSubRegIdxs(const CombineInfo &CI,
                                     const CombineInfo &Paired) {
+
+  assert(CI.Width != 0 && Paired.Width != 0 && "Width cannot be zero");
+
   bool ReverseOrder;
   if (CI.InstClass == MIMG) {
     assert(
         (countPopulation(CI.DMask | Paired.DMask) == CI.Width + Paired.Width) &&
         "No overlaps");
     ReverseOrder = CI.DMask > Paired.DMask;
-  } else {
+  } else
     ReverseOrder = CI.Offset > Paired.Offset;
-  }
 
   unsigned Idx0;
   unsigned Idx1;
 
-  static const unsigned Idxs[5][4] = {
-      {AMDGPU::sub0, AMDGPU::sub0_sub1, AMDGPU::sub0_sub1_sub2, AMDGPU::sub0_sub1_sub2_sub3},
-      {AMDGPU::sub1, AMDGPU::sub1_sub2, AMDGPU::sub1_sub2_sub3, AMDGPU::sub1_sub2_sub3_sub4},
-      {AMDGPU::sub2, AMDGPU::sub2_sub3, AMDGPU::sub2_sub3_sub4, AMDGPU::sub2_sub3_sub4_sub5},
-      {AMDGPU::sub3, AMDGPU::sub3_sub4, AMDGPU::sub3_sub4_sub5, AMDGPU::sub3_sub4_sub5_sub6},
-      {AMDGPU::sub4, AMDGPU::sub4_sub5, AMDGPU::sub4_sub5_sub6, AMDGPU::sub4_sub5_sub6_sub7},
-  };
+  if (CI.Width + Paired.Width > 4) {
+    assert(CI.Width == 4 && Paired.Width == 4);
 
-  assert(CI.Width >= 1 && CI.Width <= 4);
-  assert(Paired.Width >= 1 && Paired.Width <= 4);
-
-  if (ReverseOrder) {
-    Idx1 = Idxs[0][Paired.Width - 1];
-    Idx0 = Idxs[Paired.Width][CI.Width - 1];
+    if (ReverseOrder) {
+      Idx1 = AMDGPU::sub0_sub1_sub2_sub3;
+      Idx0 = AMDGPU::sub4_sub5_sub6_sub7;
+    } else {
+      Idx0 = AMDGPU::sub0_sub1_sub2_sub3;
+      Idx1 = AMDGPU::sub4_sub5_sub6_sub7;
+    }
   } else {
-    Idx0 = Idxs[0][CI.Width - 1];
-    Idx1 = Idxs[CI.Width][Paired.Width - 1];
+    static const unsigned Idxs[4][4] = {
+        {AMDGPU::sub0, AMDGPU::sub0_sub1, AMDGPU::sub0_sub1_sub2, AMDGPU::sub0_sub1_sub2_sub3},
+        {AMDGPU::sub1, AMDGPU::sub1_sub2, AMDGPU::sub1_sub2_sub3, 0},
+        {AMDGPU::sub2, AMDGPU::sub2_sub3, 0, 0},
+        {AMDGPU::sub3, 0, 0, 0},
+    };
+
+    assert(CI.Width >= 1 && CI.Width <= 3);
+    assert(Paired.Width >= 1 && Paired.Width <= 3);
+
+    if (ReverseOrder) {
+      Idx1 = Idxs[0][Paired.Width - 1];
+      Idx0 = Idxs[Paired.Width][CI.Width - 1];
+    } else {
+      Idx0 = Idxs[0][CI.Width - 1];
+      Idx1 = Idxs[CI.Width][Paired.Width - 1];
+    }
   }
 
   return std::make_pair(Idx0, Idx1);
@@ -1596,7 +1609,7 @@ SILoadStoreOptimizer::getTargetRegisterClass(const CombineInfo &CI,
   }
 
   unsigned BitWidth = 32 * (CI.Width + Paired.Width);
-  return TRI->isAGPRClass(getDataRegClass(*CI.I))
+  return TRI->hasAGPRs(getDataRegClass(*CI.I))
              ? TRI->getAGPRClassForBitWidth(BitWidth)
              : TRI->getVGPRClassForBitWidth(BitWidth);
 }
@@ -1834,8 +1847,7 @@ bool SILoadStoreOptimizer::promoteConstantOffsetToImm(
   if (AMDGPU::getGlobalSaddrOp(MI.getOpcode()) < 0)
     return false;
 
-  if (MI.mayLoad() &&
-      TII->getNamedOperand(MI, AMDGPU::OpName::vdata) != nullptr)
+  if (MI.mayLoad() && TII->getNamedOperand(MI, AMDGPU::OpName::vdata) != NULL)
     return false;
 
   if (AnchorList.count(&MI))

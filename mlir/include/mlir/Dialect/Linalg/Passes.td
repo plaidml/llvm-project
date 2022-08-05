@@ -11,14 +11,12 @@
 
 include "mlir/Pass/PassBase.td"
 
-def ConvertElementwiseToLinalg : Pass<"convert-elementwise-to-linalg", ""> {
+def ConvertElementwiseToLinalg : FunctionPass<"convert-elementwise-to-linalg"> {
   let summary = "Convert ElementwiseMappable ops to linalg";
   let description = [{
     Convert ops with the `ElementwiseMappable` trait to linalg parallel loops.
 
-    This pass only converts ops that operate on ranked tensors. It can be
-    run on op which contains linalg ops (most commonly a
-    FunctionOpInterface op).
+    This pass only converts ops that operate on ranked tensors.
   }];
   let constructor = "mlir::createConvertElementwiseToLinalgPass()";
   let dependentDialects = ["linalg::LinalgDialect", "memref::MemRefDialect"];
@@ -40,36 +38,20 @@ def LinalgComprehensiveModuleBufferize :
     Option<"testAnalysisOnly", "test-analysis-only", "bool",
             /*default=*/"false",
            "Only runs inplaceability analysis (for testing purposes only)">,
-    Option<"printConflicts", "print-conflicts", "bool",
-            /*default=*/"false",
-           "Annotates IR with RaW conflicts. Requires test-analysis-only.">,
     Option<"allowReturnMemref", "allow-return-memref", "bool",
             /*default=*/"false",
            "Allows the return of memrefs (for testing purposes only)">,
-    Option<"allowUnknownOps", "allow-unknown-ops", "bool",
-           /*default=*/"false",
-           "Allows unknown (not bufferizable) ops in the input IR.">,
     Option<"useAlloca", "use-alloca", "bool",
            /*default=*/"false",
            "Use stack allocations for memrefs (for testing purposes only)">,
-    Option<"useLinalgCopy", "use-linalg-copy", "bool",
-           /*default=*/"false",
-           "Use a copy operation implemented as a Linalg op.">,
     Option<"analysisFuzzerSeed", "analysis-fuzzer-seed", "unsigned",
            /*default=*/"0",
-           "Analyze ops in random order with a given seed (fuzzer)">,
-    Option<"initTensorElimination", "init-tensor-elimination", "bool",
-            /*default=*/"false",
-           "(Experimental) Try to eliminate init_tensor operations that are "
-           "anchored at an insert_slice op">,
-    Option<"createDeallocs", "create-deallocs", "bool", /*default=*/"true",
-           "Specify if buffers should be deallocated. For compatibility with "
-           "core bufferization passes.">,
+           "Analyze ops in random order with a given seed (fuzzer)">
   ];
   let constructor = "mlir::createLinalgComprehensiveModuleBufferizePass()";
 }
 
-def LinalgFoldUnitExtentDims : Pass<"linalg-fold-unit-extent-dims", ""> {
+def LinalgFoldUnitExtentDims : FunctionPass<"linalg-fold-unit-extent-dims"> {
   let summary = "Remove unit-extent dimension in Linalg ops on tensors";
   let constructor = "mlir::createLinalgFoldUnitExtentDimsPass()";
   let options = [
@@ -111,14 +93,8 @@ def LinalgFoldReshapeOpsByLinearization :
   let dependentDialects = ["AffineDialect", "memref::MemRefDialect"];
 }
 
-def LinalgNamedOpConversion: Pass<"linalg-named-op-conversion"> {
-  let summary = "Convert from one named linalg op to another.";
-  let constructor = "mlir::createLinalgNamedOpConversionPass()";
-  let dependentDialects = ["linalg::LinalgDialect", "tensor::TensorDialect"];
-}
-
 def LinalgLowerTiledLoopsToSCF
-    : Pass<"convert-linalg-tiled-loops-to-scf", "FuncOp"> {
+    : FunctionPass<"convert-linalg-tiled-loops-to-scf"> {
   let summary = "Lower linalg tiled loops to SCF loops and parallel loops";
   let constructor = "mlir::createConvertLinalgTiledLoopsToSCFPass()";
   let dependentDialects = [
@@ -128,7 +104,7 @@ def LinalgLowerTiledLoopsToSCF
   ];
 }
 
-def LinalgInlineScalarOperands : Pass<"linalg-inline-scalar-operands", "FuncOp"> {
+def LinalgInlineScalarOperands : FunctionPass<"linalg-inline-scalar-operands"> {
   let summary = "Inline scalar operands into linalg generic ops";
   let constructor = "mlir::createLinalgInlineScalarOperandsPass()";
   let dependentDialects = [
@@ -136,7 +112,7 @@ def LinalgInlineScalarOperands : Pass<"linalg-inline-scalar-operands", "FuncOp">
   ];
 }
 
-def LinalgLowerToAffineLoops : Pass<"convert-linalg-to-affine-loops", "FuncOp"> {
+def LinalgLowerToAffineLoops : FunctionPass<"convert-linalg-to-affine-loops"> {
   let summary = "Lower the operations from the linalg dialect into affine "
                 "loops";
   let constructor = "mlir::createConvertLinalgToAffineLoopsPass()";
@@ -144,7 +120,7 @@ def LinalgLowerToAffineLoops : Pass<"convert-linalg-to-affine-loops", "FuncOp"> 
     "AffineDialect", "linalg::LinalgDialect", "memref::MemRefDialect"];
 }
 
-def LinalgLowerToLoops : Pass<"convert-linalg-to-loops", "FuncOp"> {
+def LinalgLowerToLoops : FunctionPass<"convert-linalg-to-loops"> {
   let summary = "Lower the operations from the linalg dialect into loops";
   let constructor = "mlir::createConvertLinalgToLoopsPass()";
   let dependentDialects = [
@@ -155,7 +131,7 @@ def LinalgLowerToLoops : Pass<"convert-linalg-to-loops", "FuncOp"> {
 }
 
 def LinalgLowerToParallelLoops
-    : Pass<"convert-linalg-to-parallel-loops", "FuncOp"> {
+    : FunctionPass<"convert-linalg-to-parallel-loops"> {
   let summary = "Lower the operations from the linalg dialect into parallel "
                 "loops";
   let constructor = "mlir::createConvertLinalgToParallelLoopsPass()";
@@ -171,14 +147,13 @@ def LinalgBufferize : Pass<"linalg-bufferize", "FuncOp"> {
   let summary = "Bufferize the linalg dialect";
   let constructor = "mlir::createLinalgBufferizePass()";
   let dependentDialects = [
-    "AffineDialect",
-    "bufferization::BufferizationDialect",
     "linalg::LinalgDialect",
+    "AffineDialect",
     "memref::MemRefDialect",
   ];
 }
 
-def LinalgPromotion : Pass<"linalg-promote-subviews", "FuncOp"> {
+def LinalgPromotion : FunctionPass<"linalg-promote-subviews"> {
   let summary = "Promote subview ops to local buffers";
   let constructor = "mlir::createLinalgPromotionPass()";
   let options = [
@@ -190,7 +165,7 @@ def LinalgPromotion : Pass<"linalg-promote-subviews", "FuncOp"> {
   let dependentDialects = ["linalg::LinalgDialect"];
 }
 
-def LinalgTiling : Pass<"linalg-tile", "FuncOp"> {
+def LinalgTiling : FunctionPass<"linalg-tile"> {
   let summary = "Tile operations in the linalg dialect";
   let constructor = "mlir::createLinalgTilingPass()";
   let dependentDialects = [
@@ -212,19 +187,19 @@ def LinalgTiling : Pass<"linalg-tile", "FuncOp"> {
   ];
 }
 
-def LinalgGeneralization : Pass<"linalg-generalize-named-ops", "FuncOp"> {
+def LinalgGeneralization : FunctionPass<"linalg-generalize-named-ops"> {
   let summary = "Convert named ops into generic ops";
   let constructor = "mlir::createLinalgGeneralizationPass()";
   let dependentDialects = ["linalg::LinalgDialect"];
 }
 
-def LinalgDetensorize : Pass<"linalg-detensorize", ""> {
+def LinalgDetensorize : FunctionPass<"linalg-detensorize"> {
   let summary = "Detensorize linalg ops";
   let constructor = "mlir::createLinalgDetensorizePass()";
   let dependentDialects = [];
 
   let description = [{
-    Detensoring is the process through which a tensor value is converted to one
+    Detensoring is the process through which a tensor value is convereted to one
     or potentially more primitive value(s). During this process, operations with
     such detensored operands are also converted to an equivalent form that works
     on primitives.
@@ -243,33 +218,25 @@ def LinalgDetensorize : Pass<"linalg-detensorize", ""> {
     In addition to detensoring individual ops, this pass detensors internal
     control flow inside a function. All blocks except for the entry block are
     detensored by converting their arguments whenever possible.
-
-    This can be run on any FunctionOpInterface op and must not be
-    run on others. This is because it performs specific legalization of the
-    blocks that make up the body, which it assumes has is a FunctionOpInterface.
   }];
-  let options = [
-    Option<"aggressiveMode", "aggressive-mode", "bool", /*default=*/"false",
-           "Detensorize all ops that qualify for detensoring along with branch"
-           " operands and basic-block arguments.">
-
-  ];
 }
 
-def LinalgStrategyTileAndFusePass
-    : Pass<"linalg-strategy-tile-and-fuse-pass", "FuncOp"> {
-  let summary = "Configurable pass to apply pattern-based tiling and fusion.";
-  let constructor = "mlir::createLinalgStrategyTileAndFusePass()";
+def LinalgTileAndFuseTensorOps
+    : FunctionPass<"linalg-tile-and-fuse-tensor-ops"> {
+  let summary = "Tile a LinalgOp and fuse its producers.";
+  let constructor = "mlir::createLinalgTileAndFuseTensorOpsPass()";
   let options = [
-    Option<"anchorFuncName", "anchor-func", "std::string", /*default=*/"",
-      "Which func op is the anchor to latch on.">,
-    Option<"anchorOpName", "anchor-op", "std::string", /*default=*/"",
-      "Which linalg op within the func is the anchor to latch on.">,
+    ListOption<"tileSizes", "tile-sizes", "int64_t", "Tile sizes",
+           "llvm::cl::ZeroOrMore, llvm::cl::MiscFlags::CommaSeparated">,
+    ListOption<"tileInterchange", "tile-interchange", "int64_t",
+           "Tile loop interchange",
+           "llvm::cl::ZeroOrMore, llvm::cl::MiscFlags::CommaSeparated">,
   ];
+  let dependentDialects = ["linalg::LinalgDialect", "scf::SCFDialect"];
 }
 
 def LinalgStrategyTilePass
-    : Pass<"linalg-strategy-tile-pass", "FuncOp"> {
+    : FunctionPass<"linalg-strategy-tile-pass"> {
   let summary = "Configurable pass to apply pattern-based linalg tiling.";
   let constructor = "mlir::createLinalgStrategyTilePass()";
   let dependentDialects = ["linalg::LinalgDialect"];
@@ -282,7 +249,7 @@ def LinalgStrategyTilePass
 }
 
 def LinalgStrategyPadPass
-    : Pass<"linalg-strategy-pad-pass", "FuncOp"> {
+    : FunctionPass<"linalg-strategy-pad-pass"> {
   let summary = "Configurable pass to apply padding and hoisting.";
   let constructor = "mlir::createLinalgStrategyPadPass()";
   let dependentDialects = ["linalg::LinalgDialect"];
@@ -295,7 +262,7 @@ def LinalgStrategyPadPass
 }
 
 def LinalgStrategyPromotePass
-    : Pass<"linalg-strategy-promote-pass", "FuncOp"> {
+    : FunctionPass<"linalg-strategy-promote-pass"> {
   let summary = "Configurable pass to apply pattern-based linalg promotion.";
   let constructor = "mlir::createLinalgStrategyPromotePass()";
   let dependentDialects = ["linalg::LinalgDialect"];
@@ -308,7 +275,7 @@ def LinalgStrategyPromotePass
 }
 
 def LinalgStrategyGeneralizePass
-    : Pass<"linalg-strategy-generalize-pass", "FuncOp"> {
+    : FunctionPass<"linalg-strategy-generalize-pass"> {
   let summary = "Configurable pass to apply pattern-based generalization.";
   let constructor = "mlir::createLinalgStrategyGeneralizePass()";
   let dependentDialects = ["linalg::LinalgDialect"];
@@ -320,20 +287,8 @@ def LinalgStrategyGeneralizePass
   ];
 }
 
-// TODO: if/when we need finer control add an anchorOp option.
-def LinalgStrategyDecomposePass
-    : Pass<"linalg-strategy-decompose-pass", "FuncOp"> {
-  let summary = "Configurable pass to apply pattern-based generalization.";
-  let constructor = "mlir::createLinalgStrategyDecomposePass()";
-  let dependentDialects = ["linalg::LinalgDialect"];
-  let options = [
-    Option<"anchorFuncName", "anchor-func", "std::string", /*default=*/"",
-      "Which func op is the anchor to latch on.">,
-  ];
-}
-
 def LinalgStrategyInterchangePass
-    : Pass<"linalg-strategy-interchange-pass", "FuncOp"> {
+    : FunctionPass<"linalg-strategy-interchange-pass"> {
   let summary = "Configurable pass to apply pattern-based iterator interchange.";
   let constructor = "mlir::createLinalgStrategyInterchangePass()";
   let dependentDialects = ["linalg::LinalgDialect"];
@@ -344,7 +299,7 @@ def LinalgStrategyInterchangePass
 }
 
 def LinalgStrategyVectorizePass
-    : Pass<"linalg-strategy-vectorize-pass", "FuncOp"> {
+    : FunctionPass<"linalg-strategy-vectorize-pass"> {
   let summary = "Configurable pass to apply pattern-based linalg vectorization.";
   let constructor = "mlir::createLinalgStrategyVectorizePass()";
   let dependentDialects = ["linalg::LinalgDialect"];
@@ -353,13 +308,11 @@ def LinalgStrategyVectorizePass
       "Which func op is the anchor to latch on.">,
     Option<"anchorOpName", "anchor-op", "std::string", /*default=*/"",
       "Which linalg op within the func is the anchor to latch on.">,
-    Option<"vectorizePadding", "vectorize-padding", "bool", "false",
-      "Enable vectorization of padding ops.">,
   ];
 }
 
 def LinalgStrategyEnablePass
-    : Pass<"linalg-strategy-enable-pass", "FuncOp"> {
+    : FunctionPass<"linalg-strategy-enable-pass"> {
   let summary = "Configurable pass to enable the application of other "
     "pattern-based linalg passes.";
   let constructor = "mlir::createLinalgStrategyEnablePass()";
@@ -371,7 +324,7 @@ def LinalgStrategyEnablePass
 }
 
 def LinalgStrategyLowerVectorsPass
-    : Pass<"linalg-strategy-lower-vectors-pass", "FuncOp"> {
+    : FunctionPass<"linalg-strategy-lower-vectors-pass"> {
   let summary = "Configurable pass to lower vector operations.";
   let constructor = "mlir::createLinalgStrategyLowerVectorsPass()";
   let dependentDialects = ["linalg::LinalgDialect"];
@@ -382,7 +335,7 @@ def LinalgStrategyLowerVectorsPass
 }
 
 def LinalgStrategyRemoveMarkersPass
-    : Pass<"linalg-strategy-remove-markers-pass", "FuncOp"> {
+    : FunctionPass<"linalg-strategy-remove-markers-pass"> {
   let summary = "Cleanup pass that drops markers.";
   let constructor = "mlir::createLinalgStrategyRemoveMarkersPass()";
   let dependentDialects = ["linalg::LinalgDialect"];

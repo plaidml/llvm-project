@@ -65,8 +65,6 @@ CudaVersion getCudaVersion(uint32_t raw_version) {
     return CudaVersion::CUDA_113;
   if (raw_version < 11050)
     return CudaVersion::CUDA_114;
-  if (raw_version < 11060)
-    return CudaVersion::CUDA_115;
   return CudaVersion::NEW;
 }
 
@@ -612,9 +610,8 @@ void NVPTX::OpenMPLinker::ConstructJob(Compilation &C, const JobAction &JA,
     CmdArgs.push_back(CubinF);
   }
 
-  AddStaticDeviceLibsLinking(C, *this, JA, Inputs, Args, CmdArgs, "nvptx",
-                             GPUArch, /*isBitCodeSDL=*/false,
-                             /*postClangLink=*/false);
+  AddStaticDeviceLibsLinking(C, *this, JA, Inputs, Args, CmdArgs, "nvptx", GPUArch,
+                      false, false);
 
   // Find nvlink and pass it as "--nvlink-path=" argument of
   // clang-nvlink-wrapper.
@@ -710,7 +707,6 @@ void CudaToolChain::addClangTargetOptions(
   case CudaVersion::CUDA_##CUDA_VER:                                           \
     PtxFeature = "+ptx" #PTX_VER;                                              \
     break;
-    CASE_CUDA_VERSION(115, 75);
     CASE_CUDA_VERSION(114, 74);
     CASE_CUDA_VERSION(113, 73);
     CASE_CUDA_VERSION(112, 72);
@@ -746,16 +742,15 @@ void CudaToolChain::addClangTargetOptions(
 
     std::string BitcodeSuffix;
     if (DriverArgs.hasFlag(options::OPT_fopenmp_target_new_runtime,
-                           options::OPT_fno_openmp_target_new_runtime, true))
+                           options::OPT_fno_openmp_target_new_runtime, false))
       BitcodeSuffix = "new-nvptx-" + GpuArch.str();
     else
       BitcodeSuffix = "nvptx-" + GpuArch.str();
 
     addOpenMPDeviceRTL(getDriver(), DriverArgs, CC1Args, BitcodeSuffix,
                        getTriple());
-    AddStaticDeviceLibsPostLinking(getDriver(), DriverArgs, CC1Args, "nvptx",
-                                   GpuArch, /*isBitCodeSDL=*/true,
-                                   /*postClangLink=*/true);
+    AddStaticDeviceLibsPostLinking(getDriver(), DriverArgs, CC1Args, "nvptx", GpuArch,
+                        /* bitcode SDL?*/ true, /* PostClang Link? */ true);
   }
 }
 

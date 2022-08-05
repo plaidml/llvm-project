@@ -6,8 +6,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <utility>
-
 #include "mlir/Dialect/EmitC/IR/EmitC.h"
 #include "mlir/Dialect/SCF/SCF.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
@@ -417,19 +415,19 @@ static LogicalResult printOperation(CppEmitter &emitter, scf::ForOp forOp) {
   os << " ";
   os << emitter.getOrCreateName(forOp.getInductionVar());
   os << " = ";
-  os << emitter.getOrCreateName(forOp.getLowerBound());
+  os << emitter.getOrCreateName(forOp.lowerBound());
   os << "; ";
   os << emitter.getOrCreateName(forOp.getInductionVar());
   os << " < ";
-  os << emitter.getOrCreateName(forOp.getUpperBound());
+  os << emitter.getOrCreateName(forOp.upperBound());
   os << "; ";
   os << emitter.getOrCreateName(forOp.getInductionVar());
   os << " += ";
-  os << emitter.getOrCreateName(forOp.getStep());
+  os << emitter.getOrCreateName(forOp.step());
   os << ") {\n";
   os.indent();
 
-  Region &forRegion = forOp.getRegion();
+  Region &forRegion = forOp.region();
   auto regionOps = forRegion.getOps();
 
   // We skip the trailing yield op because this updates the result variables
@@ -481,7 +479,7 @@ static LogicalResult printOperation(CppEmitter &emitter, scf::IfOp ifOp) {
   os << ") {\n";
   os.indent();
 
-  Region &thenRegion = ifOp.getThenRegion();
+  Region &thenRegion = ifOp.thenRegion();
   for (Operation &op : thenRegion.getOps()) {
     // Note: This prints a superfluous semicolon if the terminating yield op has
     // zero results.
@@ -491,7 +489,7 @@ static LogicalResult printOperation(CppEmitter &emitter, scf::IfOp ifOp) {
 
   os.unindent() << "}";
 
-  Region &elseRegion = ifOp.getElseRegion();
+  Region &elseRegion = ifOp.elseRegion();
   if (!elseRegion.empty()) {
     os << " else {\n";
     os.indent();
@@ -691,7 +689,7 @@ bool CppEmitter::hasBlockLabel(Block &block) {
 }
 
 LogicalResult CppEmitter::emitAttribute(Location loc, Attribute attr) {
-  auto printInt = [&](const APInt &val, bool isUnsigned) {
+  auto printInt = [&](APInt val, bool isUnsigned) {
     if (val.getBitWidth() == 1) {
       if (val.getBoolValue())
         os << "true";
@@ -704,7 +702,7 @@ LogicalResult CppEmitter::emitAttribute(Location loc, Attribute attr) {
     }
   };
 
-  auto printFloat = [&](const APFloat &val) {
+  auto printFloat = [&](APFloat val) {
     if (val.isFinite()) {
       SmallString<128> strValue;
       // Use default values of toString except don't truncate zeros.
@@ -736,7 +734,7 @@ LogicalResult CppEmitter::emitAttribute(Location loc, Attribute attr) {
   }
   if (auto dense = attr.dyn_cast<DenseFPElementsAttr>()) {
     os << '{';
-    interleaveComma(dense, os, [&](const APFloat &val) { printFloat(val); });
+    interleaveComma(dense, os, [&](APFloat val) { printFloat(val); });
     os << '}';
     return success();
   }
@@ -758,7 +756,7 @@ LogicalResult CppEmitter::emitAttribute(Location loc, Attribute attr) {
                          .getElementType()
                          .dyn_cast<IntegerType>()) {
       os << '{';
-      interleaveComma(dense, os, [&](const APInt &val) {
+      interleaveComma(dense, os, [&](APInt val) {
         printInt(val, shouldMapToUnsigned(iType.getSignedness()));
       });
       os << '}';
@@ -769,8 +767,7 @@ LogicalResult CppEmitter::emitAttribute(Location loc, Attribute attr) {
                          .getElementType()
                          .dyn_cast<IndexType>()) {
       os << '{';
-      interleaveComma(dense, os,
-                      [&](const APInt &val) { printInt(val, false); });
+      interleaveComma(dense, os, [&](APInt val) { printInt(val, false); });
       os << '}';
       return success();
     }
@@ -815,7 +812,7 @@ CppEmitter::emitOperandsAndAttributes(Operation &op,
   // Insert comma in between operands and non-filtered attributes if needed.
   if (op.getNumOperands() > 0) {
     for (NamedAttribute attr : op.getAttrs()) {
-      if (!llvm::is_contained(exclude, attr.getName().strref())) {
+      if (!llvm::is_contained(exclude, attr.first.strref())) {
         os << ", ";
         break;
       }
@@ -823,10 +820,10 @@ CppEmitter::emitOperandsAndAttributes(Operation &op,
   }
   // Emit attributes.
   auto emitNamedAttribute = [&](NamedAttribute attr) -> LogicalResult {
-    if (llvm::is_contained(exclude, attr.getName().strref()))
+    if (llvm::is_contained(exclude, attr.first.strref()))
       return success();
-    os << "/* " << attr.getName().getValue() << " */";
-    if (failed(emitAttribute(op.getLoc(), attr.getValue())))
+    os << "/* " << attr.first << " */";
+    if (failed(emitAttribute(op.getLoc(), attr.second)))
       return failure();
     return success();
   };

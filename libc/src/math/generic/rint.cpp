@@ -13,7 +13,7 @@
 namespace __llvm_libc {
 
 LLVM_LIBC_FUNCTION(double, rint, (double x)) {
-  return fputil::round_using_current_rounding_mode(x);
+  return fputil::roundUsingCurrentRoundingMode(x);
 }
 
 } // namespace __llvm_libc

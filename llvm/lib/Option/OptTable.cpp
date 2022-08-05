@@ -150,9 +150,10 @@ OptTable::OptTable(ArrayRef<Info> OptionInfos, bool IgnoreCase)
   for (StringSet<>::const_iterator I = PrefixesUnion.begin(),
                                    E = PrefixesUnion.end(); I != E; ++I) {
     StringRef Prefix = I->getKey();
-    for (char C : Prefix)
-      if (!is_contained(PrefixChars, C))
-        PrefixChars.push_back(C);
+    for (StringRef::const_iterator C = Prefix.begin(), CE = Prefix.end();
+                                   C != CE; ++C)
+      if (!is_contained(PrefixChars, *C))
+        PrefixChars.push_back(*C);
   }
 }
 
@@ -591,16 +592,16 @@ static void PrintHelpOptionList(raw_ostream &OS, StringRef Title,
 
   // Find the maximum option length.
   unsigned OptionFieldWidth = 0;
-  for (const OptionInfo &Opt : OptionHelp) {
+  for (unsigned i = 0, e = OptionHelp.size(); i != e; ++i) {
     // Limit the amount of padding we are willing to give up for alignment.
-    unsigned Length = Opt.Name.size();
+    unsigned Length = OptionHelp[i].Name.size();
     if (Length <= 23)
       OptionFieldWidth = std::max(OptionFieldWidth, Length);
   }
 
   const unsigned InitialPad = 2;
-  for (const OptionInfo &Opt : OptionHelp) {
-    const std::string &Option = Opt.Name;
+  for (unsigned i = 0, e = OptionHelp.size(); i != e; ++i) {
+    const std::string &Option = OptionHelp[i].Name;
     int Pad = OptionFieldWidth - int(Option.size());
     OS.indent(InitialPad) << Option;
 
@@ -609,7 +610,7 @@ static void PrintHelpOptionList(raw_ostream &OS, StringRef Title,
       OS << "\n";
       Pad = OptionFieldWidth + InitialPad;
     }
-    OS.indent(Pad + 1) << Opt.HelpText << '\n';
+    OS.indent(Pad + 1) << OptionHelp[i].HelpText << '\n';
   }
 }
 

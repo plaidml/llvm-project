@@ -86,10 +86,9 @@ public:
   void EstablishDescriptor(
       Descriptor &, const Descriptor &container, Terminator &) const;
 
-  // Creates a pointer descriptor from this component description, possibly
-  // with subscripts
+  // Creates a pointer descriptor from this component description.
   void CreatePointerDescriptor(Descriptor &, const Descriptor &container,
-      Terminator &, const SubscriptValue * = nullptr) const;
+      const SubscriptValue[], Terminator &) const;
 
   FILE *Dump(FILE * = stdout) const;
 

@@ -204,11 +204,7 @@ BitcodeCompiler::BitcodeCompiler() {
                                        config->ltoPartitions);
 
   // Initialize usedStartStop.
-  if (bitcodeFiles.empty())
-    return;
   for (Symbol *sym : symtab->symbols()) {
-    if (sym->isPlaceholder())
-      continue;
     StringRef s = sym->getName();
     for (StringRef prefix : {"__start_", "__stop_"})
       if (s.startswith(prefix))
@@ -282,8 +278,8 @@ void BitcodeCompiler::add(BitcodeFile &f) {
 // This is needed because this is what GNU gold plugin does and we have a
 // distributed build system that depends on that behavior.
 static void thinLTOCreateEmptyIndexFiles() {
-  for (BitcodeFile *f : lazyBitcodeFiles) {
-    if (!f->lazy)
+  for (LazyObjFile *f : lazyObjFiles) {
+    if (f->fetched || !isBitcode(f->mb))
       continue;
     std::string path = replaceThinLTOSuffix(getThinLTOOutputFile(f->getName()));
     std::unique_ptr<raw_fd_ostream> os = openFile(path + ".thinlto.bc");

@@ -21,6 +21,7 @@
 #include <climits>
 
 namespace llvm {
+class AssumptionCacheTracker;
 class BlockFrequencyInfo;
 class CallBase;
 class DataLayout;
@@ -211,7 +212,7 @@ struct InlineParams {
   Optional<bool> ComputeFullInlineCost;
 
   /// Indicate whether we should allow inline deferral.
-  Optional<bool> EnableDeferral;
+  Optional<bool> EnableDeferral = true;
 
   /// Indicate whether we allow inlining for recursive call.
   Optional<bool> AllowRecursiveCall = false;

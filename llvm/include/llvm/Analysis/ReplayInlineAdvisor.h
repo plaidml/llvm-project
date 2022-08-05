@@ -14,9 +14,11 @@
 #include "llvm/IR/LLVMContext.h"
 
 namespace llvm {
+class BasicBlock;
 class CallBase;
 class Function;
 class Module;
+class OptimizationRemarkEmitter;
 
 struct CallSiteFormat {
   enum class Format : int {

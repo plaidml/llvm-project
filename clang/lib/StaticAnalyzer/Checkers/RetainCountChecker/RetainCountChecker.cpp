@@ -290,7 +290,7 @@ void RetainCountChecker::checkPostStmt(const ObjCIvarRefExpr *IRE,
 
   ProgramStateRef State = C.getState();
   SymbolRef Sym = State->getSVal(*IVarLoc).getAsSymbol();
-  if (!Sym || !isa_and_nonnull<ObjCIvarRegion>(Sym->getOriginRegion()))
+  if (!Sym || !dyn_cast_or_null<ObjCIvarRegion>(Sym->getOriginRegion()))
     return;
 
   // Accessing an ivar directly is unusual. If we've done that, be more

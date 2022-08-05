@@ -78,10 +78,11 @@ public:
       : IRMaterializationUnit(ES, MO, std::move(TSM)), Parent(Parent) {}
 
   PartitioningIRMaterializationUnit(
-      ThreadSafeModule TSM, Interface I,
-      SymbolNameToDefinitionMap SymbolToDefinition,
+      ThreadSafeModule TSM, SymbolFlagsMap SymbolFlags,
+      SymbolStringPtr InitSymbol, SymbolNameToDefinitionMap SymbolToDefinition,
       CompileOnDemandLayer &Parent)
-      : IRMaterializationUnit(std::move(TSM), std::move(I),
+      : IRMaterializationUnit(std::move(TSM), std::move(SymbolFlags),
+                              std::move(InitSymbol),
                               std::move(SymbolToDefinition)),
         Parent(Parent) {}
 
@@ -297,9 +298,7 @@ void CompileOnDemandLayer::emitPartition(
   if (GVsToExtract->empty()) {
     if (auto Err =
             R->replace(std::make_unique<PartitioningIRMaterializationUnit>(
-                std::move(TSM),
-                MaterializationUnit::Interface(R->getSymbols(),
-                                               R->getInitializerSymbol()),
+                std::move(TSM), R->getSymbols(), R->getInitializerSymbol(),
                 std::move(Defs), *this))) {
       getExecutionSession().reportError(std::move(Err));
       R->failMaterialization();

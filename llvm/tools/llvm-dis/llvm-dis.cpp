@@ -74,11 +74,6 @@ static cl::opt<bool>
                                  "then materialize only the metadata"),
                         cl::cat(DisCategory));
 
-static cl::opt<bool> PrintThinLTOIndexOnly(
-    "print-thinlto-index-only",
-    cl::desc("Only read thinlto index and print the index as LLVM assembly."),
-    cl::init(false), cl::Hidden, cl::cat(DisCategory));
-
 namespace {
 
 static void printDebugLoc(const DebugLoc &DL, formatted_raw_ostream &OS) {
@@ -191,17 +186,12 @@ int main(int argc, char **argv) {
 
     for (size_t I = 0; I < N; ++I) {
       BitcodeModule MB = IF.Mods[I];
-
-      std::unique_ptr<Module> M;
-
-      if (!PrintThinLTOIndexOnly) {
-        M = ExitOnErr(
-            MB.getLazyModule(Context, MaterializeMetadata, SetImporting));
-        if (MaterializeMetadata)
-          ExitOnErr(M->materializeMetadata());
-        else
-          ExitOnErr(M->materializeAll());
-      }
+      std::unique_ptr<Module> M = ExitOnErr(
+          MB.getLazyModule(Context, MaterializeMetadata, SetImporting));
+      if (MaterializeMetadata)
+        ExitOnErr(M->materializeMetadata());
+      else
+        ExitOnErr(M->materializeAll());
 
       BitcodeLTOInfo LTOInfo = ExitOnErr(MB.getLTOInfo());
       std::unique_ptr<ModuleSummaryIndex> Index;
@@ -243,8 +233,7 @@ int main(int argc, char **argv) {
 
       // All that llvm-dis does is write the assembly to a file.
       if (!DontPrint) {
-        if (M)
-          M->print(Out->os(), Annotator.get(), PreserveAssemblyUseListOrder);
+        M->print(Out->os(), Annotator.get(), PreserveAssemblyUseListOrder);
         if (Index)
           Index->print(Out->os());
       }

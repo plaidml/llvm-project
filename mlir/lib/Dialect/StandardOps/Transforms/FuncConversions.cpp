@@ -35,7 +35,7 @@ struct CallOpSignatureConversion : public OpConversionPattern<CallOp> {
     return success();
   }
 };
-} // namespace
+} // end anonymous namespace
 
 void mlir::populateCallOpTypeConversionPattern(RewritePatternSet &patterns,
                                                TypeConverter &converter) {
@@ -85,7 +85,7 @@ public:
 private:
   function_ref<bool(BranchOpInterface, int)> shouldConvertBranchOperand;
 };
-} // namespace
+} // end anonymous namespace
 
 namespace {
 /// Only needed to support partial conversion of functions where this pattern
@@ -105,7 +105,7 @@ public:
     return success();
   }
 };
-} // namespace
+} // end anonymous namespace
 
 void mlir::populateBranchOpInterfaceTypeConversionPattern(
     RewritePatternSet &patterns, TypeConverter &typeConverter,
@@ -146,7 +146,10 @@ bool mlir::isLegalForReturnOpTypeConversionPattern(Operation *op,
 
   // ReturnLike operations have to be legalized with their parent. For
   // return this is handled, for other ops they remain as is.
-  return op->hasTrait<OpTrait::ReturnLike>();
+  if (op->hasTrait<OpTrait::ReturnLike>())
+    return true;
+
+  return false;
 }
 
 bool mlir::isNotBranchOpInterfaceOrReturnLikeOp(Operation *op) {

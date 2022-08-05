@@ -596,7 +596,8 @@ bool MachineSinking::isWorthBreakingCriticalEdge(MachineInstr &MI,
   // MI is cheap, we probably don't want to break the critical edge for it.
   // However, if this would allow some definitions of its source operands
   // to be sunk then it's probably worth it.
-  for (const MachineOperand &MO : MI.operands()) {
+  for (unsigned i = 0, e = MI.getNumOperands(); i != e; ++i) {
+    const MachineOperand &MO = MI.getOperand(i);
     if (!MO.isReg() || !MO.isUse())
       continue;
     Register Reg = MO.getReg();
@@ -681,9 +682,13 @@ bool MachineSinking::PostponeSplitCriticalEdge(MachineInstr &MI,
   // There is no need to do this check if all the uses are PHI nodes. PHI
   // sources are only defined on the specific predecessor edges.
   if (!BreakPHIEdge) {
-    for (MachineBasicBlock *Pred : ToBB->predecessors())
-      if (Pred != FromBB && !DT->dominates(ToBB, Pred))
+    for (MachineBasicBlock::pred_iterator PI = ToBB->pred_begin(),
+           E = ToBB->pred_end(); PI != E; ++PI) {
+      if (*PI == FromBB)
+        continue;
+      if (!DT->dominates(ToBB, *PI))
         return false;
+    }
   }
 
   ToSplit.insert(std::make_pair(FromBB, ToBB));
@@ -788,7 +793,8 @@ bool MachineSinking::isProfitableToSinkTo(Register Reg, MachineInstr &MI,
 
   // If this instruction is inside a loop and sinking this instruction can make
   // more registers live range shorten, it is still prifitable.
-  for (const MachineOperand &MO : MI.operands()) {
+  for (unsigned i = 0, e = MI.getNumOperands(); i != e; ++i) {
+    const MachineOperand &MO = MI.getOperand(i);
     // Ignore non-register operands.
     if (!MO.isReg())
       continue;
@@ -796,14 +802,9 @@ bool MachineSinking::isProfitableToSinkTo(Register Reg, MachineInstr &MI,
     if (Reg == 0)
       continue;
 
-    if (Register::isPhysicalRegister(Reg)) {
-      if (MO.isUse() &&
-          (MRI->isConstantPhysReg(Reg) || TII->isIgnorableUse(MO)))
-        continue;
-
-      // Don't handle non-constant and non-ignorable physical register.
+    // Don't handle physical register.
+    if (Register::isPhysicalRegister(Reg))
       return false;
-    }
 
     // Users for the defs are all dominated by SuccToSinkTo.
     if (MO.isDef()) {
@@ -892,7 +893,8 @@ MachineSinking::FindSuccToSinkTo(MachineInstr &MI, MachineBasicBlock *MBB,
   // SuccToSinkTo - This is the successor to sink this instruction to, once we
   // decide.
   MachineBasicBlock *SuccToSinkTo = nullptr;
-  for (const MachineOperand &MO : MI.operands()) {
+  for (unsigned i = 0, e = MI.getNumOperands(); i != e; ++i) {
+    const MachineOperand &MO = MI.getOperand(i);
     if (!MO.isReg()) continue;  // Ignore non-register operands.
 
     Register Reg = MO.getReg();
@@ -903,7 +905,7 @@ MachineSinking::FindSuccToSinkTo(MachineInstr &MI, MachineBasicBlock *MBB,
         // If the physreg has no defs anywhere, it's just an ambient register
         // and we can freely move its uses. Alternatively, if it's allocatable,
         // it could get allocated to something with a def during allocation.
-        if (!MRI->isConstantPhysReg(Reg) && !TII->isIgnorableUse(MO))
+        if (!MRI->isConstantPhysReg(Reg))
           return nullptr;
       } else if (!MO.isDead()) {
         // A def that isn't dead. We can't move it.
@@ -1324,9 +1326,9 @@ bool MachineSinking::SinkInstruction(MachineInstr &MI, bool &SawStore,
   // If the instruction to move defines a dead physical register which is live
   // when leaving the basic block, don't move it because it could turn into a
   // "zombie" define of that preg. E.g., EFLAGS. (<rdar://problem/8030636>)
-  for (const MachineOperand &MO : MI.operands()) {
-    if (!MO.isReg() || MO.isUse())
-      continue;
+  for (unsigned I = 0, E = MI.getNumOperands(); I != E; ++I) {
+    const MachineOperand &MO = MI.getOperand(I);
+    if (!MO.isReg()) continue;
     Register Reg = MO.getReg();
     if (Reg == 0 || !Register::isPhysicalRegister(Reg))
       continue;

@@ -899,7 +899,7 @@ static ConstantAddress tryEmitGlobalCompoundLiteral(CodeGenModule &CGM,
   CharUnits Align = CGM.getContext().getTypeAlignInChars(E->getType());
   if (llvm::GlobalVariable *Addr =
           CGM.getAddrOfConstantCompoundLiteralIfEmitted(E))
-    return ConstantAddress(Addr, Addr->getValueType(), Align);
+    return ConstantAddress(Addr, Align);
 
   LangAS addressSpace = E->getType().getAddressSpace();
 
@@ -921,7 +921,7 @@ static ConstantAddress tryEmitGlobalCompoundLiteral(CodeGenModule &CGM,
   emitter.finalize(GV);
   GV->setAlignment(Align.getAsAlign());
   CGM.setAddrOfConstantCompoundLiteral(E, GV);
-  return ConstantAddress(GV, GV->getValueType(), Align);
+  return ConstantAddress(GV, Align);
 }
 
 static llvm::Constant *
@@ -1988,9 +1988,6 @@ ConstantLValueEmitter::VisitAddrLabelExpr(const AddrLabelExpr *E) {
 ConstantLValue
 ConstantLValueEmitter::VisitCallExpr(const CallExpr *E) {
   unsigned builtin = E->getBuiltinCallee();
-  if (builtin == Builtin::BI__builtin_function_start)
-    return CGM.GetFunctionStart(
-        E->getArg(0)->getAsBuiltinConstantDeclRef(CGM.getContext()));
   if (builtin != Builtin::BI__builtin___CFStringMakeConstantString &&
       builtin != Builtin::BI__builtin___NSStringMakeConstantString)
     return nullptr;

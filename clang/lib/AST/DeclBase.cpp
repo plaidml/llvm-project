@@ -964,7 +964,7 @@ SourceLocation Decl::getBodyRBrace() const {
   return {};
 }
 
-bool Decl::AccessDeclContextCheck() const {
+bool Decl::AccessDeclContextSanity() const {
 #ifndef NDEBUG
   // Suppress this check if any of the following hold:
   // 1. this is the translation unit (and thus has no parent)
@@ -1212,8 +1212,7 @@ bool DeclContext::Encloses(const DeclContext *DC) const {
     return getPrimaryContext()->Encloses(DC);
 
   for (; DC; DC = DC->getParent())
-    if (!isa<LinkageSpecDecl>(DC) && !isa<ExportDecl>(DC) &&
-        DC->getPrimaryContext() == this)
+    if (DC->getPrimaryContext() == this)
       return true;
   return false;
 }
@@ -1644,9 +1643,9 @@ void DeclContext::buildLookupImpl(DeclContext *DCtx, bool Internal) {
 
 DeclContext::lookup_result
 DeclContext::lookup(DeclarationName Name) const {
-  // For transparent DeclContext, we should lookup in their enclosing context.
-  if (getDeclKind() == Decl::LinkageSpec || getDeclKind() == Decl::Export)
-    return getParent()->lookup(Name);
+  assert(getDeclKind() != Decl::LinkageSpec &&
+         getDeclKind() != Decl::Export &&
+         "should not perform lookups into transparent contexts");
 
   const DeclContext *PrimaryContext = getPrimaryContext();
   if (PrimaryContext != this)

@@ -46,7 +46,7 @@ struct TestOperationEqualPass
       llvm::outs() << " compares NOT equals!\n";
   }
 };
-} // namespace
+} // end anonymous namespace
 
 namespace mlir {
 void registerTestOperationEqualPass() {

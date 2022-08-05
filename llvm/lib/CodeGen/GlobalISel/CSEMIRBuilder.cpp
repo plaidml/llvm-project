@@ -191,10 +191,10 @@ MachineInstrBuilder CSEMIRBuilder::buildInstr(unsigned Opc,
     assert(DstOps.size() == 1 && "Invalid dsts");
     if (SrcOps[0].getLLTTy(*getMRI()).isVector()) {
       // Try to constant fold vector constants.
-      Register VecCst = ConstantFoldVectorBinop(
+      auto VecCst = ConstantFoldVectorBinop(
           Opc, SrcOps[0].getReg(), SrcOps[1].getReg(), *getMRI(), *this);
       if (VecCst)
-        return buildCopy(DstOps[0], VecCst);
+        return MachineInstrBuilder(getMF(), *VecCst);
       break;
     }
     if (Optional<APInt> Cst = ConstantFoldBinOp(Opc, SrcOps[0].getReg(),

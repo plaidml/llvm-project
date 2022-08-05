@@ -231,7 +231,7 @@ public:
         mlir::OpBuilder rewriter(context);
         auto resultType = funcTy.getResult(0);
         auto argTy = getResultArgumentType(resultType, options);
-        options.newArg = func.front().insertArgument(zero, argTy, loc);
+        options.newArg = func.front().insertArgument(zero, argTy);
         if (mustEmboxResult(resultType, options)) {
           auto bufferType = fir::ReferenceType::get(resultType);
           rewriter.setInsertionPointToStart(&func.front());

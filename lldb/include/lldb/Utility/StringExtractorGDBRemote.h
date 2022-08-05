@@ -23,7 +23,7 @@ public:
   typedef bool (*ResponseValidatorCallback)(
       void *baton, const StringExtractorGDBRemote &response);
 
-  StringExtractorGDBRemote() {}
+  StringExtractorGDBRemote() : StringExtractor() {}
 
   StringExtractorGDBRemote(llvm::StringRef str)
       : StringExtractor(str), m_validator(nullptr) {}

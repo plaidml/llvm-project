@@ -399,7 +399,6 @@ private:
   };
 
   void WarnIfNoClassesCached(SharedCacheWarningReason reason);
-  void WarnIfNoExpandedSharedCache();
 
   lldb::addr_t GetSharedCacheReadOnlyAddress();
   lldb::addr_t GetSharedCacheBaseAddress();

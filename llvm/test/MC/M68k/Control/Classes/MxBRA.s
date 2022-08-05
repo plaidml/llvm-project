@@ -9,3 +9,4 @@ bra	$2a
 ; CHECK:      bra  $3fc
 ; CHECK-SAME: encoding: [0x60,0x00,0x03,0xfc]
 bra	$3fc
+

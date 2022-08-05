@@ -102,12 +102,12 @@ public:
     BaseLayer.emit(std::move(MR), irgenAndTakeOwnership(*F, ""));
   }
 
-  MaterializationUnit::Interface getInterface(FunctionAST &F) {
+  SymbolFlagsMap getInterface(FunctionAST &F) {
     MangleAndInterner Mangle(BaseLayer.getExecutionSession(), DL);
     SymbolFlagsMap Symbols;
     Symbols[Mangle(F.getName())] =
         JITSymbolFlags(JITSymbolFlags::Exported | JITSymbolFlags::Callable);
-    return MaterializationUnit::Interface(std::move(Symbols), nullptr);
+    return Symbols;
   }
 
 private:
@@ -117,7 +117,7 @@ private:
 
 KaleidoscopeASTMaterializationUnit::KaleidoscopeASTMaterializationUnit(
     KaleidoscopeASTLayer &L, std::unique_ptr<FunctionAST> F)
-    : MaterializationUnit(L.getInterface(*F)), L(L), F(std::move(F)) {}
+    : MaterializationUnit(L.getInterface(*F), nullptr), L(L), F(std::move(F)) {}
 
 void KaleidoscopeASTMaterializationUnit::materialize(
     std::unique_ptr<MaterializationResponsibility> R) {
@@ -186,8 +186,7 @@ public:
     if (auto Err = setUpInProcessLCTMReentryViaEPCIU(**EPCIU))
       return std::move(Err);
 
-    JITTargetMachineBuilder JTMB(
-        ES->getExecutorProcessControl().getTargetTriple());
+    JITTargetMachineBuilder JTMB((*EPC)->getTargetTriple());
 
     auto DL = JTMB.getDefaultDataLayoutForTarget();
     if (!DL)

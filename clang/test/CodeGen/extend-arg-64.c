@@ -32,7 +32,7 @@ short s16;
 unsigned char u8;
 signed char s8;
 long long ll;
-_BitInt(23) ei23;
+_ExtInt(23) ei23;
 float ff;
 double dd;
 #ifdef D128

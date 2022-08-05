@@ -271,7 +271,8 @@ static void findBestInsertionSet(DominatorTree &DT, BlockFrequencyInfo &BFI,
   // subtree of BB (subtree not including the BB itself).
   DenseMap<BasicBlock *, InsertPtsCostPair> InsertPtsMap;
   InsertPtsMap.reserve(Orders.size() + 1);
-  for (BasicBlock *Node : llvm::reverse(Orders)) {
+  for (auto RIt = Orders.rbegin(); RIt != Orders.rend(); RIt++) {
+    BasicBlock *Node = *RIt;
     bool NodeInBBs = BBs.count(Node);
     auto &InsertPts = InsertPtsMap[Node].first;
     BlockFrequency &InsertPtsFreq = InsertPtsMap[Node].second;
@@ -414,14 +415,6 @@ void ConstantHoistingPass::collectConstantCandidates(
   IntegerType *PtrIntTy = DL->getIntPtrType(*Ctx, GVPtrTy->getAddressSpace());
   APInt Offset(DL->getTypeSizeInBits(PtrIntTy), /*val*/0, /*isSigned*/true);
   auto *GEPO = cast<GEPOperator>(ConstExpr);
-
-  // TODO: If we have a mix of inbounds and non-inbounds GEPs, then basing a
-  // non-inbounds GEP on an inbounds GEP is potentially incorrect. Restrict to
-  // inbounds GEP for now -- alternatively, we could drop inbounds from the
-  // constant expression,
-  if (!GEPO->isInBounds())
-    return;
-
   if (!GEPO->accumulateConstantOffset(*DL, Offset))
     return;
 
@@ -478,7 +471,7 @@ void ConstantHoistingPass::collectConstantCandidates(
   // Visit constant expressions that have constant integers.
   if (auto ConstExpr = dyn_cast<ConstantExpr>(Opnd)) {
     // Handle constant gep expressions.
-    if (ConstHoistGEP && isa<GEPOperator>(ConstExpr))
+    if (ConstHoistGEP && ConstExpr->isGEPWithNoNotionalOverIndexing())
       collectConstantCandidates(ConstCandMap, Inst, Idx, ConstExpr);
 
     // Only visit constant cast expressions.
@@ -818,7 +811,7 @@ void ConstantHoistingPass::emitBaseConstants(Instruction *Base,
 
   // Visit constant expression.
   if (auto ConstExpr = dyn_cast<ConstantExpr>(Opnd)) {
-    if (isa<GEPOperator>(ConstExpr)) {
+    if (ConstExpr->isGEPWithNoNotionalOverIndexing()) {
       // Operand is a ConstantGEP, replace it.
       updateOperand(ConstUser.Inst, ConstUser.OpndIdx, Mat);
       return;

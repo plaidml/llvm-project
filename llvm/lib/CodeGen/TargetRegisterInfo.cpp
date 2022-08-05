@@ -248,8 +248,8 @@ static void getAllocatableSetForRC(const MachineFunction &MF,
                                    const TargetRegisterClass *RC, BitVector &R){
   assert(RC->isAllocatable() && "invalid for nonallocatable sets");
   ArrayRef<MCPhysReg> Order = RC->getRawAllocationOrder(MF);
-  for (MCPhysReg PR : Order)
-    R.set(PR);
+  for (unsigned i = 0; i != Order.size(); ++i)
+    R.set(Order[i]);
 }
 
 BitVector TargetRegisterInfo::getAllocatableSet(const MachineFunction &MF,
@@ -552,7 +552,7 @@ bool TargetRegisterInfo::getCoveringSubRegIndexes(
 
   // Abort if we cannot possibly implement the COPY with the given indexes.
   if (BestIdx == 0)
-    return false;
+    return 0;
 
   NeededIndexes.push_back(BestIdx);
 
@@ -581,7 +581,7 @@ bool TargetRegisterInfo::getCoveringSubRegIndexes(
     }
 
     if (BestIdx == 0)
-      return false; // Impossible to handle
+      return 0; // Impossible to handle
 
     NeededIndexes.push_back(BestIdx);
 

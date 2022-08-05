@@ -195,6 +195,10 @@ protected:
         SetError(result, std::move(e));
         return result.Succeeded();
       }
+    } else if (r.IsReplaying()) {
+      // Make this operation a NO-OP in replay mode.
+      result.SetStatus(eReturnStatusSuccessFinishNoResult);
+      return result.Succeeded();
     } else {
       result.AppendErrorWithFormat("Unable to get the reproducer generator");
       return false;
@@ -272,7 +276,7 @@ protected:
 
     auto &r = Reproducer::Instance();
 
-    if (!r.IsCapturing()) {
+    if (!r.IsCapturing() && !r.IsReplaying()) {
       result.AppendError(
           "forcing a crash is only supported when capturing a reproducer.");
       result.SetStatus(eReturnStatusSuccessFinishNoResult);
@@ -322,10 +326,15 @@ protected:
     auto &r = Reproducer::Instance();
     if (r.IsCapturing()) {
       result.GetOutputStream() << "Reproducer is in capture mode.\n";
-      result.GetOutputStream()
-          << "Path: " << r.GetReproducerPath().GetPath() << '\n';
+    } else if (r.IsReplaying()) {
+      result.GetOutputStream() << "Reproducer is in replay mode.\n";
     } else {
       result.GetOutputStream() << "Reproducer is off.\n";
+    }
+
+    if (r.IsCapturing() || r.IsReplaying()) {
+      result.GetOutputStream()
+          << "Path: " << r.GetReproducerPath().GetPath() << '\n';
     }
 
     // Auto generate is hidden unless enabled because this is mostly for

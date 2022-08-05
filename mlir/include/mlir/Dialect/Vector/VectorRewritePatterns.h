@@ -6,10 +6,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef MLIR_DIALECT_VECTOR_VECTORREWRITEPATTERNS_H
-#define MLIR_DIALECT_VECTOR_VECTORREWRITEPATTERNS_H
-
-#include <utility>
+#ifndef DIALECT_VECTOR_VECTORREWRITEPATTERNS_H_
+#define DIALECT_VECTOR_VECTORREWRITEPATTERNS_H_
 
 #include "mlir/Dialect/Vector/VectorOps.h"
 #include "mlir/Dialect/Vector/VectorUtils.h"
@@ -103,7 +101,7 @@ struct UnrollVectorOptions {
   /// attempted on the operation.
   FilterConstraintFnType filterConstraint = nullptr;
   UnrollVectorOptions &setFilterConstraint(FilterConstraintFnType constraint) {
-    filterConstraint = std::move(constraint);
+    filterConstraint = constraint;
     return *this;
   }
 
@@ -113,7 +111,7 @@ struct UnrollVectorOptions {
   /// operation. The unrolling is aborted if the function returns `llvm::None`.
   NativeShapeFnType nativeShape = nullptr;
   UnrollVectorOptions &setNativeShapeFn(NativeShapeFnType fn) {
-    nativeShape = std::move(fn);
+    nativeShape = fn;
     return *this;
   }
 
@@ -159,7 +157,9 @@ void populateVectorTransposeLoweringPatterns(
 /// the other patterns can kick in, thus fully exiting out of the
 /// vector.multi_reduction abstraction.
 void populateVectorMultiReductionLoweringPatterns(
-    RewritePatternSet &patterns, VectorMultiReductionLowering options);
+    RewritePatternSet &patterns,
+    VectorMultiReductionLowering options =
+        VectorMultiReductionLowering::InnerParallel);
 
 /// Collects patterns to progressively lower vector contraction ops on high-D
 /// into low-D reduction and product ops.
@@ -323,7 +323,7 @@ struct VectorTransferFullPartialRewriter : public RewritePattern {
           [](VectorTransferOpInterface op) { return success(); },
       PatternBenefit benefit = 1)
       : RewritePattern(MatchAnyOpTypeTag(), benefit, context), options(options),
-        filter(std::move(filter)) {}
+        filter(filter) {}
 
   /// Performs the rewrite.
   LogicalResult matchAndRewrite(Operation *op,
@@ -362,8 +362,7 @@ public:
       vector::VectorTransformsOptions vectorTransformOptions,
       MLIRContext *context, FilterConstraintType constraint = defaultFilter)
       : OpRewritePattern<vector::ContractionOp>(context),
-        vectorTransformOptions(vectorTransformOptions),
-        filter(std::move(constraint)) {}
+        vectorTransformOptions(vectorTransformOptions), filter(constraint) {}
 
   LogicalResult matchAndRewrite(vector::ContractionOp op,
                                 PatternRewriter &rewriter) const override;
@@ -404,8 +403,7 @@ public:
       vector::VectorTransformsOptions vectorTransformOptions,
       MLIRContext *context, FilterConstraintType constraint = defaultFilter)
       : OpRewritePattern<vector::ContractionOp>(context),
-        vectorTransformOptions(vectorTransformOptions),
-        filter(std::move(constraint)) {}
+        vectorTransformOptions(vectorTransformOptions), filter(constraint) {}
 
   LogicalResult matchAndRewrite(vector::ContractionOp op,
                                 PatternRewriter &rewriter) const override;
@@ -447,8 +445,7 @@ public:
 
   ContractionOpToDotLowering(
       vector::VectorTransformsOptions vectorTransformOptions,
-      MLIRContext *context,
-      const FilterConstraintType &constraint = defaultFilter)
+      MLIRContext *context, FilterConstraintType constraint = defaultFilter)
       : OpRewritePattern<vector::ContractionOp>(context),
         vectorTransformOptions(vectorTransformOptions), filter(defaultFilter) {}
 
@@ -489,8 +486,7 @@ public:
                         MLIRContext *context,
                         FilterConstraintType constraint = defaultFilter)
       : OpRewritePattern<vector::ContractionOp>(context),
-        vectorTransformOptions(vectorTransformOptions),
-        filter(std::move(constraint)) {}
+        vectorTransformOptions(vectorTransformOptions), filter(constraint) {}
 
   LogicalResult matchAndRewrite(vector::ContractionOp op,
                                 PatternRewriter &rewriter) const override;
@@ -510,4 +506,4 @@ private:
 } // namespace vector
 } // namespace mlir
 
-#endif // MLIR_DIALECT_VECTOR_VECTORREWRITEPATTERNS_H
+#endif // DIALECT_VECTOR_VECTORREWRITEPATTERNS_H_

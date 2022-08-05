@@ -22,7 +22,6 @@
 #include "clang/AST/TypeLoc.h"
 #include "clang/AST/TypeLocVisitor.h"
 #include "clang/Basic/PartialDiagnostic.h"
-#include "clang/Basic/Specifiers.h"
 #include "clang/Basic/TargetInfo.h"
 #include "clang/Lex/Preprocessor.h"
 #include "clang/Sema/DeclSpec.h"
@@ -1436,11 +1435,12 @@ static QualType ConvertDeclSpecToType(TypeProcessingState &state) {
     }
     break;
   }
-  case DeclSpec::TST_bitint: {
-    if (!S.Context.getTargetInfo().hasBitIntType())
-      S.Diag(DS.getTypeSpecTypeLoc(), diag::err_type_unsupported) << "_BitInt";
+  case DeclSpec::TST_extint: {
+    if (!S.Context.getTargetInfo().hasExtIntType())
+      S.Diag(DS.getTypeSpecTypeLoc(), diag::err_type_unsupported)
+        << "_ExtInt";
     Result =
-        S.BuildBitIntType(DS.getTypeSpecSign() == TypeSpecifierSign::Unsigned,
+        S.BuildExtIntType(DS.getTypeSpecSign() == TypeSpecifierSign::Unsigned,
                           DS.getRepAsExpr(), DS.getBeginLoc());
     if (Result.isNull()) {
       Result = Context.IntTy;
@@ -1496,8 +1496,8 @@ static QualType ConvertDeclSpecToType(TypeProcessingState &state) {
   }
   case DeclSpec::TST_int128:
     if (!S.Context.getTargetInfo().hasInt128Type() &&
-        !(S.getLangOpts().SYCLIsDevice || S.getLangOpts().CUDAIsDevice ||
-          (S.getLangOpts().OpenMP && S.getLangOpts().OpenMPIsDevice)))
+        !S.getLangOpts().SYCLIsDevice &&
+        !(S.getLangOpts().OpenMP && S.getLangOpts().OpenMPIsDevice))
       S.Diag(DS.getTypeSpecTypeLoc(), diag::err_type_unsupported)
         << "__int128";
     if (DS.getTypeSpecSign() == TypeSpecifierSign::Unsigned)
@@ -1622,7 +1622,7 @@ static QualType ConvertDeclSpecToType(TypeProcessingState &state) {
     Expr *E = DS.getRepAsExpr();
     assert(E && "Didn't get an expression for typeof?");
     // TypeQuals handled by caller.
-    Result = S.BuildTypeofExprType(E);
+    Result = S.BuildTypeofExprType(E, DS.getTypeSpecTypeLoc());
     if (Result.isNull()) {
       Result = Context.IntTy;
       declarator.setInvalidType(true);
@@ -1633,7 +1633,7 @@ static QualType ConvertDeclSpecToType(TypeProcessingState &state) {
     Expr *E = DS.getRepAsExpr();
     assert(E && "Didn't get an expression for decltype?");
     // TypeQuals handled by caller.
-    Result = S.BuildDecltypeType(E);
+    Result = S.BuildDecltypeType(E, DS.getTypeSpecTypeLoc());
     if (Result.isNull()) {
       Result = Context.IntTy;
       declarator.setInvalidType(true);
@@ -2237,7 +2237,7 @@ QualType Sema::BuildWritePipeType(QualType T, SourceLocation Loc) {
   return Context.getWritePipeType(T);
 }
 
-/// Build a bit-precise integer type.
+/// Build a extended int type.
 ///
 /// \param IsUnsigned Boolean representing the signedness of the type.
 ///
@@ -2245,10 +2245,10 @@ QualType Sema::BuildWritePipeType(QualType T, SourceLocation Loc) {
 /// that.
 ///
 /// \param Loc Location of the keyword.
-QualType Sema::BuildBitIntType(bool IsUnsigned, Expr *BitWidth,
+QualType Sema::BuildExtIntType(bool IsUnsigned, Expr *BitWidth,
                                SourceLocation Loc) {
   if (BitWidth->isInstantiationDependent())
-    return Context.getDependentBitIntType(IsUnsigned, BitWidth);
+    return Context.getDependentExtIntType(IsUnsigned, BitWidth);
 
   llvm::APSInt Bits(32);
   ExprResult ICE =
@@ -2259,22 +2259,22 @@ QualType Sema::BuildBitIntType(bool IsUnsigned, Expr *BitWidth,
 
   int64_t NumBits = Bits.getSExtValue();
   if (!IsUnsigned && NumBits < 2) {
-    Diag(Loc, diag::err_bit_int_bad_size) << 0;
+    Diag(Loc, diag::err_ext_int_bad_size) << 0;
     return QualType();
   }
 
   if (IsUnsigned && NumBits < 1) {
-    Diag(Loc, diag::err_bit_int_bad_size) << 1;
+    Diag(Loc, diag::err_ext_int_bad_size) << 1;
     return QualType();
   }
 
   if (NumBits > llvm::IntegerType::MAX_INT_BITS) {
-    Diag(Loc, diag::err_bit_int_max_size)
-        << IsUnsigned << llvm::IntegerType::MAX_INT_BITS;
+    Diag(Loc, diag::err_ext_int_max_size) << IsUnsigned
+                                          << llvm::IntegerType::MAX_INT_BITS;
     return QualType();
   }
 
-  return Context.getBitIntType(IsUnsigned, NumBits);
+  return Context.getExtIntType(IsUnsigned, NumBits);
 }
 
 /// Check whether the specified array bound can be evaluated using the relevant
@@ -2516,7 +2516,7 @@ QualType Sema::BuildArrayType(QualType T, ArrayType::ArraySizeModifier ASM,
         Diag(ArraySize->getBeginLoc(),
              isSFINAEContext() ? diag::err_typecheck_zero_array_size
                                : diag::ext_typecheck_zero_array_size)
-            << 0 << ArraySize->getSourceRange();
+            << ArraySize->getSourceRange();
       }
 
       // Is the array too large?
@@ -3939,20 +3939,6 @@ static CallingConv getCCForDeclaratorChunk(
       if (AL.getKind() == ParsedAttr::AT_OpenCLKernel) {
         CC = CC_OpenCLKernel;
         break;
-      }
-    }
-  } else if (S.getLangOpts().CUDA) {
-    // If we're compiling CUDA/HIP code and targeting SPIR-V we need to make
-    // sure the kernels will be marked with the right calling convention so that
-    // they will be visible by the APIs that ingest SPIR-V.
-    llvm::Triple Triple = S.Context.getTargetInfo().getTriple();
-    if (Triple.getArch() == llvm::Triple::spirv32 ||
-        Triple.getArch() == llvm::Triple::spirv64) {
-      for (const ParsedAttr &AL : D.getDeclSpec().getAttributes()) {
-        if (AL.getKind() == ParsedAttr::AT_CUDAGlobal) {
-          CC = CC_OpenCLKernel;
-          break;
-        }
       }
     }
   }
@@ -5442,7 +5428,7 @@ static TypeSourceInfo *GetFullTypeForDeclarator(TypeProcessingState &state,
         // Avoid emitting extra errors if we already errored on the scope.
         D.setInvalidType(true);
       } else if (S.isDependentScopeSpecifier(SS) ||
-                 isa_and_nonnull<CXXRecordDecl>(S.computeDeclContext(SS))) {
+                 dyn_cast_or_null<CXXRecordDecl>(S.computeDeclContext(SS))) {
         NestedNameSpecifier *NNS = SS.getScopeRep();
         NestedNameSpecifier *NNSPrefix = NNS->getPrefix();
         switch (NNS->getKind()) {
@@ -5974,11 +5960,6 @@ namespace {
       Sema::GetTypeFromParser(DS.getRepAsType(), &TInfo);
       TL.setUnderlyingTInfo(TInfo);
     }
-    void VisitDecltypeTypeLoc(DecltypeTypeLoc TL) {
-      assert(DS.getTypeSpecType() == DeclSpec::TST_decltype);
-      TL.setDecltypeLoc(DS.getTypeSpecTypeLoc());
-      TL.setRParenLoc(DS.getTypeofParensRange().getEnd());
-    }
     void VisitUnaryTransformTypeLoc(UnaryTransformTypeLoc TL) {
       // FIXME: This holds only because we only have one unary transform.
       assert(DS.getTypeSpecType() == DeclSpec::TST_underlyingType);
@@ -6042,8 +6023,6 @@ namespace {
              DS.getTypeSpecType() == TST_auto_type ||
              DS.getTypeSpecType() == TST_unspecified);
       TL.setNameLoc(DS.getTypeSpecTypeLoc());
-      if (DS.getTypeSpecType() == TST_decltype_auto)
-        TL.setRParenLoc(DS.getTypeofParensRange().getEnd());
       if (!DS.isConstrainedAuto())
         return;
       TemplateIdAnnotation *TemplateId = DS.getRepAsTemplateId();
@@ -6098,11 +6077,11 @@ namespace {
       TL.getValueLoc().initializeFullCopy(TInfo->getTypeLoc());
     }
 
-    void VisitExtIntTypeLoc(BitIntTypeLoc TL) {
+    void VisitExtIntTypeLoc(ExtIntTypeLoc TL) {
       TL.setNameLoc(DS.getTypeSpecTypeLoc());
     }
 
-    void VisitDependentExtIntTypeLoc(DependentBitIntTypeLoc TL) {
+    void VisitDependentExtIntTypeLoc(DependentExtIntTypeLoc TL) {
       TL.setNameLoc(DS.getTypeSpecTypeLoc());
     }
 
@@ -6232,7 +6211,7 @@ namespace {
       assert(Chunk.Kind == DeclaratorChunk::Pipe);
       TL.setKWLoc(Chunk.Loc);
     }
-    void VisitBitIntTypeLoc(BitIntTypeLoc TL) {
+    void VisitExtIntTypeLoc(ExtIntTypeLoc TL) {
       TL.setNameLoc(Chunk.Loc);
     }
     void VisitMacroQualifiedTypeLoc(MacroQualifiedTypeLoc TL) {
@@ -6549,6 +6528,7 @@ static void HandleBTFTypeTagAttribute(QualType &Type, const ParsedAttr &Attr,
   StringRef BTFTypeTag = StrLiteral->getString();
   Type = State.getAttributedType(
       ::new (Ctx) BTFTypeTagAttr(Ctx, Attr, BTFTypeTag), Type, Type);
+  return;
 }
 
 /// HandleAddressSpaceTypeAttribute - Process an address_space attribute on the
@@ -8945,7 +8925,7 @@ QualType Sema::getElaboratedType(ElaboratedTypeKeyword Keyword,
   return Context.getElaboratedType(Keyword, NNS, T, OwnedTagDecl);
 }
 
-QualType Sema::BuildTypeofExprType(Expr *E) {
+QualType Sema::BuildTypeofExprType(Expr *E, SourceLocation Loc) {
   assert(!E->hasPlaceholderType() && "unexpected placeholder");
 
   if (!getLangOpts().CPlusPlus && E->refersToBitField())
@@ -8962,9 +8942,9 @@ QualType Sema::BuildTypeofExprType(Expr *E) {
 /// getDecltypeForExpr - Given an expr, will return the decltype for
 /// that expression, according to the rules in C++11
 /// [dcl.type.simple]p4 and C++11 [expr.lambda.prim]p18.
-QualType Sema::getDecltypeForExpr(Expr *E) {
+static QualType getDecltypeForExpr(Sema &S, Expr *E) {
   if (E->isTypeDependent())
-    return Context.DependentTy;
+    return S.Context.DependentTy;
 
   Expr *IDExpr = E;
   if (auto *ImplCastExpr = dyn_cast<ImplicitCastExpr>(E))
@@ -8981,7 +8961,7 @@ QualType Sema::getDecltypeForExpr(Expr *E) {
   // parameter object. This rule makes no difference before C++20 so we apply
   // it unconditionally.
   if (const auto *SNTTPE = dyn_cast<SubstNonTypeTemplateParmExpr>(IDExpr))
-    return SNTTPE->getParameterType(Context);
+    return SNTTPE->getParameterType(S.Context);
 
   //     - if e is an unparenthesized id-expression or an unparenthesized class
   //       member access (5.2.5), decltype(e) is the type of the entity named
@@ -8989,21 +8969,22 @@ QualType Sema::getDecltypeForExpr(Expr *E) {
   //       functions, the program is ill-formed;
   //
   // We apply the same rules for Objective-C ivar and property references.
-  if (const auto *DRE = dyn_cast<DeclRefExpr>(IDExpr)) {
+  if (const DeclRefExpr *DRE = dyn_cast<DeclRefExpr>(IDExpr)) {
     const ValueDecl *VD = DRE->getDecl();
-    QualType T = VD->getType();
-    return isa<TemplateParamObjectDecl>(VD) ? T.getUnqualifiedType() : T;
-  }
-  if (const auto *ME = dyn_cast<MemberExpr>(IDExpr)) {
-    if (const auto *VD = ME->getMemberDecl())
+    if (auto *TPO = dyn_cast<TemplateParamObjectDecl>(VD))
+      return TPO->getType().getUnqualifiedType();
+    return VD->getType();
+  } else if (const MemberExpr *ME = dyn_cast<MemberExpr>(IDExpr)) {
+    if (const ValueDecl *VD = ME->getMemberDecl())
       if (isa<FieldDecl>(VD) || isa<VarDecl>(VD))
         return VD->getType();
-  } else if (const auto *IR = dyn_cast<ObjCIvarRefExpr>(IDExpr)) {
+  } else if (const ObjCIvarRefExpr *IR = dyn_cast<ObjCIvarRefExpr>(IDExpr)) {
     return IR->getDecl()->getType();
-  } else if (const auto *PR = dyn_cast<ObjCPropertyRefExpr>(IDExpr)) {
+  } else if (const ObjCPropertyRefExpr *PR =
+                 dyn_cast<ObjCPropertyRefExpr>(IDExpr)) {
     if (PR->isExplicitProperty())
       return PR->getExplicitProperty()->getType();
-  } else if (const auto *PE = dyn_cast<PredefinedExpr>(IDExpr)) {
+  } else if (auto *PE = dyn_cast<PredefinedExpr>(IDExpr)) {
     return PE->getType();
   }
 
@@ -9014,20 +8995,24 @@ QualType Sema::getDecltypeForExpr(Expr *E) {
   //   access to a corresponding data member of the closure type that
   //   would have been declared if x were an odr-use of the denoted
   //   entity.
-  if (getCurLambda() && isa<ParenExpr>(IDExpr)) {
-    if (auto *DRE = dyn_cast<DeclRefExpr>(IDExpr->IgnoreParens())) {
-      if (auto *Var = dyn_cast<VarDecl>(DRE->getDecl())) {
-        QualType T = getCapturedDeclRefType(Var, DRE->getLocation());
-        if (!T.isNull())
-          return Context.getLValueReferenceType(T);
+  using namespace sema;
+  if (S.getCurLambda()) {
+    if (isa<ParenExpr>(IDExpr)) {
+      if (DeclRefExpr *DRE = dyn_cast<DeclRefExpr>(IDExpr->IgnoreParens())) {
+        if (VarDecl *Var = dyn_cast<VarDecl>(DRE->getDecl())) {
+          QualType T = S.getCapturedDeclRefType(Var, DRE->getLocation());
+          if (!T.isNull())
+            return S.Context.getLValueReferenceType(T);
+        }
       }
     }
   }
 
-  return Context.getReferenceQualifiedType(E);
+  return S.Context.getReferenceQualifiedType(E);
 }
 
-QualType Sema::BuildDecltypeType(Expr *E, bool AsUnevaluated) {
+QualType Sema::BuildDecltypeType(Expr *E, SourceLocation Loc,
+                                 bool AsUnevaluated) {
   assert(!E->hasPlaceholderType() && "unexpected placeholder");
 
   if (AsUnevaluated && CodeSynthesisContexts.empty() &&
@@ -9038,7 +9023,8 @@ QualType Sema::BuildDecltypeType(Expr *E, bool AsUnevaluated) {
     // used to build SFINAE gadgets.
     Diag(E->getExprLoc(), diag::warn_side_effects_unevaluated_context);
   }
-  return Context.getDecltypeType(E, getDecltypeForExpr(E));
+
+  return Context.getDecltypeType(E, getDecltypeForExpr(*this, E));
 }
 
 QualType Sema::BuildUnaryTransformType(QualType BaseType,
@@ -9099,8 +9085,9 @@ QualType Sema::BuildAtomicType(QualType T, SourceLocation Loc) {
     else if (!T.isTriviallyCopyableType(Context))
       // Some other non-trivially-copyable type (probably a C++ class)
       DisallowedKind = 7;
-    else if (T->isBitIntType())
-      DisallowedKind = 8;
+    else if (T->isExtIntType()) {
+        DisallowedKind = 8;
+    }
 
     if (DisallowedKind != -1) {
       Diag(Loc, diag::err_atomic_specifier_bad_type) << DisallowedKind << T;

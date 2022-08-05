@@ -101,7 +101,6 @@ public:
   ObjectLinkingLayer &getObjectLinkingLayer() const { return ObjLinkingLayer; }
 
   Error setupJITDylib(JITDylib &JD) override;
-  Error teardownJITDylib(JITDylib &JD) override;
   Error notifyAdding(ResourceTracker &RT,
                      const MaterializationUnit &MU) override;
   Error notifyRemoving(ResourceTracker &RT) override;
@@ -237,7 +236,7 @@ private:
   DenseMap<JITDylib *, ELFNixJITDylibInitializers> InitSeqs;
   std::vector<ELFPerObjectSectionsToRegister> BootstrapPOSRs;
 
-  DenseMap<ExecutorAddr, JITDylib *> HandleAddrToJITDylib;
+  DenseMap<JITTargetAddress, JITDylib *> HandleAddrToJITDylib;
   DenseMap<JITDylib *, uint64_t> JITDylibToPThreadKey;
 };
 

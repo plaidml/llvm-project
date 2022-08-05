@@ -44,13 +44,16 @@ struct ModHeader {
 
 static std::optional<SourceName> GetSubmoduleParent(const parser::Program &);
 static void CollectSymbols(const Scope &, SymbolVector &, SymbolVector &);
+static void PutEntity(llvm::raw_ostream &, const Symbol &);
+static void PutObjectEntity(llvm::raw_ostream &, const Symbol &);
+static void PutProcEntity(llvm::raw_ostream &, const Symbol &);
 static void PutPassName(llvm::raw_ostream &, const std::optional<SourceName> &);
+static void PutTypeParam(llvm::raw_ostream &, const Symbol &);
+static void PutEntity(
+    llvm::raw_ostream &, const Symbol &, std::function<void()>, Attrs);
 static void PutInit(llvm::raw_ostream &, const Symbol &, const MaybeExpr &);
 static void PutInit(llvm::raw_ostream &, const MaybeIntExpr &);
 static void PutBound(llvm::raw_ostream &, const Bound &);
-static void PutShapeSpec(llvm::raw_ostream &, const ShapeSpec &);
-static void PutShape(
-    llvm::raw_ostream &, const ArraySpec &, char open, char close);
 llvm::raw_ostream &PutAttrs(llvm::raw_ostream &, Attrs,
     const std::string * = nullptr, std::string before = ","s,
     std::string after = ""s);
@@ -174,7 +177,7 @@ std::string ModFileWriter::GetAsString(const Symbol &symbol) {
 }
 
 // Put out the visible symbols from scope.
-void ModFileWriter::PutSymbols(const Scope &scope) {
+bool ModFileWriter::PutSymbols(const Scope &scope) {
   SymbolVector sorted;
   SymbolVector uses;
   CollectSymbols(scope, sorted, uses);
@@ -198,41 +201,6 @@ void ModFileWriter::PutSymbols(const Scope &scope) {
         punctuation = ',';
       }
       decls_ << ")\n";
-    }
-  }
-  CHECK(typeBindings.str().empty());
-}
-
-// Emit components in order
-bool ModFileWriter::PutComponents(const Symbol &typeSymbol) {
-  const auto &scope{DEREF(typeSymbol.scope())};
-  std::string buf; // stuff after CONTAINS in derived type
-  llvm::raw_string_ostream typeBindings{buf};
-  UnorderedSymbolSet emitted;
-  SymbolVector symbols{scope.GetSymbols()};
-  // Emit type parameters first
-  for (const Symbol &symbol : symbols) {
-    if (symbol.has<TypeParamDetails>()) {
-      PutSymbol(typeBindings, symbol);
-      emitted.emplace(symbol);
-    }
-  }
-  // Emit components in component order.
-  const auto &details{typeSymbol.get<DerivedTypeDetails>()};
-  for (SourceName name : details.componentNames()) {
-    auto iter{scope.find(name)};
-    if (iter != scope.end()) {
-      const Symbol &component{*iter->second};
-      if (!component.test(Symbol::Flag::ParentComp)) {
-        PutSymbol(typeBindings, component);
-      }
-      emitted.emplace(component);
-    }
-  }
-  // Emit remaining symbols from the type's scope
-  for (const Symbol &symbol : symbols) {
-    if (emitted.find(symbol) == emitted.end()) {
-      PutSymbol(typeBindings, symbol);
     }
   }
   if (auto str{typeBindings.str()}; !str.empty()) {
@@ -327,18 +295,14 @@ void ModFileWriter::PutSymbol(
       symbol.details());
 }
 
-void ModFileWriter::PutDerivedType(
-    const Symbol &typeSymbol, const Scope *scope) {
+void ModFileWriter::PutDerivedType(const Symbol &typeSymbol) {
   auto &details{typeSymbol.get<DerivedTypeDetails>()};
-  if (details.isDECStructure()) {
-    PutDECStructure(typeSymbol, scope);
-    return;
-  }
   PutAttrs(decls_ << "type", typeSymbol.attrs());
   if (const DerivedTypeSpec * extends{typeSymbol.GetParentTypeSpec()}) {
     decls_ << ",extends(" << extends->name() << ')';
   }
   decls_ << "::" << typeSymbol.name();
+  auto &typeScope{*typeSymbol.scope()};
   if (!details.paramNames().empty()) {
     char sep{'('};
     for (const auto &name : details.paramNames()) {
@@ -351,7 +315,7 @@ void ModFileWriter::PutDerivedType(
   if (details.sequence()) {
     decls_ << "sequence\n";
   }
-  bool contains{PutComponents(typeSymbol)};
+  bool contains{PutSymbols(typeScope)};
   if (!details.finals().empty()) {
     const char *sep{contains ? "final::" : "contains\nfinal::"};
     for (const auto &pair : details.finals()) {
@@ -363,47 +327,6 @@ void ModFileWriter::PutDerivedType(
     }
   }
   decls_ << "end type\n";
-}
-
-void ModFileWriter::PutDECStructure(
-    const Symbol &typeSymbol, const Scope *scope) {
-  if (emittedDECStructures_.find(typeSymbol) != emittedDECStructures_.end()) {
-    return;
-  }
-  if (!scope && context_.IsTempName(typeSymbol.name().ToString())) {
-    return; // defer until used
-  }
-  emittedDECStructures_.insert(typeSymbol);
-  decls_ << "structure ";
-  if (!context_.IsTempName(typeSymbol.name().ToString())) {
-    decls_ << typeSymbol.name();
-  }
-  if (scope && scope->kind() == Scope::Kind::DerivedType) {
-    // Nested STRUCTURE: emit entity declarations right now
-    // on the STRUCTURE statement.
-    bool any{false};
-    for (const auto &ref : scope->GetSymbols()) {
-      const auto *object{ref->detailsIf<ObjectEntityDetails>()};
-      if (object && object->type() &&
-          object->type()->category() == DeclTypeSpec::TypeDerived &&
-          &object->type()->derivedTypeSpec().typeSymbol() == &typeSymbol) {
-        if (any) {
-          decls_ << ',';
-        } else {
-          any = true;
-        }
-        decls_ << ref->name();
-        PutShape(decls_, object->shape(), '(', ')');
-        PutInit(decls_, *ref, object->init());
-        emittedDECFields_.insert(*ref);
-      } else if (any) {
-        break; // any later use of this structure will use RECORD/str/
-      }
-    }
-  }
-  decls_ << '\n';
-  PutComponents(typeSymbol);
-  decls_ << "end structure\n";
 }
 
 // Attributes that may be in a subprogram prefix
@@ -593,7 +516,7 @@ void CollectSymbols(
       sorted.end() - commonSize, sorted.end(), SymbolSourcePositionCompare{});
 }
 
-void ModFileWriter::PutEntity(llvm::raw_ostream &os, const Symbol &symbol) {
+void PutEntity(llvm::raw_ostream &os, const Symbol &symbol) {
   std::visit(
       common::visitors{
           [&](const ObjectEntityDetails &) { PutObjectEntity(os, symbol); },
@@ -608,15 +531,15 @@ void ModFileWriter::PutEntity(llvm::raw_ostream &os, const Symbol &symbol) {
 }
 
 void PutShapeSpec(llvm::raw_ostream &os, const ShapeSpec &x) {
-  if (x.lbound().isStar()) {
-    CHECK(x.ubound().isStar());
-    os << ".."; // assumed rank
+  if (x.lbound().isAssumed()) {
+    CHECK(x.ubound().isAssumed());
+    os << "..";
   } else {
-    if (!x.lbound().isColon()) {
+    if (!x.lbound().isDeferred()) {
       PutBound(os, x.lbound());
     }
     os << ':';
-    if (!x.ubound().isColon()) {
+    if (!x.ubound().isDeferred()) {
       PutBound(os, x.ubound());
     }
   }
@@ -638,19 +561,8 @@ void PutShape(
   }
 }
 
-void ModFileWriter::PutObjectEntity(
-    llvm::raw_ostream &os, const Symbol &symbol) {
+void PutObjectEntity(llvm::raw_ostream &os, const Symbol &symbol) {
   auto &details{symbol.get<ObjectEntityDetails>()};
-  if (details.type() &&
-      details.type()->category() == DeclTypeSpec::TypeDerived) {
-    const Symbol &typeSymbol{details.type()->derivedTypeSpec().typeSymbol()};
-    if (typeSymbol.get<DerivedTypeDetails>().isDECStructure()) {
-      PutDerivedType(typeSymbol, &symbol.owner());
-      if (emittedDECFields_.find(symbol) != emittedDECFields_.end()) {
-        return; // symbol was emitted on STRUCTURE statement
-      }
-    }
-  }
   PutEntity(
       os, symbol, [&]() { PutType(os, DEREF(symbol.GetType())); },
       symbol.attrs());
@@ -660,7 +572,7 @@ void ModFileWriter::PutObjectEntity(
   os << '\n';
 }
 
-void ModFileWriter::PutProcEntity(llvm::raw_ostream &os, const Symbol &symbol) {
+void PutProcEntity(llvm::raw_ostream &os, const Symbol &symbol) {
   if (symbol.attrs().test(Attr::INTRINSIC)) {
     os << "intrinsic::" << symbol.name() << '\n';
     if (symbol.attrs().test(Attr::PRIVATE)) {
@@ -696,8 +608,7 @@ void PutPassName(
     os << ",pass(" << *passName << ')';
   }
 }
-
-void ModFileWriter::PutTypeParam(llvm::raw_ostream &os, const Symbol &symbol) {
+void PutTypeParam(llvm::raw_ostream &os, const Symbol &symbol) {
   auto &details{symbol.get<TypeParamDetails>()};
   PutEntity(
       os, symbol,
@@ -728,9 +639,9 @@ void PutInit(llvm::raw_ostream &os, const MaybeIntExpr &init) {
 }
 
 void PutBound(llvm::raw_ostream &os, const Bound &x) {
-  if (x.isStar()) {
+  if (x.isAssumed()) {
     os << '*';
-  } else if (x.isColon()) {
+  } else if (x.isDeferred()) {
     os << ':';
   } else {
     x.GetExplicit()->AsFortran(os);
@@ -739,16 +650,11 @@ void PutBound(llvm::raw_ostream &os, const Bound &x) {
 
 // Write an entity (object or procedure) declaration.
 // writeType is called to write out the type.
-void ModFileWriter::PutEntity(llvm::raw_ostream &os, const Symbol &symbol,
+void PutEntity(llvm::raw_ostream &os, const Symbol &symbol,
     std::function<void()> writeType, Attrs attrs) {
   writeType();
   PutAttrs(os, attrs, symbol.GetBindName());
-  if (symbol.owner().kind() == Scope::Kind::DerivedType &&
-      context_.IsTempName(symbol.name().ToString())) {
-    os << "::%FILL";
-  } else {
-    os << "::" << symbol.name();
-  }
+  os << "::" << symbol.name();
 }
 
 // Put out each attribute to os, surrounded by `before` and `after` and

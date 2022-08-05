@@ -771,11 +771,8 @@ GDBRemoteCommunicationServerCommon::Handle_qPlatform_shell(
 
 template <typename T, typename U>
 static void fill_clamp(T &dest, U src, typename T::value_type fallback) {
-  static_assert(std::is_unsigned<typename T::value_type>::value,
-                "Destination type must be unsigned.");
-  using UU = typename std::make_unsigned<U>::type;
-  constexpr auto T_max = std::numeric_limits<typename T::value_type>::max();
-  dest = src >= 0 && static_cast<UU>(src) <= T_max ? src : fallback;
+  dest = src <= std::numeric_limits<typename T::value_type>::max() ? src
+                                                                   : fallback;
 }
 
 GDBRemoteCommunication::PacketResult
@@ -1349,6 +1346,5 @@ std::vector<std::string> GDBRemoteCommunicationServerCommon::HandleFeatures(
       llvm::formatv("PacketSize={0}", max_packet_size),
       "QStartNoAckMode+",
       "qEcho+",
-      "native-signals+",
   };
 }

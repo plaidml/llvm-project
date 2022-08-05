@@ -22,7 +22,7 @@ using OwningRewritePatternList = RewritePatternSet;
 
 namespace scf {
 class ForOp;
-} // namespace scf
+} // end namespace scf
 
 /// Convert a perfect affine loop nest with the outermost loop identified by
 /// `forOp` into a gpu::Launch operation.  Map `numBlockDims` outer loops to

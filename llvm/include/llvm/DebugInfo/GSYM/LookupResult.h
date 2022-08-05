@@ -17,6 +17,7 @@
 namespace llvm {
 class raw_ostream;
 namespace gsym {
+struct FileEntry;
 
 struct SourceLocation {
   StringRef Name;      ///< Function or symbol name.

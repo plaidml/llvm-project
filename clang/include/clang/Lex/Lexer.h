@@ -128,9 +128,6 @@ class Lexer : public PreprocessorLexer {
 
   bool HasLeadingEmptyMacro;
 
-  /// True if this is the first time we're lexing the input file.
-  bool IsFirstTimeLexingFile;
-
   // NewLinePtr - A pointer to new line character '\n' being lexed. For '\r\n',
   // it also points to '\n.'
   const char *NewLinePtr;
@@ -145,22 +142,19 @@ public:
   /// with the specified preprocessor managing the lexing process.  This lexer
   /// assumes that the associated file buffer and Preprocessor objects will
   /// outlive it, so it doesn't take ownership of either of them.
-  Lexer(FileID FID, const llvm::MemoryBufferRef &InputFile, Preprocessor &PP,
-        bool IsFirstIncludeOfFile = true);
+  Lexer(FileID FID, const llvm::MemoryBufferRef &InputFile, Preprocessor &PP);
 
   /// Lexer constructor - Create a new raw lexer object.  This object is only
   /// suitable for calls to 'LexFromRawLexer'.  This lexer assumes that the
   /// text range will outlive it, so it doesn't take ownership of it.
   Lexer(SourceLocation FileLoc, const LangOptions &LangOpts,
-        const char *BufStart, const char *BufPtr, const char *BufEnd,
-        bool IsFirstIncludeOfFile = true);
+        const char *BufStart, const char *BufPtr, const char *BufEnd);
 
   /// Lexer constructor - Create a new raw lexer object.  This object is only
   /// suitable for calls to 'LexFromRawLexer'.  This lexer assumes that the
   /// text range will outlive it, so it doesn't take ownership of it.
   Lexer(FileID FID, const llvm::MemoryBufferRef &FromFile,
-        const SourceManager &SM, const LangOptions &LangOpts,
-        bool IsFirstIncludeOfFile = true);
+        const SourceManager &SM, const LangOptions &LangOpts);
 
   Lexer(const Lexer &) = delete;
   Lexer &operator=(const Lexer &) = delete;
@@ -568,9 +562,6 @@ public:
   /// location \p Loc.
   static StringRef getIndentationForLine(SourceLocation Loc,
                                          const SourceManager &SM);
-
-  /// Check if this is the first time we're lexing the input file.
-  bool isFirstTimeLexingFile() const { return IsFirstTimeLexingFile; }
 
 private:
   //===--------------------------------------------------------------------===//

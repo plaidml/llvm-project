@@ -129,16 +129,16 @@ Optional<std::string> Process::GetEnv(StringRef Name) {
   SmallVector<wchar_t, MAX_PATH> Buf;
   size_t Size = MAX_PATH;
   do {
-    Buf.resize_for_overwrite(Size);
+    Buf.reserve(Size);
     SetLastError(NO_ERROR);
     Size =
-      GetEnvironmentVariableW(NameUTF16.data(), Buf.data(), Buf.size());
+      GetEnvironmentVariableW(NameUTF16.data(), Buf.data(), Buf.capacity());
     if (Size == 0 && GetLastError() == ERROR_ENVVAR_NOT_FOUND)
       return None;
 
     // Try again with larger buffer.
-  } while (Size > Buf.size());
-  Buf.truncate(Size);
+  } while (Size > Buf.capacity());
+  Buf.set_size(Size);
 
   // Convert the result from UTF-16 to UTF-8.
   SmallVector<char, MAX_PATH> Res;

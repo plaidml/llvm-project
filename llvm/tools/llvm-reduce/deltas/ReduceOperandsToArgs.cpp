@@ -33,8 +33,8 @@ static bool canReduceUse(Use &Op) {
   if (!Ty->isFirstClassType())
     return false;
 
-  // Don't pass labels/metadata as arguments.
-  if (Ty->isLabelTy() || Ty->isMetadataTy())
+  // Don't pass labels as arguments.
+  if (Ty->isLabelTy())
     return false;
 
   // No need to replace values that are already arguments.
@@ -192,7 +192,27 @@ static void reduceOperandsToArgs(Oracle &O, Module &Program) {
   }
 }
 
+/// Counts the amount of operands in the module that can be reduced.
+static int countOperands(Module &Program) {
+  int Count = 0;
+
+  for (Function &F : Program.functions()) {
+    if (!canReplaceFunction(&F))
+      continue;
+    for (Instruction &I : instructions(&F)) {
+      for (Use &Op : I.operands()) {
+        if (!canReduceUse(Op))
+          continue;
+        Count += 1;
+      }
+    }
+  }
+
+  return Count;
+}
+
 void llvm::reduceOperandsToArgsDeltaPass(TestRunner &Test) {
   outs() << "*** Converting operands to function arguments ...\n";
-  return runDeltaPass(Test, reduceOperandsToArgs);
+  int ArgCount = countOperands(Test.getProgram());
+  return runDeltaPass(Test, ArgCount, reduceOperandsToArgs);
 }

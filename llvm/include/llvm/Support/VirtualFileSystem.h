@@ -64,8 +64,6 @@ public:
          uint64_t Size, llvm::sys::fs::file_type Type,
          llvm::sys::fs::perms Perms);
 
-  /// Get a copy of a Status with a different size.
-  static Status copyWithNewSize(const Status &In, uint64_t NewSize);
   /// Get a copy of a Status with a different name.
   static Status copyWithNewName(const Status &In, const Twine &NewName);
   static Status copyWithNewName(const llvm::sys::fs::file_status &In,
@@ -123,14 +121,6 @@ public:
 
   /// Closes the file.
   virtual std::error_code close() = 0;
-
-  // Get the same file with a different path.
-  static ErrorOr<std::unique_ptr<File>>
-  getWithPath(ErrorOr<std::unique_ptr<File>> Result, const Twine &P);
-
-protected:
-  // Set the file's underlying path.
-  virtual void setPath(const Twine &Path) {}
 };
 
 /// A member of a directory, yielded by a directory_iterator.
@@ -419,21 +409,6 @@ namespace detail {
 
 class InMemoryDirectory;
 class InMemoryFile;
-class InMemoryNode;
-
-struct NewInMemoryNodeInfo {
-  llvm::sys::fs::UniqueID DirUID;
-  StringRef Path;
-  StringRef Name;
-  time_t ModificationTime;
-  std::unique_ptr<llvm::MemoryBuffer> Buffer;
-  uint32_t User;
-  uint32_t Group;
-  llvm::sys::fs::file_type Type;
-  llvm::sys::fs::perms Perms;
-
-  Status makeStatus() const;
-};
 
 } // namespace detail
 
@@ -443,15 +418,14 @@ class InMemoryFileSystem : public FileSystem {
   std::string WorkingDirectory;
   bool UseNormalizedPaths = true;
 
-  using MakeNodeFn = llvm::function_ref<std::unique_ptr<detail::InMemoryNode>(
-      detail::NewInMemoryNodeInfo)>;
-
-  /// Create node with \p MakeNode and add it into this filesystem at \p Path.
+  /// If HardLinkTarget is non-null, a hardlink is created to the To path which
+  /// must be a file. If it is null then it adds the file as the public addFile.
   bool addFile(const Twine &Path, time_t ModificationTime,
                std::unique_ptr<llvm::MemoryBuffer> Buffer,
                Optional<uint32_t> User, Optional<uint32_t> Group,
                Optional<llvm::sys::fs::file_type> Type,
-               Optional<llvm::sys::fs::perms> Perms, MakeNodeFn MakeNode);
+               Optional<llvm::sys::fs::perms> Perms,
+               const detail::InMemoryFile *HardLinkTarget);
 
 public:
   explicit InMemoryFileSystem(bool UseNormalizedPaths = true);
@@ -562,9 +536,6 @@ class RedirectingFileSystemParser;
 ///            ]
 /// }
 /// \endverbatim
-///
-/// The roots may be absolute or relative. If relative they will be made
-/// absolute against the current working directory.
 ///
 /// All configuration options are optional.
 ///   'case-sensitive': <boolean, default=(true for Posix, false for Windows)>
@@ -786,12 +757,6 @@ private:
   /// with the given error code on a path associated with the provided Entry.
   bool shouldFallBackToExternalFS(std::error_code EC, Entry *E = nullptr) const;
 
-  /// Get the File status, or error, from the underlying external file system.
-  /// This returns the status with the originally requested name, while looking
-  /// up the entry using the canonical path.
-  ErrorOr<Status> getExternalStatus(const Twine &CanonicalPath,
-                                    const Twine &OriginalPath) const;
-
   // In a RedirectingFileSystem, keys can be specified in Posix or Windows
   // style (or even a mixture of both), so this comparison helper allows
   // slashes (representing a root) to match backslashes (and vice versa).  Note
@@ -849,8 +814,7 @@ private:
                                        Entry *From) const;
 
   /// Get the status for a path with the provided \c LookupResult.
-  ErrorOr<Status> status(const Twine &CanonicalPath, const Twine &OriginalPath,
-                         const LookupResult &Result);
+  ErrorOr<Status> status(const Twine &Path, const LookupResult &Result);
 
 public:
   /// Looks up \p Path in \c Roots and returns a LookupResult giving the

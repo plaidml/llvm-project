@@ -13,7 +13,8 @@
 #include "PassDetail.h"
 #include "mlir/Analysis/SliceAnalysis.h"
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
-#include "mlir/Dialect/Linalg/IR/Linalg.h"
+#include "mlir/Dialect/Linalg/IR/LinalgOps.h"
+#include "mlir/Dialect/Linalg/IR/LinalgTypes.h"
 #include "mlir/Dialect/Linalg/Passes.h"
 #include "mlir/Dialect/Linalg/Transforms/Transforms.h"
 #include "mlir/Dialect/Linalg/Utils/Utils.h"
@@ -42,7 +43,7 @@ static SmallVector<int64_t> getTiledSliceDims(OpOperand *consumerOperand,
 
   // Search the slice dimensions tiled by a tile loop dimension.
   DenseSet<int64_t> tiledSliceDimIndices;
-  for (const auto &en : enumerate(indexingMap.getResults())) {
+  for (auto en : enumerate(indexingMap.getResults())) {
     for (auto tiledLoopDim : tiledLoopDims) {
       if (en.value().isFunctionOfDim(tiledLoopDim))
         tiledSliceDimIndices.insert(en.index());
@@ -283,14 +284,10 @@ LogicalResult TileLoopNest::tileRootOp(OpBuilder &b,
                           tileInterchange.begin(), tileInterchange.end()))
                       .setTileSizes(tileSizes)
                       .setLoopType(LinalgTilingLoopType::Loops);
-
-  // TODO: Propagate RewriterBase everywhere.
-  IRRewriter rewriter(b);
-  FailureOr<TiledLinalgOp> tiledRootOp =
-      tileLinalgOp(rewriter, rootOp, tilingOptions);
+  Optional<TiledLinalgOp> tiledRootOp = tileLinalgOp(b, rootOp, tilingOptions);
 
   // Exit if tiling the root operation fails.
-  if (failed(tiledRootOp))
+  if (!tiledRootOp.hasValue())
     return failure();
 
   // Replace all uses of the root operation if it has been tiled before. All
@@ -308,7 +305,7 @@ LogicalResult TileLoopNest::tileRootOp(OpBuilder &b,
   // Update the root operation and append the loops and tile loop dimensions.
   rootOp = tiledRootOp->op;
   tileLoopOps.append(tiledRootOp->loops.begin(), tiledRootOp->loops.end());
-  for (const auto &en : enumerate(tileSizes)) {
+  for (auto en : enumerate(tileSizes)) {
     // Copy only the tiled loop dimensions with non-zero tile size.
     if (en.value() == 0)
       continue;
@@ -320,11 +317,8 @@ LogicalResult TileLoopNest::tileRootOp(OpBuilder &b,
 
 FailureOr<LinalgOp> TileLoopNest::fuseProducer(OpBuilder &b,
                                                OpOperand *consumerOpOperand) {
-  // Check if the consumer has been tiled before. For example, it may not have
-  // been tiled if the outermost tile loop is a reduction loop.
-  if (tiledRootAndFusedOpsLoops.count(consumerOpOperand->getOwner()) == 0)
-    return failure();
-
+  assert(tiledRootAndFusedOpsLoops.count(consumerOpOperand->getOwner()) != 0 &&
+         "expect the operand owner is the root operation or a fused producer");
   assert(this->isValid() &&
          "expect the tile loop nest to satisfy all invariants");
 
@@ -393,17 +387,6 @@ ValueRange TileLoopNest::getRootOpReplacementResults() {
   return tileLoopOps.front()->getOpResults();
 }
 
-SmallVector<LinalgOp> TileLoopNest::getAllTiledAndFusedOps() {
-  SmallVector<LinalgOp> result;
-  for (const auto &kvp : tiledRootAndFusedOpsLoops) {
-    auto linalgOp = dyn_cast<LinalgOp>(kvp.getFirst());
-    assert(linalgOp &&
-           "expect all tiled and fused operations are linalg operations");
-    result.push_back(linalgOp);
-  }
-  return result;
-}
-
 //===----------------------------------------------------------------------===//
 // Tile and fuse entry-points.
 //===----------------------------------------------------------------------===//
@@ -459,4 +442,81 @@ mlir::linalg::tileConsumerAndFuseProducers(OpBuilder &b, LinalgOp consumerOp,
   fuseProducersGreedily(tileLoopNest.getRootOp().getInputOperands());
 
   return tileLoopNest;
+}
+
+namespace {
+struct LinalgTileAndFuseTensorOps
+    : public LinalgTileAndFuseTensorOpsBase<LinalgTileAndFuseTensorOps> {
+
+  void notifyFailure(StringRef message) {
+    llvm::errs() << " - LinalgTileAndFuseTensorOps: " << message << "\n";
+    signalPassFailure();
+  }
+
+  void runOnFunction() override {
+    FuncOp funcOp = getFunction();
+    OpBuilder b(funcOp.getContext());
+
+    // Heuristic to find a good operation to tile and start fusion. Walk all
+    // operations and select the one with the maximal backward slice of fusion
+    // candidates.
+    LinalgOp rootOp = nullptr;
+    int64_t numFusionCandidates = -1;
+    funcOp.walk([&](LinalgOp linalgOp) {
+      SetVector<Operation *> backwardSlice;
+      getBackwardSlice(linalgOp, &backwardSlice);
+      int64_t backwardSliceSize = count_if(
+          backwardSlice, [](Operation *op) { return isa<LinalgOp>(op); });
+      if (backwardSliceSize > numFusionCandidates) {
+        rootOp = linalgOp;
+        numFusionCandidates = backwardSliceSize;
+      }
+    });
+    if (!rootOp)
+      return notifyFailure("expect to find a root operation");
+
+    // Check `tileSizes` contains a tile size for every `rootOp` loop dimension.
+    if (tileSizes.size() < rootOp.getNumLoops())
+      return notifyFailure("expect #tile sizes >= #loops");
+
+    // Check `tileInterchange` contains no entries or as many as `tileSizes`.
+    if (!tileInterchange.empty() &&
+        tileInterchange.size() != tileSizes.size()) {
+      return notifyFailure(
+          "expect the number of tile sizes and interchange dims to match");
+    }
+
+    // Copy the `tileSizes` and `tileInterchange` prefixes needed to tile
+    // `rootOp` or use the identity interchange if `tileInterchange` is empty.
+    SmallVector<int64_t> rootTileSizes(
+        tileSizes.begin(), tileSizes.begin() + rootOp.getNumLoops());
+    SmallVector<int64_t> rootInterchange =
+        tileInterchange.empty()
+            ? llvm::to_vector<6>(llvm::seq<int64_t>(0, rootOp.getNumLoops()))
+            : SmallVector<int64_t>(tileInterchange.begin(),
+                                   tileInterchange.begin() +
+                                       rootOp.getNumLoops());
+
+    // Check `rootInterchange` is a permutation of the `rootOp` loop dimensions.
+    // It has to be a permutation since the tiling cannot tile the same loop
+    // dimension multiple times.
+    if (!isPermutation(rootInterchange))
+      return notifyFailure(
+          "expect the tile interchange permutes the root loops");
+
+    // Tile `rootOp` and fuse its producers.
+    FailureOr<TileLoopNest> tileLoopNest =
+        tileConsumerAndFuseProducers(b, rootOp, rootTileSizes, rootInterchange);
+    if (failed(tileLoopNest))
+      return notifyFailure("tileConsumerAndFuseProducers failed unexpectedly");
+
+    // Replace all uses of the tiled loop operation.
+    rootOp->replaceAllUsesWith(tileLoopNest->getRootOpReplacementResults());
+  }
+};
+} // namespace
+
+std::unique_ptr<OperationPass<FuncOp>>
+mlir::createLinalgTileAndFuseTensorOpsPass() {
+  return std::make_unique<LinalgTileAndFuseTensorOps>();
 }

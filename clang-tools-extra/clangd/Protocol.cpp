@@ -383,13 +383,6 @@ bool fromJSON(const llvm::json::Value &Params, ClientCapabilities &R,
           if (auto OffsetSupport = Parameter->getBoolean("labelOffsetSupport"))
             R.OffsetsInSignatureHelp = *OffsetSupport;
         }
-        if (const auto *DocumentationFormat =
-                Info->getArray("documentationFormat")) {
-          for (const auto &Format : *DocumentationFormat) {
-            if (fromJSON(Format, R.SignatureHelpDocumentationFormat, P))
-              break;
-          }
-        }
       }
     }
     if (auto *Rename = TextDocument->getObject("rename")) {
@@ -702,8 +695,7 @@ bool fromJSON(const llvm::json::Value &Params, ExecuteCommandParams &R,
   if (ArgsArray->size() > 1) {
     P.field("arguments").report("Command should have 0 or 1 argument");
     return false;
-  }
-  if (ArgsArray->size() == 1) {
+  } else if (ArgsArray->size() == 1) {
     R.argument = ArgsArray->front();
   }
   return true;
@@ -1038,7 +1030,7 @@ llvm::json::Value toJSON(const SignatureInformation &SI) {
       {"label", SI.label},
       {"parameters", llvm::json::Array(SI.parameters)},
   };
-  if (!SI.documentation.value.empty())
+  if (!SI.documentation.empty())
     Result["documentation"] = SI.documentation;
   return std::move(Result);
 }
@@ -1317,7 +1309,7 @@ llvm::json::Value toJSON(const CallHierarchyOutgoingCall &C) {
 bool fromJSON(const llvm::json::Value &Params, InlayHintsParams &R,
               llvm::json::Path P) {
   llvm::json::ObjectMapper O(Params, P);
-  return O && O.map("textDocument", R.textDocument) && O.map("range", R.range);
+  return O && O.map("textDocument", R.textDocument);
 }
 
 llvm::json::Value toJSON(InlayHintKind K) {
@@ -1331,18 +1323,16 @@ llvm::json::Value toJSON(InlayHintKind K) {
 }
 
 llvm::json::Value toJSON(const InlayHint &H) {
-  return llvm::json::Object{{"position", H.position},
-                            {"range", H.range},
-                            {"kind", H.kind},
-                            {"label", H.label}};
+  return llvm::json::Object{
+      {"range", H.range}, {"kind", H.kind}, {"label", H.label}};
 }
 bool operator==(const InlayHint &A, const InlayHint &B) {
-  return std::tie(A.position, A.range, A.kind, A.label) ==
-         std::tie(B.position, B.range, B.kind, B.label);
+  return std::tie(A.kind, A.range, A.label) ==
+         std::tie(B.kind, B.range, B.label);
 }
 bool operator<(const InlayHint &A, const InlayHint &B) {
-  return std::tie(A.position, A.range, A.kind, A.label) <
-         std::tie(B.position, B.range, B.kind, B.label);
+  return std::tie(A.kind, A.range, A.label) <
+         std::tie(B.kind, B.range, B.label);
 }
 
 static const char *toString(OffsetEncoding OE) {

@@ -21,7 +21,7 @@ std::unique_ptr<Pass> createAsyncParallelForPass();
 
 std::unique_ptr<Pass> createAsyncParallelForPass(bool asyncDispatch,
                                                  int32_t numWorkerThreads,
-                                                 int32_t minTaskSize);
+                                                 int32_t targetBlockSize);
 
 std::unique_ptr<OperationPass<ModuleOp>> createAsyncToAsyncRuntimePass();
 

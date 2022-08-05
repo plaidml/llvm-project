@@ -1,7 +1,6 @@
 // RUN: mlir-tblgen -gen-dialect-doc -I %S/../../include %s | FileCheck %s
 
 include "mlir/IR/OpBase.td"
-include "mlir/Interfaces/SideEffectInterfaces.td"
 
 def Test_Dialect : Dialect {
   let name = "test";
@@ -12,15 +11,12 @@ def Test_Dialect : Dialect {
   }];
   let cppNamespace = "NS";
 }
-def AOp : Op<Test_Dialect, "a", [NoSideEffect, SingleBlockImplicitTerminator<"YieldOp">]>;
+def AOp : Op<Test_Dialect, "a", []>;
 
 // CHECK: Dialect without a [TOC] here.
 // CHECK: TOC added by tool.
 // CHECK: [TOC]
 // CHECK-NOT: [TOC]
-// CHECK: Traits: SingleBlockImplicitTerminator<YieldOp>
-// CHECK: Interfaces: NoSideEffect (MemoryEffectOpInterface)
-// CHECK: Effects: MemoryEffects::Effect{}
 
 def Toc_Dialect : Dialect {
   let name = "test_toc";

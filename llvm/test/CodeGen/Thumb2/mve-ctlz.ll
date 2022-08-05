@@ -8,7 +8,9 @@ define arm_aapcs_vfpcc <2 x i64> @ctlz_2i64_0_t(<2 x i64> %src){
 ; CHECK-NEXT:    vmov r0, r1, d1
 ; CHECK-NEXT:    clz r0, r0
 ; CHECK-NEXT:    cmp r1, #0
-; CHECK-NEXT:    add.w r0, r0, #32
+; CHECK-NEXT:    cset r2, ne
+; CHECK-NEXT:    adds r0, #32
+; CHECK-NEXT:    cmp r2, #0
 ; CHECK-NEXT:    it ne
 ; CHECK-NEXT:    clzne r0, r1
 ; CHECK-NEXT:    vmov s2, r0
@@ -17,7 +19,9 @@ define arm_aapcs_vfpcc <2 x i64> @ctlz_2i64_0_t(<2 x i64> %src){
 ; CHECK-NEXT:    vmov.f32 s3, s1
 ; CHECK-NEXT:    clz r0, r0
 ; CHECK-NEXT:    cmp r1, #0
-; CHECK-NEXT:    add.w r0, r0, #32
+; CHECK-NEXT:    cset r2, ne
+; CHECK-NEXT:    adds r0, #32
+; CHECK-NEXT:    cmp r2, #0
 ; CHECK-NEXT:    it ne
 ; CHECK-NEXT:    clzne r0, r1
 ; CHECK-NEXT:    vmov s0, r0
@@ -67,7 +71,9 @@ define arm_aapcs_vfpcc <2 x i64> @ctlz_2i64_1_t(<2 x i64> %src){
 ; CHECK-NEXT:    vmov r0, r1, d1
 ; CHECK-NEXT:    clz r0, r0
 ; CHECK-NEXT:    cmp r1, #0
-; CHECK-NEXT:    add.w r0, r0, #32
+; CHECK-NEXT:    cset r2, ne
+; CHECK-NEXT:    adds r0, #32
+; CHECK-NEXT:    cmp r2, #0
 ; CHECK-NEXT:    it ne
 ; CHECK-NEXT:    clzne r0, r1
 ; CHECK-NEXT:    vmov s2, r0
@@ -76,7 +82,9 @@ define arm_aapcs_vfpcc <2 x i64> @ctlz_2i64_1_t(<2 x i64> %src){
 ; CHECK-NEXT:    vmov.f32 s3, s1
 ; CHECK-NEXT:    clz r0, r0
 ; CHECK-NEXT:    cmp r1, #0
-; CHECK-NEXT:    add.w r0, r0, #32
+; CHECK-NEXT:    cset r2, ne
+; CHECK-NEXT:    adds r0, #32
+; CHECK-NEXT:    cmp r2, #0
 ; CHECK-NEXT:    it ne
 ; CHECK-NEXT:    clzne r0, r1
 ; CHECK-NEXT:    vmov s0, r0

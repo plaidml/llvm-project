@@ -104,7 +104,7 @@ LogicalResult VulkanRuntime::countDeviceMemorySize() {
 }
 
 LogicalResult VulkanRuntime::initRuntime() {
-  if (resourceData.empty()) {
+  if (!resourceData.size()) {
     std::cerr << "Vulkan runtime needs at least one resource";
     return failure();
   }

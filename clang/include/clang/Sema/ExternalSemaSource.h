@@ -26,9 +26,11 @@ template <class T, unsigned n> class SmallSetVector;
 namespace clang {
 
 class CXXConstructorDecl;
+class CXXDeleteExpr;
 class CXXRecordDecl;
 class DeclaratorDecl;
 class LookupResult;
+struct ObjCMethodList;
 class Scope;
 class Sema;
 class TypedefNameDecl;

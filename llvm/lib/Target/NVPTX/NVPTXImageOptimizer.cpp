@@ -148,8 +148,9 @@ void NVPTXImageOptimizer::replaceWith(Instruction *From, ConstantInt *To) {
   // We implement "poor man's DCE" here to make sure any code that is no longer
   // live is actually unreachable and can be trivially eliminated by the
   // unreachable block elimination pass.
-  for (Use &U : From->uses()) {
-    if (BranchInst *BI = dyn_cast<BranchInst>(U)) {
+  for (CallInst::use_iterator UI = From->use_begin(), UE = From->use_end();
+       UI != UE; ++UI) {
+    if (BranchInst *BI = dyn_cast<BranchInst>(*UI)) {
       if (BI->isUnconditional()) continue;
       BasicBlock *Dest;
       if (To->isZero())

@@ -34,7 +34,6 @@ if(${OPENMP_STANDALONE_BUILD})
   # Should assertions be enabled?  They are on by default.
   set(LIBOMP_ENABLE_ASSERTIONS TRUE CACHE BOOL
     "enable assertions?")
-  string(TOUPPER "${CMAKE_BUILD_TYPE}" uppercase_CMAKE_BUILD_TYPE)
 else() # Part of LLVM build
   # Determine the native architecture from LLVM.
   string(TOLOWER "${LLVM_TARGET_ARCH}" LIBOMP_NATIVE_ARCH)
@@ -190,13 +189,14 @@ set(RELEASE_BUILD FALSE)
 set(DEBUG_BUILD FALSE)
 set(RELWITHDEBINFO_BUILD FALSE)
 set(MINSIZEREL_BUILD FALSE)
-if("${uppercase_CMAKE_BUILD_TYPE}" STREQUAL "RELEASE")
+string(TOLOWER "${CMAKE_BUILD_TYPE}" libomp_build_type_lowercase)
+if("${libomp_build_type_lowercase}" STREQUAL "release")
   set(RELEASE_BUILD TRUE)
-elseif("${uppercase_CMAKE_BUILD_TYPE}" STREQUAL "DEBUG")
+elseif("${libomp_build_type_lowercase}" STREQUAL "debug")
   set(DEBUG_BUILD TRUE)
-elseif("${uppercase_CMAKE_BUILD_TYPE}" STREQUAL "RELWITHDEBINFO")
+elseif("${libomp_build_type_lowercase}" STREQUAL "relwithdebinfo")
   set(RELWITHDEBINFO_BUILD TRUE)
-elseif("${uppercase_CMAKE_BUILD_TYPE}" STREQUAL "MINSIZEREL")
+elseif("${libomp_build_type_lowercase}" STREQUAL "minsizerel")
   set(MINSIZEREL_BUILD TRUE)
 endif()
 
@@ -355,11 +355,6 @@ if(${STUBS_LIBRARY})
   set(LIBOMP_DEFAULT_LIB_NAME ${LIBOMP_DEFAULT_LIB_NAME}stubs)
 endif()
 set(LIBOMP_LIB_NAME ${LIBOMP_DEFAULT_LIB_NAME} CACHE STRING "Base OMP library name")
-if (OPENMP_MSVC_NAME_SCHEME)
-  # MSVC_TOOLS_VERSION corresponds to the version of the VC++ toolset.
-  set(MSVC_TOOLS_VERSION 140)
-  set(LIBOMP_LIB_NAME ${LIBOMP_LIB_NAME}${MSVC_TOOLS_VERSION}.${LIBOMP_ARCH})
-endif()
 
 if(${LIBOMP_ENABLE_SHARED})
   set(LIBOMP_LIBRARY_SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX})

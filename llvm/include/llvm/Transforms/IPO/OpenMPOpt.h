@@ -21,7 +21,7 @@ namespace omp {
 using Kernel = Function *;
 
 /// Set of kernels in the module
-using KernelSet = SetVector<Kernel>;
+using KernelSet = SmallPtrSet<Kernel, 4>;
 
 /// Helper to determine if \p M contains OpenMP.
 bool containsOpenMP(Module &M);

@@ -442,7 +442,8 @@ HexagonTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
     CLI.IsTailCall = IsEligibleForTailCallOptimization(Callee, CallConv,
                         IsVarArg, IsStructRet, StructAttrFlag, Outs,
                         OutVals, Ins, DAG);
-    for (const CCValAssign &VA : ArgLocs) {
+    for (unsigned i = 0, e = ArgLocs.size(); i != e; ++i) {
+      CCValAssign &VA = ArgLocs[i];
       if (VA.isMemLoc()) {
         CLI.IsTailCall = false;
         break;
@@ -543,8 +544,9 @@ HexagonTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
   // The Glue is necessary since all emitted instructions must be
   // stuck together.
   if (!CLI.IsTailCall) {
-    for (const auto &R : RegsToPass) {
-      Chain = DAG.getCopyToReg(Chain, dl, R.first, R.second, Glue);
+    for (unsigned i = 0, e = RegsToPass.size(); i != e; ++i) {
+      Chain = DAG.getCopyToReg(Chain, dl, RegsToPass[i].first,
+                               RegsToPass[i].second, Glue);
       Glue = Chain.getValue(1);
     }
   } else {
@@ -559,8 +561,9 @@ HexagonTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
     //
     // Do not flag preceding copytoreg stuff together with the following stuff.
     Glue = SDValue();
-    for (const auto &R : RegsToPass) {
-      Chain = DAG.getCopyToReg(Chain, dl, R.first, R.second, Glue);
+    for (unsigned i = 0, e = RegsToPass.size(); i != e; ++i) {
+      Chain = DAG.getCopyToReg(Chain, dl, RegsToPass[i].first,
+                               RegsToPass[i].second, Glue);
       Glue = Chain.getValue(1);
     }
     Glue = SDValue();
@@ -587,8 +590,10 @@ HexagonTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
 
   // Add argument registers to the end of the list so that they are
   // known live into the call.
-  for (const auto &R : RegsToPass)
-    Ops.push_back(DAG.getRegister(R.first, R.second.getValueType()));
+  for (unsigned i = 0, e = RegsToPass.size(); i != e; ++i) {
+    Ops.push_back(DAG.getRegister(RegsToPass[i].first,
+                                  RegsToPass[i].second.getValueType()));
+  }
 
   const uint32_t *Mask = HRI.getCallPreservedMask(MF, CallConv);
   assert(Mask && "Missing call preserved mask for calling convention");
@@ -686,7 +691,7 @@ HexagonTargetLowering::LowerINLINEASM(SDValue Op, SelectionDAG &DAG) const {
       case InlineAsm::Kind_RegDef:
       case InlineAsm::Kind_RegDefEarlyClobber: {
         for (; NumVals; --NumVals, ++i) {
-          Register Reg = cast<RegisterSDNode>(Op.getOperand(i))->getReg();
+          unsigned Reg = cast<RegisterSDNode>(Op.getOperand(i))->getReg();
           if (Reg != LR)
             continue;
           HMFI.setHasClobberLR(true);
@@ -1186,7 +1191,7 @@ HexagonTargetLowering::LowerRETURNADDR(SDValue Op, SelectionDAG &DAG) const {
   }
 
   // Return LR, which contains the return address. Mark it an implicit live-in.
-  Register Reg = MF.addLiveIn(HRI.getRARegister(), getRegClassFor(MVT::i32));
+  unsigned Reg = MF.addLiveIn(HRI.getRARegister(), getRegClassFor(MVT::i32));
   return DAG.getCopyFromReg(DAG.getEntryNode(), dl, Reg, VT);
 }
 
@@ -1772,18 +1777,6 @@ HexagonTargetLowering::HexagonTargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::SINT_TO_FP, MVT::i8,  Promote);
   setOperationAction(ISD::SINT_TO_FP, MVT::i16, Promote);
 
-  // Special handling for half-precision floating point conversions.
-  // Lower half float conversions into library calls.
-  setOperationAction(ISD::FP16_TO_FP, MVT::f32, Expand);
-  setOperationAction(ISD::FP16_TO_FP, MVT::f64, Expand);
-  setOperationAction(ISD::FP_TO_FP16, MVT::f32, Expand);
-  setOperationAction(ISD::FP_TO_FP16, MVT::f64, Expand);
-
-  setLoadExtAction(ISD::EXTLOAD, MVT::f32, MVT::f16, Expand);
-  setLoadExtAction(ISD::EXTLOAD, MVT::f64, MVT::f16, Expand);
-  setTruncStoreAction(MVT::f32, MVT::f16, Expand);
-  setTruncStoreAction(MVT::f64, MVT::f16, Expand);
-
   // Handling of indexed loads/stores: default is "expand".
   //
   for (MVT VT : {MVT::i8, MVT::i16, MVT::i32, MVT::i64, MVT::f32, MVT::f64,
@@ -1863,11 +1856,6 @@ HexagonTargetLowering::HexagonTargetLowering(const TargetMachine &TM,
     setLibcallName(RTLIB::SQRT_F32, "__hexagon_fast2_sqrtf");
   else
     setLibcallName(RTLIB::SQRT_F32, "__hexagon_sqrtf");
-
-  // Routines to handle fp16 storage type.
-  setLibcallName(RTLIB::FPROUND_F32_F16, "__truncsfhf2");
-  setLibcallName(RTLIB::FPROUND_F64_F16, "__truncdfhf2");
-  setLibcallName(RTLIB::FPEXT_F16_F32, "__extendhfsf2");
 
   // These cause problems when the shift amount is non-constant.
   setLibcallName(RTLIB::SHL_I128, nullptr);
@@ -2217,7 +2205,8 @@ HexagonTargetLowering::LowerVECTOR_SHUFFLE(SDValue Op, SelectionDAG &DAG)
   // Express the shuffle mask in terms of bytes.
   SmallVector<int,8> ByteMask;
   unsigned ElemBytes = VecTy.getVectorElementType().getSizeInBits() / 8;
-  for (int M : Mask) {
+  for (unsigned i = 0, e = Mask.size(); i != e; ++i) {
+    int M = Mask[i];
     if (M < 0) {
       for (unsigned j = 0; j != ElemBytes; ++j)
         ByteMask.push_back(-1);
@@ -2440,8 +2429,8 @@ HexagonTargetLowering::buildVector32(ArrayRef<SDValue> Elem, const SDLoc &dl,
     if (AllConst) {
       int32_t V = (Consts[0]->getZExtValue() & 0xFF) |
                   (Consts[1]->getZExtValue() & 0xFF) << 8 |
-                  (Consts[2]->getZExtValue() & 0xFF) << 16 |
-                  Consts[3]->getZExtValue() << 24;
+                  (Consts[1]->getZExtValue() & 0xFF) << 16 |
+                  Consts[2]->getZExtValue() << 24;
       return DAG.getBitcast(MVT::v4i8, DAG.getConstant(V, dl, MVT::i32));
     }
 
@@ -2560,8 +2549,7 @@ HexagonTargetLowering::extractVector(SDValue VecV, SDValue IdxV,
   // Special case for v{8,4,2}i1 (the only boolean vectors legal in Hexagon
   // without any coprocessors).
   if (ElemWidth == 1) {
-    assert(VecWidth == VecTy.getVectorNumElements() &&
-           "Vector elements should equal vector width size");
+    assert(VecWidth == VecTy.getVectorNumElements() && "Sanity failure");
     assert(VecWidth == 8 || VecWidth == 4 || VecWidth == 2);
     // Check if this is an extract of the lowest bit.
     if (IdxN) {
@@ -2732,6 +2720,7 @@ SDValue
 HexagonTargetLowering::getZero(const SDLoc &dl, MVT Ty, SelectionDAG &DAG)
       const {
   if (Ty.isVector()) {
+    assert(Ty.isInteger() && "Only integer vectors are supported here");
     unsigned W = Ty.getSizeInBits();
     if (W <= 64)
       return DAG.getBitcast(Ty, DAG.getConstant(0, dl, MVT::getIntegerVT(W)));
@@ -2874,7 +2863,8 @@ HexagonTargetLowering::LowerCONCAT_VECTORS(SDValue Op,
       Scale /= 2;
     }
 
-    // At this point there should only be two words left, and Scale should be 2.
+    // Another sanity check. At this point there should only be two words
+    // left, and Scale should be 2.
     assert(Scale == 2 && Words[IdxW].size() == 2);
 
     SDValue WW = DAG.getNode(HexagonISD::COMBINE, dl, MVT::i64,

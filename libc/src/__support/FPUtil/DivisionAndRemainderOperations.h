@@ -18,7 +18,7 @@
 namespace __llvm_libc {
 namespace fputil {
 
-static constexpr int QUOTIENT_LSB_BITS = 3;
+static constexpr int quotientLSBBits = 3;
 
 // The implementation is a bit-by-bit algorithm which uses integer division
 // to evaluate the quotient and remainder.
@@ -26,30 +26,30 @@ template <typename T,
           cpp::EnableIfType<cpp::IsFloatingPointType<T>::Value, int> = 0>
 static inline T remquo(T x, T y, int &q) {
   FPBits<T> xbits(x), ybits(y);
-  if (xbits.is_nan())
+  if (xbits.isNaN())
     return x;
-  if (ybits.is_nan())
+  if (ybits.isNaN())
     return y;
-  if (xbits.is_inf() || ybits.is_zero())
-    return FPBits<T>::build_nan(1);
+  if (xbits.isInf() || ybits.isZero())
+    return FPBits<T>::buildNaN(1);
 
-  if (xbits.is_zero()) {
+  if (xbits.isZero()) {
     q = 0;
     return __llvm_libc::fputil::copysign(T(0.0), x);
   }
 
-  if (ybits.is_inf()) {
+  if (ybits.isInf()) {
     q = 0;
     return x;
   }
 
-  bool result_sign = (xbits.get_sign() == ybits.get_sign() ? false : true);
+  bool resultSign = (xbits.getSign() == ybits.getSign() ? false : true);
 
   // Once we know the sign of the result, we can just operate on the absolute
   // values. The correct sign can be applied to the result after the result
   // is evaluated.
-  xbits.set_sign(0);
-  ybits.set_sign(0);
+  xbits.setSign(0);
+  ybits.setSign(0);
 
   NormalFloat<T> normalx(xbits), normaly(ybits);
   int exp = normalx.exponent - normaly.exponent;
@@ -58,21 +58,21 @@ static inline T remquo(T x, T y, int &q) {
 
   q = 0;
   while (exp >= 0) {
-    unsigned shift_count = 0;
+    unsigned shiftCount = 0;
     typename NormalFloat<T>::UIntType n = mx;
-    for (shift_count = 0; n < my; n <<= 1, ++shift_count)
+    for (shiftCount = 0; n < my; n <<= 1, ++shiftCount)
       ;
 
-    if (static_cast<int>(shift_count) > exp)
+    if (static_cast<int>(shiftCount) > exp)
       break;
 
-    exp -= shift_count;
-    if (0 <= exp && exp < QUOTIENT_LSB_BITS)
+    exp -= shiftCount;
+    if (0 <= exp && exp < quotientLSBBits)
       q |= (1 << exp);
 
     mx = n - my;
     if (mx == 0) {
-      q = result_sign ? -q : q;
+      q = resultSign ? -q : q;
       return __llvm_libc::fputil::copysign(T(0.0), x);
     }
   }
@@ -84,33 +84,33 @@ static inline T remquo(T x, T y, int &q) {
   // However, if NormalFloat to native type conversion is updated in future,
   // then the conversion to native remainder value should be updated
   // appropriately and some directed tests added.
-  T native_remainder(remainder);
+  T nativeRemainder(remainder);
   T absy = T(ybits);
   int cmp = remainder.mul2(1).cmp(normaly);
   if (cmp > 0) {
     q = q + 1;
     if (x >= T(0.0))
-      native_remainder = native_remainder - absy;
+      nativeRemainder = nativeRemainder - absy;
     else
-      native_remainder = absy - native_remainder;
+      nativeRemainder = absy - nativeRemainder;
   } else if (cmp == 0) {
     if (q & 1) {
       q += 1;
       if (x >= T(0.0))
-        native_remainder = -native_remainder;
+        nativeRemainder = -nativeRemainder;
     } else {
       if (x < T(0.0))
-        native_remainder = -native_remainder;
+        nativeRemainder = -nativeRemainder;
     }
   } else {
     if (x < T(0.0))
-      native_remainder = -native_remainder;
+      nativeRemainder = -nativeRemainder;
   }
 
-  q = result_sign ? -q : q;
-  if (native_remainder == T(0.0))
+  q = resultSign ? -q : q;
+  if (nativeRemainder == T(0.0))
     return __llvm_libc::fputil::copysign(T(0.0), x);
-  return native_remainder;
+  return nativeRemainder;
 }
 
 } // namespace fputil

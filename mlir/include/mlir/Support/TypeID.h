@@ -60,12 +60,10 @@ public:
   TypeID() : TypeID(get<void>()) {}
 
   /// Comparison operations.
-  inline bool operator==(const TypeID &other) const {
+  bool operator==(const TypeID &other) const {
     return storage == other.storage;
   }
-  inline bool operator!=(const TypeID &other) const {
-    return !(*this == other);
-  }
+  bool operator!=(const TypeID &other) const { return !(*this == other); }
 
   /// Construct a type info object for the given type T.
   template <typename T>
@@ -96,7 +94,7 @@ private:
 
 /// Enable hashing TypeID.
 inline ::llvm::hash_code hash_value(TypeID id) {
-  return DenseMapInfo<const TypeID::Storage *>::getHashValue(id.storage);
+  return llvm::hash_value(id.storage);
 }
 
 namespace detail {
@@ -138,7 +136,7 @@ TypeID TypeID::get() {
   return detail::TypeIDExported::get<Trait>();
 }
 
-} // namespace mlir
+} // end namespace mlir
 
 // Declare/define an explicit specialization for TypeID: this forces the
 // compiler to emit a strong definition for a class and controls which
@@ -168,11 +166,11 @@ TypeID TypeID::get() {
 
 namespace llvm {
 template <> struct DenseMapInfo<mlir::TypeID> {
-  static inline mlir::TypeID getEmptyKey() {
+  static mlir::TypeID getEmptyKey() {
     void *pointer = llvm::DenseMapInfo<void *>::getEmptyKey();
     return mlir::TypeID::getFromOpaquePointer(pointer);
   }
-  static inline mlir::TypeID getTombstoneKey() {
+  static mlir::TypeID getTombstoneKey() {
     void *pointer = llvm::DenseMapInfo<void *>::getTombstoneKey();
     return mlir::TypeID::getFromOpaquePointer(pointer);
   }
@@ -193,6 +191,6 @@ template <> struct PointerLikeTypeTraits<mlir::TypeID> {
   static constexpr int NumLowBitsAvailable = 3;
 };
 
-} // namespace llvm
+} // end namespace llvm
 
 #endif // MLIR_SUPPORT_TYPEID_H

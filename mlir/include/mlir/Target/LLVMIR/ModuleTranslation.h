@@ -39,7 +39,7 @@ namespace LLVM {
 
 namespace detail {
 class DebugTranslation;
-} // namespace detail
+} // end namespace detail
 
 class LLVMFuncOp;
 
@@ -191,7 +191,7 @@ public:
   /// Common CRTP base class for ModuleTranslation stack frames.
   class StackFrame {
   public:
-    virtual ~StackFrame() = default;
+    virtual ~StackFrame() {}
     TypeID getTypeID() const { return typeID; }
 
   protected:

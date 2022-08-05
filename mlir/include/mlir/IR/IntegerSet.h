@@ -21,8 +21,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef MLIR_IR_INTEGERSET_H
-#define MLIR_IR_INTEGERSET_H
+#ifndef MLIR_IR_INTEGER_SET_H
+#define MLIR_IR_INTEGER_SET_H
 
 #include "mlir/IR/AffineExpr.h"
 #include "llvm/ADT/ArrayRef.h"
@@ -31,7 +31,7 @@ namespace mlir {
 
 namespace detail {
 struct IntegerSetStorage;
-} // namespace detail
+} // end namespace detail
 
 class MLIRContext;
 
@@ -45,7 +45,7 @@ class IntegerSet {
 public:
   using ImplType = detail::IntegerSetStorage;
 
-  constexpr IntegerSet() {}
+  constexpr IntegerSet() : set(nullptr) {}
   explicit IntegerSet(ImplType *set) : set(set) {}
 
   static IntegerSet get(unsigned dimCount, unsigned symbolCount,
@@ -116,7 +116,9 @@ public:
   }
 
 private:
-  ImplType *set{nullptr};
+  ImplType *set;
+  /// Sets with constraints fewer than kUniquingThreshold are uniqued.
+  constexpr static unsigned kUniquingThreshold = 4;
 };
 
 // Make AffineExpr hashable.
@@ -124,7 +126,7 @@ inline ::llvm::hash_code hash_value(IntegerSet arg) {
   return ::llvm::hash_value(arg.set);
 }
 
-} // namespace mlir
+} // end namespace mlir
 namespace llvm {
 
 // IntegerSet hash just like pointers.
@@ -146,4 +148,4 @@ template <> struct DenseMapInfo<mlir::IntegerSet> {
 };
 
 } // namespace llvm
-#endif // MLIR_IR_INTEGERSET_H
+#endif // MLIR_IR_INTEGER_SET_H

@@ -333,7 +333,6 @@ cc_library(
         "//clang:frontend",
         "//clang:static_analyzer_core",
         "//clang:static_analyzer_frontend",
-        "//clang:testing",
         "//clang:tooling",
         "//llvm:gtest",
     ],

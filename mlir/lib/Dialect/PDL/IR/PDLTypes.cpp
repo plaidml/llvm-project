@@ -33,7 +33,7 @@ void PDLDialect::registerTypes() {
       >();
 }
 
-static Type parsePDLType(AsmParser &parser) {
+static Type parsePDLType(DialectAsmParser &parser) {
   StringRef typeTag;
   if (parser.parseKeyword(&typeTag))
     return Type();
@@ -53,6 +53,15 @@ static Type parsePDLType(AsmParser &parser) {
   return Type();
 }
 
+Type PDLDialect::parseType(DialectAsmParser &parser) const {
+  return parsePDLType(parser);
+}
+
+void PDLDialect::printType(Type type, DialectAsmPrinter &printer) const {
+  if (failed(generatedTypePrinter(type, printer)))
+    llvm_unreachable("unknown 'pdl' type");
+}
+
 //===----------------------------------------------------------------------===//
 // PDL Types
 //===----------------------------------------------------------------------===//
@@ -65,7 +74,7 @@ bool PDLType::classof(Type type) {
 // RangeType
 //===----------------------------------------------------------------------===//
 
-Type RangeType::parse(AsmParser &parser) {
+Type RangeType::parse(DialectAsmParser &parser) {
   if (parser.parseLess())
     return Type();
 
@@ -83,8 +92,8 @@ Type RangeType::parse(AsmParser &parser) {
   return RangeType::get(elementType);
 }
 
-void RangeType::print(AsmPrinter &printer) const {
-  printer << "<";
+void RangeType::print(DialectAsmPrinter &printer) const {
+  printer << "range<";
   (void)generatedTypePrinter(getElementType(), printer);
   printer << ">";
 }

@@ -44,15 +44,6 @@ public:
 
   lldb_private::Status DisconnectRemote() override;
 
-  uint32_t DoLoadImage(lldb_private::Process *process,
-                       const lldb_private::FileSpec &remote_file,
-                       const std::vector<std::string> *paths,
-                       lldb_private::Status &error,
-                       lldb_private::FileSpec *loaded_path) override;
-
-  lldb_private::Status UnloadImage(lldb_private::Process *process,
-                                   uint32_t image_token) override;
-
   lldb::ProcessSP DebugProcess(lldb_private::ProcessLaunchInfo &launch_info,
                                lldb_private::Debugger &debugger,
                                lldb_private::Target &target,
@@ -63,9 +54,8 @@ public:
                          lldb_private::Target *target,
                          lldb_private::Status &error) override;
 
-  std::vector<ArchSpec> GetSupportedArchitectures() override {
-    return m_supported_architectures;
-  }
+  bool GetSupportedArchitectureAtIndex(uint32_t idx,
+                                       lldb_private::ArchSpec &arch) override;
 
   void GetStatus(lldb_private::Stream &strm) override;
 
@@ -78,17 +68,6 @@ public:
 
   size_t GetSoftwareBreakpointTrapOpcode(Target &target,
                                          BreakpointSite *bp_site) override;
-
-  std::vector<ArchSpec> m_supported_architectures;
-
-private:
-  std::unique_ptr<lldb_private::UtilityFunction>
-  MakeLoadImageUtilityFunction(lldb_private::ExecutionContext &context,
-                               lldb_private::Status &status);
-
-  lldb_private::Status EvaluateLoaderExpression(lldb_private::Process *process,
-                                                const char *expression,
-                                                lldb::ValueObjectSP &value);
 };
 
 } // namespace lldb_private

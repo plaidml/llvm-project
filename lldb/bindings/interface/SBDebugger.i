@@ -207,9 +207,6 @@ public:
     }
 
     SBError
-    SetInputString (const char* data);
-
-    SBError
     SetInputFile (SBFile file);
 
     SBError
@@ -481,8 +478,6 @@ public:
 
     lldb::SBTypeSynthetic
     GetSyntheticForType (lldb::SBTypeNameSpecifier);
-
-    SBStructuredData GetScriptInterpreterInfo(ScriptLanguage);
 
     STRING_EXTENSION(SBDebugger)
 

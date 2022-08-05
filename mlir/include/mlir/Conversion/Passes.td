@@ -78,7 +78,7 @@ def ConvertAffineToStandard : Pass<"lower-affine"> {
 // ArithmeticToLLVM
 //===----------------------------------------------------------------------===//
 
-def ConvertArithmeticToLLVM : Pass<"convert-arith-to-llvm", "FuncOp"> {
+def ConvertArithmeticToLLVM : FunctionPass<"convert-arith-to-llvm"> {
   let summary = "Convert Arithmetic dialect to LLVM dialect";
   let description = [{
     This pass converts supported Arithmetic ops to LLVM dialect instructions.
@@ -96,7 +96,7 @@ def ConvertArithmeticToLLVM : Pass<"convert-arith-to-llvm", "FuncOp"> {
 // ArithmeticToSPIRV
 //===----------------------------------------------------------------------===//
 
-def ConvertArithmeticToSPIRV : Pass<"convert-arith-to-spirv", "FuncOp"> {
+def ConvertArithmeticToSPIRV : FunctionPass<"convert-arith-to-spirv"> {
   let summary = "Convert Arithmetic dialect to SPIR-V dialect";
   let constructor = "mlir::arith::createConvertArithmeticToSPIRVPass()";
   let dependentDialects = ["spirv::SPIRVDialect"];
@@ -127,41 +127,6 @@ def ConvertAsyncToLLVM : Pass<"convert-async-to-llvm", "ModuleOp"> {
 }
 
 //===----------------------------------------------------------------------===//
-// BufferizationToMemRef
-//===----------------------------------------------------------------------===//
-
-def ConvertBufferizationToMemRef : Pass<"convert-bufferization-to-memref"> {
-  let summary = "Convert operations from the Bufferization dialect to the "
-                "MemRef dialect";
-  let description = [{
-
-    This pass converts bufferization operations into memref operations.
-
-    In the current state, this pass only transforms a `bufferization.clone`
-    operation into `memref.alloc` and `memref.copy` operations. This conversion
-    is needed, since some clone operations could remain after applying several
-    transformation processes. Currently, only `canonicalize` transforms clone
-    operations or even eliminates them. This can lead to errors if any clone op
-    survived after all conversion passes (starting from the bufferization
-    dialect) are performed.
-
-    See:
-    https://llvm.discourse.group/t/bufferization-error-related-to-memref-clone/4665
-
-    To avoid these errors, this pass can be performed as a last clean-up pass to
-    transform remaining operations and to proceed in other dialects (memref
-    e.g.).
-
-    Note that this pass only transforms the operation without any further
-    analyses. This pass does not consider any memory analysis or optimization
-    and hence does not resolve any memory leaks.
-
-  }];
-  let constructor = "mlir::createBufferizationToMemRefPass()";
-  let dependentDialects = ["arith::ArithmeticDialect", "memref::MemRefDialect"];
-}
-
-//===----------------------------------------------------------------------===//
 // ComplexToLLVM
 //===----------------------------------------------------------------------===//
 
@@ -175,7 +140,7 @@ def ConvertComplexToLLVM : Pass<"convert-complex-to-llvm", "ModuleOp"> {
 // ComplexToStandard
 //===----------------------------------------------------------------------===//
 
-def ConvertComplexToStandard : Pass<"convert-complex-to-standard", "FuncOp"> {
+def ConvertComplexToStandard : FunctionPass<"convert-complex-to-standard"> {
   let summary = "Convert Complex dialect to standard dialect";
   let constructor = "mlir::createConvertComplexToStandardPass()";
   let dependentDialects = ["math::MathDialect"];
@@ -227,15 +192,7 @@ def ConvertGpuOpsToROCDLOps : Pass<"convert-gpu-to-rocdl", "gpu::GPUModuleOp"> {
   let options = [
     Option<"indexBitwidth", "index-bitwidth", "unsigned",
            /*default=kDeriveIndexBitwidthFromDataLayout*/"0",
-           "Bitwidth of the index type, 0 to use size of machine word">,
-    Option<"runtime", "runtime", "::mlir::gpu::amd::Runtime",
-          "::mlir::gpu::amd::Runtime::Unknown",
-          "Runtime code will be run on (default is Unknown, can also use HIP or OpenCl)",
-          [{::llvm::cl::values(
-            clEnumValN(::mlir::gpu::amd::Runtime::Unknown, "unknown", "Unknown (default)"),
-            clEnumValN(::mlir::gpu::amd::Runtime::HIP, "HIP", "HIP"),
-            clEnumValN(::mlir::gpu::amd::Runtime::OpenCL, "OpenCL", "OpenCL")
-          )}]>
+           "Bitwidth of the index type, 0 to use size of machine word">
   ];
 }
 
@@ -343,7 +300,7 @@ def ConvertMathToLibm : Pass<"convert-math-to-libm", "ModuleOp"> {
 // MathToLLVM
 //===----------------------------------------------------------------------===//
 
-def ConvertMathToLLVM : Pass<"convert-math-to-llvm", "FuncOp"> {
+def ConvertMathToLLVM : FunctionPass<"convert-math-to-llvm"> {
   let summary = "Convert Math dialect to LLVM dialect";
   let description = [{
     This pass converts supported Math ops to LLVM dialect intrinsics.
@@ -503,7 +460,7 @@ def SCFToStandard : Pass<"convert-scf-to-std"> {
 // SCFToGPU
 //===----------------------------------------------------------------------===//
 
-def ConvertAffineForToGPU : Pass<"convert-affine-for-to-gpu", "FuncOp"> {
+def ConvertAffineForToGPU : FunctionPass<"convert-affine-for-to-gpu"> {
   let summary = "Convert top-level AffineFor Ops to GPU kernels";
   let constructor = "mlir::createAffineForToGPUPass()";
   let dependentDialects = ["gpu::GPUDialect"];
@@ -635,7 +592,7 @@ def ConvertStandardToSPIRV : Pass<"convert-std-to-spirv", "ModuleOp"> {
 // TosaToLinalg
 //===----------------------------------------------------------------------===//
 
-def TosaToLinalg : Pass<"tosa-to-linalg", "FuncOp"> {
+def TosaToLinalg : FunctionPass<"tosa-to-linalg"> {
   let summary = "Lower TOSA to LinAlg on tensors";
   let description = [{
     Pass that converts TOSA operations to the equivalent operations using the
@@ -643,20 +600,6 @@ def TosaToLinalg : Pass<"tosa-to-linalg", "FuncOp"> {
   }];
 
   let constructor = "tosa::createTosaToLinalg()";
-}
-
-//===----------------------------------------------------------------------===//
-// TosaToLinalgNamed
-//===----------------------------------------------------------------------===//
-
-def TosaToLinalgNamed : Pass<"tosa-to-linalg-named", "FuncOp"> {
-  let summary = "Lower TOSA to LinAlg named operations";
-  let description = [{
-    Pass that converts TOSA operations to the equivalent operations using the
-    Linalg named operations.
-  }];
-
-  let constructor = "tosa::createTosaToLinalgNamed()";
 }
 
 //===----------------------------------------------------------------------===//
@@ -697,7 +640,7 @@ def TosaToStandard : Pass<"tosa-to-standard"> {
 // VectorToGPU
 //===----------------------------------------------------------------------===//
 
-def ConvertVectorToGPU : Pass<"convert-vector-to-gpu", "FuncOp"> {
+def ConvertVectorToGPU : FunctionPass<"convert-vector-to-gpu"> {
   let summary = "Lower the operations from the vector dialect into the GPU "
                 "dialect";
   let constructor = "mlir::createConvertVectorToGPUPass()";
@@ -711,7 +654,7 @@ def ConvertVectorToGPU : Pass<"convert-vector-to-gpu", "FuncOp"> {
 // VectorToSCF
 //===----------------------------------------------------------------------===//
 
-def ConvertVectorToSCF : Pass<"convert-vector-to-scf", "FuncOp"> {
+def ConvertVectorToSCF : FunctionPass<"convert-vector-to-scf"> {
   let summary = "Lower the operations from the vector dialect into the SCF "
                 "dialect";
   let constructor = "mlir::createConvertVectorToSCFPass()";

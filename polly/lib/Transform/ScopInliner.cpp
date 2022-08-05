@@ -26,6 +26,8 @@
 using namespace llvm;
 using namespace polly;
 
+extern bool polly::PollyAllowFullFunction;
+
 namespace {
 class ScopInliner : public CallGraphSCCPass {
   using llvm::Pass::doInitialization;
@@ -82,7 +84,7 @@ public:
     ScopDetection &SD = FAM.getResult<ScopAnalysis>(*F);
 
     const bool HasScopAsTopLevelRegion =
-        SD.ValidRegions.contains(RI.getTopLevelRegion());
+        SD.ValidRegions.count(RI.getTopLevelRegion()) > 0;
 
     bool Changed = false;
     if (HasScopAsTopLevelRegion) {

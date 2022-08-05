@@ -137,9 +137,6 @@ private:
   llvm::Type *translate(VectorType type) {
     assert(LLVM::isCompatibleVectorType(type) &&
            "expected compatible with LLVM vector type");
-    if (type.isScalable())
-      return llvm::ScalableVectorType::get(translateType(type.getElementType()),
-                                           type.getNumElements());
     return llvm::FixedVectorType::get(translateType(type.getElementType()),
                                       type.getNumElements());
   }
@@ -173,14 +170,14 @@ private:
   /// type instead of creating a new type.
   llvm::DenseMap<Type, llvm::Type *> knownTranslations;
 };
-} // namespace detail
-} // namespace LLVM
-} // namespace mlir
+} // end namespace detail
+} // end namespace LLVM
+} // end namespace mlir
 
 LLVM::TypeToLLVMIRTranslator::TypeToLLVMIRTranslator(llvm::LLVMContext &context)
     : impl(new detail::TypeToLLVMIRTranslatorImpl(context)) {}
 
-LLVM::TypeToLLVMIRTranslator::~TypeToLLVMIRTranslator() = default;
+LLVM::TypeToLLVMIRTranslator::~TypeToLLVMIRTranslator() {}
 
 llvm::Type *LLVM::TypeToLLVMIRTranslator::translateType(Type type) {
   return impl->translateType(type);

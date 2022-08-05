@@ -736,15 +736,8 @@ bool Sema::BuildCXXNestedNameSpecifier(Scope *S, NestedNameSpecInfo &IdInfo,
 
     QualType T =
         Context.getTypeDeclType(cast<TypeDecl>(SD->getUnderlyingDecl()));
-
-    if (T->isEnumeralType())
-      Diag(IdInfo.IdentifierLoc, diag::warn_cxx98_compat_enum_nested_name_spec);
-
     TypeLocBuilder TLB;
-    if (const auto *USD = dyn_cast<UsingShadowDecl>(SD)) {
-      T = Context.getUsingType(USD, T);
-      TLB.pushTypeSpec(T).setNameLoc(IdInfo.IdentifierLoc);
-    } else if (isa<InjectedClassNameType>(T)) {
+    if (isa<InjectedClassNameType>(T)) {
       InjectedClassNameTypeLoc InjectedTL
         = TLB.push<InjectedClassNameTypeLoc>(T);
       InjectedTL.setNameLoc(IdInfo.IdentifierLoc);
@@ -776,6 +769,9 @@ bool Sema::BuildCXXNestedNameSpecifier(Scope *S, NestedNameSpecInfo &IdInfo,
     } else {
       llvm_unreachable("Unhandled TypeDecl node in nested-name-specifier");
     }
+
+    if (T->isEnumeralType())
+      Diag(IdInfo.IdentifierLoc, diag::warn_cxx98_compat_enum_nested_name_spec);
 
     SS.Extend(Context, SourceLocation(), TLB.getTypeLocInContext(Context, T),
               IdInfo.CCLoc);
@@ -869,7 +865,7 @@ bool Sema::ActOnCXXNestedNameSpecifierDecltype(CXXScopeSpec &SS,
 
   assert(DS.getTypeSpecType() == DeclSpec::TST_decltype);
 
-  QualType T = BuildDecltypeType(DS.getRepAsExpr());
+  QualType T = BuildDecltypeType(DS.getRepAsExpr(), DS.getTypeSpecTypeLoc());
   if (T.isNull())
     return true;
 
@@ -881,8 +877,7 @@ bool Sema::ActOnCXXNestedNameSpecifierDecltype(CXXScopeSpec &SS,
 
   TypeLocBuilder TLB;
   DecltypeTypeLoc DecltypeTL = TLB.push<DecltypeTypeLoc>(T);
-  DecltypeTL.setDecltypeLoc(DS.getTypeSpecTypeLoc());
-  DecltypeTL.setRParenLoc(DS.getTypeofParensRange().getEnd());
+  DecltypeTL.setNameLoc(DS.getTypeSpecTypeLoc());
   SS.Extend(Context, SourceLocation(), TLB.getTypeLocInContext(Context, T),
             ColonColonLoc);
   return false;

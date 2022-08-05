@@ -795,7 +795,7 @@ protected:
 
   class ChildrenManager {
   public:
-    ChildrenManager() {}
+    ChildrenManager() : m_mutex(), m_children() {}
 
     bool HasChildAtIndex(size_t idx) {
       std::lock_guard<std::recursive_mutex> guard(m_mutex);
@@ -1000,7 +1000,7 @@ protected:
   void SetPreferredDisplayLanguageIfNeeded(lldb::LanguageType);
 
 protected:
-  virtual void DoUpdateChildrenAddressType(ValueObject &valobj){};
+  virtual void DoUpdateChildrenAddressType(ValueObject &valobj) { return; };
 
 private:
   virtual CompilerType MaybeCalculateCompleteType();

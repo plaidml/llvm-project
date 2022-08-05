@@ -26,7 +26,7 @@ define void @readonlyAttr() {
 ; Assume that #N is readonly
   call void @noattrsFunction() readonly
 
-  ; Verify that noattrsFunction is otherwise a MemoryDef
+  ; Sanity check that noattrsFunction is otherwise a MemoryDef
 ; CHECK: 3 = MemoryDef(2)
 ; CHECK-NEXT: call void @noattrsFunction()
   call void @noattrsFunction()

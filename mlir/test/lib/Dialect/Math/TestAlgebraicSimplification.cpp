@@ -20,9 +20,8 @@ using namespace mlir;
 
 namespace {
 struct TestMathAlgebraicSimplificationPass
-    : public PassWrapper<TestMathAlgebraicSimplificationPass,
-                         OperationPass<FuncOp>> {
-  void runOnOperation() override;
+    : public PassWrapper<TestMathAlgebraicSimplificationPass, FunctionPass> {
+  void runOnFunction() override;
   void getDependentDialects(DialectRegistry &registry) const override {
     registry.insert<vector::VectorDialect, math::MathDialect>();
   }
@@ -33,9 +32,9 @@ struct TestMathAlgebraicSimplificationPass
     return "Test math algebraic simplification";
   }
 };
-} // namespace
+} // end anonymous namespace
 
-void TestMathAlgebraicSimplificationPass::runOnOperation() {
+void TestMathAlgebraicSimplificationPass::runOnFunction() {
   RewritePatternSet patterns(&getContext());
   populateMathAlgebraicSimplificationPatterns(patterns);
   (void)applyPatternsAndFoldGreedily(getOperation(), std::move(patterns));

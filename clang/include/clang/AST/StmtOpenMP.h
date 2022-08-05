@@ -2569,20 +2569,15 @@ public:
   /// \param C AST context.
   /// \param StartLoc Starting location of the directive kind.
   /// \param EndLoc Ending Location of the directive.
-  /// \param Clauses List of clauses.
   ///
-  static OMPTaskwaitDirective *Create(const ASTContext &C,
-                                      SourceLocation StartLoc,
-                                      SourceLocation EndLoc,
-                                      ArrayRef<OMPClause *> Clauses);
+  static OMPTaskwaitDirective *
+  Create(const ASTContext &C, SourceLocation StartLoc, SourceLocation EndLoc);
 
   /// Creates an empty directive.
   ///
   /// \param C AST context.
-  /// \param NumClauses Number of clauses.
   ///
-  static OMPTaskwaitDirective *CreateEmpty(const ASTContext &C,
-                                           unsigned NumClauses, EmptyShell);
+  static OMPTaskwaitDirective *CreateEmpty(const ASTContext &C, EmptyShell);
 
   static bool classof(const Stmt *T) {
     return T->getStmtClass() == OMPTaskwaitDirectiveClass;

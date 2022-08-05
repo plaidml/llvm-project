@@ -31,7 +31,7 @@ ENUM_CLASS(LanguageFeature, BackslashEscapes, OldDebugLines,
     OldLabelDoEndStatements, LogicalIntegerAssignment, EmptySourceFile,
     ProgramReturn, ImplicitNoneTypeNever, ImplicitNoneTypeAlways,
     ForwardRefDummyImplicitNone, OpenAccessAppend, BOZAsDefaultInteger,
-    DistinguishableSpecifics, DefaultSave, PointerInSeqType, NonCharacterFormat)
+    DistinguishableSpecifics)
 
 using LanguageFeatures = EnumSet<LanguageFeature, LanguageFeature_enumSize>;
 
@@ -44,7 +44,6 @@ public:
     disable_.set(LanguageFeature::OpenMP);
     disable_.set(LanguageFeature::ImplicitNoneTypeNever);
     disable_.set(LanguageFeature::ImplicitNoneTypeAlways);
-    disable_.set(LanguageFeature::DefaultSave);
     // These features, if enabled, conflict with valid standard usage,
     // so there are disabled here by default.
     disable_.set(LanguageFeature::BackslashEscapes);

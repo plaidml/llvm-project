@@ -210,11 +210,7 @@ void LocalStackSlotPass::calculateFrameObjectOffsets(MachineFunction &Fn) {
     StackObjSet SmallArrayObjs;
     StackObjSet AddrOfObjs;
 
-    // Only place the stack protector in the local stack area if the target
-    // allows it.
-    if (TFI.isStackIdSafeForLocalArea(MFI.getStackID(StackProtectorFI)))
-      AdjustStackOffset(MFI, StackProtectorFI, Offset, StackGrowsDown,
-                        MaxAlign);
+    AdjustStackOffset(MFI, StackProtectorFI, Offset, StackGrowsDown, MaxAlign);
 
     // Assign large stack objects first.
     for (unsigned i = 0, e = MFI.getObjectIndexEnd(); i != e; ++i) {
@@ -320,14 +316,14 @@ bool LocalStackSlotPass::insertFrameReferenceRegisters(MachineFunction &Fn) {
       // than that, but the increased register pressure makes that a
       // tricky thing to balance. Investigate if re-materializing these
       // becomes an issue.
-      for (const MachineOperand &MO : MI.operands()) {
+      for (unsigned i = 0, e = MI.getNumOperands(); i != e; ++i) {
         // Consider replacing all frame index operands that reference
         // an object allocated in the local block.
-        if (MO.isFI()) {
+        if (MI.getOperand(i).isFI()) {
           // Don't try this with values not in the local block.
-          if (!MFI.isObjectPreAllocated(MO.getIndex()))
+          if (!MFI.isObjectPreAllocated(MI.getOperand(i).getIndex()))
             break;
-          int Idx = MO.getIndex();
+          int Idx = MI.getOperand(i).getIndex();
           int64_t LocalOffset = LocalOffsets[Idx];
           if (!TRI->needsFrameBaseReg(&MI, LocalOffset))
             break;

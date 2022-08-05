@@ -305,9 +305,10 @@ public:
 
 class LazyObject : public Symbol {
 public:
-  LazyObject(InputFile *f, StringRef n) : Symbol(LazyObjectKind, n), file(f) {}
+  LazyObject(LazyObjFile *f, StringRef n)
+      : Symbol(LazyObjectKind, n), file(f) {}
   static bool classof(const Symbol *s) { return s->kind() == LazyObjectKind; }
-  InputFile *file;
+  LazyObjFile *file;
 };
 
 // MinGW only.

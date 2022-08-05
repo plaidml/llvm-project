@@ -249,7 +249,7 @@ public:
 
 //===----------------------------------------------------------------------===//
 // LinearPolySize - base class for fixed- or scalable sizes.
-//  ^  ^
+//  ^  ^ 
 //  |  |
 //  |  +----- ElementCount - Leaf class to represent an element count
 //  |                        (vscale x unsigned)
@@ -499,7 +499,8 @@ inline raw_ostream &operator<<(raw_ostream &OS,
   return OS;
 }
 
-template <> struct DenseMapInfo<ElementCount, void> {
+template <typename T> struct DenseMapInfo;
+template <> struct DenseMapInfo<ElementCount> {
   static inline ElementCount getEmptyKey() {
     return ElementCount::getScalable(~0U);
   }

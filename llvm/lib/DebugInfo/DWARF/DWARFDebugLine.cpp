@@ -1331,8 +1331,8 @@ Optional<StringRef> DWARFDebugLine::LineTable::getSourceByIndex(uint64_t FileInd
   if (Kind == FileLineInfoKind::None || !Prologue.hasFileAtIndex(FileIndex))
     return None;
   const FileNameEntry &Entry = Prologue.getFileNameEntry(FileIndex);
-  if (auto E = dwarf::toString(Entry.Source))
-    return StringRef(*E);
+  if (Optional<const char *> source = Entry.Source.getAsCString())
+    return StringRef(*source);
   return None;
 }
 
@@ -1350,10 +1350,10 @@ bool DWARFDebugLine::Prologue::getFileNameByIndex(
   if (Kind == FileLineInfoKind::None || !hasFileAtIndex(FileIndex))
     return false;
   const FileNameEntry &Entry = getFileNameEntry(FileIndex);
-  auto E = dwarf::toString(Entry.Name);
-  if (!E)
+  Optional<const char *> Name = Entry.Name.getAsCString();
+  if (!Name)
     return false;
-  StringRef FileName = *E;
+  StringRef FileName = *Name;
   if (Kind == FileLineInfoKind::RawValue ||
       isPathAbsoluteOnWindowsOrPosix(FileName)) {
     Result = std::string(FileName);
@@ -1372,10 +1372,11 @@ bool DWARFDebugLine::Prologue::getFileNameByIndex(
     // relative names.
     if ((Entry.DirIdx != 0 || Kind != FileLineInfoKind::RelativeFilePath) &&
         Entry.DirIdx < IncludeDirectories.size())
-      IncludeDir = dwarf::toStringRef(IncludeDirectories[Entry.DirIdx]);
+      IncludeDir = IncludeDirectories[Entry.DirIdx].getAsCString().getValue();
   } else {
     if (0 < Entry.DirIdx && Entry.DirIdx <= IncludeDirectories.size())
-      IncludeDir = dwarf::toStringRef(IncludeDirectories[Entry.DirIdx - 1]);
+      IncludeDir =
+          IncludeDirectories[Entry.DirIdx - 1].getAsCString().getValue();
   }
 
   // For absolute paths only, include the compilation directory of compile unit.

@@ -472,9 +472,11 @@ void TokenLexer::ExpandFunctionArguments() {
 
         // If the '##' came from expanding an argument, turn it into 'unknown'
         // to avoid pasting.
-        for (Token &Tok : llvm::drop_begin(ResultToks, FirstResult))
+        for (Token &Tok : llvm::make_range(ResultToks.begin() + FirstResult,
+                                           ResultToks.end())) {
           if (Tok.is(tok::hashhash))
             Tok.setKind(tok::unknown);
+        }
 
         if(ExpandLocStart.isValid()) {
           updateLocForMacroArgTokens(CurTok.getLocation(),

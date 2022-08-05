@@ -21,15 +21,14 @@ using namespace mlir;
 
 namespace {
 struct TestAffineLoopParametricTiling
-    : public PassWrapper<TestAffineLoopParametricTiling,
-                         OperationPass<FuncOp>> {
+    : public PassWrapper<TestAffineLoopParametricTiling, FunctionPass> {
   StringRef getArgument() const final { return "test-affine-parametric-tile"; }
   StringRef getDescription() const final {
     return "Tile affine loops using SSA values as tile sizes";
   }
-  void runOnOperation() override;
+  void runOnFunction() override;
 };
-} // namespace
+} // end anonymous namespace
 
 /// Checks if the function enclosing the loop nest has any arguments passed to
 /// it, which can be used as tiling parameters. Assumes that atleast 'n'
@@ -62,13 +61,13 @@ static void getTilingParameters(ArrayRef<AffineForOp> band,
   }
 }
 
-void TestAffineLoopParametricTiling::runOnOperation() {
+void TestAffineLoopParametricTiling::runOnFunction() {
   // Bands of loops to tile.
   std::vector<SmallVector<AffineForOp, 6>> bands;
-  getTileableBands(getOperation(), &bands);
+  getTileableBands(getFunction(), &bands);
 
   // Tile each band.
-  for (MutableArrayRef<AffineForOp> band : bands) {
+  for (SmallVectorImpl<AffineForOp> &band : bands) {
     // Capture the tiling parameters from the arguments to the function
     // enclosing this loop nest.
     SmallVector<AffineForOp, 6> tiledNest;
@@ -79,7 +78,9 @@ void TestAffineLoopParametricTiling::runOnOperation() {
     // Get function arguments as tiling parameters.
     getTilingParameters(band, tilingParameters);
 
-    (void)tilePerfectlyNestedParametric(band, tilingParameters, &tiledNest);
+    if (failed(
+            tilePerfectlyNestedParametric(band, tilingParameters, &tiledNest)))
+      return signalPassFailure();
   }
 }
 

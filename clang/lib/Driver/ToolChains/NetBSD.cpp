@@ -264,15 +264,16 @@ void netbsd::Linker::ConstructJob(Compilation &C, const JobAction &JA,
   bool NeedsXRayDeps = addXRayRuntime(ToolChain, Args, CmdArgs);
   AddLinkerInputs(ToolChain, Inputs, Args, CmdArgs, JA);
 
-  const SanitizerArgs &SanArgs = ToolChain.getSanitizerArgs(Args);
+  const SanitizerArgs &SanArgs = ToolChain.getSanitizerArgs();
   if (SanArgs.needsSharedRt()) {
     CmdArgs.push_back("-rpath");
     CmdArgs.push_back(Args.MakeArgString(ToolChain.getCompilerRTPath()));
   }
 
-  VersionTuple OsVersion = Triple.getOSVersion();
+  unsigned Major, Minor, Micro;
+  Triple.getOSVersion(Major, Minor, Micro);
   bool useLibgcc = true;
-  if (OsVersion >= VersionTuple(7) || OsVersion.getMajor() == 0) {
+  if (Major >= 7 || Major == 0) {
     switch (ToolChain.getArch()) {
     case llvm::Triple::aarch64:
     case llvm::Triple::aarch64_be:
@@ -408,8 +409,9 @@ Tool *NetBSD::buildAssembler() const {
 Tool *NetBSD::buildLinker() const { return new tools::netbsd::Linker(*this); }
 
 ToolChain::CXXStdlibType NetBSD::GetDefaultCXXStdlibType() const {
-  VersionTuple OsVersion = getTriple().getOSVersion();
-  if (OsVersion >= VersionTuple(7) || OsVersion.getMajor() == 0) {
+  unsigned Major, Minor, Micro;
+  getTriple().getOSVersion(Major, Minor, Micro);
+  if (Major >= 7 || Major == 0) {
     switch (getArch()) {
     case llvm::Triple::aarch64:
     case llvm::Triple::aarch64_be:
@@ -499,17 +501,18 @@ SanitizerMask NetBSD::getSupportedSanitizers() const {
 void NetBSD::addClangTargetOptions(const ArgList &DriverArgs,
                                    ArgStringList &CC1Args,
                                    Action::OffloadKind) const {
-  const SanitizerArgs &SanArgs = getSanitizerArgs(DriverArgs);
+  const SanitizerArgs &SanArgs = getSanitizerArgs();
   if (SanArgs.hasAnySanitizer())
     CC1Args.push_back("-D_REENTRANT");
 
-  VersionTuple OsVersion = getTriple().getOSVersion();
+  unsigned Major, Minor, Micro;
+  getTriple().getOSVersion(Major, Minor, Micro);
   bool UseInitArrayDefault =
-      OsVersion >= VersionTuple(9) || OsVersion.getMajor() == 0 ||
-      getTriple().getArch() == llvm::Triple::aarch64 ||
-      getTriple().getArch() == llvm::Triple::aarch64_be ||
-      getTriple().getArch() == llvm::Triple::arm ||
-      getTriple().getArch() == llvm::Triple::armeb;
+    Major >= 9 || Major == 0 ||
+    getTriple().getArch() == llvm::Triple::aarch64 ||
+    getTriple().getArch() == llvm::Triple::aarch64_be ||
+    getTriple().getArch() == llvm::Triple::arm ||
+    getTriple().getArch() == llvm::Triple::armeb;
 
   if (!DriverArgs.hasFlag(options::OPT_fuse_init_array,
                           options::OPT_fno_use_init_array, UseInitArrayDefault))

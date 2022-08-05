@@ -6,8 +6,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-// XFAIL: LIBCXX-AIX-FIXME
-
 // <memory>
 
 // Test unique_ptr<T> with trivial_abi as return-type.

@@ -41,7 +41,7 @@ private:
   // Initialize class variables.
   void initialize(MachineFunction &MFParm);
 
-  bool processAtomicInsts();
+  bool processAtomicInsts(void);
 
 public:
 
@@ -151,7 +151,7 @@ static bool hasLiveDefs(const MachineInstr &MI, const TargetRegisterInfo *TRI) {
   return false;
 }
 
-bool BPFMIPreEmitChecking::processAtomicInsts() {
+bool BPFMIPreEmitChecking::processAtomicInsts(void) {
   for (MachineBasicBlock &MBB : *MF) {
     for (MachineInstr &MI : MBB) {
       if (MI.getOpcode() != BPF::XADDW &&

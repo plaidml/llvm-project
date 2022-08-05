@@ -252,8 +252,8 @@ void SchedulePostRATDList::exitRegion() {
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
 /// dumpSchedule - dump the scheduled Sequence.
 LLVM_DUMP_METHOD void SchedulePostRATDList::dumpSchedule() const {
-  for (const SUnit *SU : Sequence) {
-    if (SU)
+  for (unsigned i = 0, e = Sequence.size(); i != e; i++) {
+    if (SUnit *SU = Sequence[i])
       dumpNode(*SU);
     else
       dbgs() << "**** NOOP ****\n";
@@ -531,11 +531,11 @@ void SchedulePostRATDList::ListScheduleTopDown() {
   ReleaseSuccessors(&EntrySU);
 
   // Add all leaves to Available queue.
-  for (SUnit &SUnit : SUnits) {
+  for (unsigned i = 0, e = SUnits.size(); i != e; ++i) {
     // It is available if it has no predecessors.
-    if (!SUnit.NumPredsLeft && !SUnit.isAvailable) {
-      AvailableQueue.push(&SUnit);
-      SUnit.isAvailable = true;
+    if (!SUnits[i].NumPredsLeft && !SUnits[i].isAvailable) {
+      AvailableQueue.push(&SUnits[i]);
+      SUnits[i].isAvailable = true;
     }
   }
 
@@ -657,7 +657,10 @@ void SchedulePostRATDList::ListScheduleTopDown() {
 
 #ifndef NDEBUG
   unsigned ScheduledNodes = VerifyScheduledDAG(/*isBottomUp=*/false);
-  unsigned Noops = llvm::count(Sequence, nullptr);
+  unsigned Noops = 0;
+  for (unsigned i = 0, e = Sequence.size(); i != e; ++i)
+    if (!Sequence[i])
+      ++Noops;
   assert(Sequence.size() - Noops == ScheduledNodes &&
          "The number of nodes scheduled doesn't match the expected number!");
 #endif // NDEBUG

@@ -18,7 +18,6 @@
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/SetVector.h"
 #include "llvm/ADT/SmallVector.h"
-#include "llvm/Analysis/InstSimplifyFolder.h"
 #include "llvm/Analysis/ScalarEvolutionExpressions.h"
 #include "llvm/Analysis/ScalarEvolutionNormalization.h"
 #include "llvm/Analysis/TargetFolder.h"
@@ -123,7 +122,7 @@ class SCEVExpander : public SCEVVisitor<SCEVExpander, Value *> {
   /// "expanded" form.
   bool LSRMode;
 
-  typedef IRBuilder<InstSimplifyFolder, IRBuilderCallbackInserter> BuilderType;
+  typedef IRBuilder<TargetFolder, IRBuilderCallbackInserter> BuilderType;
   BuilderType Builder;
 
   // RAII object that stores the current insertion point and restores it when
@@ -179,7 +178,7 @@ public:
       : SE(se), DL(DL), IVName(name), PreserveLCSSA(PreserveLCSSA),
         IVIncInsertLoop(nullptr), IVIncInsertPos(nullptr), CanonicalMode(true),
         LSRMode(false),
-        Builder(se.getContext(), InstSimplifyFolder(DL),
+        Builder(se.getContext(), TargetFolder(DL),
                 IRBuilderCallbackInserter(
                     [this](Instruction *I) { rememberInstruction(I); })) {
 #ifdef LLVM_ENABLE_ABI_BREAKING_CHECKS
@@ -451,14 +450,6 @@ private:
   /// Determine the most "relevant" loop for the given SCEV.
   const Loop *getRelevantLoop(const SCEV *);
 
-  Value *expandSMaxExpr(const SCEVNAryExpr *S);
-
-  Value *expandUMaxExpr(const SCEVNAryExpr *S);
-
-  Value *expandSMinExpr(const SCEVNAryExpr *S);
-
-  Value *expandUMinExpr(const SCEVNAryExpr *S);
-
   Value *visitConstant(const SCEVConstant *S) { return S->getValue(); }
 
   Value *visitPtrToIntExpr(const SCEVPtrToIntExpr *S);
@@ -484,8 +475,6 @@ private:
   Value *visitSMinExpr(const SCEVSMinExpr *S);
 
   Value *visitUMinExpr(const SCEVUMinExpr *S);
-
-  Value *visitSequentialUMinExpr(const SCEVSequentialUMinExpr *S);
 
   Value *visitUnknown(const SCEVUnknown *S) { return S->getValue(); }
 
@@ -515,13 +504,15 @@ private:
 class SCEVExpanderCleaner {
   SCEVExpander &Expander;
 
+  DominatorTree &DT;
+
   /// Indicates whether the result of the expansion is used. If false, the
   /// instructions added during expansion are removed.
   bool ResultUsed;
 
 public:
-  SCEVExpanderCleaner(SCEVExpander &Expander)
-      : Expander(Expander), ResultUsed(false) {}
+  SCEVExpanderCleaner(SCEVExpander &Expander, DominatorTree &DT)
+      : Expander(Expander), DT(DT), ResultUsed(false) {}
 
   ~SCEVExpanderCleaner() { cleanup(); }
 

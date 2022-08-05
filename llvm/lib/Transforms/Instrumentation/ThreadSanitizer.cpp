@@ -110,7 +110,7 @@ namespace {
 /// the module.
 struct ThreadSanitizer {
   ThreadSanitizer() {
-    // Check options and warn user.
+    // Sanity check options and warn user.
     if (ClInstrumentReadBeforeWrite && ClCompoundReadBeforeWrite) {
       errs()
           << "warning: Option -tsan-compound-read-before-write has no effect "
@@ -585,8 +585,7 @@ bool ThreadSanitizer::sanitizeFunction(Function &F,
         AtomicAccesses.push_back(&Inst);
       else if (isa<LoadInst>(Inst) || isa<StoreInst>(Inst))
         LocalLoadsAndStores.push_back(&Inst);
-      else if ((isa<CallInst>(Inst) && !isa<DbgInfoIntrinsic>(Inst)) ||
-               isa<InvokeInst>(Inst)) {
+      else if (isa<CallInst>(Inst) || isa<InvokeInst>(Inst)) {
         if (CallInst *CI = dyn_cast<CallInst>(&Inst))
           maybeMarkSanitizerLibraryCallNoBuiltin(CI, &TLI);
         if (isa<MemIntrinsic>(Inst))

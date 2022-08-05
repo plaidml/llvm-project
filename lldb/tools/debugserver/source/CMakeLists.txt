@@ -82,6 +82,8 @@ if (CXX_SUPPORTS_NO_EXTENDED_OFFSETOF)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-extended-offsetof")
 endif ()
 
+# When compiling for arm, build debugserver 2 way fat with an arm64 and arm64e
+# slice. You can only debug arm64e processes using an arm64e debugserver.
 include(CheckCSourceCompiles)
 check_c_source_compiles(
     "
@@ -100,9 +102,7 @@ check_c_source_compiles(
     BUILDING_FOR_ARM64_OSX
 )
 
-# You can only debug arm64e processes using an arm64e debugserver.
-option(LLDB_ENABLE_ARM64E_DEBUGSERVER "Build debugserver for arm64 and arm64e" OFF)
-if (BUILDING_FOR_ARM64_OSX AND LLDB_ENABLE_ARM64E_DEBUGSERVER)
+if (BUILDING_FOR_ARM64_OSX)
   set(CMAKE_OSX_ARCHITECTURES "arm64;arm64e")
 endif ()
 

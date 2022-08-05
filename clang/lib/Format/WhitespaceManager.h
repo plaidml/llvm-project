@@ -45,9 +45,6 @@ public:
 
   bool useCRLF() const { return UseCRLF; }
 
-  /// Infers whether the input is using CRLF.
-  static bool inputUsesCRLF(StringRef Text, bool DefaultToCRLF);
-
   /// Replaces the whitespace in front of \p Tok. Only call once for
   /// each \c AnnotatedToken.
   ///
@@ -245,7 +242,7 @@ private:
   /// as described by \p CellDescs.
   void alignArrayInitializersRightJustified(CellDescriptions &&CellDescs);
 
-  /// Align Array Initializers being careful to left justify the columns
+  /// Align Array Initializers being careful to leftt justify the columns
   /// as described by \p CellDescs.
   void alignArrayInitializersLeftJustified(CellDescriptions &&CellDescs);
 

@@ -180,7 +180,7 @@ struct PassCrashReproducerGenerator::Impl {
 
   /// Flag indicating if reproducer generation should be localized to the
   /// failing pass.
-  bool localReproducer = false;
+  bool localReproducer;
 
   /// A record of all of the currently active reproducer contexts.
   SmallVector<std::unique_ptr<RecoveryReproducerContext>> activeContexts;
@@ -190,13 +190,13 @@ struct PassCrashReproducerGenerator::Impl {
   SetVector<std::pair<Pass *, Operation *>> runningPasses;
 
   /// Various pass manager flags that get emitted when generating a reproducer.
-  bool pmFlagVerifyPasses = false;
+  bool pmFlagVerifyPasses;
 };
 
 PassCrashReproducerGenerator::PassCrashReproducerGenerator(
     PassManager::ReproducerStreamFactory &streamFactory, bool localReproducer)
     : impl(std::make_unique<Impl>(streamFactory, localReproducer)) {}
-PassCrashReproducerGenerator::~PassCrashReproducerGenerator() = default;
+PassCrashReproducerGenerator::~PassCrashReproducerGenerator() {}
 
 void PassCrashReproducerGenerator::initialize(
     iterator_range<PassManager::pass_iterator> passes, Operation *op,
@@ -362,7 +362,7 @@ private:
   /// The generator used to create crash reproducers.
   PassCrashReproducerGenerator &generator;
 };
-} // namespace
+} // end anonymous namespace
 
 //===----------------------------------------------------------------------===//
 // FileReproducerStream
@@ -386,7 +386,7 @@ private:
   /// ToolOutputFile corresponding to opened `filename`.
   std::unique_ptr<llvm::ToolOutputFile> outputFile = nullptr;
 };
-} // namespace
+} // end anonymous namespace
 
 //===----------------------------------------------------------------------===//
 // PassManager

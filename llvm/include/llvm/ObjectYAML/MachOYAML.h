@@ -121,7 +121,6 @@ struct LinkEditData {
   MachOYAML::ExportEntry ExportTrie;
   std::vector<NListEntry> NameList;
   std::vector<StringRef> StringTable;
-  std::vector<yaml::Hex32> IndirectSymbols;
 
   bool isEmpty() const;
 };
@@ -132,7 +131,6 @@ struct Object {
   std::vector<LoadCommand> LoadCommands;
   std::vector<Section> Sections;
   LinkEditData LinkEdit;
-  Optional<llvm::yaml::BinaryRef> RawLinkEditSegment;
   DWARFYAML::Data DWARF;
 };
 

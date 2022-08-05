@@ -473,11 +473,8 @@ public:
   /// Whether input profile is based on pseudo probes.
   bool profileIsProbeBased() const { return ProfileIsProbeBased; }
 
-  /// Whether input profile is fully context-sensitive and flat.
-  bool profileIsCSFlat() const { return ProfileIsCSFlat; }
-
-  /// Whether input profile is fully context-sensitive and nested.
-  bool profileIsCSNested() const { return ProfileIsCSNested; }
+  /// Whether input profile is fully context-sensitive
+  bool profileIsCS() const { return ProfileIsCS; }
 
   virtual std::unique_ptr<ProfileSymbolList> getProfileSymbolList() {
     return nullptr;
@@ -536,11 +533,8 @@ protected:
   /// \brief Whether samples are collected based on pseudo probes.
   bool ProfileIsProbeBased = false;
 
-  /// Whether function profiles are context-sensitive flat profiles.
-  bool ProfileIsCSFlat = false;
-
-  /// Whether function profiles are context-sensitive nested profiles.
-  bool ProfileIsCSNested = false;
+  /// Whether function profiles are context-sensitive.
+  bool ProfileIsCS = false;
 
   /// Number of context-sensitive profiles.
   uint32_t CSProfileCount = 0;
@@ -704,8 +698,6 @@ protected:
   std::error_code readSecHdrTable();
 
   std::error_code readFuncMetadata(bool ProfileHasAttribute);
-  std::error_code readFuncMetadata(bool ProfileHasAttribute,
-                                   FunctionSamples *FProfile);
   std::error_code readFuncOffsetTable();
   std::error_code readFuncProfiles();
   std::error_code readMD5NameTable();

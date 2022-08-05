@@ -15,7 +15,7 @@
 #undef __cplusplus
 #define __cplusplus
 
-// allowlisted definitions
+// whitelisted definitions
 #define while while
 #define const
 #define static

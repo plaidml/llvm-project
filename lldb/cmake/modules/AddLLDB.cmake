@@ -1,5 +1,3 @@
-include(GNUInstallDirs)
-
 function(lldb_tablegen)
   # Syntax:
   # lldb_tablegen output-file [tablegen-arg ...] SOURCE source-file
@@ -115,7 +113,7 @@ function(add_lldb_library name)
     endif()
     # RUNTIME is relevant for DLL platforms, FRAMEWORK for macOS
     install(TARGETS ${name} COMPONENT ${name}
-      RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+      RUNTIME DESTINATION bin
       LIBRARY DESTINATION ${install_dest}
       ARCHIVE DESTINATION ${install_dest}
       FRAMEWORK DESTINATION ${install_dest})

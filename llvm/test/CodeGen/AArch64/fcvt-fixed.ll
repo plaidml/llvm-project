@@ -679,7 +679,10 @@ declare i64 @llvm.fptosi.sat.i64.f16(half)
 define i32 @fcvtzs_sat_f32_i32_7(float %flt) {
 ; CHECK-LABEL: fcvtzs_sat_f32_i32_7:
 ; CHECK:       // %bb.0:
-; CHECK-NEXT:    fcvtzs w0, s0, #7
+; CHECK-NEXT:    mov w8, #1124073472
+; CHECK-NEXT:    fmov s1, w8
+; CHECK-NEXT:    fmul s0, s0, s1
+; CHECK-NEXT:    fcvtzs w0, s0
 ; CHECK-NEXT:    ret
   %fix = fmul float %flt, 128.0
   %cvt = call i32 @llvm.fptosi.sat.i32.f32(float %fix)
@@ -689,7 +692,10 @@ define i32 @fcvtzs_sat_f32_i32_7(float %flt) {
 define i32 @fcvtzs_sat_f32_i32_32(float %flt) {
 ; CHECK-LABEL: fcvtzs_sat_f32_i32_32:
 ; CHECK:       // %bb.0:
-; CHECK-NEXT:    fcvtzs w0, s0, #32
+; CHECK-NEXT:    mov w8, #1333788672
+; CHECK-NEXT:    fmov s1, w8
+; CHECK-NEXT:    fmul s0, s0, s1
+; CHECK-NEXT:    fcvtzs w0, s0
 ; CHECK-NEXT:    ret
   %fix = fmul float %flt, 4294967296.0
   %cvt = call i32 @llvm.fptosi.sat.i32.f32(float %fix)
@@ -699,7 +705,10 @@ define i32 @fcvtzs_sat_f32_i32_32(float %flt) {
 define i64 @fcvtzs_sat_f32_i64_64(float %flt) {
 ; CHECK-LABEL: fcvtzs_sat_f32_i64_64:
 ; CHECK:       // %bb.0:
-; CHECK-NEXT:    fcvtzs x0, s0, #64
+; CHECK-NEXT:    mov w8, #1602224128
+; CHECK-NEXT:    fmov s1, w8
+; CHECK-NEXT:    fmul s0, s0, s1
+; CHECK-NEXT:    fcvtzs x0, s0
 ; CHECK-NEXT:    ret
   %fix = fmul float %flt, 18446744073709551616.0
   %cvt = call i64 @llvm.fptosi.sat.i64.f32(float %fix)
@@ -709,7 +718,10 @@ define i64 @fcvtzs_sat_f32_i64_64(float %flt) {
 define i32 @fcvtzs_sat_f64_i32_7(double %dbl) {
 ; CHECK-LABEL: fcvtzs_sat_f64_i32_7:
 ; CHECK:       // %bb.0:
-; CHECK-NEXT:    fcvtzs w0, d0, #7
+; CHECK-NEXT:    mov x8, #4638707616191610880
+; CHECK-NEXT:    fmov d1, x8
+; CHECK-NEXT:    fmul d0, d0, d1
+; CHECK-NEXT:    fcvtzs w0, d0
 ; CHECK-NEXT:    ret
   %fix = fmul double %dbl, 128.0
   %cvt = call i32 @llvm.fptosi.sat.i32.f64(double %fix)
@@ -719,7 +731,10 @@ define i32 @fcvtzs_sat_f64_i32_7(double %dbl) {
 define i32 @fcvtzs_sat_f64_i32_32(double %dbl) {
 ; CHECK-LABEL: fcvtzs_sat_f64_i32_32:
 ; CHECK:       // %bb.0:
-; CHECK-NEXT:    fcvtzs w0, d0, #32
+; CHECK-NEXT:    mov x8, #4751297606875873280
+; CHECK-NEXT:    fmov d1, x8
+; CHECK-NEXT:    fmul d0, d0, d1
+; CHECK-NEXT:    fcvtzs w0, d0
 ; CHECK-NEXT:    ret
   %fix = fmul double %dbl, 4294967296.0
   %cvt = call i32 @llvm.fptosi.sat.i32.f64(double %fix)
@@ -729,7 +744,10 @@ define i32 @fcvtzs_sat_f64_i32_32(double %dbl) {
 define i64 @fcvtzs_sat_f64_i64_7(double %dbl) {
 ; CHECK-LABEL: fcvtzs_sat_f64_i64_7:
 ; CHECK:       // %bb.0:
-; CHECK-NEXT:    fcvtzs x0, d0, #7
+; CHECK-NEXT:    mov x8, #4638707616191610880
+; CHECK-NEXT:    fmov d1, x8
+; CHECK-NEXT:    fmul d0, d0, d1
+; CHECK-NEXT:    fcvtzs x0, d0
 ; CHECK-NEXT:    ret
   %fix = fmul double %dbl, 128.0
   %cvt = call i64 @llvm.fptosi.sat.i64.f64(double %fix)
@@ -739,7 +757,10 @@ define i64 @fcvtzs_sat_f64_i64_7(double %dbl) {
 define i64 @fcvtzs_sat_f64_i64_64(double %dbl) {
 ; CHECK-LABEL: fcvtzs_sat_f64_i64_64:
 ; CHECK:       // %bb.0:
-; CHECK-NEXT:    fcvtzs x0, d0, #64
+; CHECK-NEXT:    mov x8, #4895412794951729152
+; CHECK-NEXT:    fmov d1, x8
+; CHECK-NEXT:    fmul d0, d0, d1
+; CHECK-NEXT:    fcvtzs x0, d0
 ; CHECK-NEXT:    ret
   %fix = fmul double %dbl, 18446744073709551616.0
   %cvt = call i64 @llvm.fptosi.sat.i64.f64(double %fix)
@@ -760,7 +781,10 @@ define i32 @fcvtzs_sat_f16_i32_7(half %dbl) {
 ;
 ; CHECK-FP16-LABEL: fcvtzs_sat_f16_i32_7:
 ; CHECK-FP16:       // %bb.0:
-; CHECK-FP16-NEXT:    fcvtzs w0, h0, #7
+; CHECK-FP16-NEXT:    adrp x8, .LCPI55_0
+; CHECK-FP16-NEXT:    ldr h1, [x8, :lo12:.LCPI55_0]
+; CHECK-FP16-NEXT:    fmul h0, h0, h1
+; CHECK-FP16-NEXT:    fcvtzs w0, h0
 ; CHECK-FP16-NEXT:    ret
   %fix = fmul half %dbl, 128.0
   %cvt = call i32 @llvm.fptosi.sat.i32.f16(half %fix)
@@ -781,7 +805,10 @@ define i32 @fcvtzs_sat_f16_i32_15(half %dbl) {
 ;
 ; CHECK-FP16-LABEL: fcvtzs_sat_f16_i32_15:
 ; CHECK-FP16:       // %bb.0:
-; CHECK-FP16-NEXT:    fcvtzs w0, h0, #15
+; CHECK-FP16-NEXT:    adrp x8, .LCPI56_0
+; CHECK-FP16-NEXT:    ldr h1, [x8, :lo12:.LCPI56_0]
+; CHECK-FP16-NEXT:    fmul h0, h0, h1
+; CHECK-FP16-NEXT:    fcvtzs w0, h0
 ; CHECK-FP16-NEXT:    ret
   %fix = fmul half %dbl, 32768.0
   %cvt = call i32 @llvm.fptosi.sat.i32.f16(half %fix)
@@ -802,7 +829,10 @@ define i64 @fcvtzs_sat_f16_i64_7(half %dbl) {
 ;
 ; CHECK-FP16-LABEL: fcvtzs_sat_f16_i64_7:
 ; CHECK-FP16:       // %bb.0:
-; CHECK-FP16-NEXT:    fcvtzs x0, h0, #7
+; CHECK-FP16-NEXT:    adrp x8, .LCPI57_0
+; CHECK-FP16-NEXT:    ldr h1, [x8, :lo12:.LCPI57_0]
+; CHECK-FP16-NEXT:    fmul h0, h0, h1
+; CHECK-FP16-NEXT:    fcvtzs x0, h0
 ; CHECK-FP16-NEXT:    ret
   %fix = fmul half %dbl, 128.0
   %cvt = call i64 @llvm.fptosi.sat.i64.f16(half %fix)
@@ -823,7 +853,10 @@ define i64 @fcvtzs_sat_f16_i64_15(half %dbl) {
 ;
 ; CHECK-FP16-LABEL: fcvtzs_sat_f16_i64_15:
 ; CHECK-FP16:       // %bb.0:
-; CHECK-FP16-NEXT:    fcvtzs x0, h0, #15
+; CHECK-FP16-NEXT:    adrp x8, .LCPI58_0
+; CHECK-FP16-NEXT:    ldr h1, [x8, :lo12:.LCPI58_0]
+; CHECK-FP16-NEXT:    fmul h0, h0, h1
+; CHECK-FP16-NEXT:    fcvtzs x0, h0
 ; CHECK-FP16-NEXT:    ret
   %fix = fmul half %dbl, 32768.0
   %cvt = call i64 @llvm.fptosi.sat.i64.f16(half %fix)
@@ -842,7 +875,10 @@ declare i64 @llvm.fptoui.sat.i64.f16(half)
 define i32 @fcvtzu_sat_f32_i32_7(float %flt) {
 ; CHECK-LABEL: fcvtzu_sat_f32_i32_7:
 ; CHECK:       // %bb.0:
-; CHECK-NEXT:    fcvtzu w0, s0, #7
+; CHECK-NEXT:    mov w8, #1124073472
+; CHECK-NEXT:    fmov s1, w8
+; CHECK-NEXT:    fmul s0, s0, s1
+; CHECK-NEXT:    fcvtzu w0, s0
 ; CHECK-NEXT:    ret
   %fix = fmul float %flt, 128.0
   %cvt = call i32 @llvm.fptoui.sat.i32.f32(float %fix)
@@ -852,7 +888,10 @@ define i32 @fcvtzu_sat_f32_i32_7(float %flt) {
 define i32 @fcvtzu_sat_f32_i32_32(float %flt) {
 ; CHECK-LABEL: fcvtzu_sat_f32_i32_32:
 ; CHECK:       // %bb.0:
-; CHECK-NEXT:    fcvtzu w0, s0, #32
+; CHECK-NEXT:    mov w8, #1333788672
+; CHECK-NEXT:    fmov s1, w8
+; CHECK-NEXT:    fmul s0, s0, s1
+; CHECK-NEXT:    fcvtzu w0, s0
 ; CHECK-NEXT:    ret
   %fix = fmul float %flt, 4294967296.0
   %cvt = call i32 @llvm.fptoui.sat.i32.f32(float %fix)
@@ -862,7 +901,10 @@ define i32 @fcvtzu_sat_f32_i32_32(float %flt) {
 define i64 @fcvtzu_sat_f32_i64_64(float %flt) {
 ; CHECK-LABEL: fcvtzu_sat_f32_i64_64:
 ; CHECK:       // %bb.0:
-; CHECK-NEXT:    fcvtzu x0, s0, #64
+; CHECK-NEXT:    mov w8, #1602224128
+; CHECK-NEXT:    fmov s1, w8
+; CHECK-NEXT:    fmul s0, s0, s1
+; CHECK-NEXT:    fcvtzu x0, s0
 ; CHECK-NEXT:    ret
   %fix = fmul float %flt, 18446744073709551616.0
   %cvt = call i64 @llvm.fptoui.sat.i64.f32(float %fix)
@@ -872,7 +914,10 @@ define i64 @fcvtzu_sat_f32_i64_64(float %flt) {
 define i32 @fcvtzu_sat_f64_i32_7(double %dbl) {
 ; CHECK-LABEL: fcvtzu_sat_f64_i32_7:
 ; CHECK:       // %bb.0:
-; CHECK-NEXT:    fcvtzu w0, d0, #7
+; CHECK-NEXT:    mov x8, #4638707616191610880
+; CHECK-NEXT:    fmov d1, x8
+; CHECK-NEXT:    fmul d0, d0, d1
+; CHECK-NEXT:    fcvtzu w0, d0
 ; CHECK-NEXT:    ret
   %fix = fmul double %dbl, 128.0
   %cvt = call i32 @llvm.fptoui.sat.i32.f64(double %fix)
@@ -882,7 +927,10 @@ define i32 @fcvtzu_sat_f64_i32_7(double %dbl) {
 define i32 @fcvtzu_sat_f64_i32_32(double %dbl) {
 ; CHECK-LABEL: fcvtzu_sat_f64_i32_32:
 ; CHECK:       // %bb.0:
-; CHECK-NEXT:    fcvtzu w0, d0, #32
+; CHECK-NEXT:    mov x8, #4751297606875873280
+; CHECK-NEXT:    fmov d1, x8
+; CHECK-NEXT:    fmul d0, d0, d1
+; CHECK-NEXT:    fcvtzu w0, d0
 ; CHECK-NEXT:    ret
   %fix = fmul double %dbl, 4294967296.0
   %cvt = call i32 @llvm.fptoui.sat.i32.f64(double %fix)
@@ -892,7 +940,10 @@ define i32 @fcvtzu_sat_f64_i32_32(double %dbl) {
 define i64 @fcvtzu_sat_f64_i64_7(double %dbl) {
 ; CHECK-LABEL: fcvtzu_sat_f64_i64_7:
 ; CHECK:       // %bb.0:
-; CHECK-NEXT:    fcvtzu x0, d0, #7
+; CHECK-NEXT:    mov x8, #4638707616191610880
+; CHECK-NEXT:    fmov d1, x8
+; CHECK-NEXT:    fmul d0, d0, d1
+; CHECK-NEXT:    fcvtzu x0, d0
 ; CHECK-NEXT:    ret
   %fix = fmul double %dbl, 128.0
   %cvt = call i64 @llvm.fptoui.sat.i64.f64(double %fix)
@@ -902,7 +953,10 @@ define i64 @fcvtzu_sat_f64_i64_7(double %dbl) {
 define i64 @fcvtzu_sat_f64_i64_64(double %dbl) {
 ; CHECK-LABEL: fcvtzu_sat_f64_i64_64:
 ; CHECK:       // %bb.0:
-; CHECK-NEXT:    fcvtzu x0, d0, #64
+; CHECK-NEXT:    mov x8, #4895412794951729152
+; CHECK-NEXT:    fmov d1, x8
+; CHECK-NEXT:    fmul d0, d0, d1
+; CHECK-NEXT:    fcvtzu x0, d0
 ; CHECK-NEXT:    ret
   %fix = fmul double %dbl, 18446744073709551616.0
   %cvt = call i64 @llvm.fptoui.sat.i64.f64(double %fix)
@@ -923,7 +977,10 @@ define i32 @fcvtzu_sat_f16_i32_7(half %dbl) {
 ;
 ; CHECK-FP16-LABEL: fcvtzu_sat_f16_i32_7:
 ; CHECK-FP16:       // %bb.0:
-; CHECK-FP16-NEXT:    fcvtzu w0, h0, #7
+; CHECK-FP16-NEXT:    adrp x8, .LCPI66_0
+; CHECK-FP16-NEXT:    ldr h1, [x8, :lo12:.LCPI66_0]
+; CHECK-FP16-NEXT:    fmul h0, h0, h1
+; CHECK-FP16-NEXT:    fcvtzu w0, h0
 ; CHECK-FP16-NEXT:    ret
   %fix = fmul half %dbl, 128.0
   %cvt = call i32 @llvm.fptoui.sat.i32.f16(half %fix)
@@ -944,7 +1001,10 @@ define i32 @fcvtzu_sat_f16_i32_15(half %dbl) {
 ;
 ; CHECK-FP16-LABEL: fcvtzu_sat_f16_i32_15:
 ; CHECK-FP16:       // %bb.0:
-; CHECK-FP16-NEXT:    fcvtzu w0, h0, #15
+; CHECK-FP16-NEXT:    adrp x8, .LCPI67_0
+; CHECK-FP16-NEXT:    ldr h1, [x8, :lo12:.LCPI67_0]
+; CHECK-FP16-NEXT:    fmul h0, h0, h1
+; CHECK-FP16-NEXT:    fcvtzu w0, h0
 ; CHECK-FP16-NEXT:    ret
   %fix = fmul half %dbl, 32768.0
   %cvt = call i32 @llvm.fptoui.sat.i32.f16(half %fix)
@@ -965,7 +1025,10 @@ define i64 @fcvtzu_sat_f16_i64_7(half %dbl) {
 ;
 ; CHECK-FP16-LABEL: fcvtzu_sat_f16_i64_7:
 ; CHECK-FP16:       // %bb.0:
-; CHECK-FP16-NEXT:    fcvtzu x0, h0, #7
+; CHECK-FP16-NEXT:    adrp x8, .LCPI68_0
+; CHECK-FP16-NEXT:    ldr h1, [x8, :lo12:.LCPI68_0]
+; CHECK-FP16-NEXT:    fmul h0, h0, h1
+; CHECK-FP16-NEXT:    fcvtzu x0, h0
 ; CHECK-FP16-NEXT:    ret
   %fix = fmul half %dbl, 128.0
   %cvt = call i64 @llvm.fptoui.sat.i64.f16(half %fix)
@@ -986,7 +1049,10 @@ define i64 @fcvtzu_sat_f16_i64_15(half %dbl) {
 ;
 ; CHECK-FP16-LABEL: fcvtzu_sat_f16_i64_15:
 ; CHECK-FP16:       // %bb.0:
-; CHECK-FP16-NEXT:    fcvtzu x0, h0, #15
+; CHECK-FP16-NEXT:    adrp x8, .LCPI69_0
+; CHECK-FP16-NEXT:    ldr h1, [x8, :lo12:.LCPI69_0]
+; CHECK-FP16-NEXT:    fmul h0, h0, h1
+; CHECK-FP16-NEXT:    fcvtzu x0, h0
 ; CHECK-FP16-NEXT:    ret
   %fix = fmul half %dbl, 32768.0
   %cvt = call i64 @llvm.fptoui.sat.i64.f16(half %fix)

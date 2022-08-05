@@ -40,7 +40,8 @@ AVRSubtarget::AVRSubtarget(const Triple &TT, const std::string &CPU,
       m_hasTinyEncoding(false), m_hasMemMappedGPR(false),
       m_FeatureSetDummy(false),
 
-      TLInfo(TM, initializeSubtargetDependencies(CPU, FS, TM)) {
+      InstrInfo(), FrameLowering(),
+      TLInfo(TM, initializeSubtargetDependencies(CPU, FS, TM)), TSInfo() {
   // Parse features string.
   ParseSubtargetFeatures(CPU, /*TuneCPU*/ CPU, FS);
 }

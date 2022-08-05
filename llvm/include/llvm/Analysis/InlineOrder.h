@@ -20,6 +20,7 @@
 namespace llvm {
 class CallBase;
 class Function;
+class Module;
 
 template <typename T> class InlineOrder {
 public:

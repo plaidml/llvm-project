@@ -733,7 +733,6 @@ lltok::Kind LLLexer::LexIdentifier() {
   KEYWORD(x);
   KEYWORD(blockaddress);
   KEYWORD(dso_local_equivalent);
-  KEYWORD(no_cfi);
 
   // Metadata types.
   KEYWORD(distinct);
@@ -774,7 +773,6 @@ lltok::Kind LLLexer::LexIdentifier() {
   KEYWORD(noUnwind);
   KEYWORD(mayThrow);
   KEYWORD(hasUnknownCall);
-  KEYWORD(mustBeUnreachable);
   KEYWORD(calls);
   KEYWORD(callee);
   KEYWORD(params);

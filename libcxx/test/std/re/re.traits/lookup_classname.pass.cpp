@@ -7,7 +7,6 @@
 //===----------------------------------------------------------------------===//
 
 // XFAIL: LIBCXX-WINDOWS-FIXME
-// XFAIL: LIBCXX-AIX-FIXME
 
 // <regex>
 

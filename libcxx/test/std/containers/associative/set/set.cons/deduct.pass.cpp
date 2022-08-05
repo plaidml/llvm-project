@@ -35,7 +35,6 @@
 #include <set>
 #include <type_traits>
 
-#include "deduction_guides_sfinae_checks.h"
 #include "test_allocator.h"
 
 struct NotAnAllocator {
@@ -184,8 +183,6 @@ int main(int, char **) {
     ASSERT_SAME_TYPE(decltype(s), std::set<int *>);
     assert(s.size() == 2);
   }
-
-  AssociativeContainerDeductionGuidesSfinaeAway<std::set, std::set<int>>();
 
   return 0;
 }

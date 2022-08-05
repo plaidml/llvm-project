@@ -143,7 +143,7 @@ if [[ ! -d ${LLVM_BUILD} ]]; then
   $LLVM_SRC
 fi
 cd ${LLVM_BUILD}
-ninja LLVMSymbolize LLVMObject LLVMBinaryFormat LLVMDebugInfoDWARF LLVMSupport LLVMDebugInfoPDB LLVMDebuginfod LLVMMC LLVMDemangle LLVMTextAPI
+ninja LLVMSymbolize LLVMObject LLVMBinaryFormat LLVMDebugInfoDWARF LLVMSupport LLVMDebugInfoPDB LLVMMC LLVMDemangle LLVMTextAPI
 
 cd ${BUILD_DIR}
 rm -rf ${SYMBOLIZER_BUILD}
@@ -155,12 +155,7 @@ SYMBOLIZER_FLAGS="$LLVM_FLAGS -I${LLVM_SRC}/include -I${LLVM_BUILD}/include -std
 $CXX $SYMBOLIZER_FLAGS ${SRC_DIR}/sanitizer_symbolize.cpp ${SRC_DIR}/sanitizer_wrappers.cpp -c
 $AR rc symbolizer.a sanitizer_symbolize.o sanitizer_wrappers.o
 
-SYMBOLIZER_API_LIST=__sanitizer_symbolize_code
-SYMBOLIZER_API_LIST+=,__sanitizer_symbolize_data
-SYMBOLIZER_API_LIST+=,__sanitizer_symbolize_flush
-SYMBOLIZER_API_LIST+=,__sanitizer_symbolize_demangle
-SYMBOLIZER_API_LIST+=,__sanitizer_symbolize_set_demangle
-SYMBOLIZER_API_LIST+=,__sanitizer_symbolize_set_inline_frames
+SYMBOLIZER_API_LIST=__sanitizer_symbolize_code,__sanitizer_symbolize_data,__sanitizer_symbolize_flush,__sanitizer_symbolize_demangle
 
 LIBCXX_ARCHIVE_DIR=$(dirname $(find $LIBCXX_BUILD -name libc++.a | head -n1))
 
@@ -175,7 +170,6 @@ $SCRIPT_DIR/ar_to_bc.sh $LIBCXX_ARCHIVE_DIR/libc++.a \
                         $LLVM_BUILD/lib/libLLVMDebugInfoPDB.a \
                         $LLVM_BUILD/lib/libLLVMDebugInfoMSF.a \
                         $LLVM_BUILD/lib/libLLVMDebugInfoCodeView.a \
-                        $LLVM_BUILD/lib/libLLVMDebuginfod.a \
                         $LLVM_BUILD/lib/libLLVMDemangle.a \
                         $LLVM_BUILD/lib/libLLVMMC.a \
                         $LLVM_BUILD/lib/libLLVMTextAPI.a \

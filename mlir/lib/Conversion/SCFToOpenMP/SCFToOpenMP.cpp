@@ -13,8 +13,7 @@
 
 #include "mlir/Conversion/SCFToOpenMP/SCFToOpenMP.h"
 #include "../PassDetail.h"
-#include "mlir/Analysis/SliceAnalysis.h"
-#include "mlir/Dialect/Affine/Analysis/LoopAnalysis.h"
+#include "mlir/Analysis/LoopAnalysis.h"
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/OpenMP/OpenMPDialect.h"
@@ -67,7 +66,7 @@ static bool matchSimpleReduction(Block &block) {
 ///     scf.reduce.return %1
 template <
     typename CompareOpTy, typename SelectOpTy,
-    typename Predicate = decltype(std::declval<CompareOpTy>().getPredicate())>
+    typename Predicate = decltype(std::declval<CompareOpTy>().predicate())>
 static bool
 matchSelectReduction(Block &block, ArrayRef<Predicate> lessThanPredicates,
                      ArrayRef<Predicate> greaterThanPredicates, bool &isMin) {
@@ -120,7 +119,7 @@ matchSelectReduction(Block &block, ArrayRef<Predicate> lessThanPredicates,
   if (!sameOperands && !swappedOperands)
     return false;
 
-  if (select.getResult() != terminator.getResult())
+  if (select.getResult() != terminator.result())
     return false;
 
   // The reduction is a min if it uses less-than predicates with same operands
@@ -183,12 +182,12 @@ static omp::ReductionDeclareOp createDecl(PatternRewriter &builder,
                                           Attribute initValue) {
   OpBuilder::InsertionGuard guard(builder);
   auto decl = builder.create<omp::ReductionDeclareOp>(
-      reduce.getLoc(), "__scf_reduction", reduce.getOperand().getType());
+      reduce.getLoc(), "__scf_reduction", reduce.operand().getType());
   symbolTable.insert(decl);
 
-  Type type = reduce.getOperand().getType();
+  Type type = reduce.operand().getType();
   builder.createBlock(&decl.initializerRegion(), decl.initializerRegion().end(),
-                      {type}, {reduce.getOperand().getLoc()});
+                      {type});
   builder.setInsertionPointToEnd(&decl.initializerRegion().back());
   Value init =
       builder.create<LLVM::ConstantOp>(reduce.getLoc(), type, initValue);
@@ -212,12 +211,10 @@ static omp::ReductionDeclareOp addAtomicRMW(OpBuilder &builder,
                                             omp::ReductionDeclareOp decl,
                                             scf::ReduceOp reduce) {
   OpBuilder::InsertionGuard guard(builder);
-  Type type = reduce.getOperand().getType();
+  Type type = reduce.operand().getType();
   Type ptrType = LLVM::LLVMPointerType::get(type);
-  Location reduceOperandLoc = reduce.getOperand().getLoc();
   builder.createBlock(&decl.atomicReductionRegion(),
-                      decl.atomicReductionRegion().end(), {ptrType, ptrType},
-                      {reduceOperandLoc, reduceOperandLoc});
+                      decl.atomicReductionRegion().end(), {ptrType, ptrType});
   Block *atomicBlock = &decl.atomicReductionRegion().back();
   builder.setInsertionPointToEnd(atomicBlock);
   Value loaded = builder.create<LLVM::LoadOp>(reduce.getLoc(),
@@ -250,7 +247,7 @@ static omp::ReductionDeclareOp declareReduction(PatternRewriter &builder,
          "expected reduction region to have a single element");
 
   // Match simple binary reductions that can be expressed with atomicrmw.
-  Type type = reduce.getOperand().getType();
+  Type type = reduce.operand().getType();
   Block &reduction = reduce.getRegion().front();
   if (matchSimpleReduction<arith::AddFOp, LLVM::FAddOp>(reduction)) {
     omp::ReductionDeclareOp decl = createDecl(builder, symbolTable, reduce,
@@ -338,7 +335,7 @@ struct ParallelOpLowering : public OpRewritePattern<scf::ParallelOp> {
     {
       OpBuilder::InsertionGuard guard(rewriter);
       rewriter.setInsertionPointToEnd(parallelOp.getBody());
-      assert(llvm::hasSingleElement(parallelOp.getRegion()) &&
+      assert(llvm::hasSingleElement(parallelOp.region()) &&
              "expected scf.parallel to have one block");
       rewriter.replaceOpWithNewOp<omp::YieldOp>(
           parallelOp.getBody()->getTerminator(), ValueRange());
@@ -365,7 +362,7 @@ struct ParallelOpLowering : public OpRewritePattern<scf::ParallelOp> {
     reductionVariables.reserve(parallelOp.getNumReductions());
     Value token = rewriter.create<LLVM::StackSaveOp>(
         loc, LLVM::LLVMPointerType::get(rewriter.getIntegerType(8)));
-    for (Value init : parallelOp.getInitVals()) {
+    for (Value init : parallelOp.initVals()) {
       assert((LLVM::isCompatibleType(init.getType()) ||
               init.getType().isa<LLVM::PointerElementTypeInterface>()) &&
              "cannot create a reduction variable if the type is not an LLVM "
@@ -385,7 +382,7 @@ struct ParallelOpLowering : public OpRewritePattern<scf::ParallelOp> {
       scf::ReduceOp reduceOp = std::get<0>(pair);
       rewriter.setInsertionPoint(reduceOp);
       rewriter.replaceOpWithNewOp<omp::ReductionOp>(
-          reduceOp, reduceOp.getOperand(), std::get<1>(pair));
+          reduceOp, reduceOp.operand(), std::get<1>(pair));
     }
 
     // Create the parallel wrapper.
@@ -398,7 +395,7 @@ struct ParallelOpLowering : public OpRewritePattern<scf::ParallelOp> {
       {
         OpBuilder::InsertionGuard innerGuard(rewriter);
         rewriter.setInsertionPointToEnd(parallelOp.getBody());
-        assert(llvm::hasSingleElement(parallelOp.getRegion()) &&
+        assert(llvm::hasSingleElement(parallelOp.region()) &&
                "expected scf.parallel to have one block");
         rewriter.replaceOpWithNewOp<omp::YieldOp>(
             parallelOp.getBody()->getTerminator(), ValueRange());
@@ -406,11 +403,11 @@ struct ParallelOpLowering : public OpRewritePattern<scf::ParallelOp> {
 
       // Replace the loop.
       auto loop = rewriter.create<omp::WsLoopOp>(
-          parallelOp.getLoc(), parallelOp.getLowerBound(),
-          parallelOp.getUpperBound(), parallelOp.getStep());
+          parallelOp.getLoc(), parallelOp.lowerBound(), parallelOp.upperBound(),
+          parallelOp.step());
       rewriter.create<omp::TerminatorOp>(loc);
 
-      rewriter.inlineRegionBefore(parallelOp.getRegion(), loop.region(),
+      rewriter.inlineRegionBefore(parallelOp.region(), loop.region(),
                                   loop.region().begin());
       if (!reductionVariables.empty()) {
         loop.reductionsAttr(
@@ -454,7 +451,7 @@ struct SCFToOpenMPPass : public ConvertSCFToOpenMPBase<SCFToOpenMPPass> {
   }
 };
 
-} // namespace
+} // end namespace
 
 std::unique_ptr<OperationPass<ModuleOp>> mlir::createConvertSCFToOpenMPPass() {
   return std::make_unique<SCFToOpenMPPass>();

@@ -39,21 +39,6 @@ using namespace mlir;
 
 namespace {
 
-/// Convert gpu dialect shfl mode enum to the equivalent nvvm one.
-static NVVM::ShflKind convertShflKind(gpu::ShuffleMode mode) {
-  switch (mode) {
-  case gpu::ShuffleMode::XOR:
-    return NVVM::ShflKind::bfly;
-  case gpu::ShuffleMode::UP:
-    return NVVM::ShflKind::up;
-  case gpu::ShuffleMode::DOWN:
-    return NVVM::ShflKind::down;
-  case gpu::ShuffleMode::IDX:
-    return NVVM::ShflKind::idx;
-  }
-  llvm_unreachable("unknown shuffle mode");
-}
-
 struct GPUShuffleOpLowering : public ConvertOpToLLVMPattern<gpu::ShuffleOp> {
   using ConvertOpToLLVMPattern<gpu::ShuffleOp>::ConvertOpToLLVMPattern;
 
@@ -96,9 +81,9 @@ struct GPUShuffleOpLowering : public ConvertOpToLLVMPattern<gpu::ShuffleOp> {
         rewriter.create<LLVM::SubOp>(loc, int32Type, adaptor.width(), one);
 
     auto returnValueAndIsValidAttr = rewriter.getUnitAttr();
-    Value shfl = rewriter.create<NVVM::ShflOp>(
+    Value shfl = rewriter.create<NVVM::ShflBflyOp>(
         loc, resultTy, activeMask, adaptor.value(), adaptor.offset(),
-        maskAndClamp, convertShflKind(op.mode()), returnValueAndIsValidAttr);
+        maskAndClamp, returnValueAndIsValidAttr);
     Value shflValue = rewriter.create<LLVM::ExtractValueOp>(
         loc, valueTy, shfl, rewriter.getIndexArrayAttr(0));
     Value isActiveSrcLane = rewriter.create<LLVM::ExtractValueOp>(
@@ -173,7 +158,7 @@ struct LowerGpuOpsToNVVMOpsPass
   }
 };
 
-} // namespace
+} // anonymous namespace
 
 void mlir::configureGpuToNVVMConversionLegality(ConversionTarget &target) {
   target.addIllegalOp<FuncOp>();
@@ -207,8 +192,8 @@ void mlir::populateGpuToNVVMConversionPatterns(LLVMTypeConverter &converter,
   // memory space and does not support `alloca`s with addrspace(5).
   patterns.add<GPUFuncOpLowering>(
       converter, /*allocaAddrSpace=*/0,
-      StringAttr::get(&converter.getContext(),
-                      NVVM::NVVMDialect::getKernelFuncAttrName()));
+      Identifier::get(NVVM::NVVMDialect::getKernelFuncAttrName(),
+                      &converter.getContext()));
 
   patterns.add<OpToFuncCallLowering<math::AbsOp>>(converter, "__nv_fabsf",
                                                   "__nv_fabs");

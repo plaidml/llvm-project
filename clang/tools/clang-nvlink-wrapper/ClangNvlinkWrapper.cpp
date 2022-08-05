@@ -55,25 +55,15 @@ static cl::opt<std::string> NvlinkUserPath("nvlink-path",
 static cl::list<std::string>
     NVArgs(cl::Sink, cl::desc("<options to be passed to nvlink>..."));
 
-static bool isEmptyFile(StringRef Filename) {
-  ErrorOr<std::unique_ptr<MemoryBuffer>> BufOrErr =
-      MemoryBuffer::getFileOrSTDIN(Filename, false, false);
-  if (std::error_code EC = BufOrErr.getError())
-    return false;
-  return (*BufOrErr)->getBuffer().empty();
-}
-
 static Error runNVLink(std::string NVLinkPath,
                        SmallVectorImpl<std::string> &Args) {
   std::vector<StringRef> NVLArgs;
   NVLArgs.push_back(NVLinkPath);
-  StringRef Output = *(llvm::find(Args, "-o") + 1);
   for (auto &Arg : Args) {
-    if (!(sys::fs::exists(Arg) && Arg != Output && isEmptyFile(Arg)))
-      NVLArgs.push_back(Arg);
+    NVLArgs.push_back(Arg);
   }
 
-  if (sys::ExecuteAndWait(NVLinkPath, NVLArgs))
+  if (sys::ExecuteAndWait(NVLinkPath.c_str(), NVLArgs))
     return createStringError(inconvertibleErrorCode(), "'nvlink' failed");
   return Error::success();
 }

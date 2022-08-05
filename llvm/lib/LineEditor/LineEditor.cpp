@@ -69,8 +69,9 @@ LineEditor::ListCompleterConcept::complete(StringRef Buffer, size_t Pos) const {
   // common prefix will then be empty.
   if (CommonPrefix.empty()) {
     Action.Kind = CompletionAction::AK_ShowCompletions;
-    for (const Completion &Comp : Comps)
-      Action.Completions.push_back(Comp.DisplayText);
+    for (std::vector<Completion>::iterator I = Comps.begin(), E = Comps.end();
+         I != E; ++I)
+      Action.Completions.push_back(I->DisplayText);
   } else {
     Action.Kind = CompletionAction::AK_Insert;
     Action.Text = CommonPrefix;

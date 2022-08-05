@@ -212,7 +212,6 @@ bool TypePrinter::canPrefixQualifiers(const Type *T,
     case Type::Builtin:
     case Type::Complex:
     case Type::UnresolvedUsing:
-    case Type::Using:
     case Type::Typedef:
     case Type::TypeOfExpr:
     case Type::TypeOf:
@@ -233,8 +232,8 @@ bool TypePrinter::canPrefixQualifiers(const Type *T,
     case Type::ObjCInterface:
     case Type::Atomic:
     case Type::Pipe:
-    case Type::BitInt:
-    case Type::DependentBitInt:
+    case Type::ExtInt:
+    case Type::DependentExtInt:
       CanPrefixQualifiers = true;
       break;
 
@@ -280,7 +279,7 @@ bool TypePrinter::canPrefixQualifiers(const Type *T,
     case Type::Attributed: {
       // We still want to print the address_space before the type if it is an
       // address_space attribute.
-      const auto *AttrTy = cast<AttributedType>(UnderlyingType);
+      const auto *AttrTy = cast<AttributedType>(T);
       CanPrefixQualifiers = AttrTy->getAttrKind() == attr::AddressSpace;
     }
   }
@@ -1047,21 +1046,6 @@ void TypePrinter::printUnresolvedUsingBefore(const UnresolvedUsingType *T,
 void TypePrinter::printUnresolvedUsingAfter(const UnresolvedUsingType *T,
                                             raw_ostream &OS) {}
 
-void TypePrinter::printUsingBefore(const UsingType *T, raw_ostream &OS) {
-  // After `namespace b { using a::X }`, is the type X within B a::X or b::X?
-  //
-  // - b::X is more formally correct given the UsingType model
-  // - b::X makes sense if "re-exporting" a symbol in a new namespace
-  // - a::X makes sense if "importing" a symbol for convenience
-  //
-  // The "importing" use seems much more common, so we print a::X.
-  // This could be a policy option, but the right choice seems to rest more
-  // with the intent of the code than the caller.
-  printTypeSpec(T->getFoundDecl()->getUnderlyingDecl(), OS);
-}
-
-void TypePrinter::printUsingAfter(const UsingType *T, raw_ostream &OS) {}
-
 void TypePrinter::printTypedefBefore(const TypedefType *T, raw_ostream &OS) {
   printTypeSpec(T->getDecl(), OS);
 }
@@ -1216,26 +1200,26 @@ void TypePrinter::printPipeBefore(const PipeType *T, raw_ostream &OS) {
 
 void TypePrinter::printPipeAfter(const PipeType *T, raw_ostream &OS) {}
 
-void TypePrinter::printBitIntBefore(const BitIntType *T, raw_ostream &OS) {
+void TypePrinter::printExtIntBefore(const ExtIntType *T, raw_ostream &OS) {
   if (T->isUnsigned())
     OS << "unsigned ";
-  OS << "_BitInt(" << T->getNumBits() << ")";
+  OS << "_ExtInt(" << T->getNumBits() << ")";
   spaceBeforePlaceHolder(OS);
 }
 
-void TypePrinter::printBitIntAfter(const BitIntType *T, raw_ostream &OS) {}
+void TypePrinter::printExtIntAfter(const ExtIntType *T, raw_ostream &OS) {}
 
-void TypePrinter::printDependentBitIntBefore(const DependentBitIntType *T,
+void TypePrinter::printDependentExtIntBefore(const DependentExtIntType *T,
                                              raw_ostream &OS) {
   if (T->isUnsigned())
     OS << "unsigned ";
-  OS << "_BitInt(";
+  OS << "_ExtInt(";
   T->getNumBitsExpr()->printPretty(OS, nullptr, Policy);
   OS << ")";
   spaceBeforePlaceHolder(OS);
 }
 
-void TypePrinter::printDependentBitIntAfter(const DependentBitIntType *T,
+void TypePrinter::printDependentExtIntAfter(const DependentExtIntType *T,
                                             raw_ostream &OS) {}
 
 /// Appends the given scope to the end of a string.

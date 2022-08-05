@@ -41,6 +41,8 @@ class ASTReader;
 class CodeCompleteConsumer;
 class DiagnosticsEngine;
 class DiagnosticConsumer;
+class ExternalASTSource;
+class FileEntry;
 class FileManager;
 class FrontendAction;
 class InMemoryModuleCache;

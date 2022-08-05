@@ -225,7 +225,7 @@ struct DLTestDialect : Dialect {
   }
 };
 
-} // namespace
+} // end namespace
 
 TEST(DataLayout, FallbackDefault) {
   const char *ir = R"MLIR(

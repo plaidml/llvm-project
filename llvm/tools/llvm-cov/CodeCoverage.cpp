@@ -176,8 +176,8 @@ private:
   std::vector<std::pair<std::string, std::unique_ptr<MemoryBuffer>>>
       LoadedSourceFiles;
 
-  /// Allowlist from -name-allowlist to be used for filtering.
-  std::unique_ptr<SpecialCaseList> NameAllowlist;
+  /// Whitelist from -name-whitelist to be used for filtering.
+  std::unique_ptr<SpecialCaseList> NameWhitelist;
 };
 }
 
@@ -209,7 +209,7 @@ void CodeCoverageTool::addCollectedPath(const std::string &Path) {
     error(EC.message(), Path);
     return;
   }
-  sys::path::remove_dots(EffectivePath, /*remove_dot_dot=*/true);
+  sys::path::remove_dots(EffectivePath, /*remove_dot_dots=*/true);
   if (!IgnoreFilenameFilters.matchesFilename(EffectivePath))
     SourceFiles.emplace_back(EffectivePath.str());
   HadSourceFiles = !SourceFiles.empty();
@@ -668,16 +668,9 @@ int CodeCoverageTool::run(Command Cmd, int argc, const char **argv) {
       cl::ZeroOrMore, cl::cat(FilteringCategory));
 
   cl::list<std::string> NameFilterFiles(
-      "name-allowlist", cl::Optional,
+      "name-whitelist", cl::Optional,
       cl::desc("Show code coverage only for functions listed in the given "
                "file"),
-      cl::ZeroOrMore, cl::cat(FilteringCategory));
-
-  // Allow for accepting previous option name.
-  cl::list<std::string> NameFilterFilesDeprecated(
-      "name-whitelist", cl::Optional, cl::Hidden,
-      cl::desc("Show code coverage only for functions listed in the given "
-               "file. Deprecated, use -name-allowlist instead"),
       cl::ZeroOrMore, cl::cat(FilteringCategory));
 
   cl::list<std::string> NameRegexFilters(
@@ -816,34 +809,23 @@ int CodeCoverageTool::run(Command Cmd, int argc, const char **argv) {
       ViewOpts.DemanglerOpts.swap(DemanglerOpts);
     }
 
-    // Read in -name-allowlist files.
-    if (!NameFilterFiles.empty() || !NameFilterFilesDeprecated.empty()) {
+    // Read in -name-whitelist files.
+    if (!NameFilterFiles.empty()) {
       std::string SpecialCaseListErr;
-      if (!NameFilterFiles.empty())
-        NameAllowlist = SpecialCaseList::create(
-            NameFilterFiles, *vfs::getRealFileSystem(), SpecialCaseListErr);
-      if (!NameFilterFilesDeprecated.empty())
-        NameAllowlist = SpecialCaseList::create(NameFilterFilesDeprecated,
-                                                *vfs::getRealFileSystem(),
-                                                SpecialCaseListErr);
-
-      if (!NameAllowlist)
+      NameWhitelist = SpecialCaseList::create(
+          NameFilterFiles, *vfs::getRealFileSystem(), SpecialCaseListErr);
+      if (!NameWhitelist)
         error(SpecialCaseListErr);
     }
 
     // Create the function filters
-    if (!NameFilters.empty() || NameAllowlist || !NameRegexFilters.empty()) {
+    if (!NameFilters.empty() || NameWhitelist || !NameRegexFilters.empty()) {
       auto NameFilterer = std::make_unique<CoverageFilters>();
       for (const auto &Name : NameFilters)
         NameFilterer->push_back(std::make_unique<NameCoverageFilter>(Name));
-      if (NameAllowlist) {
-        if (!NameFilterFiles.empty())
-          NameFilterer->push_back(
-              std::make_unique<NameAllowlistCoverageFilter>(*NameAllowlist));
-        if (!NameFilterFilesDeprecated.empty())
-          NameFilterer->push_back(
-              std::make_unique<NameWhitelistCoverageFilter>(*NameAllowlist));
-      }
+      if (NameWhitelist)
+        NameFilterer->push_back(
+            std::make_unique<NameWhitelistCoverageFilter>(*NameWhitelist));
       for (const auto &Regex : NameRegexFilters)
         NameFilterer->push_back(
             std::make_unique<NameRegexCoverageFilter>(Regex));

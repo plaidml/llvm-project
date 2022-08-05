@@ -30,7 +30,8 @@
 namespace lld {
 namespace coff {
 
-extern std::unique_ptr<class LinkerDriver> driver;
+class LinkerDriver;
+extern LinkerDriver *driver;
 
 using llvm::COFF::MachineTypes;
 using llvm::COFF::WindowsSubsystem;

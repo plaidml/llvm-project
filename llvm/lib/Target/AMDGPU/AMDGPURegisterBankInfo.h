@@ -89,6 +89,9 @@ public:
   std::pair<Register, unsigned>
   splitBufferOffsets(MachineIRBuilder &B, Register Offset) const;
 
+  MachineInstr *selectStoreIntrinsic(MachineIRBuilder &B,
+                                     MachineInstr &MI) const;
+
   /// See RegisterBankInfo::applyMapping.
   void applyMappingImpl(const OperandsMapper &OpdMapper) const override;
 

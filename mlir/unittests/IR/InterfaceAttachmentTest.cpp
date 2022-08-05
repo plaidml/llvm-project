@@ -398,4 +398,4 @@ TEST(InterfaceAttachment, OperationDelayedContextAppend) {
   EXPECT_FALSE(isa<TestExternalOpInterface>(opI.getOperation()));
 }
 
-} // namespace
+} // end namespace

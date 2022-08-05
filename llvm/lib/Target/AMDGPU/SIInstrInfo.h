@@ -78,8 +78,11 @@ private:
   moveScalarAddSub(SetVectorType &Worklist, MachineInstr &Inst,
                    MachineDominatorTree *MDT = nullptr) const;
 
-  void lowerSelect(SetVectorType &Worklist, MachineInstr &Inst,
-                   MachineDominatorTree *MDT = nullptr) const;
+  void lowerSelect32(SetVectorType &Worklist, MachineInstr &Inst,
+                     MachineDominatorTree *MDT = nullptr) const;
+
+  void splitSelect64(SetVectorType &Worklist, MachineInstr &Inst,
+                     MachineDominatorTree *MDT = nullptr) const;
 
   void lowerScalarAbs(SetVectorType &Worklist,
                       MachineInstr &Inst) const;
@@ -337,8 +340,8 @@ public:
 
   unsigned getMachineCSELookAheadLimit() const override { return 500; }
 
-  MachineInstr *convertToThreeAddress(MachineInstr &MI, LiveVariables *LV,
-                                      LiveIntervals *LIS) const override;
+  MachineInstr *convertToThreeAddress(MachineInstr &MI,
+                                      LiveVariables *LV) const override;
 
   bool isSchedulingBoundary(const MachineInstr &MI,
                             const MachineBasicBlock *MBB,

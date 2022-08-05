@@ -18,7 +18,8 @@ let Command = "help" in {
 }
 
 let Command = "settings set" in {
-  def setset_global : Option<"global", "g">,
+  def setset_global : Option<"global", "g">, Arg<"Filename">,
+    Completion<"DiskFile">,
     Desc<"Apply the new value to the global default value.">;
   def setset_force : Option<"force", "f">,
     Desc<"Force an empty value to be accepted as the default.">;

@@ -17,10 +17,8 @@ using llvm::libc_benchmarks::ComparisonSetup;
 using llvm::libc_benchmarks::CopySetup;
 using llvm::libc_benchmarks::MemcmpOrBcmpConfiguration;
 using llvm::libc_benchmarks::MemcpyConfiguration;
-using llvm::libc_benchmarks::MemmoveConfiguration;
 using llvm::libc_benchmarks::MemorySizeDistribution;
 using llvm::libc_benchmarks::MemsetConfiguration;
-using llvm::libc_benchmarks::MoveSetup;
 using llvm::libc_benchmarks::OffsetDistribution;
 using llvm::libc_benchmarks::SetSetup;
 
@@ -95,10 +93,6 @@ private:
 extern llvm::ArrayRef<MemcpyConfiguration> getMemcpyConfigurations();
 BENCHMARK_MEMORY_FUNCTION(BM_Memcpy, CopySetup, MemcpyConfiguration,
                           getMemcpyConfigurations());
-
-extern llvm::ArrayRef<MemmoveConfiguration> getMemmoveConfigurations();
-BENCHMARK_MEMORY_FUNCTION(BM_Memmove, MoveSetup, MemmoveConfiguration,
-                          getMemmoveConfigurations());
 
 extern llvm::ArrayRef<MemcmpOrBcmpConfiguration> getMemcmpConfigurations();
 BENCHMARK_MEMORY_FUNCTION(BM_Memcmp, ComparisonSetup, MemcmpOrBcmpConfiguration,

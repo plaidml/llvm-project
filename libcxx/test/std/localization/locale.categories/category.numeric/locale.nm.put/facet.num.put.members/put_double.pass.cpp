@@ -13,7 +13,6 @@
 // iter_type put(iter_type s, ios_base& iob, char_type fill, double v) const;
 
 // XFAIL: LIBCXX-WINDOWS-FIXME
-// XFAIL: LIBCXX-AIX-FIXME
 
 #include <locale>
 #include <ios>

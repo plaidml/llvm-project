@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
+#include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/Transforms/InliningUtils.h"
 
 using namespace mlir;
@@ -30,7 +31,7 @@ struct MemRefInlinerInterface : public DialectInlinerInterface {
     return true;
   }
 };
-} // namespace
+} // end anonymous namespace
 
 void mlir::memref::MemRefDialect::initialize() {
   addOperations<

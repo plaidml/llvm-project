@@ -20,11 +20,11 @@ namespace {
 /// attributes containing the results of data layout queries for operation
 /// result types.
 struct TestDataLayoutQuery
-    : public PassWrapper<TestDataLayoutQuery, OperationPass<FuncOp>> {
+    : public PassWrapper<TestDataLayoutQuery, FunctionPass> {
   StringRef getArgument() const final { return "test-data-layout-query"; }
   StringRef getDescription() const final { return "Test data layout queries"; }
-  void runOnOperation() override {
-    FuncOp func = getOperation();
+  void runOnFunction() override {
+    FuncOp func = getFunction();
     Builder builder(func.getContext());
     const DataLayoutAnalysis &layouts = getAnalysis<DataLayoutAnalysis>();
 

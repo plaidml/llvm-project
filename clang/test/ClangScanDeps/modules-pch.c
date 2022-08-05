@@ -1,7 +1,3 @@
-// Unsupported on AIX because we don't support the requisite "__clangast"
-// section in XCOFF yet.
-// UNSUPPORTED: aix
-
 // RUN: rm -rf %t && mkdir %t
 // RUN: cp %S/Inputs/modules-pch/* %t
 
@@ -63,6 +59,7 @@
 // CHECK-PCH-NEXT:       "clang-modulemap-file": "[[PREFIX]]/module.modulemap",
 // CHECK-PCH-NEXT:       "command-line": [
 // CHECK-PCH-NEXT:         "-cc1"
+// CHECK-PCH:              "-fmodule-map-file=[[PREFIX]]/module.modulemap"
 // CHECK-PCH:              "-emit-module"
 // CHECK-PCH:              "-fmodule-file=[[PREFIX]]/build/[[HASH_MOD_COMMON_2]]/ModCommon2-{{.*}}.pcm"
 // CHECK-PCH:              "-fmodules"
@@ -95,7 +92,10 @@
 // CHECK-PCH-NEXT:         "-fno-implicit-module-maps",
 // CHECK-PCH-NEXT:         "-fmodule-file=[[PREFIX]]/build/[[HASH_MOD_COMMON_1]]/ModCommon1-{{.*}}.pcm",
 // CHECK-PCH-NEXT:         "-fmodule-file=[[PREFIX]]/build/[[HASH_MOD_COMMON_2]]/ModCommon2-{{.*}}.pcm",
-// CHECK-PCH-NEXT:         "-fmodule-file=[[PREFIX]]/build/[[HASH_MOD_PCH]]/ModPCH-{{.*}}.pcm"
+// CHECK-PCH-NEXT:         "-fmodule-file=[[PREFIX]]/build/[[HASH_MOD_PCH]]/ModPCH-{{.*}}.pcm",
+// CHECK-PCH-NEXT:         "-fmodule-map-file=[[PREFIX]]/module.modulemap",
+// CHECK-PCH-NEXT:         "-fmodule-map-file=[[PREFIX]]/module.modulemap",
+// CHECK-PCH-NEXT:         "-fmodule-map-file=[[PREFIX]]/module.modulemap"
 // CHECK-PCH-NEXT:       ],
 // CHECK-PCH-NEXT:       "file-deps": [
 // CHECK-PCH-NEXT:         "[[PREFIX]]/pch.h"
@@ -163,7 +163,8 @@
 // CHECK-TU-NEXT:       "command-line": [
 // CHECK-TU-NEXT:         "-fno-implicit-modules",
 // CHECK-TU-NEXT:         "-fno-implicit-module-maps",
-// CHECK-TU-NEXT:         "-fmodule-file=[[PREFIX]]/build/[[HASH_MOD_TU]]/ModTU-{{.*}}.pcm"
+// CHECK-TU-NEXT:         "-fmodule-file=[[PREFIX]]/build/[[HASH_MOD_TU]]/ModTU-{{.*}}.pcm",
+// CHECK-TU-NEXT:         "-fmodule-map-file=[[PREFIX]]/module.modulemap"
 // CHECK-TU-NEXT:       ],
 // CHECK-TU-NEXT:       "file-deps": [
 // CHECK-TU-NEXT:         "[[PREFIX]]/tu.c",
@@ -202,6 +203,7 @@
 // CHECK-TU-WITH-COMMON-NEXT:       "clang-modulemap-file": "[[PREFIX]]/module.modulemap",
 // CHECK-TU-WITH-COMMON-NEXT:       "command-line": [
 // CHECK-TU-WITH-COMMON-NEXT:         "-cc1",
+// CHECK-TU-WITH-COMMON:              "-fmodule-map-file=[[PREFIX]]/module.modulemap"
 // CHECK-TU-WITH-COMMON:              "-emit-module",
 // CHECK-TU-WITH-COMMON:              "-fmodule-file=[[PREFIX]]/build/{{.*}}/ModCommon1-{{.*}}.pcm",
 // CHECK-TU-WITH-COMMON:              "-fmodule-name=ModTUWithCommon",
@@ -228,7 +230,9 @@
 // CHECK-TU-WITH-COMMON-NEXT:         "-fno-implicit-modules",
 // CHECK-TU-WITH-COMMON-NEXT:         "-fno-implicit-module-maps",
 // CHECK-TU-WITH-COMMON-NEXT:         "-fmodule-file=[[PREFIX]]/build/{{.*}}/ModCommon2-{{.*}}.pcm",
-// CHECK-TU-WITH-COMMON-NEXT:         "-fmodule-file=[[PREFIX]]/build/[[HASH_MOD_TU_WITH_COMMON]]/ModTUWithCommon-{{.*}}.pcm"
+// CHECK-TU-WITH-COMMON-NEXT:         "-fmodule-map-file=[[PREFIX]]/module.modulemap"
+// CHECK-TU-WITH-COMMON-NEXT:         "-fmodule-file=[[PREFIX]]/build/[[HASH_MOD_TU_WITH_COMMON]]/ModTUWithCommon-{{.*}}.pcm",
+// CHECK-TU-WITH-COMMON-NEXT:         "-fmodule-map-file=[[PREFIX]]/module.modulemap"
 // CHECK-TU-WITH-COMMON-NEXT:       ],
 // CHECK-TU-WITH-COMMON-NEXT:       "file-deps": [
 // CHECK-TU-WITH-COMMON-NEXT:         "[[PREFIX]]/tu_with_common.c",

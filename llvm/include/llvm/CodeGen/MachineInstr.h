@@ -249,7 +249,7 @@ private:
                  PointerSumTypeMember<EIIK_OutOfLine, ExtraInfo *>>
       Info;
 
-  DebugLoc DbgLoc; // Source line information.
+  DebugLoc debugLoc;                    // Source line information.
 
   /// Unique instruction number. Used by DBG_INSTR_REFs to refer to the values
   /// defined by this instruction.
@@ -267,7 +267,7 @@ private:
   /// This constructor create a MachineInstr and add the implicit operands.
   /// It reserves space for number of operands specified by
   /// MCInstrDesc.  An explicit DebugLoc is supplied.
-  MachineInstr(MachineFunction &, const MCInstrDesc &TID, DebugLoc DL,
+  MachineInstr(MachineFunction &, const MCInstrDesc &tid, DebugLoc dl,
                bool NoImp = false);
 
   // MachineInstrs are pool-allocated and owned by MachineFunction.
@@ -415,7 +415,7 @@ public:
   void unbundleFromSucc();
 
   /// Returns the debug location id of this MachineInstr.
-  const DebugLoc &getDebugLoc() const { return DbgLoc; }
+  const DebugLoc &getDebugLoc() const { return debugLoc; }
 
   /// Return the operand containing the offset to be used if this DBG_VALUE
   /// instruction is indirect; will be an invalid register if this value is
@@ -1173,6 +1173,12 @@ public:
   /// eraseFromBundle() to erase individual bundled instructions.
   void eraseFromParent();
 
+  /// Unlink 'this' from the containing basic block and delete it.
+  ///
+  /// For all definitions mark their uses in DBG_VALUE nodes
+  /// as undefined. Otherwise like eraseFromParent().
+  void eraseFromParentAndMarkDBGValuesForRemoval();
+
   /// Unlink 'this' form its basic block and delete it.
   ///
   /// If the instruction is part of a bundle, the other instructions in the
@@ -1733,13 +1739,13 @@ public:
 
   /// Replace the instruction descriptor (thus opcode) of
   /// the current instruction with a new one.
-  void setDesc(const MCInstrDesc &TID) { MCID = &TID; }
+  void setDesc(const MCInstrDesc &tid) { MCID = &tid; }
 
   /// Replace current source information with new such.
   /// Avoid using this, the constructor argument is preferable.
-  void setDebugLoc(DebugLoc DL) {
-    DbgLoc = std::move(DL);
-    assert(DbgLoc.hasTrivialDestructor() && "Expected trivial destructor");
+  void setDebugLoc(DebugLoc dl) {
+    debugLoc = std::move(dl);
+    assert(debugLoc.hasTrivialDestructor() && "Expected trivial destructor");
   }
 
   /// Erase an operand from an instruction, leaving it with one

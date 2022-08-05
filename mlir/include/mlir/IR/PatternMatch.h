@@ -6,8 +6,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef MLIR_IR_PATTERNMATCH_H
-#define MLIR_IR_PATTERNMATCH_H
+#ifndef MLIR_PATTERNMATCHER_H
+#define MLIR_PATTERNMATCHER_H
 
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -33,7 +33,7 @@ class PatternBenefit {
   enum { ImpossibleToMatchSentinel = 65535 };
 
 public:
-  PatternBenefit() = default;
+  PatternBenefit() : representation(ImpossibleToMatchSentinel) {}
   PatternBenefit(unsigned benefit);
   PatternBenefit(const PatternBenefit &) = default;
   PatternBenefit &operator=(const PatternBenefit &) = default;
@@ -57,7 +57,7 @@ public:
   bool operator>=(const PatternBenefit &rhs) const { return !(*this < rhs); }
 
 private:
-  unsigned short representation{ImpossibleToMatchSentinel};
+  unsigned short representation;
 };
 
 //===----------------------------------------------------------------------===//
@@ -243,7 +243,7 @@ private:
 ///
 class RewritePattern : public Pattern {
 public:
-  virtual ~RewritePattern() = default;
+  virtual ~RewritePattern() {}
 
   /// Rewrite the IR rooted at the specified operation with the result of
   /// this pattern, generating any new operations with the specified
@@ -355,12 +355,10 @@ template <typename SourceOp>
 struct OpRewritePattern
     : public detail::OpOrInterfaceRewritePatternBase<SourceOp> {
   /// Patterns must specify the root operation name they match against, and can
-  /// also specify the benefit of the pattern matching and a list of generated
-  /// ops.
-  OpRewritePattern(MLIRContext *context, PatternBenefit benefit = 1,
-                   ArrayRef<StringRef> generatedNames = {})
+  /// also specify the benefit of the pattern matching.
+  OpRewritePattern(MLIRContext *context, PatternBenefit benefit = 1)
       : detail::OpOrInterfaceRewritePatternBase<SourceOp>(
-            SourceOp::getOperationName(), benefit, context, generatedNames) {}
+            SourceOp::getOperationName(), benefit, context) {}
 };
 
 /// OpInterfaceRewritePattern is a wrapper around RewritePattern that allows for
@@ -402,7 +400,7 @@ public:
 
   /// Construct a new PDL value.
   PDLValue(const PDLValue &other) = default;
-  PDLValue(std::nullptr_t = nullptr) {}
+  PDLValue(std::nullptr_t = nullptr) : value(nullptr), kind(Kind::Attribute) {}
   PDLValue(Attribute value)
       : value(value.getAsOpaquePointer()), kind(Kind::Attribute) {}
   PDLValue(Operation *value) : value(value), kind(Kind::Operation) {}
@@ -448,9 +446,6 @@ public:
   /// Print this value to the provided output stream.
   void print(raw_ostream &os) const;
 
-  /// Print the specified value kind to an output stream.
-  static void print(raw_ostream &os, Kind kind);
-
 private:
   /// Find the index of a given type in a range of other types.
   template <typename...>
@@ -486,18 +481,13 @@ private:
   }
 
   /// The internal opaque representation of a PDLValue.
-  const void *value{nullptr};
+  const void *value;
   /// The kind of the opaque value.
-  Kind kind{Kind::Attribute};
+  Kind kind;
 };
 
 inline raw_ostream &operator<<(raw_ostream &os, PDLValue value) {
   value.print(os);
-  return os;
-}
-
-inline raw_ostream &operator<<(raw_ostream &os, PDLValue::Kind kind) {
-  PDLValue::print(os, kind);
   return os;
 }
 
@@ -1089,6 +1079,6 @@ private:
   PDLPatternModule pdlPatterns;
 };
 
-} // namespace mlir
+} // end namespace mlir
 
-#endif // MLIR_IR_PATTERNMATCH_H
+#endif // MLIR_PATTERN_MATCH_H

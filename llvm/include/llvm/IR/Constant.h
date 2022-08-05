@@ -204,12 +204,6 @@ public:
   /// Constant::removeDeadConstantUsers, but doesn't remove dead constants.
   bool hasOneLiveUse() const;
 
-  /// Return true if the constant has no live uses.
-  ///
-  /// This returns the same result as calling Value::use_empty after
-  /// Constant::removeDeadConstantUsers, but doesn't remove dead constants.
-  bool hasZeroLiveUses() const;
-
   const Constant *stripPointerCasts() const {
     return cast<Constant>(Value::stripPointerCasts());
   }
@@ -250,8 +244,6 @@ private:
 
   /// Determine what potential relocations may be needed by this constant.
   PossibleRelocationsTy getRelocationInfo() const;
-
-  bool hasNLiveUses(unsigned N) const;
 };
 
 } // end namespace llvm

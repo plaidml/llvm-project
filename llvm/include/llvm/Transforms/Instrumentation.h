@@ -169,8 +169,6 @@ struct SanitizerCoverageOptions {
   bool PCTable = false;
   bool NoPrune = false;
   bool StackDepth = false;
-  bool TraceLoads = false;
-  bool TraceStores = false;
 
   SanitizerCoverageOptions() = default;
 };

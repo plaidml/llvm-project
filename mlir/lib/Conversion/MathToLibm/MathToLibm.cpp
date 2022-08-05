@@ -13,7 +13,6 @@
 #include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/Dialect/Vector/VectorOps.h"
-#include "mlir/Dialect/Vector/VectorUtils.h"
 #include "mlir/IR/BuiltinDialect.h"
 #include "mlir/IR/PatternMatch.h"
 
@@ -59,23 +58,21 @@ VecOpToScalarOp<Op>::matchAndRewrite(Op op, PatternRewriter &rewriter) const {
   if (!vecType.hasRank())
     return failure();
   auto shape = vecType.getShape();
-  int64_t numElements = vecType.getNumElements();
+  // TODO: support multidimensional vectors
+  if (shape.size() != 1)
+    return failure();
 
   Value result = rewriter.create<arith::ConstantOp>(
       loc, DenseElementsAttr::get(
                vecType, FloatAttr::get(vecType.getElementType(), 0.0)));
-  SmallVector<int64_t> ones(shape.size(), 1);
-  SmallVector<int64_t> strides = computeStrides(shape, ones);
-  for (auto linearIndex = 0; linearIndex < numElements; ++linearIndex) {
-    SmallVector<int64_t> positions = delinearize(strides, linearIndex);
+  for (auto i = 0; i < shape.front(); ++i) {
     SmallVector<Value> operands;
     for (auto input : op->getOperands())
       operands.push_back(
-          rewriter.create<vector::ExtractOp>(loc, input, positions));
+          rewriter.create<vector::ExtractElementOp>(loc, input, i));
     Value scalarOp =
         rewriter.create<Op>(loc, vecType.getElementType(), operands);
-    result =
-        rewriter.create<vector::InsertOp>(loc, scalarOp, result, positions);
+    result = rewriter.create<vector::InsertElementOp>(loc, scalarOp, result, i);
   }
   rewriter.replaceOp(op, {result});
   return success();
@@ -104,7 +101,8 @@ ScalarOpToLibmCall<Op>::matchAndRewrite(Op op,
         rewriter.create<FuncOp>(rewriter.getUnknownLoc(), name, opFunctionTy);
     opFunc.setPrivate();
   }
-  assert(isa<FunctionOpInterface>(SymbolTable::lookupSymbolIn(module, name)));
+  assert(SymbolTable::lookupSymbolIn(module, name)
+             ->template hasTrait<mlir::OpTrait::FunctionLike>());
 
   rewriter.replaceOpWithNewOp<CallOp>(op, name, op.getType(),
                                       op->getOperands());

@@ -49,6 +49,7 @@ CanonicalDeclaration:
   End:
     Line: 1
     Column: 1
+Origin:    128
 Flags:    129
 Documentation:    'Foo doc'
 ReturnType:    'int'
@@ -120,10 +121,6 @@ MATCHER_P2(IncludeHeaderWithRef, IncludeHeader, References, "") {
   return (arg.IncludeHeader == IncludeHeader) && (arg.References == References);
 }
 
-auto readIndexFile(llvm::StringRef Text) {
-  return readIndexFile(Text, SymbolOrigin::Static);
-}
-
 TEST(SerializationTest, NoCrashOnEmptyYAML) {
   EXPECT_TRUE(bool(readIndexFile("")));
 }
@@ -146,7 +143,7 @@ TEST(SerializationTest, YAMLConversions) {
   EXPECT_EQ(Sym1.Documentation, "Foo doc");
   EXPECT_EQ(Sym1.ReturnType, "int");
   EXPECT_EQ(StringRef(Sym1.CanonicalDeclaration.FileURI), "file:///path/foo.h");
-  EXPECT_EQ(Sym1.Origin, SymbolOrigin::Static);
+  EXPECT_EQ(Sym1.Origin, static_cast<SymbolOrigin>(1 << 7));
   EXPECT_EQ(static_cast<uint8_t>(Sym1.Flags), 129);
   EXPECT_TRUE(Sym1.Flags & Symbol::IndexedForCodeCompletion);
   EXPECT_FALSE(Sym1.Flags & Symbol::Deprecated);

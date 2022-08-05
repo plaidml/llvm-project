@@ -53,8 +53,6 @@ const char *IostatErrorString(int iostat) {
     return "BACKSPACE at first record";
   case IostatRewindNonSequential:
     return "REWIND on non-sequential file";
-  case IostatWriteAfterEndfile:
-    return "WRITE after ENDFILE";
   default:
     return nullptr;
   }

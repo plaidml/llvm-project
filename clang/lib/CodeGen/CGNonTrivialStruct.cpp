@@ -366,11 +366,11 @@ template <class Derived> struct GenFuncBase {
         llvm::ConstantInt::get(NumElts->getType(), BaseEltSize);
     llvm::Value *SizeInBytes =
         CGF.Builder.CreateNUWMul(BaseEltSizeVal, NumElts);
-    Address BC = CGF.Builder.CreateElementBitCast(DstAddr, CGF.CGM.Int8Ty);
+    Address BC = CGF.Builder.CreateBitCast(DstAddr, CGF.CGM.Int8PtrTy);
     llvm::Value *DstArrayEnd =
         CGF.Builder.CreateInBoundsGEP(CGF.Int8Ty, BC.getPointer(), SizeInBytes);
-    DstArrayEnd = CGF.Builder.CreateBitCast(
-        DstArrayEnd, CGF.CGM.Int8PtrPtrTy, "dstarray.end");
+    DstArrayEnd = CGF.Builder.CreateBitCast(DstArrayEnd, CGF.CGM.Int8PtrPtrTy,
+                                            "dstarray.end");
     llvm::BasicBlock *PreheaderBB = CGF.Builder.GetInsertBlock();
 
     // Create the header block and insert the phi instructions.
@@ -426,9 +426,9 @@ template <class Derived> struct GenFuncBase {
     assert(Addr.isValid() && "invalid address");
     if (Offset.getQuantity() == 0)
       return Addr;
-    Addr = CGF->Builder.CreateElementBitCast(Addr, CGF->CGM.Int8Ty);
+    Addr = CGF->Builder.CreateBitCast(Addr, CGF->CGM.Int8PtrTy);
     Addr = CGF->Builder.CreateConstInBoundsGEP(Addr, Offset.getQuantity());
-    return CGF->Builder.CreateElementBitCast(Addr, CGF->CGM.Int8PtrTy);
+    return CGF->Builder.CreateBitCast(Addr, CGF->CGM.Int8PtrPtrTy);
   }
 
   Address getAddrWithOffset(Address Addr, CharUnits StructFieldOffset,
@@ -491,8 +491,9 @@ template <class Derived> struct GenFuncBase {
 
     for (unsigned I = 0; I < N; ++I) {
       Alignments[I] = Addrs[I].getAlignment();
-      Ptrs[I] = CallerCGF.Builder.CreateElementBitCast(
-          Addrs[I], CallerCGF.CGM.Int8PtrTy).getPointer();
+      Ptrs[I] =
+          CallerCGF.Builder.CreateBitCast(Addrs[I], CallerCGF.CGM.Int8PtrPtrTy)
+              .getPointer();
     }
 
     if (llvm::Function *F =
@@ -553,21 +554,19 @@ struct GenBinaryFunc : CopyStructVisitor<Derived, IsMove>,
         return;
 
       QualType RT = QualType(FD->getParent()->getTypeForDecl(), 0);
-      llvm::Type *Ty = this->CGF->ConvertType(RT);
+      llvm::PointerType *PtrTy = this->CGF->ConvertType(RT)->getPointerTo();
       Address DstAddr = this->getAddrWithOffset(Addrs[DstIdx], Offset);
       LValue DstBase = this->CGF->MakeAddrLValue(
-          this->CGF->Builder.CreateElementBitCast(DstAddr, Ty), FT);
+          this->CGF->Builder.CreateBitCast(DstAddr, PtrTy), FT);
       DstLV = this->CGF->EmitLValueForField(DstBase, FD);
       Address SrcAddr = this->getAddrWithOffset(Addrs[SrcIdx], Offset);
       LValue SrcBase = this->CGF->MakeAddrLValue(
-          this->CGF->Builder.CreateElementBitCast(SrcAddr, Ty), FT);
+          this->CGF->Builder.CreateBitCast(SrcAddr, PtrTy), FT);
       SrcLV = this->CGF->EmitLValueForField(SrcBase, FD);
     } else {
-      llvm::Type *Ty = this->CGF->ConvertTypeForMem(FT);
-      Address DstAddr =
-          this->CGF->Builder.CreateElementBitCast(Addrs[DstIdx], Ty);
-      Address SrcAddr =
-          this->CGF->Builder.CreateElementBitCast(Addrs[SrcIdx], Ty);
+      llvm::PointerType *Ty = this->CGF->ConvertTypeForMem(FT)->getPointerTo();
+      Address DstAddr = this->CGF->Builder.CreateBitCast(Addrs[DstIdx], Ty);
+      Address SrcAddr = this->CGF->Builder.CreateBitCast(Addrs[SrcIdx], Ty);
       DstLV = this->CGF->MakeAddrLValue(DstAddr, FT);
       SrcLV = this->CGF->MakeAddrLValue(SrcAddr, FT);
     }
@@ -818,7 +817,7 @@ void CodeGenFunction::destroyNonTrivialCStruct(CodeGenFunction &CGF,
 void CodeGenFunction::defaultInitNonTrivialCStructVar(LValue Dst) {
   GenDefaultInitialize Gen(getContext());
   Address DstPtr =
-      Builder.CreateElementBitCast(Dst.getAddress(*this), CGM.Int8PtrTy);
+      Builder.CreateBitCast(Dst.getAddress(*this), CGM.Int8PtrPtrTy);
   Gen.setCGF(this);
   QualType QT = Dst.getType();
   QT = Dst.isVolatile() ? QT.withVolatile() : QT;
@@ -831,7 +830,7 @@ static void callSpecialFunction(G &&Gen, StringRef FuncName, QualType QT,
                                 std::array<Address, N> Addrs) {
   auto SetArtificialLoc = ApplyDebugLocation::CreateArtificial(CGF);
   for (unsigned I = 0; I < N; ++I)
-    Addrs[I] = CGF.Builder.CreateElementBitCast(Addrs[I], CGF.CGM.Int8PtrTy);
+    Addrs[I] = CGF.Builder.CreateBitCast(Addrs[I], CGF.CGM.Int8PtrPtrTy);
   QT = IsVolatile ? QT.withVolatile() : QT;
   Gen.callFunc(FuncName, QT, Addrs, CGF);
 }

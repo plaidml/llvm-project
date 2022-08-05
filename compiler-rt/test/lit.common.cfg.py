@@ -400,8 +400,6 @@ if config.host_os == 'Darwin':
     if osx_version >= (10, 11):
       config.available_features.add('osx-autointerception')
       config.available_features.add('osx-ld64-live_support')
-    if osx_version >= (10, 15):
-      config.available_features.add('osx-swift-runtime')
   except subprocess.CalledProcessError:
     pass
 
@@ -511,7 +509,7 @@ if config.host_os == 'Linux':
   if not config.android and len(ver_lines) and ver_lines[0].startswith(b"ldd "):
     from distutils.version import LooseVersion
     ver = LooseVersion(ver_lines[0].split()[-1].decode())
-    for required in ["2.27", "2.30", "2.34"]:
+    for required in ["2.27", "2.30"]:
       if ver >= LooseVersion(required):
         config.available_features.add("glibc-" + required)
 

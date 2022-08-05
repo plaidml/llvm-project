@@ -247,22 +247,33 @@ public:
     setValueSubclassData((getSubclassDataFromValue() & 0xc00f) | (ID << 4));
   }
 
-  enum ProfileCountType { PCT_Real, PCT_Synthetic };
+  enum ProfileCountType { PCT_Invalid, PCT_Real, PCT_Synthetic };
 
   /// Class to represent profile counts.
   ///
   /// This class represents both real and synthetic profile counts.
   class ProfileCount {
   private:
-    uint64_t Count = 0;
-    ProfileCountType PCT = PCT_Real;
+    uint64_t Count;
+    ProfileCountType PCT;
+    static ProfileCount Invalid;
 
   public:
+    ProfileCount() : Count(-1), PCT(PCT_Invalid) {}
     ProfileCount(uint64_t Count, ProfileCountType PCT)
         : Count(Count), PCT(PCT) {}
+    bool hasValue() const { return PCT != PCT_Invalid; }
     uint64_t getCount() const { return Count; }
     ProfileCountType getType() const { return PCT; }
     bool isSynthetic() const { return PCT == PCT_Synthetic; }
+    explicit operator bool() { return hasValue(); }
+    bool operator!() const { return !hasValue(); }
+    // Update the count retaining the same profile count type.
+    ProfileCount &setCount(uint64_t C) {
+      Count = C;
+      return *this;
+    }
+    static ProfileCount getInvalid() { return ProfileCount(-1, PCT_Invalid); }
   };
 
   /// Set the entry count for this function.
@@ -282,7 +293,7 @@ public:
   ///
   /// Entry count is the number of times the function was executed.
   /// When AllowSynthetic is false, only pgo_data will be returned.
-  Optional<ProfileCount> getEntryCount(bool AllowSynthetic = false) const;
+  ProfileCount getEntryCount(bool AllowSynthetic = false) const;
 
   /// Return true if the function is annotated with profile data.
   ///
@@ -364,7 +375,7 @@ public:
   /// Remove function attribute from this function.
   void removeFnAttr(StringRef Kind);
 
-  void removeFnAttrs(const AttributeMask &Attrs);
+  void removeFnAttrs(const AttrBuilder &Attrs);
 
   /// removes the attribute from the return value list of attributes.
   void removeRetAttr(Attribute::AttrKind Kind);
@@ -373,7 +384,7 @@ public:
   void removeRetAttr(StringRef Kind);
 
   /// removes the attributes from the return value list of attributes.
-  void removeRetAttrs(const AttributeMask &Attrs);
+  void removeRetAttrs(const AttrBuilder &Attrs);
 
   /// removes the attribute from the list of attributes.
   void removeParamAttr(unsigned ArgNo, Attribute::AttrKind Kind);
@@ -382,7 +393,7 @@ public:
   void removeParamAttr(unsigned ArgNo, StringRef Kind);
 
   /// removes the attribute from the list of attributes.
-  void removeParamAttrs(unsigned ArgNo, const AttributeMask &Attrs);
+  void removeParamAttrs(unsigned ArgNo, const AttrBuilder &Attrs);
 
   /// Return true if the function has the attribute.
   bool hasFnAttribute(Attribute::AttrKind Kind) const;
@@ -509,10 +520,10 @@ public:
   }
 
   /// Determine if the function does not access or only writes memory.
-  bool onlyWritesMemory() const {
+  bool doesNotReadMemory() const {
     return doesNotAccessMemory() || hasFnAttribute(Attribute::WriteOnly);
   }
-  void setOnlyWritesMemory() {
+  void setDoesNotReadMemory() {
     addFnAttr(Attribute::WriteOnly);
   }
 

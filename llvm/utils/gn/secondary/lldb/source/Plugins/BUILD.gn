@@ -141,10 +141,6 @@ lldb_plugins += [
     "ProcessMinidump",
   ],
   [
-    "//lldb/source/Plugins/REPL/Clang",
-    "ClangREPL",
-  ],
-  [
     "//lldb/source/Plugins/ScriptInterpreter/None",
     "",  # Uses LLDB_SCRIPT_PLUGIN instead.
   ],

@@ -102,9 +102,7 @@ Tool *XCoreToolChain::buildLinker() const {
 
 bool XCoreToolChain::isPICDefault() const { return false; }
 
-bool XCoreToolChain::isPIEDefault(const llvm::opt::ArgList &Args) const {
-  return false;
-}
+bool XCoreToolChain::isPIEDefault() const { return false; }
 
 bool XCoreToolChain::isPICDefaultForced() const { return false; }
 

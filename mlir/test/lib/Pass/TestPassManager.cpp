@@ -21,16 +21,14 @@ struct TestModulePass
     return "Test a module pass in the pass manager";
   }
 };
-struct TestFunctionPass
-    : public PassWrapper<TestFunctionPass, OperationPass<FuncOp>> {
-  void runOnOperation() final {}
+struct TestFunctionPass : public PassWrapper<TestFunctionPass, FunctionPass> {
+  void runOnFunction() final {}
   StringRef getArgument() const final { return "test-function-pass"; }
   StringRef getDescription() const final {
     return "Test a function pass in the pass manager";
   }
 };
-class TestOptionsPass
-    : public PassWrapper<TestOptionsPass, OperationPass<FuncOp>> {
+class TestOptionsPass : public PassWrapper<TestOptionsPass, FunctionPass> {
 public:
   struct Options : public PassPipelineOptions<Options> {
     ListOption<int> listOption{*this, "list",
@@ -50,7 +48,7 @@ public:
     stringListOption = options.stringListOption;
   }
 
-  void runOnOperation() final {}
+  void runOnFunction() final {}
   StringRef getArgument() const final { return "test-options-pass"; }
   StringRef getDescription() const final {
     return "Test options parsing capabilities";
@@ -100,7 +98,7 @@ struct TestStatisticPass
     getOperation()->walk([&](Operation *) { ++opCount; });
   }
 };
-} // namespace
+} // end anonymous namespace
 
 static void testNestedPipeline(OpPassManager &pm) {
   // Nest a module pipeline that contains:

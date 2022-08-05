@@ -130,7 +130,7 @@ void DefinitionsInHeadersCheck::check(const MatchFinder::MatchResult &Result) {
     // inline is not allowed for main function.
     if (FD->isMain())
       return;
-    diag(FD->getLocation(), /*Description=*/"make as 'inline'",
+    diag(FD->getLocation(), /*FixDescription=*/"make as 'inline'",
          DiagnosticIDs::Note)
         << FixItHint::CreateInsertion(FD->getInnerLocStart(), "inline ");
   } else if (const auto *VD = dyn_cast<VarDecl>(ND)) {

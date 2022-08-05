@@ -7,10 +7,11 @@
 //===----------------------------------------------------------------------===//
 
 #include "config/linux/app.h"
+#include "config/linux/syscall.h"
 #include "include/sys/mman.h"
 #include "include/sys/syscall.h"
-#include "src/__support/OSUtil/syscall.h"
 #include "src/string/memcpy.h"
+#include "src/sys/mman/mmap.h"
 
 #include <asm/prctl.h>
 #include <linux/auxvec.h>

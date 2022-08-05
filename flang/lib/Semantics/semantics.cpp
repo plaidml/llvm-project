@@ -195,6 +195,14 @@ int SemanticsContext::GetDefaultKind(TypeCategory category) const {
   return defaultKinds_.GetDefaultKind(category);
 }
 
+bool SemanticsContext::IsEnabled(common::LanguageFeature feature) const {
+  return languageFeatures_.IsEnabled(feature);
+}
+
+bool SemanticsContext::ShouldWarn(common::LanguageFeature feature) const {
+  return languageFeatures_.ShouldWarn(feature);
+}
+
 const DeclTypeSpec &SemanticsContext::MakeNumericType(
     TypeCategory category, int kind) {
   if (kind == 0) {
@@ -324,7 +332,7 @@ SourceName SemanticsContext::SaveTempName(std::string &&name) {
 
 SourceName SemanticsContext::GetTempName(const Scope &scope) {
   for (const auto &str : tempNames_) {
-    if (IsTempName(str)) {
+    if (str.size() > 5 && str.substr(0, 5) == ".F18.") {
       SourceName name{str};
       if (scope.find(name) == scope.end()) {
         return name;
@@ -332,10 +340,6 @@ SourceName SemanticsContext::GetTempName(const Scope &scope) {
     }
   }
   return SaveTempName(".F18."s + std::to_string(tempNames_.size()));
-}
-
-bool SemanticsContext::IsTempName(const std::string &name) {
-  return name.size() > 5 && name.substr(0, 5) == ".F18.";
 }
 
 Scope *SemanticsContext::GetBuiltinModule(const char *name) {

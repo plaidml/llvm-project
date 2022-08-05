@@ -33,6 +33,7 @@ static_library("Frontend") {
     "FrontendActions.cpp",
     "FrontendOptions.cpp",
     "HeaderIncludeGen.cpp",
+    "InitHeaderSearch.cpp",
     "InitPreprocessor.cpp",
     "InterfaceStubFunctionsConsumer.cpp",
     "LayoutOverrideSource.cpp",

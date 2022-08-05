@@ -22,7 +22,7 @@ namespace safestack {
 
 /// Compute the layout of an unsafe stack frame.
 class StackLayout {
-  Align MaxAlignment;
+  uint64_t MaxAlignment;
 
   struct StackRegion {
     unsigned Start;
@@ -40,14 +40,14 @@ class StackLayout {
   struct StackObject {
     const Value *Handle;
     unsigned Size;
-    Align Alignment;
+    uint64_t Alignment;
     StackLifetime::LiveRange Range;
   };
 
   SmallVector<StackObject, 8> StackObjects;
 
   DenseMap<const Value *, unsigned> ObjectOffsets;
-  DenseMap<const Value *, Align> ObjectAlignments;
+  DenseMap<const Value *, uint64_t> ObjectAlignments;
 
   void layoutObject(StackObject &Obj);
 
@@ -56,7 +56,7 @@ public:
 
   /// Add an object to the stack frame. Value pointer is opaque and used as a
   /// handle to retrieve the object's offset in the frame later.
-  void addObject(const Value *V, unsigned Size, Align Alignment,
+  void addObject(const Value *V, unsigned Size, uint64_t Alignment,
                  const StackLifetime::LiveRange &Range);
 
   /// Run the layout computation for all previously added objects.
@@ -66,13 +66,13 @@ public:
   unsigned getObjectOffset(const Value *V) { return ObjectOffsets[V]; }
 
   /// Returns the alignment of the object
-  Align getObjectAlignment(const Value *V) { return ObjectAlignments[V]; }
+  uint64_t getObjectAlignment(const Value *V) { return ObjectAlignments[V]; }
 
   /// Returns the size of the entire frame.
   unsigned getFrameSize() { return Regions.empty() ? 0 : Regions.back().End; }
 
   /// Returns the alignment of the frame.
-  Align getFrameAlignment() { return MaxAlignment; }
+  uint64_t getFrameAlignment() { return MaxAlignment; }
 
   void print(raw_ostream &OS);
 };

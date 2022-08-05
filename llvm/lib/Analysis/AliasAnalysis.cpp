@@ -242,18 +242,18 @@ ModRefInfo AAResults::getModRefInfo(const CallBase *Call,
 
   if (onlyReadsMemory(MRB))
     Result = clearMod(Result);
-  else if (onlyWritesMemory(MRB))
+  else if (doesNotReadMemory(MRB))
     Result = clearRef(Result);
 
   if (onlyAccessesArgPointees(MRB) || onlyAccessesInaccessibleOrArgMem(MRB)) {
     bool IsMustAlias = true;
     ModRefInfo AllArgsMask = ModRefInfo::NoModRef;
     if (doesAccessArgPointees(MRB)) {
-      for (const auto &I : llvm::enumerate(Call->args())) {
-        const Value *Arg = I.value();
+      for (auto AI = Call->arg_begin(), AE = Call->arg_end(); AI != AE; ++AI) {
+        const Value *Arg = *AI;
         if (!Arg->getType()->isPointerTy())
           continue;
-        unsigned ArgIdx = I.index();
+        unsigned ArgIdx = std::distance(Call->arg_begin(), AI);
         MemoryLocation ArgLoc =
             MemoryLocation::getForArgument(Call, ArgIdx, TLI);
         AliasResult ArgAlias = alias(ArgLoc, Loc, AAQI);
@@ -320,7 +320,7 @@ ModRefInfo AAResults::getModRefInfo(const CallBase *Call1,
   // from Call1 reading memory written by Call2.
   if (onlyReadsMemory(Call1B))
     Result = clearMod(Result);
-  else if (onlyWritesMemory(Call1B))
+  else if (doesNotReadMemory(Call1B))
     Result = clearRef(Result);
 
   // If Call2 only access memory through arguments, accumulate the mod/ref
@@ -696,16 +696,14 @@ ModRefInfo AAResults::getModRefInfo(const Instruction *I,
   case Instruction::AtomicRMW:
     return getModRefInfo((const AtomicRMWInst *)I, Loc, AAQIP);
   case Instruction::Call:
-  case Instruction::CallBr:
+    return getModRefInfo((const CallInst *)I, Loc, AAQIP);
   case Instruction::Invoke:
-    return getModRefInfo((const CallBase *)I, Loc, AAQIP);
+    return getModRefInfo((const InvokeInst *)I, Loc, AAQIP);
   case Instruction::CatchPad:
     return getModRefInfo((const CatchPadInst *)I, Loc, AAQIP);
   case Instruction::CatchRet:
     return getModRefInfo((const CatchReturnInst *)I, Loc, AAQIP);
   default:
-    assert(!I->mayReadOrWriteMemory() &&
-           "Unhandled memory access instruction!");
     return ModRefInfo::NoModRef;
   }
 }

@@ -30,6 +30,7 @@
 using namespace mlir;
 
 using llvm::yaml::Input;
+using llvm::yaml::IO;
 using llvm::yaml::MappingTraits;
 using llvm::yaml::ScalarEnumerationTraits;
 using llvm::yaml::ScalarTraits;
@@ -82,27 +83,27 @@ struct LinalgIndexingMapsConfig {
 
 struct ScalarExpression;
 
-struct ScalarArithFn {
+struct ScalarApply {
   std::string fnName;
   // NOTE: Must be pure heap allocated container (not SmallVector)
   // due to recursive data type.
   std::vector<ScalarExpression> operands;
 };
 
-struct ScalarTypeFn {
-  std::string fnName;
+struct ScalarSymbolicCast {
   std::string typeVar;
   // NOTE: This must be of arity 1, but to break the self-referential cycle,
   // we use a heap allocated vector.
   std::vector<ScalarExpression> operands;
+  bool isUnsignedCast;
 };
 
 struct ScalarExpression {
   Optional<std::string> arg;
   Optional<std::string> constant;
   Optional<int64_t> index;
-  Optional<ScalarArithFn> arithFn;
-  Optional<ScalarTypeFn> typeFn;
+  Optional<ScalarApply> apply;
+  Optional<ScalarSymbolicCast> symbolicCast;
 };
 
 struct ScalarAssign {
@@ -245,19 +246,18 @@ struct MappingTraits<ScalarAssign> {
 };
 
 /// A scalar expression (RHS of an assignment). Must be one of:
-///   - `scalar_arg`: An operation argument.
-///   - `scalar_const`: A constant definition.
-///   - `scalar_index`: An iteration index.
-///   - `arith_fn`: A named arithmetic function (see `ScalarArithFn`).
-///   - `type_fn`: A named type conversion function (see `ScalarTypeFn`).
+///   - `scalar_arg`: Name of an argument to the op.
+///   - `scalar_apply`: Result of evaluating a named function (see
+///      `ScalarApply`).
+///   - `symbolic_cast`: Cast to a symbolic TypeVar bound elsewhere.
 template <>
 struct MappingTraits<ScalarExpression> {
   static void mapping(IO &io, ScalarExpression &info) {
     io.mapOptional("scalar_arg", info.arg);
     io.mapOptional("scalar_const", info.constant);
     io.mapOptional("scalar_index", info.index);
-    io.mapOptional("arith_fn", info.arithFn);
-    io.mapOptional("type_fn", info.typeFn);
+    io.mapOptional("scalar_apply", info.apply);
+    io.mapOptional("symbolic_cast", info.symbolicCast);
   }
 };
 
@@ -267,19 +267,19 @@ struct MappingTraits<ScalarExpression> {
 ///   - `add(lhs, rhs)`
 ///   - `mul(lhs, rhs)`
 template <>
-struct MappingTraits<ScalarArithFn> {
-  static void mapping(IO &io, ScalarArithFn &info) {
+struct MappingTraits<ScalarApply> {
+  static void mapping(IO &io, ScalarApply &info) {
     io.mapRequired("fn_name", info.fnName);
     io.mapRequired("operands", info.operands);
   }
 };
 
 template <>
-struct MappingTraits<ScalarTypeFn> {
-  static void mapping(IO &io, ScalarTypeFn &info) {
-    io.mapRequired("fn_name", info.fnName);
+struct MappingTraits<ScalarSymbolicCast> {
+  static void mapping(IO &io, ScalarSymbolicCast &info) {
     io.mapRequired("type_var", info.typeVar);
     io.mapRequired("operands", info.operands);
+    io.mapRequired("is_unsigned_cast", info.isUnsignedCast);
   }
 };
 
@@ -373,7 +373,7 @@ static std::string interleaveToString(Container &container,
 
 static Optional<int>
 findTensorDefArgIndex(StringRef name, SmallVectorImpl<LinalgOperandDef> &args) {
-  for (const auto &it : llvm::enumerate(args)) {
+  for (auto it : llvm::enumerate(args)) {
     if (it.value().name == name)
       return it.index();
   }
@@ -394,7 +394,7 @@ findTypeValue(StringRef typeVar, SmallVectorImpl<LinalgOperandDef> &args) {
     return std::string("helper.getFloat64Type()");
 
   // Search all argument types.
-  for (const auto &it : llvm::enumerate(args)) {
+  for (auto it : llvm::enumerate(args)) {
     if (it.value().typeVar == typeVar)
       return llvm::formatv("block.getArgument({0}).getType()", it.index())
           .str();
@@ -726,7 +726,7 @@ static SmallVector<AffineExpr> getSymbolBindings({0} self) {
       // {1}: Symbol position
       // {2}: Attribute index
       static const char structuredOpAccessAttrFormat[] = R"FMT(
-int64_t cst{1} = self.{0}().getValues<int64_t>()[{2}];
+int64_t cst{1} = self.{0}().getValue<int64_t>({ {2} });
 exprs.push_back(getAffineConstantExpr(cst{1}, context));
 )FMT";
       // Update all symbol bindings mapped to an attribute.
@@ -945,11 +945,11 @@ void {0}::regionBuilder(ImplicitLocOpBuilder &b, Block &block) {{
                                         cppIdent, *expression.index));
           return cppIdent;
         }
-        if (expression.arithFn) {
+        if (expression.apply) {
           // Apply function.
           // Recursively generate operands.
           SmallVector<std::string> operandCppValues;
-          for (ScalarExpression &operand : expression.arithFn->operands) {
+          for (ScalarExpression &operand : expression.apply->operands) {
             auto operandCppValue = generateExpression(operand);
             if (!operandCppValue)
               return None;
@@ -957,38 +957,38 @@ void {0}::regionBuilder(ImplicitLocOpBuilder &b, Block &block) {{
           }
           std::string cppIdent = llvm::formatv("value{0}", ++localCounter);
           stmts.push_back(
-              llvm::formatv("Value {0} = helper.arithfn__{1}({2});", cppIdent,
-                            expression.arithFn->fnName,
+              llvm::formatv("Value {0} = helper.applyfn__{1}({2});", cppIdent,
+                            expression.apply->fnName,
                             interleaveToString(operandCppValues, ", ")));
           return cppIdent;
         }
-        if (expression.typeFn) {
+        if (expression.symbolicCast) {
           // Symbolic cast.
           // Operands must be arity 1.
-          if (expression.typeFn->operands.size() != 1) {
+          if (expression.symbolicCast->operands.size() != 1) {
             emitError(genContext.getLoc())
-                << "type conversion operand arity must be 1";
+                << "symbolic_cast operand arity must be 1";
             return None;
           }
           Optional<std::string> operandCppValue =
-              generateExpression(expression.typeFn->operands[0]);
+              generateExpression(expression.symbolicCast->operands[0]);
           if (!operandCppValue)
             return None;
 
           Optional<std::string> typeCppValue =
-              findTypeValue(expression.typeFn->typeVar, args);
+              findTypeValue(expression.symbolicCast->typeVar, args);
           if (!typeCppValue) {
             emitError(genContext.getLoc())
-                << "type variable " << expression.typeFn->typeVar
-                << ", used in a type conversion, must map to a predefined or "
+                << "type variable " << expression.symbolicCast->typeVar
+                << ", used in a symbolic cast must map to a predefined or "
                 << "an argument type but it does not";
             return None;
           }
           std::string cppIdent = llvm::formatv("value{0}", ++localCounter);
           stmts.push_back(
-              llvm::formatv("Value {0} = helper.typefn__{1}({2}, {3});",
-                            cppIdent, expression.typeFn->fnName,
-                            typeCppValue.getValue(), *operandCppValue));
+              llvm::formatv("Value {0} = helper.cast({1}, {2}, {3});", cppIdent,
+                            typeCppValue.getValue(), *operandCppValue,
+                            expression.symbolicCast->isUnsignedCast));
           return cppIdent;
         }
         emitError(genContext.getLoc()) << "unknown ScalarExpression type";
@@ -1021,8 +1021,9 @@ static LogicalResult generateOp(LinalgOpConfig &opConfig,
     return success(
         succeeded(generateNamedGenericOpOds(opConfig, genContext)) &&
         succeeded(generateNamedGenericOpDefns(opConfig, genContext)));
+  } else {
+    return emitError(genContext.getLoc()) << "unsupported operation type";
   }
-  return emitError(genContext.getLoc()) << "unsupported operation type";
 }
 
 //===----------------------------------------------------------------------===//
@@ -1103,7 +1104,7 @@ int main(int argc, char **argv) {
     }
 
     genContext.setLoc(NameLoc::get(
-        StringAttr::get(&mlirContext, opConfig.metadata->cppClassName)));
+        Identifier::get(opConfig.metadata->cppClassName, &mlirContext)));
     if (failed(generateOp(opConfig, genContext))) {
       return 1;
     }

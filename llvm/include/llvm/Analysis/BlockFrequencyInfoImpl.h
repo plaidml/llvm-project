@@ -14,7 +14,6 @@
 #ifndef LLVM_ANALYSIS_BLOCKFREQUENCYINFOIMPL_H
 #define LLVM_ANALYSIS_BLOCKFREQUENCYINFOIMPL_H
 
-#include "llvm/ADT/BitVector.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/GraphTraits.h"
@@ -1452,7 +1451,7 @@ void BlockFrequencyInfoImpl<BT>::iterativeInference(
   // frequencies need to be updated based on the incoming edges.
   // The set is dynamic and changes after every update. Initially all blocks
   // with a positive frequency are active
-  auto IsActive = BitVector(Freq.size(), false);
+  auto IsActive = std::vector<bool>(Freq.size(), false);
   std::queue<size_t> ActiveSet;
   for (size_t I = 0; I < Freq.size(); I++) {
     if (Freq[I] > 0) {

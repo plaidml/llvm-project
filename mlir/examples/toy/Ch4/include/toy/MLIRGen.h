@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TOY_MLIRGEN_H
-#define TOY_MLIRGEN_H
+#ifndef MLIR_TUTORIAL_TOY_MLIRGEN_H_
+#define MLIR_TUTORIAL_TOY_MLIRGEN_H_
 
 #include <memory>
 
@@ -29,4 +29,4 @@ class ModuleAST;
 mlir::OwningModuleRef mlirGen(mlir::MLIRContext &context, ModuleAST &moduleAST);
 } // namespace toy
 
-#endif // TOY_MLIRGEN_H
+#endif // MLIR_TUTORIAL_TOY_MLIRGEN_H_

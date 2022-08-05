@@ -219,4 +219,4 @@ public:
 };
 } // namespace llvm
 
-#endif // LLVM_LIB_TARGET_VE_VEISELLOWERING_H
+#endif // VE_ISELLOWERING_H

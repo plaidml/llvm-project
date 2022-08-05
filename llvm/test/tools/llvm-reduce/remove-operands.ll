@@ -18,8 +18,6 @@
 
 %t = type { i32, i8 }
 
-declare void @llvm.foo(metadata)
-
 ; CHECK-LABEL: define i32 @main
 define i32 @main(%t* %a, i32 %a2) {
 
@@ -43,7 +41,6 @@ lb1:
   %i2 = inttoptr i16 1 to i8*
   %i3 = inttoptr i16 2 to i8*
   %i4 = inttoptr i16 undef to i8*
-  call void @llvm.foo(metadata %t* %a)
   br label %lb2
 
 ; CHECK-LABEL: lb2:

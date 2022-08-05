@@ -120,13 +120,13 @@ void CommandReturnObject::AppendRawError(llvm::StringRef in_string) {
 
 void CommandReturnObject::SetStatus(ReturnStatus status) { m_status = status; }
 
-ReturnStatus CommandReturnObject::GetStatus() const { return m_status; }
+ReturnStatus CommandReturnObject::GetStatus() { return m_status; }
 
-bool CommandReturnObject::Succeeded() const {
+bool CommandReturnObject::Succeeded() {
   return m_status <= eReturnStatusSuccessContinuingResult;
 }
 
-bool CommandReturnObject::HasResult() const {
+bool CommandReturnObject::HasResult() {
   return (m_status == eReturnStatusSuccessFinishResult ||
           m_status == eReturnStatusSuccessContinuingResult);
 }
@@ -145,7 +145,7 @@ void CommandReturnObject::Clear() {
   m_interactive = true;
 }
 
-bool CommandReturnObject::GetDidChangeProcessState() const {
+bool CommandReturnObject::GetDidChangeProcessState() {
   return m_did_change_process_state;
 }
 

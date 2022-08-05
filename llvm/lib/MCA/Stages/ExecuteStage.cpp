@@ -188,7 +188,7 @@ Error ExecuteStage::execute(InstRef &IR) {
 
 #ifndef NDEBUG
   // Ensure that the HWS has not stored this instruction in its queues.
-  HWS.instructionCheck(IR);
+  HWS.sanityCheck(IR);
 #endif
 
   if (IR.getInstruction()->isEliminated())

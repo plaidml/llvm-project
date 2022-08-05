@@ -17,9 +17,6 @@ using namespace llvm;
 using namespace lld;
 using namespace lld::macho;
 
-static_assert(sizeof(void *) != 8 || sizeof(Reloc) == 24,
-              "Try to minimize Reloc's size; we create many instances");
-
 bool macho::validateSymbolRelocation(const Symbol *sym,
                                      const InputSection *isec, const Reloc &r) {
   const RelocAttrs &relocAttrs = target->getRelocAttrs(r.type);

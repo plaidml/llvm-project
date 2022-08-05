@@ -38,7 +38,7 @@ llvm_config.use_default_substitutions()
 llvm_config.use_lld()
 
 tool_patterns = [
-    'llc', 'llvm-as', 'llvm-mc', 'llvm-nm', 'llvm-objdump', 'llvm-otool', 'llvm-pdbutil',
+    'llc', 'llvm-as', 'llvm-mc', 'llvm-nm', 'llvm-objdump', 'llvm-pdbutil',
     'llvm-dwarfdump', 'llvm-readelf', 'llvm-readobj', 'obj2yaml', 'yaml2obj',
     'opt', 'llvm-dis']
 
@@ -63,7 +63,9 @@ if platform.system() not in ['Windows']:
     config.available_features.add('demangler')
 
 llvm_config.feature_config(
-    [('--targets-built', {'AArch64': 'aarch64',
+    [('--build-mode', {'DEBUG': 'debug'}),
+     ('--assertion-mode', {'ON': 'asserts'}),
+     ('--targets-built', {'AArch64': 'aarch64',
                           'AMDGPU': 'amdgpu',
                           'ARM': 'arm',
                           'AVR': 'avr',

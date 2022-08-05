@@ -153,10 +153,6 @@ public:
     return Kind == ModuleInterfaceUnit || Kind == PrivateModuleFragment;
   }
 
-  /// Does this Module scope describe a fragment of the global module within
-  /// some C++ module.
-  bool isGlobalModule() const { return Kind == GlobalModuleFragment; }
-
 private:
   /// The submodules of this module, indexed by name.
   std::vector<Module *> SubModules;

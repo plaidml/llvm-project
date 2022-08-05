@@ -266,7 +266,7 @@ struct TransposeOpLowering : public ConversionPattern {
   }
 };
 
-} // namespace
+} // end anonymous namespace.
 
 //===----------------------------------------------------------------------===//
 // ToyToAffineLoweringPass
@@ -277,16 +277,16 @@ struct TransposeOpLowering : public ConversionPattern {
 /// rest of the code in the Toy dialect.
 namespace {
 struct ToyToAffineLoweringPass
-    : public PassWrapper<ToyToAffineLoweringPass, OperationPass<FuncOp>> {
+    : public PassWrapper<ToyToAffineLoweringPass, FunctionPass> {
   void getDependentDialects(DialectRegistry &registry) const override {
     registry.insert<AffineDialect, memref::MemRefDialect, StandardOpsDialect>();
   }
-  void runOnOperation() final;
+  void runOnFunction() final;
 };
-} // namespace
+} // end anonymous namespace.
 
-void ToyToAffineLoweringPass::runOnOperation() {
-  auto function = getOperation();
+void ToyToAffineLoweringPass::runOnFunction() {
+  auto function = getFunction();
 
   // We only lower the main function as we expect that all other functions have
   // been inlined.
@@ -332,7 +332,7 @@ void ToyToAffineLoweringPass::runOnOperation() {
   // conversion. The conversion will signal failure if any of our `illegal`
   // operations were not converted successfully.
   if (failed(
-          applyPartialConversion(getOperation(), target, std::move(patterns))))
+          applyPartialConversion(getFunction(), target, std::move(patterns))))
     signalPassFailure();
 }
 

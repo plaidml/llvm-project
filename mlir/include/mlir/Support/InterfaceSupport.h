@@ -176,12 +176,6 @@ class InterfaceMap {
 
 public:
   InterfaceMap(InterfaceMap &&) = default;
-  InterfaceMap &operator=(InterfaceMap &&rhs) {
-    for (auto &it : interfaces)
-      free(it.second);
-    interfaces = std::move(rhs.interfaces);
-    return *this;
-  }
   ~InterfaceMap() {
     for (auto &it : interfaces)
       free(it.second);
@@ -260,10 +254,9 @@ private:
   /// Returns an instance of the concept object for the given interface id if it
   /// was registered to this map, null otherwise.
   void *lookup(TypeID id) const {
-    const auto *it =
-        llvm::lower_bound(interfaces, id, [](const auto &it, TypeID id) {
-          return compare(it.first, id);
-        });
+    auto it = llvm::lower_bound(interfaces, id, [](const auto &it, TypeID id) {
+      return compare(it.first, id);
+    });
     return (it != interfaces.end() && it->first == id) ? it->second : nullptr;
   }
 
@@ -271,7 +264,7 @@ private:
   SmallVector<std::pair<TypeID, void *>> interfaces;
 };
 
-} // namespace detail
-} // namespace mlir
+} // end namespace detail
+} // end namespace mlir
 
 #endif

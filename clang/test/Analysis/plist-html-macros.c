@@ -1,5 +1,5 @@
 // RUN: %clang_analyze_cc1 -analyzer-checker=core -verify %s
-// (basic correctness check)
+// (sanity check)
 
 // RUN: rm -rf %t.dir
 // RUN: mkdir -p %t.dir

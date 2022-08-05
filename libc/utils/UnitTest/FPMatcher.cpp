@@ -10,7 +10,6 @@
 
 #include "src/__support/FPUtil/FPBits.h"
 
-#include <sstream>
 #include <string>
 
 namespace __llvm_libc {
@@ -31,37 +30,34 @@ uintToHex(T X, size_t Length = sizeof(T) * 2) {
   return s;
 }
 
-template <typename ValType, typename StreamType>
+template <typename ValType>
 cpp::EnableIfType<cpp::IsFloatingPointType<ValType>::Value, void>
-describeValue(const char *label, ValType value, StreamType &stream) {
+describeValue(const char *label, ValType value,
+              testutils::StreamWrapper &stream) {
   stream << label;
 
   FPBits<ValType> bits(value);
-  if (bits.is_nan()) {
+  if (bits.isNaN()) {
     stream << "(NaN)";
-  } else if (bits.is_inf()) {
-    if (bits.get_sign())
+  } else if (bits.isInf()) {
+    if (bits.getSign())
       stream << "(-Infinity)";
     else
       stream << "(+Infinity)";
   } else {
     constexpr int exponentWidthInHex =
-        (fputil::ExponentWidth<ValType>::VALUE - 1) / 4 + 1;
+        (fputil::ExponentWidth<ValType>::value - 1) / 4 + 1;
     constexpr int mantissaWidthInHex =
-        (fputil::MantissaWidth<ValType>::VALUE - 1) / 4 + 1;
-    constexpr int bitsWidthInHex =
-        sizeof(typename fputil::FPBits<ValType>::UIntType) * 2;
+        (fputil::MantissaWidth<ValType>::value - 1) / 4 + 1;
 
-    stream << "0x"
-           << uintToHex<typename fputil::FPBits<ValType>::UIntType>(
-                  bits.uintval(), bitsWidthInHex)
-           << ", (S | E | M) = (" << (bits.get_sign() ? '1' : '0') << " | 0x"
-           << uintToHex<uint16_t>(bits.get_unbiased_exponent(),
+    stream << "Sign: " << (bits.getSign() ? '1' : '0') << ", "
+           << "Exponent: 0x"
+           << uintToHex<uint16_t>(bits.getUnbiasedExponent(),
                                   exponentWidthInHex)
-           << " | 0x"
+           << ", "
+           << "Mantissa: 0x"
            << uintToHex<typename fputil::FPBits<ValType>::UIntType>(
-                  bits.get_mantissa(), mantissaWidthInHex)
-           << ")";
+                  bits.getMantissa(), mantissaWidthInHex);
   }
 
   stream << '\n';
@@ -73,11 +69,6 @@ template void describeValue<double>(const char *, double,
                                     testutils::StreamWrapper &);
 template void describeValue<long double>(const char *, long double,
                                          testutils::StreamWrapper &);
-
-template void describeValue<float>(const char *, float, std::stringstream &);
-template void describeValue<double>(const char *, double, std::stringstream &);
-template void describeValue<long double>(const char *, long double,
-                                         std::stringstream &);
 
 } // namespace testing
 } // namespace fputil

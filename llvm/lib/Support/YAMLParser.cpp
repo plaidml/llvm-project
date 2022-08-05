@@ -1876,8 +1876,8 @@ document_iterator Stream::end() {
 }
 
 void Stream::skip() {
-  for (Document &Doc : *this)
-    Doc.skip();
+  for (document_iterator i = begin(), e = end(); i != e; ++i)
+    i->skip();
 }
 
 Node::Node(unsigned int Type, std::unique_ptr<Document> &D, StringRef A,

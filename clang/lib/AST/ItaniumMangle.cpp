@@ -659,7 +659,8 @@ bool ItaniumMangleContextImpl::isUniqueInternalLinkageDecl(
 }
 
 bool ItaniumMangleContextImpl::shouldMangleCXXName(const NamedDecl *D) {
-  if (const auto *FD = dyn_cast<FunctionDecl>(D)) {
+  const FunctionDecl *FD = dyn_cast<FunctionDecl>(D);
+  if (FD) {
     LanguageLinkage L = FD->getLanguageLinkage();
     // Overloadable functions need mangling.
     if (FD->hasAttr<OverloadableAttr>())
@@ -695,24 +696,21 @@ bool ItaniumMangleContextImpl::shouldMangleCXXName(const NamedDecl *D) {
   if (!getASTContext().getLangOpts().CPlusPlus)
     return false;
 
-  if (const auto *VD = dyn_cast<VarDecl>(D)) {
-    // Decompositions are mangled.
-    if (isa<DecompositionDecl>(VD))
-      return true;
-
+  const VarDecl *VD = dyn_cast<VarDecl>(D);
+  if (VD && !isa<DecompositionDecl>(D)) {
     // C variables are not mangled.
     if (VD->isExternC())
       return false;
 
-    // Variables at global scope with non-internal linkage are not mangled.
+    // Variables at global scope with non-internal linkage are not mangled
     const DeclContext *DC = getEffectiveDeclContext(D);
     // Check for extern variable declared locally.
     if (DC->isFunctionOrMethod() && D->hasLinkage())
-      while (!DC->isFileContext())
+      while (!DC->isNamespace() && !DC->isTranslationUnit())
         DC = getEffectiveParentContext(DC);
     if (DC->isTranslationUnit() && D->getFormalLinkage() != InternalLinkage &&
         !CXXNameMangler::shouldHaveAbiTags(*this, VD) &&
-        !isa<VarTemplateSpecializationDecl>(VD))
+        !isa<VarTemplateSpecializationDecl>(D))
       return false;
   }
 
@@ -2265,8 +2263,8 @@ bool CXXNameMangler::mangleUnresolvedTypeOrSimpleId(QualType Ty,
   case Type::Atomic:
   case Type::Pipe:
   case Type::MacroQualified:
-  case Type::BitInt:
-  case Type::DependentBitInt:
+  case Type::ExtInt:
+  case Type::DependentExtInt:
     llvm_unreachable("type is illegal as a nested name specifier");
 
   case Type::SubstTemplateTypeParmPack:
@@ -2382,9 +2380,6 @@ bool CXXNameMangler::mangleUnresolvedTypeOrSimpleId(QualType Ty,
     break;
   }
 
-  case Type::Using:
-    return mangleUnresolvedTypeOrSimpleId(cast<UsingType>(Ty)->desugar(),
-                                          Prefix);
   case Type::Elaborated:
     return mangleUnresolvedTypeOrSimpleId(
         cast<ElaboratedType>(Ty)->getNamedType(), Prefix);
@@ -3972,20 +3967,26 @@ void CXXNameMangler::mangleType(const PipeType *T) {
   Out << "8ocl_pipe";
 }
 
-void CXXNameMangler::mangleType(const BitIntType *T) {
-  // 5.1.5.2 Builtin types
-  // <type> ::= DB <number | instantiation-dependent expression> _
-  //        ::= DU <number | instantiation-dependent expression> _
-  Out << "D" << (T->isUnsigned() ? "U" : "B") << T->getNumBits() << "_";
+void CXXNameMangler::mangleType(const ExtIntType *T) {
+  Out << "U7_ExtInt";
+  llvm::APSInt BW(32, true);
+  BW = T->getNumBits();
+  TemplateArgument TA(Context.getASTContext(), BW, getASTContext().IntTy);
+  mangleTemplateArgs(TemplateName(), &TA, 1);
+  if (T->isUnsigned())
+    Out << "j";
+  else
+    Out << "i";
 }
 
-void CXXNameMangler::mangleType(const DependentBitIntType *T) {
-  // 5.1.5.2 Builtin types
-  // <type> ::= DB <number | instantiation-dependent expression> _
-  //        ::= DU <number | instantiation-dependent expression> _
-  Out << "D" << (T->isUnsigned() ? "U" : "B");
-  mangleExpression(T->getNumBitsExpr());
-  Out << "_";
+void CXXNameMangler::mangleType(const DependentExtIntType *T) {
+  Out << "U7_ExtInt";
+  TemplateArgument TA(T->getNumBitsExpr());
+  mangleTemplateArgs(TemplateName(), &TA, 1);
+  if (T->isUnsigned())
+    Out << "j";
+  else
+    Out << "i";
 }
 
 void CXXNameMangler::mangleIntegerLiteral(QualType T,
@@ -5891,11 +5892,9 @@ void CXXNameMangler::mangleTemplateParameter(unsigned Depth, unsigned Index) {
 }
 
 void CXXNameMangler::mangleSeqID(unsigned SeqID) {
-  if (SeqID == 0) {
-    // Nothing.
-  } else if (SeqID == 1) {
+  if (SeqID == 1)
     Out << '0';
-  } else {
+  else if (SeqID > 1) {
     SeqID--;
 
     // <seq-id> is encoded in base-36, using digits and upper case letters.

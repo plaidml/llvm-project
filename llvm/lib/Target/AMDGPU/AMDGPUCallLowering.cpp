@@ -192,20 +192,8 @@ struct AMDGPUOutgoingArgHandler : public AMDGPUOutgoingValueHandler {
 
     const SIMachineFunctionInfo *MFI = MF.getInfo<SIMachineFunctionInfo>();
 
-    if (!SPReg) {
-      const GCNSubtarget &ST = MIRBuilder.getMF().getSubtarget<GCNSubtarget>();
-      if (ST.enableFlatScratch()) {
-        // The stack is accessed unswizzled, so we can use a regular copy.
-        SPReg = MIRBuilder.buildCopy(PtrTy,
-                                     MFI->getStackPtrOffsetReg()).getReg(0);
-      } else {
-        // The address we produce here, without knowing the use context, is going
-        // to be interpreted as a vector address, so we need to convert to a
-        // swizzled address.
-        SPReg = MIRBuilder.buildInstr(AMDGPU::G_AMDGPU_WAVE_ADDRESS, {PtrTy},
-                                      {MFI->getStackPtrOffsetReg()}).getReg(0);
-      }
-    }
+    if (!SPReg)
+      SPReg = MIRBuilder.buildCopy(PtrTy, MFI->getStackPtrOffsetReg()).getReg(0);
 
     auto OffsetReg = MIRBuilder.buildConstant(S32, Offset);
 
@@ -664,8 +652,8 @@ bool AMDGPUCallLowering::lowerFormalArguments(
       ++PSInputNum;
 
       if (SkipArg) {
-        for (Register R : VRegs[Idx])
-          B.buildUndef(R);
+        for (int I = 0, E = VRegs[Idx].size(); I != E; ++I)
+          B.buildUndef(VRegs[Idx][I]);
 
         ++Idx;
         continue;
@@ -727,9 +715,10 @@ bool AMDGPUCallLowering::lowerFormalArguments(
   if (!MBB.empty())
     B.setInstr(*MBB.begin());
 
-  if (!IsEntryFunc && !IsGraphics) {
+  if (!IsEntryFunc) {
     // For the fixed ABI, pass workitem IDs in the last argument register.
-    TLI.allocateSpecialInputVGPRsFixed(CCInfo, MF, *TRI, *Info);
+    if (AMDGPUTargetMachine::EnableFixedFunctionABI)
+      TLI.allocateSpecialInputVGPRsFixed(CCInfo, MF, *TRI, *Info);
   }
 
   IncomingValueAssigner Assigner(AssignFn);
@@ -741,6 +730,11 @@ bool AMDGPUCallLowering::lowerFormalArguments(
     return false;
 
   uint64_t StackOffset = Assigner.StackOffset;
+
+  if (!IsEntryFunc && !AMDGPUTargetMachine::EnableFixedFunctionABI) {
+    // Special inputs come after user arguments.
+    TLI.allocateSpecialInputVGPRs(CCInfo, MF, *TRI, *Info);
+  }
 
   // Start adding system SGPRs.
   if (IsEntryFunc) {
@@ -835,12 +829,9 @@ bool AMDGPUCallLowering::passSpecialInputs(MachineIRBuilder &MIRBuilder,
 
     if (IncomingArg) {
       LI->loadInputValue(InputReg, MIRBuilder, IncomingArg, ArgRC, ArgTy);
-    } else if (InputID == AMDGPUFunctionArgInfo::IMPLICIT_ARG_PTR) {
-      LI->getImplicitArgPtr(InputReg, MRI, MIRBuilder);
     } else {
-      // We may have proven the input wasn't needed, although the ABI is
-      // requiring it. We just need to allocate the register appropriately.
-      MIRBuilder.buildUndef(InputReg);
+      assert(InputID == AMDGPUFunctionArgInfo::IMPLICIT_ARG_PTR);
+      LI->getImplicitArgPtr(InputReg, MRI, MIRBuilder);
     }
 
     if (OutgoingArg->isRegister()) {
@@ -891,17 +882,13 @@ bool AMDGPUCallLowering::passSpecialInputs(MachineIRBuilder &MIRBuilder,
   Register InputReg;
   if (IncomingArgX && !IncomingArgX->isMasked() && CalleeArgInfo->WorkItemIDX &&
       NeedWorkItemIDX) {
-    if (ST.getMaxWorkitemID(MF.getFunction(), 0) != 0) {
-      InputReg = MRI.createGenericVirtualRegister(S32);
-      LI->loadInputValue(InputReg, MIRBuilder, IncomingArgX,
-                         std::get<1>(WorkitemIDX), std::get<2>(WorkitemIDX));
-    } else {
-      InputReg = MIRBuilder.buildConstant(S32, 0).getReg(0);
-    }
+    InputReg = MRI.createGenericVirtualRegister(S32);
+    LI->loadInputValue(InputReg, MIRBuilder, IncomingArgX,
+                       std::get<1>(WorkitemIDX), std::get<2>(WorkitemIDX));
   }
 
   if (IncomingArgY && !IncomingArgY->isMasked() && CalleeArgInfo->WorkItemIDY &&
-      NeedWorkItemIDY && ST.getMaxWorkitemID(MF.getFunction(), 1) != 0) {
+      NeedWorkItemIDY) {
     Register Y = MRI.createGenericVirtualRegister(S32);
     LI->loadInputValue(Y, MIRBuilder, IncomingArgY, std::get<1>(WorkitemIDY),
                        std::get<2>(WorkitemIDY));
@@ -911,7 +898,7 @@ bool AMDGPUCallLowering::passSpecialInputs(MachineIRBuilder &MIRBuilder,
   }
 
   if (IncomingArgZ && !IncomingArgZ->isMasked() && CalleeArgInfo->WorkItemIDZ &&
-      NeedWorkItemIDZ && ST.getMaxWorkitemID(MF.getFunction(), 2) != 0) {
+      NeedWorkItemIDZ) {
     Register Z = MRI.createGenericVirtualRegister(S32);
     LI->loadInputValue(Z, MIRBuilder, IncomingArgZ, std::get<1>(WorkitemIDZ),
                        std::get<2>(WorkitemIDZ));
@@ -920,24 +907,16 @@ bool AMDGPUCallLowering::passSpecialInputs(MachineIRBuilder &MIRBuilder,
     InputReg = InputReg ? MIRBuilder.buildOr(S32, InputReg, Z).getReg(0) : Z;
   }
 
-  if (!InputReg &&
-      (NeedWorkItemIDX || NeedWorkItemIDY || NeedWorkItemIDZ)) {
+  if (!InputReg && (NeedWorkItemIDX || NeedWorkItemIDY || NeedWorkItemIDZ)) {
     InputReg = MRI.createGenericVirtualRegister(S32);
-    if (!IncomingArgX && !IncomingArgY && !IncomingArgZ) {
-      // We're in a situation where the outgoing function requires the workitem
-      // ID, but the calling function does not have it (e.g a graphics function
-      // calling a C calling convention function). This is illegal, but we need
-      // to produce something.
-      MIRBuilder.buildUndef(InputReg);
-    } else {
-      // Workitem ids are already packed, any of present incoming arguments will
-      // carry all required fields.
-      ArgDescriptor IncomingArg = ArgDescriptor::createArg(
-        IncomingArgX ? *IncomingArgX :
+
+    // Workitem ids are already packed, any of present incoming arguments will
+    // carry all required fields.
+    ArgDescriptor IncomingArg = ArgDescriptor::createArg(
+      IncomingArgX ? *IncomingArgX :
         IncomingArgY ? *IncomingArgY : *IncomingArgZ, ~0u);
-      LI->loadInputValue(InputReg, MIRBuilder, &IncomingArg,
-                         &AMDGPU::VGPR_32RegClass, S32);
-    }
+    LI->loadInputValue(InputReg, MIRBuilder, &IncomingArg,
+                       &AMDGPU::VGPR_32RegClass, S32);
   }
 
   if (OutgoingArg->isRegister()) {
@@ -1254,7 +1233,8 @@ bool AMDGPUCallLowering::lowerTailCall(
   // after the ordinary user argument registers.
   SmallVector<std::pair<MCRegister, Register>, 12> ImplicitArgRegs;
 
-  if (Info.CallConv != CallingConv::AMDGPU_Gfx) {
+  if (AMDGPUTargetMachine::EnableFixedFunctionABI &&
+      Info.CallConv != CallingConv::AMDGPU_Gfx) {
     // With a fixed ABI, allocate fixed registers before user arguments.
     if (!passSpecialInputs(MIRBuilder, CCInfo, ImplicitArgRegs, Info))
       return false;
@@ -1320,6 +1300,12 @@ bool AMDGPUCallLowering::lowerCall(MachineIRBuilder &MIRBuilder,
   const SITargetLowering &TLI = *getTLI<SITargetLowering>();
   const DataLayout &DL = F.getParent()->getDataLayout();
 
+  if (!AMDGPUTargetMachine::EnableFixedFunctionABI &&
+      Info.CallConv != CallingConv::AMDGPU_Gfx) {
+    LLVM_DEBUG(dbgs() << "Variable function ABI not implemented\n");
+    return false;
+  }
+
   SmallVector<ArgInfo, 8> OutArgs;
   for (auto &OrigArg : Info.OrigArgs)
     splitToValueTypes(OrigArg, OutArgs, DL, Info.CallConv);
@@ -1373,7 +1359,8 @@ bool AMDGPUCallLowering::lowerCall(MachineIRBuilder &MIRBuilder,
   // after the ordinary user argument registers.
   SmallVector<std::pair<MCRegister, Register>, 12> ImplicitArgRegs;
 
-  if (Info.CallConv != CallingConv::AMDGPU_Gfx) {
+  if (AMDGPUTargetMachine::EnableFixedFunctionABI &&
+      Info.CallConv != CallingConv::AMDGPU_Gfx) {
     // With a fixed ABI, allocate fixed registers before user arguments.
     if (!passSpecialInputs(MIRBuilder, CCInfo, ImplicitArgRegs, Info))
       return false;

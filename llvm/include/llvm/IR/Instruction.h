@@ -387,10 +387,6 @@ public:
   /// Determine whether the no signed wrap flag is set.
   bool hasNoSignedWrap() const;
 
-  /// Return true if this operator has flags which may cause this instruction
-  /// to evaluate to poison despite having non-poison inputs.
-  bool hasPoisonGeneratingFlags() const;
-
   /// Drops flags that may cause this instruction to evaluate to poison despite
   /// having non-poison inputs.
   void dropPoisonGeneratingFlags();

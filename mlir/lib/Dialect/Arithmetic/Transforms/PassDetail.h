@@ -15,17 +15,13 @@ namespace mlir {
 
 class StandardOpsDialect;
 
-namespace bufferization {
-class BufferizationDialect;
-} // namespace bufferization
-
 namespace memref {
 class MemRefDialect;
-} // namespace memref
+} // end namespace memref
 
 #define GEN_PASS_CLASSES
 #include "mlir/Dialect/Arithmetic/Transforms/Passes.h.inc"
 
-} // namespace mlir
+} // end namespace mlir
 
 #endif // DIALECT_ARITHMETIC_TRANSFORMS_PASSDETAIL_H_

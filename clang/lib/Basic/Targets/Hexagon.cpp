@@ -68,9 +68,6 @@ void HexagonTargetInfo::getTargetDefines(const LangOptions &Opts,
   } else if (CPU == "hexagonv68") {
     Builder.defineMacro("__HEXAGON_V68__");
     Builder.defineMacro("__HEXAGON_ARCH__", "68");
-  } else if (CPU == "hexagonv69") {
-    Builder.defineMacro("__HEXAGON_V69__");
-    Builder.defineMacro("__HEXAGON_ARCH__", "69");
   }
 
   if (hasFeature("hvx-length64b")) {
@@ -130,10 +127,6 @@ bool HexagonTargetInfo::handleTargetFeatures(std::vector<std::string> &Features,
       UseLongCalls = false;
     else if (F == "+audio")
       HasAudio = true;
-  }
-  if (CPU.compare("hexagonv68") >= 0) {
-    HasLegalHalfType = true;
-    HasFloat16 = true;
   }
   return true;
 }
@@ -221,7 +214,7 @@ static constexpr CPUSuffix Suffixes[] = {
     {{"hexagonv60"}, {"60"}}, {{"hexagonv62"},  {"62"}},
     {{"hexagonv65"}, {"65"}}, {{"hexagonv66"},  {"66"}},
     {{"hexagonv67"}, {"67"}}, {{"hexagonv67t"}, {"67t"}},
-    {{"hexagonv68"}, {"68"}}, {{"hexagonv69"},  {"69"}},
+    {{"hexagonv68"}, {"68"}},
 };
 
 const char *HexagonTargetInfo::getHexagonCPUSuffix(StringRef Name) {

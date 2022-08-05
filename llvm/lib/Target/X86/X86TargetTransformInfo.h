@@ -145,10 +145,6 @@ public:
   InstructionCost getScalarizationOverhead(VectorType *Ty,
                                            const APInt &DemandedElts,
                                            bool Insert, bool Extract);
-  InstructionCost getReplicationShuffleCost(Type *EltTy, int ReplicationFactor,
-                                            int VF,
-                                            const APInt &DemandedDstElts,
-                                            TTI::TargetCostKind CostKind);
   InstructionCost getMemoryOpCost(unsigned Opcode, Type *Src,
                                   MaybeAlign Alignment, unsigned AddressSpace,
                                   TTI::TargetCostKind CostKind,
@@ -226,10 +222,6 @@ public:
   bool isLegalMaskedStore(Type *DataType, Align Alignment);
   bool isLegalNTLoad(Type *DataType, Align Alignment);
   bool isLegalNTStore(Type *DataType, Align Alignment);
-  bool forceScalarizeMaskedGather(VectorType *VTy, Align Alignment);
-  bool forceScalarizeMaskedScatter(VectorType *VTy, Align Alignment) {
-    return forceScalarizeMaskedGather(VTy, Alignment);
-  }
   bool isLegalMaskedGather(Type *DataType, Align Alignment);
   bool isLegalMaskedScatter(Type *DataType, Align Alignment);
   bool isLegalMaskedExpandLoad(Type *DataType);
@@ -238,8 +230,9 @@ public:
   bool isFCmpOrdCheaperThanFCmpZero(Type *Ty);
   bool areInlineCompatible(const Function *Caller,
                            const Function *Callee) const;
-  bool areTypesABICompatible(const Function *Caller, const Function *Callee,
-                             const ArrayRef<Type *> &Type) const;
+  bool areFunctionArgsABICompatible(const Function *Caller,
+                                    const Function *Callee,
+                                    SmallPtrSetImpl<Argument *> &Args) const;
   TTI::MemCmpExpansionOptions enableMemCmpExpansion(bool OptSize,
                                                     bool IsZeroCmp) const;
   bool prefersVectorizedAddressing() const;

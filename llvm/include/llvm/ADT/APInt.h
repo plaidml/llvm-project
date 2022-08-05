@@ -31,7 +31,7 @@ class raw_ostream;
 template <typename T> class SmallVectorImpl;
 template <typename T> class ArrayRef;
 template <typename T> class Optional;
-template <typename T, typename Enable> struct DenseMapInfo;
+template <typename T> struct DenseMapInfo;
 
 class APInt;
 
@@ -417,7 +417,7 @@ public:
   bool isIntN(unsigned N) const { return getActiveBits() <= N; }
 
   /// Check if this APInt has an N-bits signed integer value.
-  bool isSignedIntN(unsigned N) const { return getSignificantBits() <= N; }
+  bool isSignedIntN(unsigned N) const { return getMinSignedBits() <= N; }
 
   /// Check if this APInt's value is a power of two greater than zero.
   ///
@@ -1069,9 +1069,8 @@ public:
   ///
   /// \returns true if *this < RHS when considered signed.
   bool slt(int64_t RHS) const {
-    return (!isSingleWord() && getSignificantBits() > 64)
-               ? isNegative()
-               : getSExtValue() < RHS;
+    return (!isSingleWord() && getMinSignedBits() > 64) ? isNegative()
+                                                        : getSExtValue() < RHS;
   }
 
   /// Unsigned less or equal comparison
@@ -1140,9 +1139,8 @@ public:
   ///
   /// \returns true if *this > RHS when considered signed.
   bool sgt(int64_t RHS) const {
-    return (!isSingleWord() && getSignificantBits() > 64)
-               ? !isNegative()
-               : getSExtValue() > RHS;
+    return (!isSingleWord() && getMinSignedBits() > 64) ? !isNegative()
+                                                        : getSExtValue() > RHS;
   }
 
   /// Unsigned greater or equal comparison
@@ -1452,12 +1450,7 @@ public:
   /// returns the smallest bit width that will retain the negative value. For
   /// example, -1 can be written as 0b1 or 0xFFFFFFFFFF. 0b1 is shorter and so
   /// for -1, this function will always return 1.
-  unsigned getSignificantBits() const {
-    return BitWidth - getNumSignBits() + 1;
-  }
-
-  /// NOTE: This is soft-deprecated.  Please use `getSignificantBits()` instead.
-  unsigned getMinSignedBits() const { return getSignificantBits(); }
+  unsigned getMinSignedBits() const { return BitWidth - getNumSignBits() + 1; }
 
   /// Get zero extended value
   ///
@@ -1465,8 +1458,10 @@ public:
   /// uint64_t. The bitwidth must be <= 64 or the value must fit within a
   /// uint64_t. Otherwise an assertion will result.
   uint64_t getZExtValue() const {
-    if (isSingleWord())
+    if (isSingleWord()) {
+      assert(BitWidth && "zero width values not allowed");
       return U.VAL;
+    }
     assert(getActiveBits() <= 64 && "Too many bits for uint64_t");
     return U.pVal[0];
   }
@@ -1479,7 +1474,7 @@ public:
   int64_t getSExtValue() const {
     if (isSingleWord())
       return SignExtend64(U.VAL, BitWidth);
-    assert(getSignificantBits() <= 64 && "Too many bits for int64_t");
+    assert(getMinSignedBits() <= 64 && "Too many bits for int64_t");
     return int64_t(U.pVal[0]);
   }
 
@@ -1822,7 +1817,7 @@ private:
 
   unsigned BitWidth; ///< The number of bits in this APInt.
 
-  friend struct DenseMapInfo<APInt, void>;
+  friend struct DenseMapInfo<APInt>;
   friend class APSInt;
 
   /// This constructor is used only internally for speed of construction of
@@ -2256,7 +2251,7 @@ void StoreIntToMemory(const APInt &IntVal, uint8_t *Dst, unsigned StoreBytes);
 void LoadIntFromMemory(APInt &IntVal, const uint8_t *Src, unsigned LoadBytes);
 
 /// Provide DenseMapInfo for APInt.
-template <> struct DenseMapInfo<APInt, void> {
+template <> struct DenseMapInfo<APInt> {
   static inline APInt getEmptyKey() {
     APInt V(nullptr, 0);
     V.U.VAL = 0;

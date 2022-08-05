@@ -60,7 +60,7 @@ public:
 
 TimingManager::TimingManager() : impl(std::make_unique<TimingManagerImpl>()) {}
 
-TimingManager::~TimingManager() = default;
+TimingManager::~TimingManager() {}
 
 /// Get the root timer of this timing manager.
 Timer TimingManager::getRootTimer() {
@@ -196,9 +196,9 @@ public:
   TimerImpl *nest(const void *id, function_ref<std::string()> nameBuilder) {
     auto tid = llvm::get_threadid();
     if (tid == threadId)
-      return nestTail(children[id], nameBuilder);
+      return nestTail(children[id], std::move(nameBuilder));
     std::unique_lock<std::mutex> lock(asyncMutex);
-    return nestTail(asyncChildren[tid][id], nameBuilder);
+    return nestTail(asyncChildren[tid][id], std::move(nameBuilder));
   }
 
   /// Tail-called from `nest()`.
@@ -524,7 +524,7 @@ void DefaultTimingManager::stopTimer(void *handle) {
 
 void *DefaultTimingManager::nestTimer(void *handle, const void *id,
                                       function_ref<std::string()> nameBuilder) {
-  return static_cast<TimerImpl *>(handle)->nest(id, nameBuilder);
+  return static_cast<TimerImpl *>(handle)->nest(id, std::move(nameBuilder));
 }
 
 void DefaultTimingManager::hideTimer(void *handle) {
@@ -549,7 +549,7 @@ struct DefaultTimingManagerOptions {
           clEnumValN(DisplayMode::Tree, "tree",
                      "display the results ina with a nested tree view"))};
 };
-} // namespace
+} // end anonymous namespace
 
 static llvm::ManagedStatic<DefaultTimingManagerOptions> options;
 

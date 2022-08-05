@@ -531,8 +531,7 @@ void __kmpc_end_serialized_parallel(ident_t *loc, kmp_int32 global_tid) {
 
   kmp_task_team_t *task_team = this_thr->th.th_task_team;
   // we need to wait for the proxy tasks before finishing the thread
-  if (task_team != NULL && (task_team->tt.tt_found_proxy_tasks ||
-                            task_team->tt.tt_hidden_helper_task_encountered))
+  if (task_team != NULL && task_team->tt.tt_found_proxy_tasks)
     __kmp_task_team_wait(this_thr, serial_team USE_ITT_BUILD_ARG(NULL));
 
   KMP_MB();

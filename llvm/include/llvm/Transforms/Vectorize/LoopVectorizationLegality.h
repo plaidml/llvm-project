@@ -29,7 +29,6 @@
 #include "llvm/ADT/MapVector.h"
 #include "llvm/Analysis/LoopAccessAnalysis.h"
 #include "llvm/Analysis/OptimizationRemarkEmitter.h"
-#include "llvm/Analysis/TargetTransformInfo.h"
 #include "llvm/Support/TypeSize.h"
 #include "llvm/Transforms/Utils/LoopUtils.h"
 
@@ -105,12 +104,14 @@ public:
     /// Vectorize loops using scalable vectors or fixed-width vectors, but favor
     /// scalable vectors when the cost-model is inconclusive. This is the
     /// default when the scalable.enable hint is enabled through a pragma.
-    SK_PreferScalable = 1
+    SK_PreferScalable = 1,
+    /// Vectorize loops using scalable vectors or fixed-width  vectors, but
+    /// favor fixed-width vectors when the cost is inconclusive.
+    SK_PreferFixedWidth = 2,
   };
 
   LoopVectorizeHints(const Loop *L, bool InterleaveOnlyWhenForced,
-                     OptimizationRemarkEmitter &ORE,
-                     const TargetTransformInfo *TTI = nullptr);
+                     OptimizationRemarkEmitter &ORE);
 
   /// Mark the loop L as already vectorized by setting the width to 1.
   void setAlreadyVectorized();
@@ -122,10 +123,9 @@ public:
   void emitRemarkWithHints() const;
 
   ElementCount getWidth() const {
-    return ElementCount::get(Width.Value, (ScalableForceKind)Scalable.Value ==
-                                              SK_PreferScalable);
+    return ElementCount::get(Width.Value,
+                             isScalableVectorizationExplicitlyEnabled());
   }
-
   unsigned getInterleave() const {
     if (Interleave.Value)
       return Interleave.Value;
@@ -144,9 +144,22 @@ public:
     return (ForceKind)Force.Value;
   }
 
+  /// \return true if the cost-model for scalable vectorization should
+  /// favor vectorization with scalable vectors over fixed-width vectors when
+  /// the cost-model is inconclusive.
+  bool isScalableVectorizationPreferred() const {
+    return Scalable.Value == SK_PreferScalable;
+  }
+
+  /// \return true if scalable vectorization has been explicitly enabled.
+  bool isScalableVectorizationExplicitlyEnabled() const {
+    return Scalable.Value == SK_PreferFixedWidth ||
+           Scalable.Value == SK_PreferScalable;
+  }
+
   /// \return true if scalable vectorization has been explicitly disabled.
   bool isScalableVectorizationDisabled() const {
-    return (ScalableForceKind)Scalable.Value == SK_FixedWidthOnly;
+    return Scalable.Value == SK_FixedWidthOnly;
   }
 
   /// If hints are provided that force vectorization, use the AlwaysPrint
@@ -280,10 +293,10 @@ public:
   PHINode *getPrimaryInduction() { return PrimaryInduction; }
 
   /// Returns the reduction variables found in the loop.
-  const ReductionList &getReductionVars() const { return Reductions; }
+  ReductionList &getReductionVars() { return Reductions; }
 
   /// Returns the induction variables found in the loop.
-  const InductionList &getInductionVars() const { return Inductions; }
+  InductionList &getInductionVars() { return Inductions; }
 
   /// Return the first-order recurrences found in the loop.
   RecurrenceSet &getFirstOrderRecurrences() { return FirstOrderRecurrences; }
@@ -295,27 +308,23 @@ public:
   Type *getWidestInductionType() { return WidestIndTy; }
 
   /// Returns True if V is a Phi node of an induction variable in this loop.
-  bool isInductionPhi(const Value *V) const;
-
-  /// Returns a pointer to the induction descriptor, if \p Phi is an integer or
-  /// floating point induction.
-  const InductionDescriptor *getIntOrFpInductionDescriptor(PHINode *Phi) const;
+  bool isInductionPhi(const Value *V);
 
   /// Returns True if V is a cast that is part of an induction def-use chain,
   /// and had been proven to be redundant under a runtime guard (in other
   /// words, the cast has the same SCEV expression as the induction phi).
-  bool isCastedInductionVariable(const Value *V) const;
+  bool isCastedInductionVariable(const Value *V);
 
   /// Returns True if V can be considered as an induction variable in this
   /// loop. V can be the induction phi, or some redundant cast in the def-use
   /// chain of the inducion phi.
-  bool isInductionVariable(const Value *V) const;
+  bool isInductionVariable(const Value *V);
 
   /// Returns True if PN is a reduction variable in this loop.
-  bool isReductionVariable(PHINode *PN) const { return Reductions.count(PN); }
+  bool isReductionVariable(PHINode *PN) { return Reductions.count(PN); }
 
   /// Returns True if Phi is a first-order recurrence in this loop.
-  bool isFirstOrderRecurrence(const PHINode *Phi) const;
+  bool isFirstOrderRecurrence(const PHINode *Phi);
 
   /// Return true if the block BB needs to be predicated in order for the loop
   /// to be vectorized.

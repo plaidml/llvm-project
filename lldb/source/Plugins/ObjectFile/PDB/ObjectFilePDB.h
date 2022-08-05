@@ -68,7 +68,7 @@ public:
 
   bool IsExecutable() const override { return false; }
 
-  void ParseSymtab(lldb_private::Symtab &symtab) override {}
+  Symtab *GetSymtab() override { return nullptr; }
 
   bool IsStripped() override { return false; }
 
@@ -102,4 +102,4 @@ private:
 };
 
 } // namespace lldb_private
-#endif // LLDB_SOURCE_PLUGINS_OBJECTFILE_PDB_OBJECTFILEPDB_H
+#endif // LLDB_PLUGINS_OBJECTFILE_PDB_OBJECTFILEPDB_H

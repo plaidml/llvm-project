@@ -160,7 +160,7 @@ private:
         globalPtr, ArrayRef<Value>({cst0, cst0}));
   }
 };
-} // namespace
+} // end anonymous namespace
 
 //===----------------------------------------------------------------------===//
 // ToyToLLVMLoweringPass
@@ -174,7 +174,7 @@ struct ToyToLLVMLoweringPass
   }
   void runOnOperation() final;
 };
-} // namespace
+} // end anonymous namespace
 
 void ToyToLLVMLoweringPass::runOnOperation() {
   // The first thing to define is the conversion target. This will define the

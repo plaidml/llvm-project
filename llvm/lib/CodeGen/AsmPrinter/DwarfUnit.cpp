@@ -77,7 +77,7 @@ void DIEDwarfExpression::enableTemporaryBuffer() {
 void DIEDwarfExpression::disableTemporaryBuffer() { IsBuffering = false; }
 
 unsigned DIEDwarfExpression::getTemporaryBufferSize() {
-  return TmpDIE.computeSize(AP.getDwarfFormParams());
+  return TmpDIE.ComputeSize(&AP);
 }
 
 void DIEDwarfExpression::commitTemporaryBuffer() { OutDIE.takeValues(TmpDIE); }
@@ -394,14 +394,14 @@ DIE &DwarfUnit::createAndAddDIE(dwarf::Tag Tag, DIE &Parent, const DINode *N) {
 }
 
 void DwarfUnit::addBlock(DIE &Die, dwarf::Attribute Attribute, DIELoc *Loc) {
-  Loc->computeSize(Asm->getDwarfFormParams());
+  Loc->ComputeSize(Asm);
   DIELocs.push_back(Loc); // Memoize so we can call the destructor later on.
   addAttribute(Die, Attribute, Loc->BestForm(DD->getDwarfVersion()), Loc);
 }
 
 void DwarfUnit::addBlock(DIE &Die, dwarf::Attribute Attribute, dwarf::Form Form,
                          DIEBlock *Block) {
-  Block->computeSize(Asm->getDwarfFormParams());
+  Block->ComputeSize(Asm);
   DIEBlocks.push_back(Block); // Memoize so we can call the destructor later on.
   addAttribute(Die, Attribute, Form, Block);
 }
@@ -534,18 +534,6 @@ void DwarfUnit::addThrownTypes(DIE &Die, DINodeArray ThrownTypes) {
     DIE &TT = createAndAddDIE(dwarf::DW_TAG_thrown_type, Die);
     addType(TT, cast<DIType>(Ty));
   }
-}
-
-void DwarfUnit::addAccess(DIE &Die, DINode::DIFlags Flags) {
-  if ((Flags & DINode::FlagAccessibility) == DINode::FlagProtected)
-    addUInt(Die, dwarf::DW_AT_accessibility, dwarf::DW_FORM_data1,
-            dwarf::DW_ACCESS_protected);
-  else if ((Flags & DINode::FlagAccessibility) == DINode::FlagPrivate)
-    addUInt(Die, dwarf::DW_AT_accessibility, dwarf::DW_FORM_data1,
-            dwarf::DW_ACCESS_private);
-  else if ((Flags & DINode::FlagAccessibility) == DINode::FlagPublic)
-    addUInt(Die, dwarf::DW_AT_accessibility, dwarf::DW_FORM_data1,
-            dwarf::DW_ACCESS_public);
 }
 
 DIE *DwarfUnit::getOrCreateContextDIE(const DIScope *Context) {
@@ -854,17 +842,13 @@ void DwarfUnit::addAnnotation(DIE &Buffer, DINodeArray Annotations) {
   for (const Metadata *Annotation : Annotations->operands()) {
     const MDNode *MD = cast<MDNode>(Annotation);
     const MDString *Name = cast<MDString>(MD->getOperand(0));
-    const auto &Value = MD->getOperand(1);
+
+    // Currently, only MDString is supported with btf_decl_tag attribute.
+    const MDString *Value = cast<MDString>(MD->getOperand(1));
 
     DIE &AnnotationDie = createAndAddDIE(dwarf::DW_TAG_LLVM_annotation, Buffer);
     addString(AnnotationDie, dwarf::DW_AT_name, Name->getString());
-    if (const auto *Data = dyn_cast<MDString>(Value))
-      addString(AnnotationDie, dwarf::DW_AT_const_value, Data->getString());
-    else if (const auto *Data = dyn_cast<ConstantAsMetadata>(Value))
-      addConstantValue(AnnotationDie, Data->getValue()->getUniqueInteger(),
-                       /*Unsigned=*/true);
-    else
-      assert(false && "Unsupported annotation value type");
+    addString(AnnotationDie, dwarf::DW_AT_const_value, Value->getString());
   }
 }
 
@@ -1022,9 +1006,6 @@ void DwarfUnit::constructTypeDIE(DIE &Buffer, const DICompositeType *CTy) {
     // If we're a forward decl, say so.
     if (CTy->isForwardDecl())
       addFlag(Buffer, dwarf::DW_AT_declaration);
-
-    // Add accessibility info if available.
-    addAccess(Buffer, CTy->getFlags());
 
     // Add source line info if available.
     if (!CTy->isForwardDecl())
@@ -1189,7 +1170,7 @@ bool DwarfUnit::applySubprogramDefinitionAttributes(const DISubprogram *SP,
       DefinitionArgs = SP->getType()->getTypeArray();
 
       if (DeclArgs.size() && DefinitionArgs.size())
-        if (DefinitionArgs[0] != nullptr && DeclArgs[0] != DefinitionArgs[0])
+        if (DefinitionArgs[0] != NULL && DeclArgs[0] != DefinitionArgs[0])
           addType(SPDie, DefinitionArgs[0]);
 
       DeclDie = getDIE(SPDecl);
@@ -1327,7 +1308,15 @@ void DwarfUnit::applySubprogramAttributes(const DISubprogram *SP, DIE &SPDie,
   if (SP->isNoReturn())
     addFlag(SPDie, dwarf::DW_AT_noreturn);
 
-  addAccess(SPDie, SP->getFlags());
+  if (SP->isProtected())
+    addUInt(SPDie, dwarf::DW_AT_accessibility, dwarf::DW_FORM_data1,
+            dwarf::DW_ACCESS_protected);
+  else if (SP->isPrivate())
+    addUInt(SPDie, dwarf::DW_AT_accessibility, dwarf::DW_FORM_data1,
+            dwarf::DW_ACCESS_private);
+  else if (SP->isPublic())
+    addUInt(SPDie, dwarf::DW_AT_accessibility, dwarf::DW_FORM_data1,
+            dwarf::DW_ACCESS_public);
 
   if (SP->isExplicit())
     addFlag(SPDie, dwarf::DW_AT_explicit);
@@ -1677,8 +1666,16 @@ DIE &DwarfUnit::constructMemberDIE(DIE &Buffer, const DIDerivedType *DT) {
     }
   }
 
-  addAccess(MemberDie, DT->getFlags());
-
+  if (DT->isProtected())
+    addUInt(MemberDie, dwarf::DW_AT_accessibility, dwarf::DW_FORM_data1,
+            dwarf::DW_ACCESS_protected);
+  else if (DT->isPrivate())
+    addUInt(MemberDie, dwarf::DW_AT_accessibility, dwarf::DW_FORM_data1,
+            dwarf::DW_ACCESS_private);
+  // Otherwise C++ member and base classes are considered public.
+  else if (DT->isPublic())
+    addUInt(MemberDie, dwarf::DW_AT_accessibility, dwarf::DW_FORM_data1,
+            dwarf::DW_ACCESS_public);
   if (DT->isVirtual())
     addUInt(MemberDie, dwarf::DW_AT_virtuality, dwarf::DW_FORM_data1,
             dwarf::DW_VIRTUALITY_virtual);
@@ -1720,7 +1717,15 @@ DIE *DwarfUnit::getOrCreateStaticMemberDIE(const DIDerivedType *DT) {
 
   // FIXME: We could omit private if the parent is a class_type, and
   // public if the parent is something else.
-  addAccess(StaticMemberDIE, DT->getFlags());
+  if (DT->isProtected())
+    addUInt(StaticMemberDIE, dwarf::DW_AT_accessibility, dwarf::DW_FORM_data1,
+            dwarf::DW_ACCESS_protected);
+  else if (DT->isPrivate())
+    addUInt(StaticMemberDIE, dwarf::DW_AT_accessibility, dwarf::DW_FORM_data1,
+            dwarf::DW_ACCESS_private);
+  else if (DT->isPublic())
+    addUInt(StaticMemberDIE, dwarf::DW_AT_accessibility, dwarf::DW_FORM_data1,
+            dwarf::DW_ACCESS_public);
 
   if (const ConstantInt *CI = dyn_cast_or_null<ConstantInt>(DT->getConstant()))
     addConstantValue(StaticMemberDIE, CI, Ty);

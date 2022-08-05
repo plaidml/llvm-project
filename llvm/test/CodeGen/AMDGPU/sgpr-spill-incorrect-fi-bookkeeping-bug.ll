@@ -10,6 +10,7 @@ define amdgpu_kernel void @kernel0(i32 addrspace(1)* %out, i32 %in) #1 {
   call void asm sideeffect "", "~{v[16:19]}"() #0
   call void asm sideeffect "", "~{v[20:21]}"() #0
   call void asm sideeffect "", "~{v22}"() #0
+
   %val0 = call <2 x i32> asm sideeffect "; def $0", "=s" () #0
   %val1 = call <4 x i32> asm sideeffect "; def $0", "=s" () #0
   %val2 = call <8 x i32> asm sideeffect "; def $0", "=s" () #0
@@ -30,6 +31,10 @@ define amdgpu_kernel void @kernel0(i32 addrspace(1)* %out, i32 %in) #1 {
   %val17 = call <4 x i32> asm sideeffect "; def $0", "=s" () #0
   %val18 = call <8 x i32> asm sideeffect "; def $0", "=s" () #0
   %val19 = call <16 x i32> asm sideeffect "; def $0", "=s" () #0
+  %cmp = icmp eq i32 %in, 0
+  br i1 %cmp, label %bb0, label %ret
+
+bb0:
   call void asm sideeffect "; use $0", "s"(<2 x i32> %val0) #0
   call void asm sideeffect "; use $0", "s"(<4 x i32> %val1) #0
   call void asm sideeffect "; use $0", "s"(<8 x i32> %val2) #0
@@ -50,6 +55,9 @@ define amdgpu_kernel void @kernel0(i32 addrspace(1)* %out, i32 %in) #1 {
   call void asm sideeffect "; use $0", "s"(<4 x i32> %val17) #0
   call void asm sideeffect "; use $0", "s"(<8 x i32> %val18) #0
   call void asm sideeffect "; use $0", "s"(<16 x i32> %val19) #0
+  br label %ret
+
+ret:
   ret void
 }
 

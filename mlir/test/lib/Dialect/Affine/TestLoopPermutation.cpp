@@ -10,7 +10,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Dialect/Affine/Analysis/Utils.h"
+#include "mlir/Analysis/Utils.h"
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/LoopUtils.h"
@@ -26,15 +26,15 @@ namespace {
 
 /// This pass applies the permutation on the first maximal perfect nest.
 struct TestLoopPermutation
-    : public PassWrapper<TestLoopPermutation, OperationPass<FuncOp>> {
+    : public PassWrapper<TestLoopPermutation, FunctionPass> {
   StringRef getArgument() const final { return PASS_NAME; }
   StringRef getDescription() const final {
     return "Tests affine loop permutation utility";
   }
   TestLoopPermutation() = default;
-  TestLoopPermutation(const TestLoopPermutation &pass) : PassWrapper(pass){};
+  TestLoopPermutation(const TestLoopPermutation &pass){};
 
-  void runOnOperation() override;
+  void runOnFunction() override;
 
 private:
   /// Permutation specifying loop i is mapped to permList[i] in
@@ -44,25 +44,24 @@ private:
                                 llvm::cl::OneOrMore, llvm::cl::CommaSeparated};
 };
 
-} // namespace
+} // end anonymous namespace
 
-void TestLoopPermutation::runOnOperation() {
-
-  SmallVector<unsigned, 4> permMap(permList.begin(), permList.end());
-
-  SmallVector<AffineForOp, 2> forOps;
-  getOperation().walk([&](AffineForOp forOp) { forOps.push_back(forOp); });
-
-  for (auto forOp : forOps) {
-    SmallVector<AffineForOp, 6> nest;
-    // Get the maximal perfect nest.
-    getPerfectlyNestedLoops(nest, forOp);
-    // Permute if the nest's size is consistent with the specified
-    // permutation.
-    if (nest.size() >= 2 && nest.size() == permMap.size()) {
-      permuteLoops(nest, permMap);
+void TestLoopPermutation::runOnFunction() {
+  // Get the first maximal perfect nest.
+  SmallVector<AffineForOp, 6> nest;
+  for (auto &op : getFunction().front()) {
+    if (auto forOp = dyn_cast<AffineForOp>(op)) {
+      getPerfectlyNestedLoops(nest, forOp);
+      break;
     }
   }
+
+  // Nothing to do.
+  if (nest.size() < 2)
+    return;
+
+  SmallVector<unsigned, 4> permMap(permList.begin(), permList.end());
+  permuteLoops(nest, permMap);
 }
 
 namespace mlir {

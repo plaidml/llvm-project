@@ -53,6 +53,8 @@ public:
 
   MLIRContext *getContext() const { return context; }
 
+  Identifier getIdentifier(const Twine &str);
+
   // Locations.
   Location getUnknownLoc();
   Location getFusedLoc(ArrayRef<Location> locs,
@@ -384,18 +386,15 @@ public:
 
   /// Add new block with 'argTypes' arguments and set the insertion point to the
   /// end of it. The block is inserted at the provided insertion point of
-  /// 'parent'. `locs` contains the locations of the inserted arguments, and
-  /// should match the size of `argTypes`.
+  /// 'parent'.
   Block *createBlock(Region *parent, Region::iterator insertPt = {},
                      TypeRange argTypes = llvm::None,
-                     ArrayRef<Location> locs = llvm::None);
+                     ArrayRef<Location> locs = {});
 
   /// Add new block with 'argTypes' arguments and set the insertion point to the
-  /// end of it. The block is placed before 'insertBefore'. `locs` contains the
-  /// locations of the inserted arguments, and should match the size of
-  /// `argTypes`.
+  /// end of it. The block is placed before 'insertBefore'.
   Block *createBlock(Block *insertBefore, TypeRange argTypes = llvm::None,
-                     ArrayRef<Location> locs = llvm::None);
+                     ArrayRef<Location> locs = {});
 
   //===--------------------------------------------------------------------===//
   // Operation Creation
@@ -409,27 +408,22 @@ public:
 
 private:
   /// Helper for sanity checking preconditions for create* methods below.
-  template <typename OpT>
-  RegisteredOperationName getCheckRegisteredInfo(MLIRContext *ctx) {
-    Optional<RegisteredOperationName> opName =
-        RegisteredOperationName::lookup(OpT::getOperationName(), ctx);
-    if (LLVM_UNLIKELY(!opName)) {
+  void checkHasAbstractOperation(const OperationName &name) {
+    if (LLVM_UNLIKELY(!name.getAbstractOperation()))
       llvm::report_fatal_error(
-          "Building op `" + OpT::getOperationName() +
+          "Building op `" + name.getStringRef() +
           "` but it isn't registered in this MLIRContext: the dialect may not "
           "be loaded or this operation isn't registered by the dialect. See "
           "also https://mlir.llvm.org/getting_started/Faq/"
           "#registered-loaded-dependent-whats-up-with-dialects-management");
-    }
-    return *opName;
   }
 
 public:
   /// Create an operation of specific op type at the current insertion point.
   template <typename OpTy, typename... Args>
   OpTy create(Location location, Args &&...args) {
-    OperationState state(location,
-                         getCheckRegisteredInfo<OpTy>(location.getContext()));
+    OperationState state(location, OpTy::getOperationName());
+    checkHasAbstractOperation(state.name);
     OpTy::build(*this, state, std::forward<Args>(args)...);
     auto *op = createOperation(state);
     auto result = dyn_cast<OpTy>(op);
@@ -445,8 +439,8 @@ public:
                     Args &&...args) {
     // Create the operation without using 'createOperation' as we don't want to
     // insert it yet.
-    OperationState state(location,
-                         getCheckRegisteredInfo<OpTy>(location.getContext()));
+    OperationState state(location, OpTy::getOperationName());
+    checkHasAbstractOperation(state.name);
     OpTy::build(*this, state, std::forward<Args>(args)...);
     Operation *op = Operation::create(state);
 

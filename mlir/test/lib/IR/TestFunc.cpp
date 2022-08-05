@@ -1,4 +1,4 @@
-//===- TestFunc.cpp - Pass to test helpers on function utilities ----------===//
+//===- TestFunctionLike.cpp - Pass to test helpers on FunctionLike --------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -20,7 +20,6 @@ struct TestFuncInsertArg
   void runOnOperation() override {
     auto module = getOperation();
 
-    UnknownLoc unknownLoc = UnknownLoc::get(module.getContext());
     for (FuncOp func : module.getOps<FuncOp>()) {
       auto inserts = func->getAttrOfType<ArrayAttr>("test.insert_args");
       if (!inserts || inserts.empty())
@@ -28,7 +27,7 @@ struct TestFuncInsertArg
       SmallVector<unsigned, 4> indicesToInsert;
       SmallVector<Type, 4> typesToInsert;
       SmallVector<DictionaryAttr, 4> attrsToInsert;
-      SmallVector<Location, 4> locsToInsert;
+      SmallVector<Optional<Location>, 4> locsToInsert;
       for (auto insert : inserts.getAsRange<ArrayAttr>()) {
         indicesToInsert.push_back(
             insert[0].cast<IntegerAttr>().getValue().getZExtValue());
@@ -36,9 +35,10 @@ struct TestFuncInsertArg
         attrsToInsert.push_back(insert.size() > 2
                                     ? insert[2].cast<DictionaryAttr>()
                                     : DictionaryAttr::get(&getContext()));
-        locsToInsert.push_back(insert.size() > 3
-                                   ? Location(insert[3].cast<LocationAttr>())
-                                   : unknownLoc);
+        locsToInsert.push_back(
+            insert.size() > 3
+                ? Optional<Location>(insert[3].cast<LocationAttr>())
+                : Optional<Location>{});
       }
       func->removeAttr("test.insert_args");
       func.insertArguments(indicesToInsert, typesToInsert, attrsToInsert,
@@ -149,7 +149,7 @@ struct TestFuncSetType
     }
   }
 };
-} // namespace
+} // end anonymous namespace
 
 namespace mlir {
 void registerTestFunc() {

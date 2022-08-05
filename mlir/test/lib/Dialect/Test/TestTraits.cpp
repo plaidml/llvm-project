@@ -31,16 +31,15 @@ OpFoldResult TestInvolutionTraitSuccesfulOperationFolderOp::fold(
 }
 
 namespace {
-struct TestTraitFolder
-    : public PassWrapper<TestTraitFolder, OperationPass<FuncOp>> {
+struct TestTraitFolder : public PassWrapper<TestTraitFolder, FunctionPass> {
   StringRef getArgument() const final { return "test-trait-folder"; }
   StringRef getDescription() const final { return "Run trait folding"; }
-  void runOnOperation() override {
-    (void)applyPatternsAndFoldGreedily(getOperation(),
+  void runOnFunction() override {
+    (void)applyPatternsAndFoldGreedily(getFunction(),
                                        RewritePatternSet(&getContext()));
   }
 };
-} // namespace
+} // end anonymous namespace
 
 namespace mlir {
 void registerTestTraitsPass() { PassRegistration<TestTraitFolder>(); }

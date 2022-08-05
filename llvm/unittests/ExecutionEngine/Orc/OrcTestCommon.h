@@ -103,8 +103,7 @@ public:
       orc::SymbolStringPtr InitSym = nullptr,
       DiscardFunction Discard = DiscardFunction(),
       DestructorFunction Destructor = DestructorFunction())
-      : MaterializationUnit(
-            Interface(std::move(SymbolFlags), std::move(InitSym))),
+      : MaterializationUnit(std::move(SymbolFlags), std::move(InitSym)),
         Materialize(std::move(Materialize)), Discard(std::move(Discard)),
         Destructor(std::move(Destructor)) {}
 

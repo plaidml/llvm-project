@@ -148,12 +148,6 @@ ScriptInterpreterLua::ScriptInterpreterLua(Debugger &debugger)
 
 ScriptInterpreterLua::~ScriptInterpreterLua() = default;
 
-StructuredData::DictionarySP ScriptInterpreterLua::GetInterpreterInfo() {
-  auto info = std::make_shared<StructuredData::Dictionary>();
-  info->AddStringItem("language", "lua");
-  return info;
-}
-
 bool ScriptInterpreterLua::ExecuteOneLine(llvm::StringRef command,
                                           CommandReturnObject *result,
                                           const ExecuteScriptOptions &options) {

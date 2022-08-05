@@ -32,8 +32,16 @@ namespace elf {
 // add*() functions, which are called by input files as they are parsed. There
 // is one add* function per symbol type.
 class SymbolTable {
+  struct FilterOutPlaceholder {
+    bool operator()(Symbol *S) const { return !S->isPlaceholder(); }
+  };
+  using iterator = llvm::filter_iterator<std::vector<Symbol *>::const_iterator,
+                                         FilterOutPlaceholder>;
+
 public:
-  ArrayRef<Symbol *> symbols() const { return symVector; }
+  llvm::iterator_range<iterator> symbols() const {
+    return llvm::make_filter_range(symVector, FilterOutPlaceholder());
+  }
 
   void wrap(Symbol *sym, Symbol *real, Symbol *wrap);
 
@@ -48,7 +56,7 @@ public:
   void handleDynamicList();
 
   // Set of .so files to not link the same shared object file more than once.
-  llvm::DenseMap<llvm::CachedHashStringRef, SharedFile *> soNames;
+  llvm::DenseMap<StringRef, SharedFile *> soNames;
 
   // Comdat groups define "link once" sections. If two comdat groups have the
   // same name, only one of them is linked, and the other is ignored. This map
@@ -56,11 +64,11 @@ public:
   llvm::DenseMap<llvm::CachedHashStringRef, const InputFile *> comdatGroups;
 
 private:
-  SmallVector<Symbol *, 0> findByVersion(SymbolVersion ver);
-  SmallVector<Symbol *, 0> findAllByVersion(SymbolVersion ver,
-                                            bool includeNonDefault);
+  std::vector<Symbol *> findByVersion(SymbolVersion ver);
+  std::vector<Symbol *> findAllByVersion(SymbolVersion ver,
+                                         bool includeNonDefault);
 
-  llvm::StringMap<SmallVector<Symbol *, 0>> &getDemangledSyms();
+  llvm::StringMap<std::vector<Symbol *>> &getDemangledSyms();
   bool assignExactVersion(SymbolVersion ver, uint16_t versionId,
                           StringRef versionName, bool includeNonDefault);
   void assignWildcardVersion(SymbolVersion ver, uint16_t versionId,
@@ -74,16 +82,16 @@ private:
   // FIXME: Experiment with passing in a custom hashing or sorting the symbols
   // once symbol resolution is finished.
   llvm::DenseMap<llvm::CachedHashStringRef, int> symMap;
-  SmallVector<Symbol *, 0> symVector;
+  std::vector<Symbol *> symVector;
 
   // A map from demangled symbol names to their symbol objects.
   // This mapping is 1:N because two symbols with different versions
   // can have the same name. We use this map to handle "extern C++ {}"
   // directive in version scripts.
-  llvm::Optional<llvm::StringMap<SmallVector<Symbol *, 0>>> demangledSyms;
+  llvm::Optional<llvm::StringMap<std::vector<Symbol *>>> demangledSyms;
 };
 
-extern std::unique_ptr<SymbolTable> symtab;
+extern SymbolTable *symtab;
 
 } // namespace elf
 } // namespace lld

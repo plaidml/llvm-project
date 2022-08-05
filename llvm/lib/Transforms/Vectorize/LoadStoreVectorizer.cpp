@@ -698,9 +698,8 @@ Vectorizer::getVectorizablePrefix(ArrayRef<Instruction *> Chain) {
       ChainInstrs.push_back(&I);
       continue;
     }
-    if (!isGuaranteedToTransferExecutionToSuccessor(&I)) {
-      LLVM_DEBUG(dbgs() << "LSV: Found instruction may not transfer execution: "
-                        << I << '\n');
+    if (I.mayThrow()) {
+      LLVM_DEBUG(dbgs() << "LSV: Found may-throw operation: " << I << '\n');
       break;
     }
     if (I.mayReadOrWriteMemory())

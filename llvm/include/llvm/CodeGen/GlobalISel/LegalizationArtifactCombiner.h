@@ -487,8 +487,7 @@ public:
       // That is not done yet.
       if (ConvertOp == 0)
         return true;
-      return !DestTy.isVector() && OpTy.isVector() &&
-             DestTy == OpTy.getElementType();
+      return !DestTy.isVector() && OpTy.isVector();
     case TargetOpcode::G_CONCAT_VECTORS: {
       if (ConvertOp == 0)
         return true;
@@ -978,13 +977,10 @@ public:
         Builder.setInstr(MI);
 
         for (unsigned Idx = 0; Idx < NumDefs; ++Idx) {
-          Register DefReg = MI.getOperand(Idx).getReg();
           Register MergeSrc = MergeI->getOperand(Idx + 1).getReg();
-
-          if (!MRI.use_empty(DefReg)) {
-            Builder.buildInstr(ConvertOp, {DefReg}, {MergeSrc});
-            UpdatedDefs.push_back(DefReg);
-          }
+          Register DefReg = MI.getOperand(Idx).getReg();
+          Builder.buildInstr(ConvertOp, {DefReg}, {MergeSrc});
+          UpdatedDefs.push_back(DefReg);
         }
 
         markInstAndDefDead(MI, *MergeI, DeadInsts);
@@ -1252,7 +1248,7 @@ private:
     for (auto *DeadMI : DeadInsts) {
       LLVM_DEBUG(dbgs() << *DeadMI << "Is dead, eagerly deleting\n");
       WrapperObserver.erasingInstr(*DeadMI);
-      DeadMI->eraseFromParent();
+      DeadMI->eraseFromParentAndMarkDBGValuesForRemoval();
     }
     DeadInsts.clear();
   }

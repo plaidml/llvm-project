@@ -41,8 +41,6 @@ class TestLaunchProcessPosixSpawn(TestBase):
 
     @skipUnlessDarwin
     @skipIfDarwinEmbedded
-    @skipIfLLVMTargetMissing("AArch64")
-    @skipIfLLVMTargetMissing("X86")
     @skipTestIfFn(no_haswell)
     def test_haswell(self):
         self.build()
@@ -52,8 +50,6 @@ class TestLaunchProcessPosixSpawn(TestBase):
 
     @skipUnlessDarwin
     @skipIfDarwinEmbedded
-    @skipIfLLVMTargetMissing("AArch64")
-    @skipIfLLVMTargetMissing("X86")
     @skipTestIfFn(no_apple_silicon)
     def test_apple_silicon(self):
         self.build()

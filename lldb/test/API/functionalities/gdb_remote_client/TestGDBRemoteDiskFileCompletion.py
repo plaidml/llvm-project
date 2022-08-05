@@ -1,9 +1,6 @@
-from lldbsuite.test.gdbclientutils import *
-from lldbsuite.test.lldbgdbclient import GDBPlatformClientTestBase
+from gdbclientutils import *
 
 class TestGDBRemoteDiskFileCompletion(GDBPlatformClientTestBase):
-
-    mydir = GDBPlatformClientTestBase.compute_mydir(__file__)
 
     def test_autocomplete_request(self):
         """Test remote disk completion on remote-gdb-server plugin"""

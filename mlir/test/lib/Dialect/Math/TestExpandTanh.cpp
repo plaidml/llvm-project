@@ -18,14 +18,14 @@ using namespace mlir;
 
 namespace {
 struct TestExpandTanhPass
-    : public PassWrapper<TestExpandTanhPass, OperationPass<FuncOp>> {
-  void runOnOperation() override;
+    : public PassWrapper<TestExpandTanhPass, FunctionPass> {
+  void runOnFunction() override;
   StringRef getArgument() const final { return "test-expand-tanh"; }
   StringRef getDescription() const final { return "Test expanding tanh"; }
 };
-} // namespace
+} // end anonymous namespace
 
-void TestExpandTanhPass::runOnOperation() {
+void TestExpandTanhPass::runOnFunction() {
   RewritePatternSet patterns(&getContext());
   populateExpandTanhPattern(patterns);
   (void)applyPatternsAndFoldGreedily(getOperation(), std::move(patterns));

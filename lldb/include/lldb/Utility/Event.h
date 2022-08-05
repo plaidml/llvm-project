@@ -99,7 +99,7 @@ private:
 
 class EventDataReceipt : public EventData {
 public:
-  EventDataReceipt() : m_predicate(false) {}
+  EventDataReceipt() : EventData(), m_predicate(false) {}
 
   ~EventDataReceipt() override = default;
 

@@ -284,7 +284,7 @@ LanaiTargetLowering::getSingleConstraintMatchWeight(
 void LanaiTargetLowering::LowerAsmOperandForConstraint(
     SDValue Op, std::string &Constraint, std::vector<SDValue> &Ops,
     SelectionDAG &DAG) const {
-  SDValue Result;
+  SDValue Result(nullptr, 0);
 
   // Only support length 1 constraints for now.
   if (Constraint.length() > 1)
@@ -486,7 +486,7 @@ SDValue LanaiTargetLowering::LowerCCCArguments(
         llvm_unreachable("unhandled argument type");
       }
     } else {
-      // Only arguments passed on the stack should make it here.
+      // Sanity check
       assert(VA.isMemLoc());
       // Load the argument to a virtual register
       unsigned ObjSize = VA.getLocVT().getSizeInBits() / 8;
@@ -511,7 +511,7 @@ SDValue LanaiTargetLowering::LowerCCCArguments(
   // the sret argument into rv for the return. Save the argument into
   // a virtual register so that we can access it from the return points.
   if (MF.getFunction().hasStructRetAttr()) {
-    Register Reg = LanaiMFI->getSRetReturnReg();
+    unsigned Reg = LanaiMFI->getSRetReturnReg();
     if (!Reg) {
       Reg = MF.getRegInfo().createVirtualRegister(getRegClassFor(MVT::i32));
       LanaiMFI->setSRetReturnReg(Reg);
@@ -577,7 +577,7 @@ LanaiTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
   if (DAG.getMachineFunction().getFunction().hasStructRetAttr()) {
     MachineFunction &MF = DAG.getMachineFunction();
     LanaiMachineFunctionInfo *LanaiMFI = MF.getInfo<LanaiMachineFunctionInfo>();
-    Register Reg = LanaiMFI->getSRetReturnReg();
+    unsigned Reg = LanaiMFI->getSRetReturnReg();
     assert(Reg &&
            "SRetReturnReg should have been set in LowerFormalArguments().");
     SDValue Val =
@@ -1077,7 +1077,7 @@ SDValue LanaiTargetLowering::LowerRETURNADDR(SDValue Op,
 
   // Return the link register, which contains the return address.
   // Mark it an implicit live-in.
-  Register Reg = MF.addLiveIn(TRI->getRARegister(), getRegClassFor(MVT::i32));
+  unsigned Reg = MF.addLiveIn(TRI->getRARegister(), getRegClassFor(MVT::i32));
   return DAG.getCopyFromReg(DAG.getEntryNode(), DL, Reg, VT);
 }
 

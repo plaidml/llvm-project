@@ -83,6 +83,7 @@ Error RawCoverageReader::readIntMax(uint64_t &Result, uint64_t MaxPlus1) {
 Error RawCoverageReader::readSize(uint64_t &Result) {
   if (auto Err = readULEB128(Result))
     return Err;
+  // Sanity check the number.
   if (Result > Data.size())
     return make_error<CoverageMapError>(coveragemap_error::malformed);
   return Error::success();
@@ -566,8 +567,7 @@ class VersionedCovMapFuncRecordReader : public CovMapFuncRecordReader {
       if (Error Err = CFR->template getFuncName<Endian>(ProfileNames, FuncName))
         return Err;
       if (FuncName.empty())
-        return make_error<InstrProfError>(instrprof_error::malformed,
-                                          "function name is empty");
+        return make_error<InstrProfError>(instrprof_error::malformed);
       ++CovMapNumUsedRecords;
       Records.emplace_back(Version, FuncName, FuncHash, Mapping,
                            FileRange.StartingIndex, FileRange.Length);

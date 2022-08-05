@@ -91,7 +91,7 @@ static void VerifyDecl(clang::Decl *decl) {
   assert(decl && "VerifyDecl called with nullptr?");
 #ifndef NDEBUG
   // We don't care about the actual access value here but only want to trigger
-  // that Clang calls its internal Decl::AccessDeclContextCheck validation.
+  // that Clang calls its internal Decl::AccessDeclContextSanity check.
   decl->getAccess();
 #endif
 }
@@ -1345,30 +1345,7 @@ namespace {
 bool IsValueParam(const clang::TemplateArgument &argument) {
   return argument.getKind() == TemplateArgument::Integral;
 }
-
-void AddAccessSpecifierDecl(clang::CXXRecordDecl *cxx_record_decl,
-                            ASTContext &ct,
-                            clang::AccessSpecifier previous_access,
-                            clang::AccessSpecifier access_specifier) {
-  if (!cxx_record_decl->isClass() && !cxx_record_decl->isStruct())
-    return;
-  if (previous_access != access_specifier) {
-    // For struct, don't add AS_public if it's the first AccessSpecDecl.
-    // For class, don't add AS_private if it's the first AccessSpecDecl.
-    if ((cxx_record_decl->isStruct() &&
-         previous_access == clang::AccessSpecifier::AS_none &&
-         access_specifier == clang::AccessSpecifier::AS_public) ||
-        (cxx_record_decl->isClass() &&
-         previous_access == clang::AccessSpecifier::AS_none &&
-         access_specifier == clang::AccessSpecifier::AS_private)) {
-      return;
-    }
-    cxx_record_decl->addDecl(
-        AccessSpecDecl::Create(ct, access_specifier, cxx_record_decl,
-                               SourceLocation(), SourceLocation()));
-  }
 }
-} // namespace
 
 static TemplateParameterList *CreateTemplateParameterList(
     ASTContext &ast,
@@ -1476,7 +1453,7 @@ void TypeSystemClang::CreateFunctionTemplateSpecializationInfo(
 /// as `int I = 3`.
 static bool TemplateParameterAllowsValue(NamedDecl *param,
                                          const TemplateArgument &value) {
-  if (llvm::isa<TemplateTypeParmDecl>(param)) {
+  if (auto *type_param = llvm::dyn_cast<TemplateTypeParmDecl>(param)) {
     // Compare the argument kind, i.e. ensure that <typename> != <int>.
     if (value.getKind() != TemplateArgument::Type)
       return false;
@@ -2575,22 +2552,6 @@ ClangASTMetadata *TypeSystemClang::GetMetadata(const clang::Type *object) {
   return nullptr;
 }
 
-void TypeSystemClang::SetCXXRecordDeclAccess(const clang::CXXRecordDecl *object,
-                                             clang::AccessSpecifier access) {
-  if (access == clang::AccessSpecifier::AS_none)
-    m_cxx_record_decl_access.erase(object);
-  else
-    m_cxx_record_decl_access[object] = access;
-}
-
-clang::AccessSpecifier
-TypeSystemClang::GetCXXRecordDeclAccess(const clang::CXXRecordDecl *object) {
-  auto It = m_cxx_record_decl_access.find(object);
-  if (It != m_cxx_record_decl_access.end())
-    return It->second;
-  return clang::AccessSpecifier::AS_none;
-}
-
 clang::DeclContext *
 TypeSystemClang::GetDeclContextForType(const CompilerType &type) {
   return GetDeclContextForType(ClangUtil::GetQualType(type));
@@ -2620,7 +2581,6 @@ RemoveWrappingTypes(QualType type, ArrayRef<clang::Type::TypeClass> mask = {}) {
     case clang::Type::Typedef:
     case clang::Type::TypeOf:
     case clang::Type::TypeOfExpr:
-    case clang::Type::Using:
       type = type->getLocallyUnqualifiedSingleStepDesugaredType();
       break;
     default:
@@ -4103,7 +4063,6 @@ TypeSystemClang::GetTypeClass(lldb::opaque_compiler_type_t type) {
   case clang::Type::Paren:
   case clang::Type::TypeOf:
   case clang::Type::TypeOfExpr:
-  case clang::Type::Using:
     llvm_unreachable("Handled in RemoveWrappingTypes!");
   case clang::Type::UnaryTransform:
     break;
@@ -4129,8 +4088,8 @@ TypeSystemClang::GetTypeClass(lldb::opaque_compiler_type_t type) {
     return lldb::eTypeClassVector;
   case clang::Type::Builtin:
   // Ext-Int is just an integer type.
-  case clang::Type::BitInt:
-  case clang::Type::DependentBitInt:
+  case clang::Type::ExtInt:
+  case clang::Type::DependentExtInt:
     return lldb::eTypeClassBuiltin;
   case clang::Type::ObjCObjectPointer:
     return lldb::eTypeClassObjCObjectPointer;
@@ -4763,7 +4722,6 @@ lldb::Encoding TypeSystemClang::GetEncoding(lldb::opaque_compiler_type_t type,
   case clang::Type::Typedef:
   case clang::Type::TypeOf:
   case clang::Type::TypeOfExpr:
-  case clang::Type::Using:
     llvm_unreachable("Handled in RemoveWrappingTypes!");
 
   case clang::Type::UnaryTransform:
@@ -4786,8 +4744,8 @@ lldb::Encoding TypeSystemClang::GetEncoding(lldb::opaque_compiler_type_t type,
     // TODO: Set this to more than one???
     break;
 
-  case clang::Type::BitInt:
-  case clang::Type::DependentBitInt:
+  case clang::Type::ExtInt:
+  case clang::Type::DependentExtInt:
     return qual_type->isUnsignedIntegerType() ? lldb::eEncodingUint
                                               : lldb::eEncodingSint;
 
@@ -5146,7 +5104,6 @@ lldb::Format TypeSystemClang::GetFormat(lldb::opaque_compiler_type_t type) {
   case clang::Type::Typedef:
   case clang::Type::TypeOf:
   case clang::Type::TypeOfExpr:
-  case clang::Type::Using:
     llvm_unreachable("Handled in RemoveWrappingTypes!");
   case clang::Type::UnaryTransform:
     break;
@@ -5167,8 +5124,8 @@ lldb::Format TypeSystemClang::GetFormat(lldb::opaque_compiler_type_t type) {
   case clang::Type::Vector:
     break;
 
-  case clang::Type::BitInt:
-  case clang::Type::DependentBitInt:
+  case clang::Type::ExtInt:
+  case clang::Type::DependentExtInt:
     return qual_type->isUnsignedIntegerType() ? lldb::eFormatUnsigned
                                               : lldb::eFormatDecimal;
 
@@ -5188,8 +5145,6 @@ lldb::Format TypeSystemClang::GetFormat(lldb::opaque_compiler_type_t type) {
     case clang::BuiltinType::UChar:
     case clang::BuiltinType::WChar_U:
       return lldb::eFormatChar;
-    case clang::BuiltinType::Char8:
-      return lldb::eFormatUnicode8;
     case clang::BuiltinType::Char16:
       return lldb::eFormatUnicode16;
     case clang::BuiltinType::Char32:
@@ -6537,8 +6492,7 @@ CompilerType TypeSystemClang::GetChildCompilerTypeAtIndex(
   case clang::Type::RValueReference:
     if (idx_is_valid) {
       const clang::ReferenceType *reference_type =
-          llvm::cast<clang::ReferenceType>(
-              RemoveWrappingTypes(GetQualType(type)).getTypePtr());
+          llvm::cast<clang::ReferenceType>(GetQualType(type).getTypePtr());
       CompilerType pointee_clang_type =
           GetType(reference_type->getPointeeType());
       if (transparent_pointers && pointee_clang_type.IsAggregateType()) {
@@ -7315,17 +7269,9 @@ clang::FieldDecl *TypeSystemClang::AddFieldToRecordType(
     }
 
     if (field) {
-      clang::AccessSpecifier access_specifier =
-          TypeSystemClang::ConvertAccessTypeToAccessSpecifier(access);
-      field->setAccess(access_specifier);
+      field->setAccess(
+          TypeSystemClang::ConvertAccessTypeToAccessSpecifier(access));
 
-      if (clang::CXXRecordDecl *cxx_record_decl =
-              llvm::dyn_cast<CXXRecordDecl>(record_decl)) {
-        AddAccessSpecifierDecl(cxx_record_decl, ast->getASTContext(),
-                               ast->GetCXXRecordDeclAccess(cxx_record_decl),
-                               access_specifier);
-        ast->SetCXXRecordDeclAccess(cxx_record_decl, access_specifier);
-      }
       record_decl->addDecl(field);
 
       VerifyDecl(field);
@@ -7703,11 +7649,6 @@ clang::CXXMethodDecl *TypeSystemClang::AddMethodToCXXRecordType(
   }
 
   cxx_method_decl->setParams(llvm::ArrayRef<clang::ParmVarDecl *>(params));
-
-  AddAccessSpecifierDecl(cxx_record_decl, getASTContext(),
-                         GetCXXRecordDeclAccess(cxx_record_decl),
-                         access_specifier);
-  SetCXXRecordDeclAccess(cxx_record_decl, access_specifier);
 
   cxx_record_decl->addDecl(cxx_method_decl);
 
@@ -8242,11 +8183,6 @@ bool TypeSystemClang::CompleteTagDeclarationDefinition(
   if (qual_type.isNull())
     return false;
 
-  TypeSystemClang *lldb_ast =
-      llvm::dyn_cast<TypeSystemClang>(type.GetTypeSystem());
-  if (lldb_ast == nullptr)
-    return false;
-
   // Make sure we use the same methodology as
   // TypeSystemClang::StartTagDeclarationDefinition() as to how we start/end
   // the definition.
@@ -8277,8 +8213,6 @@ bool TypeSystemClang::CompleteTagDeclarationDefinition(
       cxx_record_decl->setHasLoadedFieldsFromExternalStorage(true);
       cxx_record_decl->setHasExternalLexicalStorage(false);
       cxx_record_decl->setHasExternalVisibleStorage(false);
-      lldb_ast->SetCXXRecordDeclAccess(cxx_record_decl,
-                                       clang::AccessSpecifier::AS_none);
       return true;
     }
   }
@@ -8292,6 +8226,10 @@ bool TypeSystemClang::CompleteTagDeclarationDefinition(
   if (enum_decl->isCompleteDefinition())
     return true;
 
+  TypeSystemClang *lldb_ast =
+      llvm::dyn_cast<TypeSystemClang>(type.GetTypeSystem());
+  if (lldb_ast == nullptr)
+    return false;
   clang::ASTContext &ast = lldb_ast->getASTContext();
 
   /// TODO This really needs to be fixed.
@@ -9014,7 +8952,6 @@ bool TypeSystemClang::DumpTypeValue(
         case eFormatCharPrintable:
         case eFormatCharArray:
         case eFormatBytes:
-        case eFormatUnicode8:
         case eFormatBytesWithASCII:
           item_count = byte_size;
           byte_size = 1;

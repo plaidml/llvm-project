@@ -49,3 +49,4 @@ ZERO:
 .LBB2_1:
 	add.l	#0, %d0
 	rts
+

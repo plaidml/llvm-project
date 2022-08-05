@@ -460,7 +460,7 @@ static bool format(StringRef FileName) {
 
   // To format JSON insert a variable to trick the code into thinking its
   // JavaScript.
-  if (FormatStyle->isJson() && !FormatStyle->DisableFormat) {
+  if (FormatStyle->isJson()) {
     auto Err = Replaces.add(tooling::Replacement(
         tooling::Replacement(AssumedFileName, 0, 0, "x = ")));
     if (Err) {

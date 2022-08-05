@@ -1265,6 +1265,7 @@ let Predicates = [isR600] in {
   defm DIV_r600 : DIV_Common<RECIP_IEEE_r600>;
   def : POW_Common <LOG_IEEE_r600, EXP_IEEE_r600, MUL>;
 
+  def : RsqPat<RECIPSQRT_IEEE_r600, f32>;
   def : SqrtPat<RECIPSQRT_IEEE_r600, RECIP_IEEE_r600>;
 
   def R600_ExportSwz : ExportSwzInst {
@@ -1345,7 +1346,7 @@ let Predicates = [isR600] in {
 
 
 //===----------------------------------------------------------------------===//
-// Register loads and stores - for indirect addressing
+// Regist loads and stores - for indirect addressing
 //===----------------------------------------------------------------------===//
 
 let Namespace = "R600" in {

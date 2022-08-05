@@ -25,14 +25,7 @@ if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   message("Building Flang as a standalone project.")
   project(Flang)
   set(FLANG_STANDALONE_BUILD ON)
-else()
-  set(FLANG_STANDALONE_BUILD OFF)
-endif()
 
-# Must go below project(..)
-include(GNUInstallDirs)
-
-if (FLANG_STANDALONE_BUILD)
   set(FLANG_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
   if (NOT MSVC_IDE)
     set(LLVM_ENABLE_ASSERTIONS ${ENABLE_ASSERTIONS}
@@ -184,6 +177,7 @@ if (FLANG_STANDALONE_BUILD)
   endif()
 
 else()
+  set(FLANG_STANDALONE_BUILD OFF)
   option(FLANG_INCLUDE_TESTS
          "Generate build targets for the Flang unit tests."
          ${LLVM_INCLUDE_TESTS})
@@ -231,15 +225,8 @@ include_directories(BEFORE
   ${FLANG_BINARY_DIR}/include
   ${FLANG_SOURCE_DIR}/include)
 
-if(NOT DEFINED LLVM_COMMON_CMAKE_UTILS)
-  set(LLVM_COMMON_CMAKE_UTILS ${FLANG_SOURCE_DIR}/../cmake)
-endif()
-
 # Add Flang-centric modules to cmake path.
-list(INSERT CMAKE_MODULE_PATH 0
-  "${FLANG_SOURCE_DIR}/cmake/modules"
-  "${LLVM_COMMON_CMAKE_UTILS}/Modules"
-  )
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 include(AddFlang)
 
 if (NOT DEFAULT_SYSROOT)
@@ -457,7 +444,7 @@ endif()
 
 if (NOT LLVM_INSTALL_TOOLCHAIN_ONLY)
   install(DIRECTORY include/flang
-    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+    DESTINATION include
     COMPONENT flang-headers
     FILES_MATCHING
     PATTERN "*.def"
@@ -469,7 +456,7 @@ if (NOT LLVM_INSTALL_TOOLCHAIN_ONLY)
     PATTERN "CMakeFiles" EXCLUDE)
     
   install(DIRECTORY ${FLANG_INCLUDE_DIR}/flang
-    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
+    DESTINATION include
     COMPONENT flang-headers
     FILES_MATCHING
     PATTERN "*.inc"

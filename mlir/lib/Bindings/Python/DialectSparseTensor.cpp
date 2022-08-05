@@ -1,4 +1,4 @@
-//===- DialectSparseTensor.cpp - 'sparse_tensor' dialect submodule --------===//
+//===- DialectLinalg.cpp - 'sparse_tensor' dialect submodule --------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,6 +6,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "Dialects.h"
 #include "mlir-c/Dialect/SparseTensor.h"
 #include "mlir-c/IR.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
@@ -15,14 +16,18 @@ using namespace llvm;
 using namespace mlir;
 using namespace mlir::python::adaptors;
 
-static void populateDialectSparseTensorSubmodule(const py::module &m) {
+void mlir::python::populateDialectSparseTensorSubmodule(
+    py::module m, const py::module &irModule) {
+  auto attributeClass = irModule.attr("Attribute");
+
   py::enum_<MlirSparseTensorDimLevelType>(m, "DimLevelType", py::module_local())
       .value("dense", MLIR_SPARSE_TENSOR_DIM_LEVEL_DENSE)
       .value("compressed", MLIR_SPARSE_TENSOR_DIM_LEVEL_COMPRESSED)
       .value("singleton", MLIR_SPARSE_TENSOR_DIM_LEVEL_SINGLETON);
 
   mlir_attribute_subclass(m, "EncodingAttr",
-                          mlirAttributeIsASparseTensorEncodingAttr)
+                          mlirAttributeIsASparseTensorEncodingAttr,
+                          attributeClass)
       .def_classmethod(
           "get",
           [](py::object cls,
@@ -66,9 +71,4 @@ static void populateDialectSparseTensorSubmodule(const py::module &m) {
       .def_property_readonly("index_bit_width", [](MlirAttribute self) {
         return mlirSparseTensorEncodingAttrGetIndexBitWidth(self);
       });
-}
-
-PYBIND11_MODULE(_mlirDialectsSparseTensor, m) {
-  m.doc() = "MLIR SparseTensor dialect.";
-  populateDialectSparseTensorSubmodule(m);
 }

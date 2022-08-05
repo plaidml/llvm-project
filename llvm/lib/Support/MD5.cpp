@@ -40,9 +40,10 @@
 #include "llvm/Support/MD5.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallString.h"
-#include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Endian.h"
+#include "llvm/Support/Format.h"
+#include "llvm/Support/raw_ostream.h"
 #include <array>
 #include <cstdint>
 #include <cstring>
@@ -280,12 +281,14 @@ StringRef MD5::result() {
 
 SmallString<32> MD5::MD5Result::digest() const {
   SmallString<32> Str;
-  toHex(Bytes, /*LowerCase*/ true, Str);
+  raw_svector_ostream Res(Str);
+  for (int i = 0; i < 16; ++i)
+    Res << format("%.2x", Bytes[i]);
   return Str;
 }
 
-void MD5::stringifyResult(MD5Result &Result, SmallVectorImpl<char> &Str) {
-  toHex(Result.Bytes, /*LowerCase*/ true, Str);
+void MD5::stringifyResult(MD5Result &Result, SmallString<32> &Str) {
+  Str = Result.digest();
 }
 
 std::array<uint8_t, 16> MD5::hash(ArrayRef<uint8_t> Data) {

@@ -19,15 +19,11 @@
 namespace llvm {
 
 struct MemorySanitizerOptions {
-  MemorySanitizerOptions() : MemorySanitizerOptions(0, false, false, false){};
-  MemorySanitizerOptions(int TrackOrigins, bool Recover, bool Kernel)
-      : MemorySanitizerOptions(TrackOrigins, Recover, Kernel, false) {}
-  MemorySanitizerOptions(int TrackOrigins, bool Recover, bool Kernel,
-                         bool EagerChecks);
+  MemorySanitizerOptions() : MemorySanitizerOptions(0, false, false){};
+  MemorySanitizerOptions(int TrackOrigins, bool Recover, bool Kernel);
   bool Kernel;
   int TrackOrigins;
   bool Recover;
-  bool EagerChecks;
 };
 
 // Insert MemorySanitizer instrumentation (detection of uninitialized reads)

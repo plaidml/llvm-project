@@ -428,7 +428,7 @@ void CodeGenFunction::EmitMustTailThunk(GlobalDecl GD,
   llvm::AttributeList Attrs;
   CGM.ConstructAttributeList(Callee.getCallee()->getName(), *CurFnInfo, GD,
                              Attrs, CallingConv, /*AttrOnCallSite=*/true,
-                             /*IsThunk=*/false);
+                             /*IsThunk=*/false, CurFuncDecl);
   Call->setAttributes(Attrs);
   Call->setCallingConv(static_cast<llvm::CallingConv::ID>(CallingConv));
 
@@ -1178,7 +1178,7 @@ bool CodeGenModule::HasLTOVisibilityPublicStd(const CXXRecordDecl *RD) {
     return false;
 
   const DeclContext *DC = RD;
-  while (true) {
+  while (1) {
     auto *D = cast<Decl>(DC);
     DC = DC->getParent();
     if (isa<TranslationUnitDecl>(DC->getRedeclContext())) {

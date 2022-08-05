@@ -22,6 +22,7 @@
 #include <vector>
 
 namespace llvm {
+class Module;
 class Value;
 class Instruction;
 class Loop;

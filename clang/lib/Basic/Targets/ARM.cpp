@@ -212,16 +212,12 @@ StringRef ARMTargetInfo::getCPUAttr() const {
     return "8_6A";
   case llvm::ARM::ArchKind::ARMV8_7A:
     return "8_7A";
-  case llvm::ARM::ArchKind::ARMV8_8A:
-    return "8_8A";
   case llvm::ARM::ArchKind::ARMV9A:
     return "9A";
   case llvm::ARM::ArchKind::ARMV9_1A:
     return "9_1A";
   case llvm::ARM::ArchKind::ARMV9_2A:
     return "9_2A";
-  case llvm::ARM::ArchKind::ARMV9_3A:
-    return "9_3A";
   case llvm::ARM::ArchKind::ARMV8MBaseline:
     return "8M_BASE";
   case llvm::ARM::ArchKind::ARMV8MMainline:
@@ -371,28 +367,6 @@ bool ARMTargetInfo::setABI(const std::string &Name) {
   return false;
 }
 
-bool ARMTargetInfo::validateBranchProtection(StringRef Spec,
-                                             BranchProtectionInfo &BPI,
-                                             StringRef &Err) const {
-  llvm::ARM::ParsedBranchProtection PBP;
-  if (!llvm::ARM::parseBranchProtection(Spec, PBP, Err))
-    return false;
-
-  BPI.SignReturnAddr =
-      llvm::StringSwitch<LangOptions::SignReturnAddressScopeKind>(PBP.Scope)
-          .Case("non-leaf", LangOptions::SignReturnAddressScopeKind::NonLeaf)
-          .Case("all", LangOptions::SignReturnAddressScopeKind::All)
-          .Default(LangOptions::SignReturnAddressScopeKind::None);
-
-  // Don't care for the sign key, beyond issuing a warning.
-  if (PBP.Key == "b_key")
-    Err = "b-key";
-  BPI.SignKey = LangOptions::SignReturnAddressKeyKind::AKey;
-
-  BPI.BranchTargetEnforcement = PBP.BranchTargetEnforcement;
-  return true;
-}
-
 // FIXME: This should be based on Arch attributes, not CPU names.
 bool ARMTargetInfo::initFeatureMap(
     llvm::StringMap<bool> &Features, DiagnosticsEngine &Diags, StringRef CPU,
@@ -469,8 +443,6 @@ bool ARMTargetInfo::handleTargetFeatures(std::vector<std::string> &Features,
   HWDiv = 0;
   DotProd = 0;
   HasMatMul = 0;
-  HasPAC = 0;
-  HasBTI = 0;
   HasFloat16 = true;
   ARMCDECoprocMask = 0;
   HasBFloat16 = false;
@@ -553,9 +525,6 @@ bool ARMTargetInfo::handleTargetFeatures(std::vector<std::string> &Features,
       HasBFloat16 = true;
     } else if (Feature == "-fpregs") {
       FPRegsDisabled = true;
-    } else if (Feature == "+pacbti") {
-      HasPAC = 1;
-      HasBTI = 1;
     }
   }
 
@@ -899,26 +868,10 @@ void ARMTargetInfo::getTargetDefines(const LangOptions &Opts,
   if (HasMatMul)
     Builder.defineMacro("__ARM_FEATURE_MATMUL_INT8", "1");
 
-  if (HasPAC)
-    Builder.defineMacro("__ARM_FEATURE_PAUTH", "1");
-
-  if (HasBTI)
-    Builder.defineMacro("__ARM_FEATURE_BTI", "1");
-
   if (HasBFloat16) {
     Builder.defineMacro("__ARM_FEATURE_BF16", "1");
     Builder.defineMacro("__ARM_FEATURE_BF16_VECTOR_ARITHMETIC", "1");
     Builder.defineMacro("__ARM_BF16_FORMAT_ALTERNATIVE", "1");
-  }
-
-  if (Opts.BranchTargetEnforcement)
-    Builder.defineMacro("__ARM_FEATURE_BTI_DEFAULT", "1");
-
-  if (Opts.hasSignReturnAddress()) {
-    unsigned Value = 1;
-    if (Opts.isSignReturnAddressScopeAll())
-      Value |= 1 << 2;
-    Builder.defineMacro("__ARM_FEATURE_PAC_DEFAULT", Twine(Value));
   }
 
   switch (ArchKind) {
@@ -934,11 +887,9 @@ void ARMTargetInfo::getTargetDefines(const LangOptions &Opts,
   case llvm::ARM::ArchKind::ARMV8_4A:
   case llvm::ARM::ArchKind::ARMV8_5A:
   case llvm::ARM::ArchKind::ARMV8_6A:
-  case llvm::ARM::ArchKind::ARMV8_8A:
   case llvm::ARM::ArchKind::ARMV9A:
   case llvm::ARM::ArchKind::ARMV9_1A:
   case llvm::ARM::ArchKind::ARMV9_2A:
-  case llvm::ARM::ArchKind::ARMV9_3A:
     getTargetDefinesARMV83A(Opts, Builder);
     break;
   }

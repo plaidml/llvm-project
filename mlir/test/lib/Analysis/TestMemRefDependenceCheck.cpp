@@ -10,9 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Dialect/Affine/Analysis/AffineAnalysis.h"
-#include "mlir/Dialect/Affine/Analysis/AffineStructures.h"
-#include "mlir/Dialect/Affine/Analysis/Utils.h"
+#include "mlir/Analysis/AffineAnalysis.h"
+#include "mlir/Analysis/AffineStructures.h"
+#include "mlir/Analysis/Utils.h"
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/Pass/Pass.h"
@@ -27,16 +27,16 @@ namespace {
 // TODO: Add common surrounding loop depth-wise dependence checks.
 /// Checks dependences between all pairs of memref accesses in a Function.
 struct TestMemRefDependenceCheck
-    : public PassWrapper<TestMemRefDependenceCheck, OperationPass<FuncOp>> {
+    : public PassWrapper<TestMemRefDependenceCheck, FunctionPass> {
   StringRef getArgument() const final { return "test-memref-dependence-check"; }
   StringRef getDescription() const final {
     return "Checks dependences between all pairs of memref accesses.";
   }
   SmallVector<Operation *, 4> loadsAndStores;
-  void runOnOperation() override;
+  void runOnFunction() override;
 };
 
-} // namespace
+} // end anonymous namespace
 
 // Returns a result string which represents the direction vector (if there was
 // a dependence), returns the string "false" otherwise.
@@ -48,18 +48,18 @@ getDirectionVectorStr(bool ret, unsigned numCommonLoops, unsigned loopNestDepth,
   if (dependenceComponents.empty() || loopNestDepth > numCommonLoops)
     return "true";
   std::string result;
-  for (const auto &dependenceComponent : dependenceComponents) {
+  for (unsigned i = 0, e = dependenceComponents.size(); i < e; ++i) {
     std::string lbStr = "-inf";
-    if (dependenceComponent.lb.hasValue() &&
-        dependenceComponent.lb.getValue() !=
+    if (dependenceComponents[i].lb.hasValue() &&
+        dependenceComponents[i].lb.getValue() !=
             std::numeric_limits<int64_t>::min())
-      lbStr = std::to_string(dependenceComponent.lb.getValue());
+      lbStr = std::to_string(dependenceComponents[i].lb.getValue());
 
     std::string ubStr = "+inf";
-    if (dependenceComponent.ub.hasValue() &&
-        dependenceComponent.ub.getValue() !=
+    if (dependenceComponents[i].ub.hasValue() &&
+        dependenceComponents[i].ub.getValue() !=
             std::numeric_limits<int64_t>::max())
-      ubStr = std::to_string(dependenceComponent.ub.getValue());
+      ubStr = std::to_string(dependenceComponents[i].ub.getValue());
 
     result += "[" + lbStr + ", " + ubStr + "]";
   }
@@ -102,10 +102,10 @@ static void checkDependences(ArrayRef<Operation *> loadsAndStores) {
 
 // Walks the Function 'f' adding load and store ops to 'loadsAndStores'.
 // Runs pair-wise dependence checks.
-void TestMemRefDependenceCheck::runOnOperation() {
+void TestMemRefDependenceCheck::runOnFunction() {
   // Collect the loads and stores within the function.
   loadsAndStores.clear();
-  getOperation().walk([&](Operation *op) {
+  getFunction().walk([&](Operation *op) {
     if (isa<AffineLoadOp, AffineStoreOp>(op))
       loadsAndStores.push_back(op);
   });

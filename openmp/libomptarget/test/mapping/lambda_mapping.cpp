@@ -1,8 +1,5 @@
 // RUN: %libomptarget-compilexx-run-and-check-generic
 
-// Error on the gpu that crashes the host
-// UNSUPPORTED: amdgcn-amd-amdhsa-newRTL
-
 #include <iostream>
 
 template <typename LOOP_BODY>

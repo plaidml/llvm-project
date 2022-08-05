@@ -246,4 +246,4 @@ TEST(AnalysisManagerTest, DependentAnalysis2Ctors) {
   EXPECT_TRUE(an.ctor2called);
 }
 
-} // namespace
+} // end namespace

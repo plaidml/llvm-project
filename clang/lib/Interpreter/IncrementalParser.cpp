@@ -256,7 +256,7 @@ IncrementalParser::Parse(llvm::StringRef input) {
                                /*LoadedOffset=*/0, NewLoc);
 
   // NewLoc only used for diags.
-  if (PP.EnterSourceFile(FID, /*DirLookup=*/nullptr, NewLoc))
+  if (PP.EnterSourceFile(FID, /*DirLookup=*/0, NewLoc))
     return llvm::make_error<llvm::StringError>("Parsing failed. "
                                                "Cannot enter source file.",
                                                std::error_code());
@@ -291,11 +291,4 @@ IncrementalParser::Parse(llvm::StringRef input) {
 
   return PTU;
 }
-
-llvm::StringRef IncrementalParser::GetMangledName(GlobalDecl GD) const {
-  CodeGenerator *CG = getCodeGen(Act.get());
-  assert(CG);
-  return CG->GetMangledName(GD);
-}
-
 } // end namespace clang

@@ -18,8 +18,8 @@ result = arr*brr;
 result = xx*yy;
 
 switch (arr) { // expected-error{{statement requires expression of integer type ('_Complex int' invalid)}}
-  case brr: ; // expected-error{{integer constant expression must have integer type}}
-  case xx: ; // expected-error{{integer constant expression must have integer type}}
+  case brr: ;
+  case xx: ;
 }
 switch (ii) {
   case brr: ; // expected-error{{integer constant expression must have integer type}}

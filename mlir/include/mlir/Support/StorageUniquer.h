@@ -105,13 +105,8 @@ public:
     /// Copy the provided string into memory managed by our bump pointer
     /// allocator.
     StringRef copyInto(StringRef str) {
-      if (str.empty())
-        return StringRef();
-
-      char *result = allocator.Allocate<char>(str.size() + 1);
-      std::uninitialized_copy(str.begin(), str.end(), result);
-      result[str.size()] = 0;
-      return StringRef(result, str.size());
+      auto result = copyInto(ArrayRef<char>(str.data(), str.size()));
+      return StringRef(result.data(), str.size());
     }
 
     /// Allocate an instance of the provided type.
@@ -326,6 +321,6 @@ private:
     return DenseMapInfo<DerivedKey>::getHashValue(derivedKey);
   }
 };
-} // namespace mlir
+} // end namespace mlir
 
 #endif

@@ -32,8 +32,7 @@ void Flang::AddFortranDialectOptions(const ArgList &Args,
                 options::OPT_fxor_operator, options::OPT_fno_xor_operator,
                 options::OPT_falternative_parameter_statement,
                 options::OPT_fdefault_real_8, options::OPT_fdefault_integer_8,
-                options::OPT_fdefault_double_8, options::OPT_flarge_sizes,
-                options::OPT_fno_automatic});
+                options::OPT_fdefault_double_8, options::OPT_flarge_sizes});
 }
 
 void Flang::AddPreprocessingOptions(const ArgList &Args,

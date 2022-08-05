@@ -27,14 +27,14 @@ using namespace mlir;
 
 namespace {
 class TestSCFForUtilsPass
-    : public PassWrapper<TestSCFForUtilsPass, OperationPass<FuncOp>> {
+    : public PassWrapper<TestSCFForUtilsPass, FunctionPass> {
 public:
   StringRef getArgument() const final { return "test-scf-for-utils"; }
   StringRef getDescription() const final { return "test scf.for utils"; }
   explicit TestSCFForUtilsPass() = default;
 
-  void runOnOperation() override {
-    FuncOp func = getOperation();
+  void runOnFunction() override {
+    FuncOp func = getFunction();
     SmallVector<scf::ForOp, 4> toErase;
 
     func.walk([&](Operation *fakeRead) {
@@ -59,26 +59,21 @@ public:
 };
 
 class TestSCFIfUtilsPass
-    : public PassWrapper<TestSCFIfUtilsPass, OperationPass<ModuleOp>> {
+    : public PassWrapper<TestSCFIfUtilsPass, FunctionPass> {
 public:
   StringRef getArgument() const final { return "test-scf-if-utils"; }
   StringRef getDescription() const final { return "test scf.if utils"; }
   explicit TestSCFIfUtilsPass() = default;
 
-  void runOnOperation() override {
+  void runOnFunction() override {
     int count = 0;
-    getOperation().walk([&](scf::IfOp ifOp) {
+    FuncOp func = getFunction();
+    func.walk([&](scf::IfOp ifOp) {
       auto strCount = std::to_string(count++);
       FuncOp thenFn, elseFn;
       OpBuilder b(ifOp);
-      IRRewriter rewriter(b);
-      if (failed(outlineIfOp(rewriter, ifOp, &thenFn,
-                             std::string("outlined_then") + strCount, &elseFn,
-                             std::string("outlined_else") + strCount))) {
-        this->signalPassFailure();
-        return WalkResult::interrupt();
-      }
-      return WalkResult::advance();
+      outlineIfOp(b, ifOp, &thenFn, std::string("outlined_then") + strCount,
+                  &elseFn, std::string("outlined_else") + strCount);
     });
   }
 };
@@ -92,7 +87,7 @@ static const StringLiteral kTestPipeliningOpOrderMarker =
     "__test_pipelining_op_order__";
 
 class TestSCFPipeliningPass
-    : public PassWrapper<TestSCFPipeliningPass, OperationPass<FuncOp>> {
+    : public PassWrapper<TestSCFPipeliningPass, FunctionPass> {
 public:
   StringRef getArgument() const final { return "test-scf-pipelining"; }
   StringRef getDescription() const final { return "test scf.forOp pipelining"; }
@@ -120,14 +115,14 @@ public:
     registry.insert<arith::ArithmeticDialect, StandardOpsDialect>();
   }
 
-  void runOnOperation() override {
+  void runOnFunction() override {
     RewritePatternSet patterns(&getContext());
     mlir::scf::PipeliningOption options;
     options.getScheduleFn = getSchedule;
 
     scf::populateSCFLoopPipeliningPatterns(patterns, options);
-    (void)applyPatternsAndFoldGreedily(getOperation(), std::move(patterns));
-    getOperation().walk([](Operation *op) {
+    (void)applyPatternsAndFoldGreedily(getFunction(), std::move(patterns));
+    getFunction().walk([](Operation *op) {
       // Clean up the markers.
       op->removeAttr(kTestPipeliningStageMarker);
       op->removeAttr(kTestPipeliningOpOrderMarker);

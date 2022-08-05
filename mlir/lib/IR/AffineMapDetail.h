@@ -15,16 +15,12 @@
 
 #include "mlir/IR/AffineExpr.h"
 #include "mlir/IR/AffineMap.h"
-#include "mlir/Support/StorageUniquer.h"
 #include "llvm/ADT/ArrayRef.h"
 
 namespace mlir {
 namespace detail {
 
-struct AffineMapStorage : public StorageUniquer::BaseStorage {
-  /// The hash key used for uniquing.
-  using KeyTy = std::tuple<unsigned, unsigned, ArrayRef<AffineExpr>>;
-
+struct AffineMapStorage {
   unsigned numDims;
   unsigned numSymbols;
 
@@ -33,25 +29,9 @@ struct AffineMapStorage : public StorageUniquer::BaseStorage {
   ArrayRef<AffineExpr> results;
 
   MLIRContext *context;
-
-  bool operator==(const KeyTy &key) const {
-    return std::get<0>(key) == numDims && std::get<1>(key) == numSymbols &&
-           std::get<2>(key) == results;
-  }
-
-  // Constructs an AffineMapStorage from a key. The context must be set by the
-  // caller.
-  static AffineMapStorage *
-  construct(StorageUniquer::StorageAllocator &allocator, const KeyTy &key) {
-    auto *res = new (allocator.allocate<AffineMapStorage>()) AffineMapStorage();
-    res->numDims = std::get<0>(key);
-    res->numSymbols = std::get<1>(key);
-    res->results = allocator.copyInto(std::get<2>(key));
-    return res;
-  }
 };
 
-} // namespace detail
-} // namespace mlir
+} // end namespace detail
+} // end namespace mlir
 
 #endif // AFFINEMAPDETAIL_H_

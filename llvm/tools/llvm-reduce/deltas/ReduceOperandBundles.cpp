@@ -103,7 +103,20 @@ static void extractOperandBundesFromModule(Oracle &O, Module &Program) {
     maybeRewriteCallWithDifferentBundles(I.first, I.second);
 }
 
+/// Counts the amount of operand bundles.
+static int countOperandBundes(Module &Program) {
+  OperandBundleCounter C;
+
+  // TODO: Silence index with --quiet flag
+  outs() << "----------------------------\n";
+  C.visit(Program);
+  outs() << "Number of operand bundles: " << C.OperandBundeCount << "\n";
+
+  return C.OperandBundeCount;
+}
+
 void llvm::reduceOperandBundesDeltaPass(TestRunner &Test) {
   outs() << "*** Reducing OperandBundes...\n";
-  runDeltaPass(Test, extractOperandBundesFromModule);
+  int OperandBundeCount = countOperandBundes(Test.getProgram());
+  runDeltaPass(Test, OperandBundeCount, extractOperandBundesFromModule);
 }

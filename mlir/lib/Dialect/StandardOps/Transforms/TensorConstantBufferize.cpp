@@ -11,13 +11,12 @@
 //===----------------------------------------------------------------------===//
 
 #include "PassDetail.h"
-#include "mlir/Dialect/Bufferization/IR/Bufferization.h"
-#include "mlir/Dialect/Bufferization/Transforms/Bufferize.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/Dialect/StandardOps/Transforms/Passes.h"
 #include "mlir/IR/BlockAndValueMapping.h"
 #include "mlir/Transforms/BufferUtils.h"
+#include "mlir/Transforms/Bufferize.h"
 #include "mlir/Transforms/DialectConversion.h"
 
 using namespace mlir;
@@ -25,7 +24,7 @@ using namespace mlir;
 memref::GlobalOp GlobalCreator::getGlobalFor(arith::ConstantOp constantOp) {
   auto type = constantOp.getType().cast<RankedTensorType>();
 
-  bufferization::BufferizeTypeConverter typeConverter;
+  BufferizeTypeConverter typeConverter;
 
   // If we already have a global for this constant value, no need to do
   // anything else.
@@ -91,8 +90,7 @@ public:
 } // namespace
 
 void mlir::populateTensorConstantBufferizePatterns(
-    GlobalCreator &globalCreator,
-    bufferization::BufferizeTypeConverter &typeConverter,
+    GlobalCreator &globalCreator, BufferizeTypeConverter &typeConverter,
     RewritePatternSet &patterns) {
   patterns.add<BufferizeTensorConstantOp>(globalCreator, typeConverter,
                                           patterns.getContext());
@@ -112,7 +110,7 @@ public:
     GlobalCreator globals(module, alignment);
 
     auto *context = &getContext();
-    bufferization::BufferizeTypeConverter typeConverter;
+    BufferizeTypeConverter typeConverter;
     RewritePatternSet patterns(context);
     ConversionTarget target(*context);
 

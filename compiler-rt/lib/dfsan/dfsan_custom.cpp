@@ -497,7 +497,9 @@ static void *dfsan_memmove_with_origin(void *dest, const void *src, size_t n) {
 }
 
 static void *dfsan_memcpy(void *dest, const void *src, size_t n) {
-  dfsan_mem_shadow_transfer(dest, src, n);
+  dfsan_label *sdest = shadow_for(dest);
+  const dfsan_label *ssrc = shadow_for(src);
+  internal_memcpy((void *)sdest, (const void *)ssrc, n * sizeof(dfsan_label));
   return internal_memcpy(dest, src, n);
 }
 
@@ -582,7 +584,10 @@ SANITIZER_INTERFACE_ATTRIBUTE char *__dfsw_strcat(char *dest, const char *src,
                                                   dfsan_label *ret_label) {
   size_t dest_len = strlen(dest);
   char *ret = strcat(dest, src);
-  dfsan_mem_shadow_transfer(dest + dest_len, src, strlen(src));
+  dfsan_label *sdest = shadow_for(dest + dest_len);
+  const dfsan_label *ssrc = shadow_for(src);
+  internal_memcpy((void *)sdest, (const void *)ssrc,
+                  strlen(src) * sizeof(dfsan_label));
   *ret_label = dest_label;
   return ret;
 }
@@ -593,9 +598,12 @@ SANITIZER_INTERFACE_ATTRIBUTE char *__dfso_strcat(
     dfsan_origin *ret_origin) {
   size_t dest_len = strlen(dest);
   char *ret = strcat(dest, src);
+  dfsan_label *sdest = shadow_for(dest + dest_len);
+  const dfsan_label *ssrc = shadow_for(src);
   size_t src_len = strlen(src);
   dfsan_mem_origin_transfer(dest + dest_len, src, src_len);
-  dfsan_mem_shadow_transfer(dest + dest_len, src, src_len);
+  internal_memcpy((void *)sdest, (const void *)ssrc,
+                  src_len * sizeof(dfsan_label));
   *ret_label = dest_label;
   *ret_origin = dest_origin;
   return ret;
@@ -747,8 +755,6 @@ SANITIZER_INTERFACE_ATTRIBUTE void *__dfso_dlopen(
 static void *DFsanThreadStartFunc(void *arg) {
   DFsanThread *t = (DFsanThread *)arg;
   SetCurrentThread(t);
-  t->Init();
-  SetSigProcMask(&t->starting_sigset_, nullptr);
   return t->ThreadStart();
 }
 
@@ -769,7 +775,6 @@ static int dfsan_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
   DFsanThread *t =
       DFsanThread::Create(start_routine_trampoline,
                           (thread_callback_t)start_routine, arg, track_origins);
-  ScopedBlockSignals block(&t->starting_sigset_);
   int res = pthread_create(thread, attr, DFsanThreadStartFunc, t);
 
   if (attr == &myattr)
@@ -1112,7 +1117,8 @@ char *__dfsw_strcpy(char *dest, const char *src, dfsan_label dst_label,
                     dfsan_label src_label, dfsan_label *ret_label) {
   char *ret = strcpy(dest, src);
   if (ret) {
-    dfsan_mem_shadow_transfer(dest, src, strlen(src) + 1);
+    internal_memcpy(shadow_for(dest), shadow_for(src),
+                    sizeof(dfsan_label) * (strlen(src) + 1));
   }
   *ret_label = dst_label;
   return ret;
@@ -1127,7 +1133,8 @@ char *__dfso_strcpy(char *dest, const char *src, dfsan_label dst_label,
   if (ret) {
     size_t str_len = strlen(src) + 1;
     dfsan_mem_origin_transfer(dest, src, str_len);
-    dfsan_mem_shadow_transfer(dest, src, str_len);
+    internal_memcpy(shadow_for(dest), shadow_for(src),
+                    sizeof(dfsan_label) * str_len);
   }
   *ret_label = dst_label;
   *ret_origin = dst_origin;
@@ -2359,8 +2366,9 @@ static int format_buffer(char *str, size_t size, const char *fmt,
                                       formatter.num_written_bytes(retval));
           }
           va_labels++;
-          dfsan_mem_shadow_transfer(formatter.str_cur(), arg,
-                                    formatter.num_written_bytes(retval));
+          internal_memcpy(shadow_for(formatter.str_cur()), shadow_for(arg),
+                          sizeof(dfsan_label) *
+                              formatter.num_written_bytes(retval));
           end_fmt = true;
           break;
         }

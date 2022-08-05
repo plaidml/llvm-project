@@ -36,10 +36,6 @@ subroutine assoc()
     integer :: i
   end subroutine subr
 
-  subroutine subrCannotBeCalledfromImplicit(i)
-    integer :: i(:)
-  end subroutine subrCannotBeCalledfromImplicit
-
   subroutine test()
     integer :: intVar
     integer, target :: targetIntVar1
@@ -149,9 +145,9 @@ subroutine assoc()
     intProcPointer1 => subProc
     !ERROR: Function pointer 'intprocpointer1' may not be associated with subroutine designator 'subproc'
     lvar = associated(intProcPointer1, subProc)
-    implicitProcPointer => subr ! OK for an implicit point to point to an explicit proc
-    lvar = associated(implicitProcPointer, subr) ! OK
-    !ERROR: Procedure pointer 'implicitprocpointer' with implicit interface may not be associated with procedure designator 'subrcannotbecalledfromimplicit' with explicit interface that cannot be called via an implicit interface
-    lvar = associated(implicitProcPointer, subrCannotBeCalledFromImplicit)
+    !ERROR: Procedure pointer 'implicitprocpointer' with implicit interface may not be associated with procedure designator 'subr' with explicit interface
+    implicitProcPointer => subr
+    !ERROR: Procedure pointer 'implicitprocpointer' with implicit interface may not be associated with procedure designator 'subr' with explicit interface
+    lvar = associated(implicitProcPointer, subr)
   end subroutine test
 end subroutine assoc

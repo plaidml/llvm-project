@@ -1351,8 +1351,8 @@ bool PolynomialMultiplyRecognize::convertShiftsToLeft(BasicBlock *LoopB,
     // be unshifted.
     if (!commutesWithShift(R))
       return false;
-    for (User *U : R->users()) {
-      auto *T = cast<Instruction>(U);
+    for (auto I = R->user_begin(), E = R->user_end(); I != E; ++I) {
+      auto *T = cast<Instruction>(*I);
       // Skip users from outside of the loop. They will be handled later.
       // Also, skip the right-shifts and phi nodes, since they mix early
       // and late values.

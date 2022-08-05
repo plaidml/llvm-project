@@ -148,6 +148,9 @@ public:
     return LocationAttributes;
   }
 
+  void setHasInterestingContent() { HasInterestingContent = true; }
+  bool hasInterestingContent() { return HasInterestingContent; }
+
   /// Mark every DIE in this unit as kept. This function also
   /// marks variables as InDebugMap so that they appear in the
   /// reconstructed accelerator tables.
@@ -294,6 +297,9 @@ private:
 
   /// Is this unit subject to the ODR rule?
   bool HasODR;
+
+  /// Did a DIE actually contain a valid reloc?
+  bool HasInterestingContent;
 
   /// The DW_AT_language of this unit.
   uint16_t Language = 0;

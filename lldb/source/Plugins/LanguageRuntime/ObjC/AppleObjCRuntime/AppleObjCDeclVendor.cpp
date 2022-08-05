@@ -80,6 +80,8 @@ public:
     LLDB_LOG(log, "  AOEAS::CT Before:\n{1}", ClangUtil::DumpDecl(tag_decl));
 
     LLDB_LOG(log, "  AOEAS::CT After:{1}", ClangUtil::DumpDecl(tag_decl));
+
+    return;
   }
 
   void CompleteType(clang::ObjCInterfaceDecl *interface_decl) override {
@@ -105,6 +107,7 @@ public:
       LLDB_LOGF(log, "  [CT] After:");
       LLDB_LOG(log, "    [CT] {0}", ClangUtil::DumpDecl(interface_decl));
     }
+    return;
   }
 
   bool layoutRecordType(

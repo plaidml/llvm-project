@@ -11,7 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/Dialect/Affine/Analysis/Utils.h"
+#include "mlir/Analysis/Utils.h"
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Pass/Pass.h"
@@ -28,18 +28,18 @@ static llvm::cl::OptionCategory clOptionsCategory(PASS_NAME " options");
 namespace {
 
 struct TestAffineDataCopy
-    : public PassWrapper<TestAffineDataCopy, OperationPass<FuncOp>> {
+    : public PassWrapper<TestAffineDataCopy, FunctionPass> {
   StringRef getArgument() const final { return PASS_NAME; }
   StringRef getDescription() const final {
     return "Tests affine data copy utility functions.";
   }
   TestAffineDataCopy() = default;
-  TestAffineDataCopy(const TestAffineDataCopy &pass) : PassWrapper(pass){};
+  TestAffineDataCopy(const TestAffineDataCopy &pass){};
 
   void getDependentDialects(DialectRegistry &registry) const override {
     registry.insert<memref::MemRefDialect>();
   }
-  void runOnOperation() override;
+  void runOnFunction() override;
 
 private:
   Option<bool> clMemRefFilter{
@@ -53,13 +53,13 @@ private:
       llvm::cl::init(false)};
 };
 
-} // namespace
+} // end anonymous namespace
 
-void TestAffineDataCopy::runOnOperation() {
+void TestAffineDataCopy::runOnFunction() {
   // Gather all AffineForOps by loop depth.
   std::vector<SmallVector<AffineForOp, 2>> depthToLoops;
-  gatherLoops(getOperation(), depthToLoops);
-  assert(!depthToLoops.empty() && "Loop nest not found");
+  gatherLoops(getFunction(), depthToLoops);
+  assert(depthToLoops.size() && "Loop nest not found");
 
   // Only support tests with a single loop nest and a single innermost loop
   // for now.
@@ -90,16 +90,12 @@ void TestAffineDataCopy::runOnOperation() {
                                    /*fastMemCapacityBytes=*/32 * 1024 * 1024UL};
   DenseSet<Operation *> copyNests;
   if (clMemRefFilter) {
-    if (failed(affineDataCopyGenerate(loopNest, copyOptions, load.getMemRef(),
-                                      copyNests)))
-      return;
+    affineDataCopyGenerate(loopNest, copyOptions, load.getMemRef(), copyNests);
   } else if (clTestGenerateCopyForMemRegion) {
     CopyGenerateResult result;
     MemRefRegion region(loopNest.getLoc());
-    if (failed(region.compute(load, /*loopDepth=*/0)))
-      return;
-    if (failed(generateCopyForMemRegion(region, loopNest, copyOptions, result)))
-      return;
+    (void)region.compute(load, /*loopDepth=*/0);
+    (void)generateCopyForMemRegion(region, loopNest, copyOptions, result);
   }
 
   // Promote any single iteration loops in the copy nests and simplify

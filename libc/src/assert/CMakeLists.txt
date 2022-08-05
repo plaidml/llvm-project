@@ -8,7 +8,7 @@ add_entrypoint_object(
   DEPENDS
     # These two dependencies are temporary and should be replaced by fprintf
     # later.
-    libc.src.__support.OSUtil.osutil
+    libc.config.linux.linux_syscall_h
     libc.include.sys_syscall
     libc.src.stdlib.abort
 )

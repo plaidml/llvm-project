@@ -54,6 +54,7 @@ class CompilerInstance;
 class CompilerInvocation;
 class DiagnosticConsumer;
 class DiagnosticsEngine;
+class SourceManager;
 
 namespace driver {
 
@@ -114,7 +115,7 @@ public:
 /// T must derive from clang::FrontendAction.
 ///
 /// Example:
-/// std::unique_ptr<FrontendActionFactory> Factory =
+/// FrontendActionFactory *Factory =
 ///   newFrontendActionFactory<clang::SyntaxOnlyAction>();
 template <typename T>
 std::unique_ptr<FrontendActionFactory> newFrontendActionFactory();
@@ -144,7 +145,7 @@ public:
 ///
 /// Example:
 /// struct ProvidesASTConsumers {
-///   std::unique_ptr<clang::ASTConsumer> newASTConsumer();
+///   clang::ASTConsumer *newASTConsumer();
 /// } Factory;
 /// std::unique_ptr<FrontendActionFactory> FactoryAdapter(
 ///   newFrontendActionFactory(&Factory));

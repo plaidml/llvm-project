@@ -285,8 +285,9 @@ R600TargetLowering::EmitInstrWithCustomInserter(MachineInstr &MI,
 
       NewMI = BuildMI(*BB, I, BB->findDebugLoc(I),
                       TII->get(R600::getLDSNoRetOp(MI.getOpcode())));
-      for (const MachineOperand &MO : llvm::drop_begin(MI.operands()))
-        NewMI.add(MO);
+      for (unsigned i = 1, e = MI.getNumOperands(); i < e; ++i) {
+        NewMI.add(MI.getOperand(i));
+      }
     } else {
       return AMDGPUTargetLowering::EmitInstrWithCustomInserter(MI, BB);
     }
@@ -925,7 +926,7 @@ SDValue R600TargetLowering::LowerSELECT_CC(SDValue Op, SelectionDAG &DAG) const 
       std::swap(LHS, RHS);
       CC = DAG.getCondCode(CCSwapped);
     } else {
-      // Try inverting the condition and then swapping the operands
+      // Try inverting the conditon and then swapping the operands
       ISD::CondCode CCInv = ISD::getSetCCInverse(CCOpcode, CompareVT);
       CCSwapped = ISD::getSetCCSwappedOperands(CCInv);
       if (isCondCodeLegal(CCSwapped, CompareVT.getSimpleVT())) {

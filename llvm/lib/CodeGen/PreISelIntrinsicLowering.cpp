@@ -13,7 +13,6 @@
 
 #include "llvm/CodeGen/PreISelIntrinsicLowering.h"
 #include "llvm/Analysis/ObjCARCInstKind.h"
-#include "llvm/Analysis/ObjCARCUtil.h"
 #include "llvm/CodeGen/Passes.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/IRBuilder.h"
@@ -90,22 +89,10 @@ static bool lowerObjCCall(Function &F, const char *NewFn,
 
   CallInst::TailCallKind OverridingTCK = getOverridingTailCallKind(F);
 
-  for (Use &U : llvm::make_early_inc_range(F.uses())) {
-    auto *CB = cast<CallBase>(U.getUser());
-
-    if (CB->getCalledFunction() != &F) {
-      objcarc::ARCInstKind Kind = objcarc::getAttachedARCFunctionKind(CB);
-      (void)Kind;
-      assert((Kind == objcarc::ARCInstKind::RetainRV ||
-              Kind == objcarc::ARCInstKind::ClaimRV) &&
-             "use expected to be the argument of operand bundle "
-             "\"clang.arc.attachedcall\"");
-      U.set(FCache.getCallee());
-      continue;
-    }
-
-    auto *CI = cast<CallInst>(CB);
+  for (auto I = F.use_begin(), E = F.use_end(); I != E;) {
+    auto *CI = cast<CallInst>(I->getUser());
     assert(CI->getCalledFunction() && "Cannot lower an indirect call!");
+    ++I;
 
     IRBuilder<> Builder(CI->getParent(), CI->getIterator());
     SmallVector<Value *, 8> Args(CI->args());

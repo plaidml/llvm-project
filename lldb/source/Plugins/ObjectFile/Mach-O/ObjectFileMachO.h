@@ -92,7 +92,7 @@ public:
 
   lldb_private::AddressClass GetAddressClass(lldb::addr_t file_addr) override;
 
-  void ParseSymtab(lldb_private::Symtab &symtab) override;
+  lldb_private::Symtab *GetSymtab() override;
 
   bool IsStripped() override;
 
@@ -120,7 +120,7 @@ public:
 
   lldb::addr_t GetAddressMask() override;
 
-  bool GetCorefileMainBinaryInfo(lldb::addr_t &value, bool &value_is_offset,
+  bool GetCorefileMainBinaryInfo(lldb::addr_t &address,
                                  lldb_private::UUID &uuid,
                                  ObjectFile::BinaryType &type) override;
 
@@ -225,8 +225,7 @@ protected:
     std::string filename;
     lldb_private::UUID uuid;
     lldb::addr_t load_address = LLDB_INVALID_ADDRESS;
-    lldb::addr_t slide = 0;
-    bool currently_executing = false;
+    bool currently_executing;
     std::vector<std::tuple<lldb_private::ConstString, lldb::addr_t>>
         segment_load_addresses;
   };

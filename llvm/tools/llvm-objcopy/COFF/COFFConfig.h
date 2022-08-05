@@ -9,17 +9,11 @@
 #ifndef LLVM_TOOLS_LLVM_OBJCOPY_COFF_COFFCONFIG_H
 #define LLVM_TOOLS_LLVM_OBJCOPY_COFF_COFFCONFIG_H
 
-#include "llvm/ADT/Optional.h"
-
 namespace llvm {
 namespace objcopy {
 
 // Coff specific configuration for copying/stripping a single file.
-struct COFFConfig {
-  Optional<unsigned> Subsystem;
-  Optional<unsigned> MajorSubsystemVersion;
-  Optional<unsigned> MinorSubsystemVersion;
-};
+struct COFFConfig {};
 
 } // namespace objcopy
 } // namespace llvm

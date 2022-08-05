@@ -223,31 +223,11 @@ llvm::Error Interpreter::Execute(PartialTranslationUnit &T) {
 }
 
 llvm::Expected<llvm::JITTargetAddress>
-Interpreter::getSymbolAddress(GlobalDecl GD) const {
-  if (!IncrExecutor)
-    return llvm::make_error<llvm::StringError>("Operation failed. "
-                                               "No execution engine",
-                                               std::error_code());
-  llvm::StringRef MangledName = IncrParser->GetMangledName(GD);
-  return getSymbolAddress(MangledName);
-}
-
-llvm::Expected<llvm::JITTargetAddress>
-Interpreter::getSymbolAddress(llvm::StringRef IRName) const {
+Interpreter::getSymbolAddress(llvm::StringRef UnmangledName) const {
   if (!IncrExecutor)
     return llvm::make_error<llvm::StringError>("Operation failed. "
                                                "No execution engine",
                                                std::error_code());
 
-  return IncrExecutor->getSymbolAddress(IRName, IncrementalExecutor::IRName);
-}
-
-llvm::Expected<llvm::JITTargetAddress>
-Interpreter::getSymbolAddressFromLinkerName(llvm::StringRef Name) const {
-  if (!IncrExecutor)
-    return llvm::make_error<llvm::StringError>("Operation failed. "
-                                               "No execution engine",
-                                               std::error_code());
-
-  return IncrExecutor->getSymbolAddress(Name, IncrementalExecutor::LinkerName);
+  return IncrExecutor->getSymbolAddress(UnmangledName);
 }

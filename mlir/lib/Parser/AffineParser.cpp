@@ -13,7 +13,6 @@
 #include "Parser.h"
 #include "mlir/IR/AffineMap.h"
 #include "mlir/IR/IntegerSet.h"
-#include "llvm/Support/SourceMgr.h"
 
 using namespace mlir;
 using namespace mlir::detail;
@@ -97,7 +96,7 @@ private:
   unsigned numSymbolOperands;
   SmallVector<std::pair<StringRef, AffineExpr>, 4> dimsAndSymbols;
 };
-} // namespace
+} // end anonymous namespace
 
 /// Create an affine binary high precedence op expression (mul's, div's, mod).
 /// opLoc is the location of the op token to be used to report errors
@@ -523,14 +522,13 @@ ParseResult AffineParser::parseAffineMapOrIntegerSetInline(AffineMap &map,
   bool isColon = getToken().is(Token::colon);
   if (!isArrow && !isColon) {
     return emitError("expected '->' or ':'");
-  }
-  if (isArrow) {
+  } else if (isArrow) {
     parseToken(Token::arrow, "expected '->' or '['");
     map = parseAffineMapRange(numDims, numSymbols);
     return map ? success() : failure();
-  }
-  if (parseToken(Token::colon, "expected ':' or '['"))
+  } else if (parseToken(Token::colon, "expected ':' or '['")) {
     return failure();
+  }
 
   if ((set = parseIntegerSetConstraints(numDims, numSymbols)))
     return success();
@@ -718,30 +716,4 @@ Parser::parseAffineExprOfSSAIds(AffineExpr &expr,
                                 function_ref<ParseResult(bool)> parseElement) {
   return AffineParser(state, /*allowParsingSSAIds=*/true, parseElement)
       .parseAffineExprOfSSAIds(expr);
-}
-
-IntegerSet mlir::parseIntegerSet(StringRef inputStr, MLIRContext *context,
-                                 bool printDiagnosticInfo) {
-  llvm::SourceMgr sourceMgr;
-  auto memBuffer = llvm::MemoryBuffer::getMemBuffer(
-      inputStr, /*BufferName=*/"<mlir_parser_buffer>",
-      /*RequiresNullTerminator=*/false);
-  sourceMgr.AddNewSourceBuffer(std::move(memBuffer), SMLoc());
-  SymbolState symbolState;
-  ParserState state(sourceMgr, context, symbolState, /*asmState=*/nullptr);
-  Parser parser(state);
-
-  raw_ostream &os = printDiagnosticInfo ? llvm::errs() : llvm::nulls();
-  SourceMgrDiagnosticHandler handler(sourceMgr, context, os);
-  IntegerSet set;
-  if (parser.parseIntegerSetReference(set))
-    return IntegerSet();
-
-  Token endTok = parser.getToken();
-  if (endTok.isNot(Token::eof)) {
-    parser.emitError(endTok.getLoc(), "encountered unexpected token");
-    return IntegerSet();
-  }
-
-  return set;
 }

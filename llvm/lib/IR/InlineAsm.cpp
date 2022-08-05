@@ -262,12 +262,12 @@ bool InlineAsm::Verify(FunctionType *Ty, StringRef ConstStr) {
   unsigned NumOutputs = 0, NumInputs = 0, NumClobbers = 0;
   unsigned NumIndirect = 0;
 
-  for (const ConstraintInfo &Constraint : Constraints) {
-    switch (Constraint.Type) {
+  for (unsigned i = 0, e = Constraints.size(); i != e; ++i) {
+    switch (Constraints[i].Type) {
     case InlineAsm::isOutput:
       if ((NumInputs-NumIndirect) != 0 || NumClobbers != 0)
         return false;  // outputs before inputs and clobbers.
-      if (!Constraint.isIndirect) {
+      if (!Constraints[i].isIndirect) {
         ++NumOutputs;
         break;
       }

@@ -15,8 +15,7 @@ using namespace mlir;
 
 namespace {
 /// Simple constant folding pass.
-struct TestConstantFold
-    : public PassWrapper<TestConstantFold, OperationPass<FuncOp>> {
+struct TestConstantFold : public PassWrapper<TestConstantFold, FunctionPass> {
   StringRef getArgument() const final { return "test-constant-fold"; }
   StringRef getDescription() const final {
     return "Test operation constant folding";
@@ -25,9 +24,9 @@ struct TestConstantFold
   SmallVector<Operation *, 8> existingConstants;
 
   void foldOperation(Operation *op, OperationFolder &helper);
-  void runOnOperation() override;
+  void runOnFunction() override;
 };
-} // namespace
+} // end anonymous namespace
 
 void TestConstantFold::foldOperation(Operation *op, OperationFolder &helper) {
   auto processGeneratedConstants = [this](Operation *op) {
@@ -42,12 +41,12 @@ void TestConstantFold::foldOperation(Operation *op, OperationFolder &helper) {
 // For now, we do a simple top-down pass over a function folding constants.  We
 // don't handle conditional control flow, block arguments, folding conditional
 // branches, or anything else fancy.
-void TestConstantFold::runOnOperation() {
+void TestConstantFold::runOnFunction() {
   existingConstants.clear();
 
   // Collect and fold the operations within the function.
   SmallVector<Operation *, 8> ops;
-  getOperation().walk([&](Operation *op) { ops.push_back(op); });
+  getFunction().walk([&](Operation *op) { ops.push_back(op); });
 
   // Fold the constants in reverse so that the last generated constants from
   // folding are at the beginning. This creates somewhat of a linear ordering to

@@ -643,14 +643,13 @@ raw_fd_ostream::raw_fd_ostream(int fd, bool shouldClose, bool unbuffered,
 
   // Get the starting position.
   off_t loc = ::lseek(FD, 0, SEEK_CUR);
-  sys::fs::file_status Status;
-  std::error_code EC = status(FD, Status);
-  IsRegularFile = Status.type() == sys::fs::file_type::regular_file;
 #ifdef _WIN32
   // MSVCRT's _lseek(SEEK_CUR) doesn't return -1 for pipes.
-  SupportsSeeking = !EC && IsRegularFile;
+  sys::fs::file_status Status;
+  std::error_code EC = status(FD, Status);
+  SupportsSeeking = !EC && Status.type() == sys::fs::file_type::regular_file;
 #else
-  SupportsSeeking = !EC && loc != (off_t)-1;
+  SupportsSeeking = loc != (off_t)-1;
 #endif
   if (!SupportsSeeking)
     pos = 0;
@@ -915,7 +914,8 @@ raw_fd_stream::raw_fd_stream(StringRef Filename, std::error_code &EC)
   if (EC)
     return;
 
-  if (!isRegularFile())
+  // Do not support non-seekable files.
+  if (!supportsSeeking())
     EC = std::make_error_code(std::errc::invalid_argument);
 }
 
@@ -936,6 +936,10 @@ bool raw_fd_stream::classof(const raw_ostream *OS) {
 //===----------------------------------------------------------------------===//
 //  raw_string_ostream
 //===----------------------------------------------------------------------===//
+
+raw_string_ostream::~raw_string_ostream() {
+  flush();
+}
 
 void raw_string_ostream::write_impl(const char *Ptr, size_t Size) {
   OS.append(Ptr, Size);

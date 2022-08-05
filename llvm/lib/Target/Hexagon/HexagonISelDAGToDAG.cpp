@@ -1176,9 +1176,6 @@ void HexagonDAGToDAGISel::ppHoistZextI1(std::vector<SDNode*> &&Nodes) {
       EVT UVT = U->getValueType(0);
       if (!UVT.isSimple() || !UVT.isInteger() || UVT.getSimpleVT() == MVT::i1)
         continue;
-      // Do not generate select for all i1 vector type.
-      if (UVT.isVector() && UVT.getVectorElementType() == MVT::i1)
-        continue;
       if (isMemOPCandidate(N, U))
         continue;
 
@@ -1285,7 +1282,7 @@ void HexagonDAGToDAGISel::emitFunctionEntryCode() {
 
   MachineFrameInfo &MFI = MF->getFrameInfo();
   MachineBasicBlock *EntryBB = &MF->front();
-  Register AR = FuncInfo->CreateReg(MVT::i32);
+  unsigned AR = FuncInfo->CreateReg(MVT::i32);
   Align EntryMaxA = MFI.getMaxAlign();
   BuildMI(EntryBB, DebugLoc(), HII->get(Hexagon::PS_aligna), AR)
       .addImm(EntryMaxA.value());

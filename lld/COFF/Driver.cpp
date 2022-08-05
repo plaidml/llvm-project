@@ -19,7 +19,9 @@
 #include "Writer.h"
 #include "lld/Common/Args.h"
 #include "lld/Common/Driver.h"
+#include "lld/Common/ErrorHandler.h"
 #include "lld/Common/Filesystem.h"
+#include "lld/Common/Memory.h"
 #include "lld/Common/Timer.h"
 #include "lld/Common/Version.h"
 #include "llvm/ADT/Optional.h"
@@ -58,25 +60,39 @@ using namespace llvm::sys;
 namespace lld {
 namespace coff {
 
-std::unique_ptr<Configuration> config;
-std::unique_ptr<LinkerDriver> driver;
+Configuration *config;
+LinkerDriver *driver;
 
-bool link(ArrayRef<const char *> args, llvm::raw_ostream &stdoutOS,
-          llvm::raw_ostream &stderrOS, bool exitEarly, bool disableOutput) {
-  // This driver-specific context will be freed later by lldMain().
-  auto *ctx = new COFFLinkerContext;
+bool link(ArrayRef<const char *> args, bool canExitEarly, raw_ostream &stdoutOS,
+          raw_ostream &stderrOS) {
+  lld::stdoutOS = &stdoutOS;
+  lld::stderrOS = &stderrOS;
 
-  ctx->e.initialize(stdoutOS, stderrOS, exitEarly, disableOutput);
-  ctx->e.logName = args::getFilenameWithoutExe(args[0]);
-  ctx->e.errorLimitExceededMsg = "too many errors emitted, stopping now"
-                                 " (use /errorlimit:0 to see all errors)";
+  errorHandler().cleanupCallback = []() {
+    freeArena();
+  };
 
-  config = std::make_unique<Configuration>();
-  driver = std::make_unique<LinkerDriver>(*ctx);
+  errorHandler().logName = args::getFilenameWithoutExe(args[0]);
+  errorHandler().errorLimitExceededMsg =
+      "too many errors emitted, stopping now"
+      " (use /errorlimit:0 to see all errors)";
+  errorHandler().exitEarly = canExitEarly;
+  stderrOS.enable_colors(stderrOS.has_colors());
+
+  COFFLinkerContext ctx;
+  config = make<Configuration>();
+  driver = make<LinkerDriver>(ctx);
 
   driver->linkerMain(args);
 
-  return errorCount() == 0;
+  // Call exit() if we can to avoid calling destructors.
+  if (canExitEarly)
+    exitLld(errorCount() ? 1 : 0);
+
+  bool ret = errorCount() == 0;
+  if (!canExitEarly)
+    errorHandler().reset();
+  return ret;
 }
 
 // Parse options of the form "old;new".
@@ -146,7 +162,7 @@ static std::future<MBErrPair> createFutureForFile(std::string path) {
 static StringRef mangle(StringRef sym) {
   assert(config->machine != IMAGE_FILE_MACHINE_UNKNOWN);
   if (config->machine == I386)
-    return saver().save("_" + sym);
+    return saver.save("_" + sym);
   return sym;
 }
 
@@ -192,11 +208,17 @@ void LinkerDriver::addBuffer(std::unique_ptr<MemoryBuffer> mb,
     ctx.symtab.addFile(make<ArchiveFile>(ctx, mbref));
     break;
   case file_magic::bitcode:
-    ctx.symtab.addFile(make<BitcodeFile>(ctx, mbref, "", 0, lazy));
+    if (lazy)
+      ctx.symtab.addFile(make<LazyObjFile>(ctx, mbref));
+    else
+      ctx.symtab.addFile(make<BitcodeFile>(ctx, mbref, "", 0));
     break;
   case file_magic::coff_object:
   case file_magic::coff_import_library:
-    ctx.symtab.addFile(make<ObjFile>(ctx, mbref, lazy));
+    if (lazy)
+      ctx.symtab.addFile(make<LazyObjFile>(ctx, mbref));
+    else
+      ctx.symtab.addFile(make<ObjFile>(ctx, mbref));
     break;
   case file_magic::pdb:
     ctx.symtab.addFile(make<PDBInputFile>(ctx, mbref));
@@ -260,8 +282,7 @@ void LinkerDriver::addArchiveBuffer(MemoryBufferRef mb, StringRef symName,
   if (magic == file_magic::coff_object) {
     obj = make<ObjFile>(ctx, mb);
   } else if (magic == file_magic::bitcode) {
-    obj =
-        make<BitcodeFile>(ctx, mb, parentName, offsetInArchive, /*lazy=*/false);
+    obj = make<BitcodeFile>(ctx, mb, parentName, offsetInArchive);
   } else {
     error("unknown file type: " + mb.getBufferIdentifier());
     return;
@@ -342,9 +363,9 @@ void LinkerDriver::parseDirectives(InputFile *file) {
     Export exp = parseExport(e);
     if (config->machine == I386 && config->mingw) {
       if (!isDecorated(exp.name))
-        exp.name = saver().save("_" + exp.name);
+        exp.name = saver.save("_" + exp.name);
       if (!exp.extName.empty() && !isDecorated(exp.extName))
-        exp.extName = saver().save("_" + exp.extName);
+        exp.extName = saver.save("_" + exp.extName);
     }
     exp.directives = true;
     config->exports.push_back(exp);
@@ -426,11 +447,11 @@ StringRef LinkerDriver::doFindFile(StringRef filename) {
     SmallString<128> path = dir;
     sys::path::append(path, filename);
     if (sys::fs::exists(path.str()))
-      return saver().save(path.str());
+      return saver.save(path.str());
     if (!hasExt) {
       path.append(".obj");
       if (sys::fs::exists(path.str()))
-        return saver().save(path.str());
+        return saver.save(path.str());
     }
   }
   return filename;
@@ -467,7 +488,7 @@ StringRef LinkerDriver::doFindLibMinGW(StringRef filename) {
 
   SmallString<128> s = filename;
   sys::path::replace_extension(s, ".a");
-  StringRef libName = saver().save("lib" + s.str());
+  StringRef libName = saver.save("lib" + s.str());
   return doFindFile(libName);
 }
 
@@ -476,7 +497,7 @@ StringRef LinkerDriver::doFindLib(StringRef filename) {
   // Add ".lib" to Filename if that has no file extension.
   bool hasExt = filename.contains('.');
   if (!hasExt)
-    filename = saver().save(filename + ".lib");
+    filename = saver.save(filename + ".lib");
   StringRef ret = doFindFile(filename);
   // For MinGW, if the find above didn't turn up anything, try
   // looking for a MinGW formatted library name.
@@ -509,7 +530,7 @@ void LinkerDriver::addLibSearchPaths() {
   Optional<std::string> envOpt = Process::GetEnv("LIB");
   if (!envOpt.hasValue())
     return;
-  StringRef env = saver().save(*envOpt);
+  StringRef env = saver.save(*envOpt);
   while (!env.empty()) {
     StringRef path;
     std::tie(path, env) = env.split(';');
@@ -794,7 +815,6 @@ static void createImportLibrary(bool asLib) {
     e2.Name = std::string(e1.name);
     e2.SymbolName = std::string(e1.symbolName);
     e2.ExtName = std::string(e1.extName);
-    e2.AliasTarget = std::string(e1.aliasTarget);
     e2.Ordinal = e1.ordinal;
     e2.Noname = e1.noname;
     e2.Data = e1.data;
@@ -857,8 +877,8 @@ static void parseModuleDefs(StringRef path) {
   driver->takeBuffer(std::move(mb));
 
   if (config->outputFile.empty())
-    config->outputFile = std::string(saver().save(m.OutputFile));
-  config->importName = std::string(saver().save(m.ImportName));
+    config->outputFile = std::string(saver.save(m.OutputFile));
+  config->importName = std::string(saver.save(m.ImportName));
   if (m.ImageBase)
     config->imageBase = m.ImageBase;
   if (m.StackReserve)
@@ -886,14 +906,13 @@ static void parseModuleDefs(StringRef path) {
     // DLL instead. This is supported by both MS and GNU linkers.
     if (!e1.ExtName.empty() && e1.ExtName != e1.Name &&
         StringRef(e1.Name).contains('.')) {
-      e2.name = saver().save(e1.ExtName);
-      e2.forwardTo = saver().save(e1.Name);
+      e2.name = saver.save(e1.ExtName);
+      e2.forwardTo = saver.save(e1.Name);
       config->exports.push_back(e2);
       continue;
     }
-    e2.name = saver().save(e1.Name);
-    e2.extName = saver().save(e1.ExtName);
-    e2.aliasTarget = saver().save(e1.AliasTarget);
+    e2.name = saver.save(e1.Name);
+    e2.extName = saver.save(e1.ExtName);
     e2.ordinal = e1.Ordinal;
     e2.noname = e1.Noname;
     e2.data = e1.Data;
@@ -1890,9 +1909,9 @@ void LinkerDriver::linkerMain(ArrayRef<const char *> argsArr) {
     Export e = parseExport(arg->getValue());
     if (config->machine == I386) {
       if (!isDecorated(e.name))
-        e.name = saver().save("_" + e.name);
+        e.name = saver.save("_" + e.name);
       if (!e.extName.empty() && !isDecorated(e.extName))
-        e.extName = saver().save("_" + e.extName);
+        e.extName = saver.save("_" + e.extName);
     }
     config->exports.push_back(e);
   }
@@ -2066,7 +2085,7 @@ void LinkerDriver::linkerMain(ArrayRef<const char *> argsArr) {
   if (args.hasArg(OPT_include_optional)) {
     // Handle /includeoptional
     for (auto *arg : args.filtered(OPT_include_optional))
-      if (isa_and_nonnull<LazyArchive>(ctx.symtab.find(arg->getValue())))
+      if (dyn_cast_or_null<LazyArchive>(ctx.symtab.find(arg->getValue())))
         addUndefined(arg->getValue());
     while (run());
   }

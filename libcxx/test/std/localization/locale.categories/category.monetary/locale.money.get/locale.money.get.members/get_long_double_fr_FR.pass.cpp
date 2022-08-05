@@ -12,7 +12,6 @@
 // XFAIL: netbsd
 
 // XFAIL: LIBCXX-WINDOWS-FIXME
-// XFAIL: LIBCXX-AIX-FIXME
 
 // REQUIRES: locale.fr_FR.UTF-8
 

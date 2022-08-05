@@ -12,8 +12,6 @@
 #include "mlir/Pass/Pass.h"
 #include "gtest/gtest.h"
 
-#include <memory>
-
 using namespace mlir;
 using namespace mlir::detail;
 
@@ -31,6 +29,7 @@ struct OpSpecificAnalysis {
 };
 
 /// Simple pass to annotate a FuncOp with the results of analysis.
+/// Note: not using FunctionPass as it skip external functions.
 struct AnnotateFunctionPass
     : public PassWrapper<AnnotateFunctionPass, OperationPass<FuncOp>> {
   void runOnOperation() override {
@@ -88,7 +87,7 @@ struct InvalidPass : Pass {
         *static_cast<const InvalidPass *>(this));
   }
 };
-} // namespace
+} // anonymous namespace
 
 TEST(PassManagerTest, InvalidPass) {
   MLIRContext context;
@@ -106,7 +105,7 @@ TEST(PassManagerTest, InvalidPass) {
   // check it later.
   std::unique_ptr<Diagnostic> diagnostic;
   context.getDiagEngine().registerHandler([&](Diagnostic &diag) {
-    diagnostic = std::make_unique<Diagnostic>(std::move(diag));
+    diagnostic.reset(new Diagnostic(std::move(diag)));
   });
 
   // Instantiate and run our pass.
@@ -128,4 +127,4 @@ TEST(PassManagerTest, InvalidPass) {
   ASSERT_DEATH(pm.addPass(std::make_unique<InvalidPass>()), "");
 }
 
-} // namespace
+} // end namespace

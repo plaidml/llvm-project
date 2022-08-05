@@ -234,18 +234,6 @@ static bool isNonVolatileStore(const Instruction *I) {
   return false;
 }
 
-// Returns true if the function definition must be unreachable.
-//
-// Note if this helper function returns true, `F` is guaranteed
-// to be unreachable; if it returns false, `F` might still
-// be unreachable but not covered by this helper function.
-static bool mustBeUnreachableFunction(const Function &F) {
-  // A function must be unreachable if its entry block ends with an
-  // 'unreachable'.
-  assert(!F.isDeclaration());
-  return isa<UnreachableInst>(F.getEntryBlock().getTerminator());
-}
-
 static void computeFunctionSummary(
     ModuleSummaryIndex &Index, const Module &M, const Function &F,
     BlockFrequencyInfo *BFI, ProfileSummaryInfo *PSI, DominatorTree &DT,
@@ -500,8 +488,7 @@ static void computeFunctionSummary(
       // Don't try to import functions with noinline attribute.
       F.getAttributes().hasFnAttr(Attribute::NoInline),
       F.hasFnAttribute(Attribute::AlwaysInline),
-      F.hasFnAttribute(Attribute::NoUnwind), MayThrow, HasUnknownCall,
-      mustBeUnreachableFunction(F)};
+      F.hasFnAttribute(Attribute::NoUnwind), MayThrow, HasUnknownCall};
   std::vector<FunctionSummary::ParamAccess> ParamAccesses;
   if (auto *SSI = GetSSICallback(F))
     ParamAccesses = SSI->getParamAccesses(Index);
@@ -750,8 +737,7 @@ ModuleSummaryIndex llvm::buildModuleSummaryIndex(
                         F->hasFnAttribute(Attribute::AlwaysInline),
                         F->hasFnAttribute(Attribute::NoUnwind),
                         /* MayThrow */ true,
-                        /* HasUnknownCall */ true,
-                        /* MustBeUnreachable */ false},
+                        /* HasUnknownCall */ true},
                     /*EntryCount=*/0, ArrayRef<ValueInfo>{},
                     ArrayRef<FunctionSummary::EdgeTy>{},
                     ArrayRef<GlobalValue::GUID>{},

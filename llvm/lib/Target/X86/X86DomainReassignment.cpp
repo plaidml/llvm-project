@@ -186,8 +186,8 @@ public:
         TII->getRegClass(TII->get(DstOpcode), 0, MRI->getTargetRegisterInfo(),
                          *MBB->getParent()));
     MachineInstrBuilder Bld = BuildMI(*MBB, MI, DL, TII->get(DstOpcode), Reg);
-    for (const MachineOperand &MO : llvm::drop_begin(MI->operands()))
-      Bld.add(MO);
+    for (unsigned Idx = 1, End = MI->getNumOperands(); Idx < End; ++Idx)
+      Bld.add(MI->getOperand(Idx));
 
     BuildMI(*MBB, MI, DL, TII->get(TargetOpcode::COPY))
         .add(MI->getOperand(0))

@@ -37,8 +37,8 @@ struct TestPrintNestingPass
     if (!op->getAttrs().empty()) {
       printIndent() << op->getAttrs().size() << " attributes:\n";
       for (NamedAttribute attr : op->getAttrs())
-        printIndent() << " - '" << attr.getName().getValue() << "' : '"
-                      << attr.getValue() << "'\n";
+        printIndent() << " - '" << attr.first << "' : '" << attr.second
+                      << "'\n";
     }
 
     // Recurse into each of the regions attached to the operation.
@@ -88,7 +88,7 @@ struct TestPrintNestingPass
     return llvm::outs();
   }
 };
-} // namespace
+} // end anonymous namespace
 
 namespace mlir {
 void registerTestPrintNestingPass() {

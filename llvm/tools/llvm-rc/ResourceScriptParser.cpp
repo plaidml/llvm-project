@@ -741,7 +741,7 @@ Expected<std::unique_ptr<VersionInfoStmt>> RCParser::parseVersionInfoStmt() {
     // possibly preceded by a comma. Unfortunately, the tool behavior depends
     // on them existing or not, so we need to memorize where we found them.
     std::vector<IntOrString> Values;
-    BitVector PrecedingCommas;
+    std::vector<bool> PrecedingCommas;
     RETURN_IF_ERROR(consumeType(Kind::Comma));
     while (!isNextTokenKind(Kind::Identifier) &&
            !isNextTokenKind(Kind::BlockEnd)) {

@@ -16,7 +16,6 @@
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseSet.h"
-#include "llvm/ADT/MapVector.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/StringExtras.h"
@@ -2044,7 +2043,7 @@ void PragmaClangAttributeSupport::generateParsingHelpers(raw_ostream &OS) {
   OS << "  return None;\n";
   OS << "}\n\n";
 
-  llvm::MapVector<const Record *, std::vector<AttributeSubjectMatchRule>>
+  std::map<const Record *, std::vector<AttributeSubjectMatchRule>>
       SubMatchRules;
   for (const auto &Rule : Rules) {
     if (!Rule.isSubRule())
@@ -4433,13 +4432,7 @@ void EmitClangAttrDocs(RecordKeeper &Records, raw_ostream &OS) {
   // Gather the Documentation lists from each of the attributes, based on the
   // category provided.
   std::vector<Record *> Attrs = Records.getAllDerivedDefinitions("Attr");
-  struct CategoryLess {
-    bool operator()(const Record *L, const Record *R) const {
-      return L->getValueAsString("Name") < R->getValueAsString("Name");
-    }
-  };
-  std::map<const Record *, std::vector<DocumentationData>, CategoryLess>
-      SplitDocs;
+  std::map<const Record *, std::vector<DocumentationData>> SplitDocs;
   for (const auto *A : Attrs) {
     const Record &Attr = *A;
     std::vector<Record *> Docs = Attr.getValueAsListOfDefs("Documentation");

@@ -43,7 +43,7 @@ public:
   void backoff() {
     volatile T LocalData[Size] = {};
     for (scudo::u32 I = 0; I < Size; I++) {
-      LocalData[I] = LocalData[I] + 1;
+      LocalData[I]++;
       EXPECT_EQ(LocalData[I], 1U);
     }
   }

@@ -37,13 +37,9 @@ CompilerInvocation ModuleDepCollector::makeInvocationForModuleBuildWithoutPaths(
   CI.getLangOpts()->resetNonModularOptions();
   CI.getPreprocessorOpts().resetNonModularOptions();
 
-  // Remove options incompatible with explicit module build or are likely to
-  // differ between identical modules discovered from different translation
-  // units.
+  // Remove options incompatible with explicit module build.
   CI.getFrontendOpts().Inputs.clear();
   CI.getFrontendOpts().OutputFile.clear();
-  CI.getCodeGenOpts().MainFileName.clear();
-  CI.getCodeGenOpts().DwarfDebugFlags.clear();
 
   CI.getFrontendOpts().ProgramAction = frontend::GenerateModule;
   CI.getLangOpts()->ModuleName = Deps.ID.ModuleName;
@@ -52,8 +48,10 @@ CompilerInvocation ModuleDepCollector::makeInvocationForModuleBuildWithoutPaths(
   CI.getLangOpts()->ImplicitModules = false;
 
   // Report the prebuilt modules this module uses.
-  for (const auto &PrebuiltModule : Deps.PrebuiltModuleDeps)
+  for (const auto &PrebuiltModule : Deps.PrebuiltModuleDeps) {
     CI.getFrontendOpts().ModuleFiles.push_back(PrebuiltModule.PCMFile);
+    CI.getFrontendOpts().ModuleMapFiles.push_back(PrebuiltModule.ModuleMapFile);
+  }
 
   Optimize(CI);
 
@@ -237,13 +235,7 @@ ModuleID ModuleDepCollectorPP::handleTopLevelModule(const Module *M) {
                                    .getHeaderSearchInfo()
                                    .getModuleMap()
                                    .getModuleMapFileForUniquing(M);
-
-  if (ModuleMap) {
-    StringRef Path = ModuleMap->tryGetRealPathName();
-    if (Path.empty())
-      Path = ModuleMap->getName();
-    MD.ClangModuleMapFile = std::string(Path);
-  }
+  MD.ClangModuleMapFile = std::string(ModuleMap ? ModuleMap->getName() : "");
 
   serialization::ModuleFile *MF =
       MDC.ScanInstance.getASTReader()->getModuleManager().lookup(

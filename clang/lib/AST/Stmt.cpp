@@ -568,20 +568,21 @@ void GCCAsmStmt::setOutputsAndInputsAndClobbers(const ASTContext &C,
 /// translate this into a numeric value needed to reference the same operand.
 /// This returns -1 if the operand name is invalid.
 int GCCAsmStmt::getNamedOperand(StringRef SymbolicName) const {
+  unsigned NumPlusOperands = 0;
+
   // Check if this is an output operand.
-  unsigned NumOutputs = getNumOutputs();
-  for (unsigned i = 0; i != NumOutputs; ++i)
+  for (unsigned i = 0, e = getNumOutputs(); i != e; ++i) {
     if (getOutputName(i) == SymbolicName)
       return i;
+  }
 
-  unsigned NumInputs = getNumInputs();
-  for (unsigned i = 0; i != NumInputs; ++i)
+  for (unsigned i = 0, e = getNumInputs(); i != e; ++i)
     if (getInputName(i) == SymbolicName)
-      return NumOutputs + i;
+      return getNumOutputs() + NumPlusOperands + i;
 
   for (unsigned i = 0, e = getNumLabels(); i != e; ++i)
     if (getLabelName(i) == SymbolicName)
-      return NumOutputs + NumInputs + getNumPlusOperands() + i;
+      return i + getNumOutputs() + getNumInputs();
 
   // Not found.
   return -1;

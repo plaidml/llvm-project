@@ -40,6 +40,7 @@ namespace llvm {
 
 class AssemblerConstantPools;
 class MCAsmBackend;
+class MCCodeEmitter;
 class MCContext;
 struct MCDwarfFrameInfo;
 class MCExpr;
@@ -495,16 +496,8 @@ public:
                                 unsigned Minor, unsigned Update,
                                 VersionTuple SDKVersion) {}
 
-  virtual void emitDarwinTargetVariantBuildVersion(unsigned Platform,
-                                                   unsigned Major,
-                                                   unsigned Minor,
-                                                   unsigned Update,
-                                                   VersionTuple SDKVersion) {}
-
   void emitVersionForTarget(const Triple &Target,
-                            const VersionTuple &SDKVersion,
-                            const Triple *DarwinTargetVariantTriple,
-                            const VersionTuple &DarwinTargetVariantSDKVersion);
+                            const VersionTuple &SDKVersion);
 
   /// Note in the output that the specified \p Func is a Thumb mode
   /// function (ARM target only).
@@ -522,10 +515,6 @@ public:
   /// \param Symbol - The symbol being assigned to.
   /// \param Value - The value for the symbol.
   virtual void emitAssignment(MCSymbol *Symbol, const MCExpr *Value);
-
-  /// Emit an assignment of \p Value to \p Symbol, but only if \p Value is also
-  /// emitted.
-  virtual void emitConditionalAssignment(MCSymbol *Symbol, const MCExpr *Value);
 
   /// Emit an weak reference from \p Alias to \p Symbol.
   ///

@@ -62,7 +62,7 @@ class AMDGPUOperand : public MCParsedAsmOperand {
 
 public:
   AMDGPUOperand(KindTy Kind_, const AMDGPUAsmParser *AsmParser_)
-      : Kind(Kind_), AsmParser(AsmParser_) {}
+    : MCParsedAsmOperand(), Kind(Kind_), AsmParser(AsmParser_) {}
 
   using Ptr = std::unique_ptr<AMDGPUOperand>;
 
@@ -246,12 +246,8 @@ public:
     return isRegKind() && !hasModifiers();
   }
 
-  bool isRegOrInline(unsigned RCID, MVT type) const {
-    return isRegClass(RCID) || isInlinableImm(type);
-  }
-
   bool isRegOrImmWithInputMods(unsigned RCID, MVT type) const {
-    return isRegOrInline(RCID, type) || isLiteralImm(type);
+    return isRegClass(RCID) || isInlinableImm(type) || isLiteralImm(type);
   }
 
   bool isRegOrImmWithInt16InputMods() const {
@@ -376,7 +372,7 @@ public:
   bool isInlineValue() const;
 
   bool isRegOrInlineNoMods(unsigned RCID, MVT type) const {
-    return isRegOrInline(RCID, type) && !hasModifiers();
+    return (isRegClass(RCID) || isInlinableImm(type)) && !hasModifiers();
   }
 
   bool isSCSrcB16() const {

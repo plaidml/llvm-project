@@ -21,10 +21,10 @@ struct Decrementable {
 
   auto operator<=>(const Decrementable&) const = default;
 
-  Decrementable& operator++();
-  Decrementable  operator++(int);
-  Decrementable& operator--();
-  Decrementable  operator--(int);
+  constexpr Decrementable& operator++();
+  constexpr Decrementable  operator++(int);
+  constexpr Decrementable& operator--();
+  constexpr Decrementable  operator--(int);
 };
 
 struct Incrementable {
@@ -32,8 +32,8 @@ struct Incrementable {
 
   auto operator<=>(const Incrementable&) const = default;
 
-  Incrementable& operator++();
-  Incrementable  operator++(int);
+  constexpr Incrementable& operator++();
+  constexpr Incrementable  operator++(int);
 };
 
 static_assert(std::ranges::random_access_range<std::ranges::iota_view<int>>);

@@ -250,7 +250,7 @@ public:
   static ABIArgInfo getCoerceAndExpand(llvm::StructType *coerceToType,
                                        llvm::Type *unpaddedCoerceToType) {
 #ifndef NDEBUG
-    // Check that unpaddedCoerceToType has roughly the right shape.
+    // Sanity checks on unpaddedCoerceToType.
 
     // Assert that we only have a struct type if there are multiple elements.
     auto unpaddedStruct = dyn_cast<llvm::StructType>(unpaddedCoerceToType);

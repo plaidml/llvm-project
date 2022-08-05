@@ -31,9 +31,14 @@ namespace clang {
 class ASTContext;
 template <typename> class CanQual;
 class CXXConstructorDecl;
+class CXXDestructorDecl;
 class CXXMethodDecl;
 class CodeGenOptions;
+class FieldDecl;
 class FunctionProtoType;
+class ObjCInterfaceDecl;
+class ObjCIvarDecl;
+class PointerType;
 class QualType;
 class RecordDecl;
 class TagDecl;

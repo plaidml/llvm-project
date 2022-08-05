@@ -790,8 +790,9 @@ static Stmt *createObjCPropertyGetter(ASTContext &Ctx,
     }
   }
 
-  // We expect that the property is the same type as the ivar, or a reference to
-  // it, and that it is either an object pointer or trivially copyable.
+  // Sanity check that the property is the same type as the ivar, or a
+  // reference to it, and that it is either an object pointer or trivially
+  // copyable.
   if (!Ctx.hasSameUnqualifiedType(IVar->getType(),
                                   Prop->getType().getNonReferenceType()))
     return nullptr;

@@ -14,7 +14,8 @@
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
 #include "mlir/Dialect/Linalg/Analysis/DependenceAnalysis.h"
-#include "mlir/Dialect/Linalg/IR/Linalg.h"
+#include "mlir/Dialect/Linalg/IR/LinalgOps.h"
+#include "mlir/Dialect/Linalg/IR/LinalgTypes.h"
 #include "mlir/Dialect/Linalg/Passes.h"
 #include "mlir/Dialect/Linalg/Transforms/Transforms.h"
 #include "mlir/Dialect/Linalg/Utils/Utils.h"
@@ -37,6 +38,8 @@
 
 using namespace mlir;
 using namespace mlir::linalg;
+
+using llvm::dbgs;
 
 /// Implements a simple high-level fusion pass on linalg structured operations.
 ///
@@ -87,7 +90,7 @@ getShapeDefiningLoopRange(LinalgOp op, unsigned loopDepth,
     LLVM_DEBUG(llvm::dbgs()
                << "getShapeDefiningLoopRange map: " << map << "\n");
     SmallVector<Value, 8> shapeRanges(map.getNumResults(), nullptr);
-    for (const auto &en : llvm::enumerate(map.getResults())) {
+    for (auto en : llvm::enumerate(map.getResults())) {
       auto dimExpr = en.value().dyn_cast<AffineDimExpr>();
       if (!dimExpr)
         continue;
@@ -250,7 +253,7 @@ static LinalgOp fuse(OpBuilder &b, LinalgOp producerOp, AffineMap producerMap,
   LLVM_DEBUG(llvm::dbgs() << "Producer map: " << producerMap << "\n");
   DenseMap<unsigned, Range> fusedLoopsAndRanges;
   Value shapedOperand = consumerOpOperand.get();
-  for (const auto &en : llvm::enumerate(producerMap.getResults())) {
+  for (auto en : llvm::enumerate(producerMap.getResults())) {
     unsigned posInProducerLoop = en.value().cast<AffineDimExpr>().getPosition();
     fusedLoopsAndRanges[posInProducerLoop] = getRangeFromOperandShape(
         b, consumerOpOperand.getOwner()->getLoc(), shapedOperand, en.index());
@@ -521,7 +524,7 @@ mlir::linalg::fuseProducerOfTensor(OpBuilder &b, OpResult producerOpResult,
 static AffineMap pruneReductionDimsFromMap(ArrayRef<Attribute> iteratorTypes,
                                            AffineMap map) {
   llvm::SmallDenseSet<unsigned> projectedDims;
-  for (const auto &attr : llvm::enumerate(iteratorTypes)) {
+  for (auto attr : llvm::enumerate(iteratorTypes)) {
     if (!isParallelIterator(attr.value()))
       projectedDims.insert(attr.index());
   }
@@ -784,9 +787,7 @@ tileRootOperation(OpBuilder &b, LinalgOp op, ArrayRef<Value> tileSizeVector,
       tileSizes[i] = zero;
   LinalgTilingOptions tileFusedLoopsOptions = options;
   tileFusedLoopsOptions.setTileSizes(tileSizes);
-  // TODO: Propagate RewriterBase everywhere.
-  IRRewriter rewriter(b);
-  return tileLinalgOp(rewriter, op, tileFusedLoopsOptions);
+  return tileLinalgOp(b, op, tileFusedLoopsOptions);
 }
 
 /// Fuse the operations in `fusionCandidates` with `tiledOp`. Latter is expected
@@ -812,7 +813,7 @@ fuseOperations(OpBuilder &b, LinalgOp rootOp, TiledLinalgOp tiledLinalgOp,
   SmallVector<LinalgOp, 1> fusedOps(fusionCandidates.size());
   DenseMap<Operation *, LinalgOp> origOpToFusedOp;
   origOpToFusedOp[rootOp.getOperation()] = tiledOp;
-  for (const auto &candidate : enumerate(llvm::reverse(fusionCandidates))) {
+  for (auto candidate : enumerate(llvm::reverse(fusionCandidates))) {
     LinalgOp origOp = candidate.value();
     LinalgOp fusedOp = fuse(b, origOp, fusedLoopsAndRanges);
     origOpToFusedOp[origOp.getOperation()] = fusedOp;

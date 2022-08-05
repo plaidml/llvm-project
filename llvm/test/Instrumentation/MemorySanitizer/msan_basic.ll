@@ -823,7 +823,7 @@ declare i32 @NoSanitizeMemoryUndefHelper(i32 %x)
 ; CHECK: ret i32
 
 
-; Test PHINode instrumentation in ignorelisted functions
+; Test PHINode instrumentation in blacklisted functions
 
 define i32 @NoSanitizeMemoryPHI(i32 %x) {
 entry:

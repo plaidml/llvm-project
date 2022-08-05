@@ -173,19 +173,13 @@ protected:
   /// back to this one which accepts everything.
   LogicalResult verify() { return success(); }
 
-  /// Parse the custom form of an operation. Unless overridden, this method will
-  /// first try to get an operation parser from the op's dialect. Otherwise the
-  /// custom assembly form of an op is always rejected. Op implementations
-  /// should implement this to return failure. On success, they should fill in
-  /// result with the fields to use.
+  /// Unless overridden, the custom assembly form of an op is always rejected.
+  /// Op implementations should implement this to return failure.
+  /// On success, they should fill in result with the fields to use.
   static ParseResult parse(OpAsmParser &parser, OperationState &result);
 
-  /// Print the operation. Unless overridden, this method will first try to get
-  /// an operation printer from the dialect. Otherwise, it prints the operation
-  /// in generic form.
-  static void print(Operation *op, OpAsmPrinter &p, StringRef defaultDialect);
-
-  /// Print an operation name, eliding the dialect prefix if necessary.
+  // The fallback for the printer is to print it the generic assembly form.
+  static void print(Operation *op, OpAsmPrinter &p);
   static void printOpName(Operation *op, OpAsmPrinter &p,
                           StringRef defaultDialect);
 
@@ -197,7 +191,7 @@ private:
   Operation *state;
 
   /// Allow access to internal hook implementation methods.
-  friend RegisteredOperationName;
+  friend AbstractOperation;
 };
 
 // Allow comparing operators.
@@ -345,7 +339,7 @@ struct MultiOperandTraitBase : public TraitBase<ConcreteType, TraitType> {
     return this->getOperation()->getOperandTypes();
   }
 };
-} // namespace detail
+} // end namespace detail
 
 /// This class provides the API for ops that are known to have no
 /// SSA operand.
@@ -454,7 +448,7 @@ struct MultiRegionTraitBase : public TraitBase<ConcreteType, TraitType> {
   region_iterator region_end() { return this->getOperation()->region_end(); }
   region_range getRegions() { return this->getOperation()->getRegions(); }
 };
-} // namespace detail
+} // end namespace detail
 
 /// This class provides APIs for ops that are known to have a single region.
 template <typename ConcreteType>
@@ -569,7 +563,7 @@ struct MultiResultTraitBase : public TraitBase<ConcreteType, TraitType> {
     return this->getOperation()->getResultTypes();
   }
 };
-} // namespace detail
+} // end namespace detail
 
 /// This class provides return value APIs for ops that are known to have a
 /// single result.  ResultType is the concrete type returned by getType().
@@ -718,7 +712,7 @@ struct MultiSuccessorTraitBase : public TraitBase<ConcreteType, TraitType> {
   succ_iterator succ_end() { return this->getOperation()->succ_end(); }
   succ_range getSuccessors() { return this->getOperation()->getSuccessors(); }
 };
-} // namespace detail
+} // end namespace detail
 
 /// This class provides APIs for ops that are known to have a single successor.
 template <typename ConcreteType>
@@ -1096,17 +1090,15 @@ public:
 };
 
 /// This class adds property that the operation is idempotent.
-/// This means a unary to unary operation "f" that satisfies f(f(x)) = f(x),
-/// or a binary operation "g" that satisfies g(x, x) = x.
+/// This means a unary to unary operation "f" that satisfies f(f(x)) = f(x)
 template <typename ConcreteType>
 class IsIdempotent : public TraitBase<ConcreteType, IsIdempotent> {
 public:
   static LogicalResult verifyTrait(Operation *op) {
     static_assert(ConcreteType::template hasTrait<OneResult>(),
                   "expected operation to produce one result");
-    static_assert(ConcreteType::template hasTrait<OneOperand>() ||
-                      ConcreteType::template hasTrait<NOperands<2>::Impl>(),
-                  "expected operation to take one or two operands");
+    static_assert(ConcreteType::template hasTrait<OneOperand>(),
+                  "expected operation to take one operand");
     static_assert(ConcreteType::template hasTrait<SameOperandsAndResultType>(),
                   "expected operation to preserve type");
     // Idempotent requires the operation to be side effect free as well
@@ -1424,7 +1416,7 @@ struct Tensorizable : public TraitBase<ConcreteType, Tensorizable> {
 /// behavior to vectors/tensors, and systematize conversion between these forms.
 bool hasElementwiseMappableTraits(Operation *op);
 
-} // namespace OpTrait
+} // end namespace OpTrait
 
 //===----------------------------------------------------------------------===//
 // Internal Trait Utilities
@@ -1593,8 +1585,8 @@ public:
 
   /// Return true if this "op class" can match against the specified operation.
   static bool classof(Operation *op) {
-    if (auto info = op->getRegisteredInfo())
-      return TypeID::get<ConcreteType>() == info->getTypeID();
+    if (auto *abstractOp = op->getAbstractOperation())
+      return TypeID::get<ConcreteType>() == abstractOp->typeID;
 #ifndef NDEBUG
     if (op->getName().getStringRef() == ConcreteType::getOperationName())
       llvm::report_fatal_error(
@@ -1636,13 +1628,13 @@ public:
   /// for the concrete operation.
   template <typename... Models>
   static void attachInterface(MLIRContext &context) {
-    Optional<RegisteredOperationName> info = RegisteredOperationName::lookup(
+    AbstractOperation *abstract = AbstractOperation::lookupMutable(
         ConcreteType::getOperationName(), &context);
-    if (!info)
+    if (!abstract)
       llvm::report_fatal_error(
           "Attempting to attach an interface to an unregistered operation " +
           ConcreteType::getOperationName() + ".");
-    info->attachInterface<Models...>();
+    abstract->interfaceMap.insert<Models...>();
   }
 
 private:
@@ -1681,10 +1673,10 @@ private:
     return detail::InterfaceMap::template get<Traits<ConcreteType>...>();
   }
 
-  /// Return the internal implementations of each of the OperationName
+  /// Return the internal implementations of each of the AbstractOperation
   /// hooks.
-  /// Implementation of `FoldHookFn` OperationName hook.
-  static OperationName::FoldHookFn getFoldHookFn() {
+  /// Implementation of `FoldHookFn` AbstractOperation hook.
+  static AbstractOperation::FoldHookFn getFoldHookFn() {
     return getFoldHookFnImpl<ConcreteType>();
   }
   /// The internal implementation of `getFoldHookFn` above that is invoked if
@@ -1693,7 +1685,7 @@ private:
   static std::enable_if_t<llvm::is_one_of<OpTrait::OneResult<ConcreteOpT>,
                                           Traits<ConcreteOpT>...>::value &&
                               detect_has_single_result_fold<ConcreteOpT>::value,
-                          OperationName::FoldHookFn>
+                          AbstractOperation::FoldHookFn>
   getFoldHookFnImpl() {
     return [](Operation *op, ArrayRef<Attribute> operands,
               SmallVectorImpl<OpFoldResult> &results) {
@@ -1706,7 +1698,7 @@ private:
   static std::enable_if_t<!llvm::is_one_of<OpTrait::OneResult<ConcreteOpT>,
                                            Traits<ConcreteOpT>...>::value &&
                               detect_has_fold<ConcreteOpT>::value,
-                          OperationName::FoldHookFn>
+                          AbstractOperation::FoldHookFn>
   getFoldHookFnImpl() {
     return [](Operation *op, ArrayRef<Attribute> operands,
               SmallVectorImpl<OpFoldResult> &results) {
@@ -1718,7 +1710,7 @@ private:
   template <typename ConcreteOpT>
   static std::enable_if_t<!detect_has_single_result_fold<ConcreteOpT>::value &&
                               !detect_has_fold<ConcreteOpT>::value,
-                          OperationName::FoldHookFn>
+                          AbstractOperation::FoldHookFn>
   getFoldHookFnImpl() {
     return [](Operation *op, ArrayRef<Attribute> operands,
               SmallVectorImpl<OpFoldResult> &results) {
@@ -1762,39 +1754,39 @@ private:
     return result;
   }
 
-  /// Implementation of `GetCanonicalizationPatternsFn` OperationName hook.
-  static OperationName::GetCanonicalizationPatternsFn
+  /// Implementation of `GetCanonicalizationPatternsFn` AbstractOperation hook.
+  static AbstractOperation::GetCanonicalizationPatternsFn
   getGetCanonicalizationPatternsFn() {
     return &ConcreteType::getCanonicalizationPatterns;
   }
   /// Implementation of `GetHasTraitFn`
-  static OperationName::HasTraitFn getHasTraitFn() {
+  static AbstractOperation::HasTraitFn getHasTraitFn() {
     return
         [](TypeID id) { return op_definition_impl::hasTrait<Traits...>(id); };
   }
-  /// Implementation of `ParseAssemblyFn` OperationName hook.
-  static OperationName::ParseAssemblyFn getParseAssemblyFn() {
+  /// Implementation of `ParseAssemblyFn` AbstractOperation hook.
+  static AbstractOperation::ParseAssemblyFn getParseAssemblyFn() {
     return &ConcreteType::parse;
   }
-  /// Implementation of `PrintAssemblyFn` OperationName hook.
-  static OperationName::PrintAssemblyFn getPrintAssemblyFn() {
+  /// Implementation of `PrintAssemblyFn` AbstractOperation hook.
+  static AbstractOperation::PrintAssemblyFn getPrintAssemblyFn() {
     return getPrintAssemblyFnImpl<ConcreteType>();
   }
   /// The internal implementation of `getPrintAssemblyFn` that is invoked when
   /// the concrete operation does not define a `print` method.
   template <typename ConcreteOpT>
   static std::enable_if_t<!detect_has_print<ConcreteOpT>::value,
-                          OperationName::PrintAssemblyFn>
+                          AbstractOperation::PrintAssemblyFn>
   getPrintAssemblyFnImpl() {
     return [](Operation *op, OpAsmPrinter &printer, StringRef defaultDialect) {
-      return OpState::print(op, printer, defaultDialect);
+      return OpState::print(op, printer);
     };
   }
   /// The internal implementation of `getPrintAssemblyFn` that is invoked when
   /// the concrete operation defines a `print` method.
   template <typename ConcreteOpT>
   static std::enable_if_t<detect_has_print<ConcreteOpT>::value,
-                          OperationName::PrintAssemblyFn>
+                          AbstractOperation::PrintAssemblyFn>
   getPrintAssemblyFnImpl() {
     return &printAssembly;
   }
@@ -1803,8 +1795,8 @@ private:
     OpState::printOpName(op, p, defaultDialect);
     return cast<ConcreteType>(op).print(p);
   }
-  /// Implementation of `VerifyInvariantsFn` OperationName hook.
-  static OperationName::VerifyInvariantsFn getVerifyInvariantsFn() {
+  /// Implementation of `VerifyInvariantsFn` AbstractOperation hook.
+  static AbstractOperation::VerifyInvariantsFn getVerifyInvariantsFn() {
     return &verifyInvariants;
   }
 
@@ -1824,7 +1816,7 @@ private:
   }
 
   /// Allow access to internal implementation methods.
-  friend RegisteredOperationName;
+  friend AbstractOperation;
 };
 
 /// This class represents the base of an operation interface. See the definition
@@ -1844,22 +1836,22 @@ public:
 protected:
   /// Returns the impl interface instance for the given operation.
   static typename InterfaceBase::Concept *getInterfaceFor(Operation *op) {
-    OperationName name = op->getName();
-
-    // Access the raw interface from the operation info.
-    if (Optional<RegisteredOperationName> rInfo = name.getRegisteredInfo()) {
-      if (auto *opIface = rInfo->getInterface<ConcreteType>())
+    // Access the raw interface from the abstract operation.
+    auto *abstractOp = op->getAbstractOperation();
+    if (abstractOp) {
+      if (auto *opIface = abstractOp->getInterface<ConcreteType>())
         return opIface;
       // Fallback to the dialect to provide it with a chance to implement this
       // interface for this operation.
-      return rInfo->getDialect().getRegisteredInterfaceForOp<ConcreteType>(
+      return abstractOp->dialect.getRegisteredInterfaceForOp<ConcreteType>(
           op->getName());
     }
     // Fallback to the dialect to provide it with a chance to implement this
     // interface for this operation.
-    if (Dialect *dialect = name.getDialect())
-      return dialect->getRegisteredInterfaceForOp<ConcreteType>(name);
-    return nullptr;
+    Dialect *dialect = op->getName().getDialect();
+    return dialect ? dialect->getRegisteredInterfaceForOp<ConcreteType>(
+                         op->getName())
+                   : nullptr;
   }
 
   /// Allow access to `getInterfaceFor`.
@@ -1912,27 +1904,6 @@ Value foldCastOp(Operation *op);
 LogicalResult verifyCastOp(Operation *op,
                            function_ref<bool(Type, Type)> areCastCompatible);
 } // namespace impl
-} // namespace mlir
-
-namespace llvm {
-
-template <typename T>
-struct DenseMapInfo<
-    T, std::enable_if_t<std::is_base_of<mlir::OpState, T>::value>> {
-  static inline T getEmptyKey() {
-    auto *pointer = llvm::DenseMapInfo<void *>::getEmptyKey();
-    return T::getFromOpaquePointer(pointer);
-  }
-  static inline T getTombstoneKey() {
-    auto *pointer = llvm::DenseMapInfo<void *>::getTombstoneKey();
-    return T::getFromOpaquePointer(pointer);
-  }
-  static unsigned getHashValue(T val) {
-    return hash_value(val.getAsOpaquePointer());
-  }
-  static bool isEqual(T lhs, T rhs) { return lhs == rhs; }
-};
-
-} // namespace llvm
+} // end namespace mlir
 
 #endif

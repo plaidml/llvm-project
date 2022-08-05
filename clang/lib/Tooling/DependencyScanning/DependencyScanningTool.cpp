@@ -24,6 +24,8 @@ std::vector<std::string> FullDependencies::getAdditionalArgs(
       ClangModuleDeps, LookupPCMPath, LookupModuleDeps, PCMPaths, ModMapPaths);
   for (const std::string &PCMPath : PCMPaths)
     Ret.push_back("-fmodule-file=" + PCMPath);
+  for (const std::string &ModMapPath : ModMapPaths)
+    Ret.push_back("-fmodule-map-file=" + ModMapPath);
 
   return Ret;
 }
@@ -35,8 +37,10 @@ FullDependencies::getAdditionalArgsWithoutModulePaths() const {
       "-fno-implicit-module-maps",
   };
 
-  for (const PrebuiltModuleDep &PMD : PrebuiltModuleDeps)
+  for (const PrebuiltModuleDep &PMD : PrebuiltModuleDeps) {
     Args.push_back("-fmodule-file=" + PMD.PCMFile);
+    Args.push_back("-fmodule-map-file=" + PMD.ModuleMapFile);
+  }
 
   return Args;
 }

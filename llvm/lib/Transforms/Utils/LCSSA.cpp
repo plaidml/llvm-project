@@ -339,10 +339,8 @@ bool llvm::formLCSSA(Loop &L, const DominatorTree &DT, const LoopInfo *LI,
 
 #ifdef EXPENSIVE_CHECKS
   // Verify all sub-loops are in LCSSA form already.
-  for (Loop *SubLoop: L) {
-    (void)SubLoop; // Silence unused variable warning.
+  for (Loop *SubLoop: L)
     assert(SubLoop->isRecursivelyLCSSAForm(DT, *LI) && "Subloop not in LCSSA!");
-  }
 #endif
 
   SmallVector<BasicBlock *, 8> ExitBlocks;

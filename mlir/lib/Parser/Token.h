@@ -34,7 +34,7 @@ public:
 
   // Token classification.
   Kind getKind() const { return kind; }
-  bool is(Kind k) const { return kind == k; }
+  bool is(Kind K) const { return kind == K; }
 
   bool isAny(Kind k1, Kind k2) const { return is(k1) || is(k2); }
 
@@ -119,6 +119,6 @@ private:
   StringRef spelling;
 };
 
-} // namespace mlir
+} // end namespace mlir
 
 #endif // MLIR_LIB_PARSER_TOKEN_H

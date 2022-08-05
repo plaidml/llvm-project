@@ -12,7 +12,6 @@ static_library("Format") {
     "AffectedRangeManager.cpp",
     "BreakableToken.cpp",
     "ContinuationIndenter.cpp",
-    "DefinitionBlockSeparator.cpp",
     "Format.cpp",
     "FormatToken.cpp",
     "FormatTokenLexer.cpp",

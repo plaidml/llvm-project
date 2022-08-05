@@ -24,6 +24,7 @@ namespace clang {
 class Expr;
 class VarDecl;
 class QualType;
+class AttributedType;
 class Preprocessor;
 
 namespace ento {

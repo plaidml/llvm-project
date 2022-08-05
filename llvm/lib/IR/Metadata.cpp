@@ -345,7 +345,7 @@ ReplaceableMetadataImpl *ReplaceableMetadataImpl::getIfExists(Metadata &MD) {
 bool ReplaceableMetadataImpl::isReplaceable(const Metadata &MD) {
   if (auto *N = dyn_cast<MDNode>(&MD))
     return !N->isResolved();
-  return isa<ValueAsMetadata>(&MD);
+  return dyn_cast<ValueAsMetadata>(&MD);
 }
 
 static DISubprogram *getLocalFunctionMetadata(Value *V) {

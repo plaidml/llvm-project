@@ -45,7 +45,6 @@ static StringRef getArchVersionString(llvm::AArch64::ArchKind Kind) {
   case llvm::AArch64::ArchKind::ARMV9A:
   case llvm::AArch64::ArchKind::ARMV9_1A:
   case llvm::AArch64::ArchKind::ARMV9_2A:
-  case llvm::AArch64::ArchKind::ARMV9_3A:
     return "9";
   default:
     return "8";
@@ -141,8 +140,8 @@ bool AArch64TargetInfo::setABI(const std::string &Name) {
 bool AArch64TargetInfo::validateBranchProtection(StringRef Spec,
                                                  BranchProtectionInfo &BPI,
                                                  StringRef &Err) const {
-  llvm::ARM::ParsedBranchProtection PBP;
-  if (!llvm::ARM::parseBranchProtection(Spec, PBP, Err))
+  llvm::AArch64::ParsedBranchProtection PBP;
+  if (!llvm::AArch64::parseBranchProtection(Spec, PBP, Err))
     return false;
 
   BPI.SignReturnAddr =
@@ -224,12 +223,6 @@ void AArch64TargetInfo::getTargetDefinesARMV87A(const LangOptions &Opts,
   getTargetDefinesARMV86A(Opts, Builder);
 }
 
-void AArch64TargetInfo::getTargetDefinesARMV88A(const LangOptions &Opts,
-                                                MacroBuilder &Builder) const {
-  // Also include the Armv8.7 defines
-  getTargetDefinesARMV87A(Opts, Builder);
-}
-
 void AArch64TargetInfo::getTargetDefinesARMV9A(const LangOptions &Opts,
                                                MacroBuilder &Builder) const {
   // Armv9-A maps to Armv8.5-A
@@ -246,12 +239,6 @@ void AArch64TargetInfo::getTargetDefinesARMV92A(const LangOptions &Opts,
                                                 MacroBuilder &Builder) const {
   // Armv9.2-A maps to Armv8.7-A
   getTargetDefinesARMV87A(Opts, Builder);
-}
-
-void AArch64TargetInfo::getTargetDefinesARMV93A(const LangOptions &Opts,
-                                                MacroBuilder &Builder) const {
-  // Armv9.3-A maps to Armv8.8-A
-  getTargetDefinesARMV88A(Opts, Builder);
 }
 
 void AArch64TargetInfo::getTargetDefines(const LangOptions &Opts,
@@ -319,9 +306,6 @@ void AArch64TargetInfo::getTargetDefines(const LangOptions &Opts,
 
   if (FPU & SveMode)
     Builder.defineMacro("__ARM_FEATURE_SVE", "1");
-
-  if ((FPU & NeonMode) && (FPU & SveMode))
-    Builder.defineMacro("__ARM_NEON_SVE_BRIDGE", "1");
 
   if (HasSVE2)
     Builder.defineMacro("__ARM_FEATURE_SVE2", "1");
@@ -459,9 +443,6 @@ void AArch64TargetInfo::getTargetDefines(const LangOptions &Opts,
   case llvm::AArch64::ArchKind::ARMV8_7A:
     getTargetDefinesARMV87A(Opts, Builder);
     break;
-  case llvm::AArch64::ArchKind::ARMV8_8A:
-    getTargetDefinesARMV88A(Opts, Builder);
-    break;
   case llvm::AArch64::ArchKind::ARMV9A:
     getTargetDefinesARMV9A(Opts, Builder);
     break;
@@ -470,9 +451,6 @@ void AArch64TargetInfo::getTargetDefines(const LangOptions &Opts,
     break;
   case llvm::AArch64::ArchKind::ARMV9_2A:
     getTargetDefinesARMV92A(Opts, Builder);
-    break;
-  case llvm::AArch64::ArchKind::ARMV9_3A:
-    getTargetDefinesARMV93A(Opts, Builder);
     break;
   }
 
@@ -496,12 +474,10 @@ ArrayRef<Builtin::Info> AArch64TargetInfo::getTargetBuiltins() const {
 Optional<std::pair<unsigned, unsigned>>
 AArch64TargetInfo::getVScaleRange(const LangOptions &LangOpts) const {
   if (LangOpts.VScaleMin || LangOpts.VScaleMax)
-    return std::pair<unsigned, unsigned>(
-        LangOpts.VScaleMin ? LangOpts.VScaleMin : 1, LangOpts.VScaleMax);
-
+    return std::pair<unsigned, unsigned>(LangOpts.VScaleMin,
+                                         LangOpts.VScaleMax);
   if (hasFeature("sve"))
-    return std::pair<unsigned, unsigned>(1, 16);
-
+    return std::pair<unsigned, unsigned>(0, 16);
   return None;
 }
 
@@ -543,8 +519,6 @@ bool AArch64TargetInfo::handleTargetFeatures(std::vector<std::string> &Features,
   HasMatmulFP64 = false;
   HasMatmulFP32 = false;
   HasLSE = false;
-  HasHBC = false;
-  HasMOPS = false;
 
   ArchKind = llvm::AArch64::ArchKind::INVALID;
 
@@ -553,36 +527,36 @@ bool AArch64TargetInfo::handleTargetFeatures(std::vector<std::string> &Features,
       FPU |= NeonMode;
     if (Feature == "+sve") {
       FPU |= SveMode;
-      HasFullFP16 = true;
+      HasFullFP16 = 1;
     }
     if (Feature == "+sve2") {
       FPU |= SveMode;
-      HasFullFP16 = true;
-      HasSVE2 = true;
+      HasFullFP16 = 1;
+      HasSVE2 = 1;
     }
     if (Feature == "+sve2-aes") {
       FPU |= SveMode;
-      HasFullFP16 = true;
-      HasSVE2 = true;
-      HasSVE2AES = true;
+      HasFullFP16 = 1;
+      HasSVE2 = 1;
+      HasSVE2AES = 1;
     }
     if (Feature == "+sve2-sha3") {
       FPU |= SveMode;
-      HasFullFP16 = true;
-      HasSVE2 = true;
-      HasSVE2SHA3 = true;
+      HasFullFP16 = 1;
+      HasSVE2 = 1;
+      HasSVE2SHA3 = 1;
     }
     if (Feature == "+sve2-sm4") {
       FPU |= SveMode;
-      HasFullFP16 = true;
-      HasSVE2 = true;
-      HasSVE2SM4 = true;
+      HasFullFP16 = 1;
+      HasSVE2 = 1;
+      HasSVE2SM4 = 1;
     }
     if (Feature == "+sve2-bitperm") {
       FPU |= SveMode;
-      HasFullFP16 = true;
-      HasSVE2 = true;
-      HasSVE2BitPerm = true;
+      HasFullFP16 = 1;
+      HasSVE2 = 1;
+      HasSVE2BitPerm = 1;
     }
     if (Feature == "+f32mm") {
       FPU |= SveMode;
@@ -624,16 +598,12 @@ bool AArch64TargetInfo::handleTargetFeatures(std::vector<std::string> &Features,
       ArchKind = llvm::AArch64::ArchKind::ARMV8_6A;
     if (Feature == "+v8.7a")
       ArchKind = llvm::AArch64::ArchKind::ARMV8_7A;
-    if (Feature == "+v8.8a")
-      ArchKind = llvm::AArch64::ArchKind::ARMV8_8A;
     if (Feature == "+v9a")
       ArchKind = llvm::AArch64::ArchKind::ARMV9A;
     if (Feature == "+v9.1a")
       ArchKind = llvm::AArch64::ArchKind::ARMV9_1A;
     if (Feature == "+v9.2a")
       ArchKind = llvm::AArch64::ArchKind::ARMV9_2A;
-    if (Feature == "+v9.3a")
-      ArchKind = llvm::AArch64::ArchKind::ARMV9_3A;
     if (Feature == "+v8r")
       ArchKind = llvm::AArch64::ArchKind::ARMV8R;
     if (Feature == "+fullfp16")
@@ -660,8 +630,6 @@ bool AArch64TargetInfo::handleTargetFeatures(std::vector<std::string> &Features,
       HasRandGen = true;
     if (Feature == "+flagm")
       HasFlagM = true;
-    if (Feature == "+hbc")
-      HasHBC = true;
   }
 
   setDataLayout();

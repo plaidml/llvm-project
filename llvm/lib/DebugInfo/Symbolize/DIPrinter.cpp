@@ -33,8 +33,8 @@ namespace symbolize {
 class SourceCode {
   std::unique_ptr<MemoryBuffer> MemBuf;
 
-  Optional<StringRef> load(StringRef FileName,
-                           const Optional<StringRef> &EmbeddedSource) {
+  const Optional<StringRef> load(StringRef FileName,
+                                 const Optional<StringRef> &EmbeddedSource) {
     if (Lines <= 0)
       return None;
 
@@ -50,7 +50,7 @@ class SourceCode {
     }
   }
 
-  Optional<StringRef> pruneSource(const Optional<StringRef> &Source) {
+  const Optional<StringRef> pruneSource(const Optional<StringRef> &Source) {
     if (!Source)
       return None;
     size_t FirstLinePos = StringRef::npos, Pos = 0;

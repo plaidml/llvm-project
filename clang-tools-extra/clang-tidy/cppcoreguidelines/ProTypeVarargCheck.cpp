@@ -11,9 +11,6 @@
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 #include "clang/ASTMatchers/ASTMatchers.h"
 #include "clang/Basic/TargetInfo.h"
-#include "clang/Lex/PPCallbacks.h"
-#include "clang/Lex/Preprocessor.h"
-#include "clang/Lex/Token.h"
 
 using namespace clang::ast_matchers;
 
@@ -59,10 +56,6 @@ static constexpr StringRef AllowedVariadics[] = {
     "__builtin_ms_va_start",
     // clang-format on
 };
-
-static constexpr StringRef VaArgWarningMessage =
-    "do not use va_arg to define c-style vararg functions; "
-    "use variadic templates instead";
 
 namespace {
 AST_MATCHER(QualType, isVAList) {
@@ -113,21 +106,6 @@ AST_MATCHER_P(AdjustedType, hasOriginalType,
               ast_matchers::internal::Matcher<QualType>, InnerType) {
   return InnerType.matches(Node.getOriginalType(), Finder, Builder);
 }
-
-class VaArgPPCallbacks : public PPCallbacks {
-public:
-  VaArgPPCallbacks(ProTypeVarargCheck *Check) : Check(Check) {}
-
-  void MacroExpands(const Token &MacroNameTok, const MacroDefinition &MD,
-                    SourceRange Range, const MacroArgs *Args) override {
-    if (MacroNameTok.getIdentifierInfo()->getName() == "va_arg") {
-      Check->diag(MacroNameTok.getLocation(), VaArgWarningMessage);
-    }
-  }
-
-private:
-  ProTypeVarargCheck *Check;
-};
 } // namespace
 
 void ProTypeVarargCheck::registerMatchers(MatchFinder *Finder) {
@@ -145,12 +123,6 @@ void ProTypeVarargCheck::registerMatchers(MatchFinder *Finder) {
                   anyOf(isVAList(), decayedType(hasOriginalType(isVAList()))))))
           .bind("va_list"),
       this);
-}
-
-void ProTypeVarargCheck::registerPPCallbacks(const SourceManager &SM,
-                                             Preprocessor *PP,
-                                             Preprocessor *ModuleExpanderPP) {
-  PP->addPPCallbacks(std::make_unique<VaArgPPCallbacks>(this));
 }
 
 static bool hasSingleVariadicArgumentWithValue(const CallExpr *C, uint64_t I) {
@@ -181,7 +153,9 @@ void ProTypeVarargCheck::check(const MatchFinder::MatchResult &Result) {
   }
 
   if (const auto *Matched = Result.Nodes.getNodeAs<Expr>("va_use")) {
-    diag(Matched->getExprLoc(), VaArgWarningMessage);
+    diag(Matched->getExprLoc(),
+         "do not use va_arg to define c-style vararg functions; "
+         "use variadic templates instead");
   }
 
   if (const auto *Matched = Result.Nodes.getNodeAs<VarDecl>("va_list")) {

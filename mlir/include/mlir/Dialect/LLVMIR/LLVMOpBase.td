@@ -48,7 +48,7 @@ def LLVM_Dialect : Dialect {
     static StringRef getTargetTripleAttrName() { return "llvm.target_triple"; }
   }];
 
-  let emitAccessorPrefix = kEmitAccessorPrefix_Prefixed;
+  let emitAccessorPrefix = kEmitAccessorPrefix_Both;
 }
 
 //===----------------------------------------------------------------------===//
@@ -57,7 +57,7 @@ def LLVM_Dialect : Dialect {
 
 // LLVM dialect type.
 def LLVM_Type : DialectType<LLVM_Dialect,
-                            CPred<"::mlir::LLVM::isCompatibleOuterType($_self)">,
+                            CPred<"::mlir::LLVM::isCompatibleType($_self)">,
                             "LLVM dialect-compatible type">;
 
 // Type constraint accepting LLVM token type.
@@ -94,12 +94,12 @@ class LLVM_PointerTo<Type pointee> : Type<
   "LLVM pointer to " # pointee.summary>;
 
 // Type constraints accepting LLVM pointer type to integer of a specific width.
-class LLVM_IntPtrBase<int width, int addressSpace = 0> : Type<
+class LLVM_IntPtrBase<int width> : Type<
   LLVM_PointerTo<I<width>>.predicate,
   "LLVM pointer to " # I<width>.summary>,
   BuildableType<"::mlir::LLVM::LLVMPointerType::get("
                 "::mlir::IntegerType::get($_builder.getContext(), "
-                # width #"), "# addressSpace #")">;
+                # width #"))">;
 
 def LLVM_i8Ptr : LLVM_IntPtrBase<8>;
 

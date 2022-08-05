@@ -42,20 +42,20 @@ static inline uint32_t top12_bits(double x) { return as_uint64_bits(x) >> 52; }
 template <typename T> struct XFlowValues;
 
 template <> struct XFlowValues<float> {
-  static const float OVERFLOW_VALUE;
-  static const float UNDERFLOW_VALUE;
-  static const float MAY_UNDERFLOW_VALUE;
+  static const float overflow_value;
+  static const float underflow_value;
+  static const float may_underflow_value;
 };
 
 template <> struct XFlowValues<double> {
-  static const double OVERFLOW_VALUE;
-  static const double UNDERFLOW_VALUE;
-  static const double MAY_UNDERFLOW_VALUE;
+  static const double overflow_value;
+  static const double underflow_value;
+  static const double may_underflow_value;
 };
 
 template <typename T> static inline T with_errno(T x, int err) {
   if (math_errhandling & MATH_ERRNO)
-    errno = err;
+    errno = err; // NOLINT
   return x;
 }
 
@@ -69,8 +69,7 @@ template <typename T> static inline T opt_barrier(T x) {
 }
 
 template <typename T> struct IsFloatOrDouble {
-  static constexpr bool
-      Value = // NOLINT so that this Value can match the ones for IsSame
+  static constexpr bool Value =
       cpp::IsSame<T, float>::Value || cpp::IsSame<T, double>::Value;
 };
 
@@ -86,16 +85,16 @@ T xflow(uint32_t sign, T y) {
 }
 
 template <typename T, EnableIfFloatOrDouble<T> = 0> T overflow(uint32_t sign) {
-  return xflow(sign, XFlowValues<T>::OVERFLOW_VALUE);
+  return xflow(sign, XFlowValues<T>::overflow_value);
 }
 
 template <typename T, EnableIfFloatOrDouble<T> = 0> T underflow(uint32_t sign) {
-  return xflow(sign, XFlowValues<T>::UNDERFLOW_VALUE);
+  return xflow(sign, XFlowValues<T>::underflow_value);
 }
 
 template <typename T, EnableIfFloatOrDouble<T> = 0>
 T may_underflow(uint32_t sign) {
-  return xflow(sign, XFlowValues<T>::MAY_UNDERFLOW_VALUE);
+  return xflow(sign, XFlowValues<T>::may_underflow_value);
 }
 
 template <typename T, EnableIfFloatOrDouble<T> = 0>

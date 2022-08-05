@@ -25,10 +25,10 @@
 #include "test_macros.h"
 
 int main(int, char**) {
-  using Context [[maybe_unused]] = std::basic_format_context<
+  using Context = std::basic_format_context<
       std::back_insert_iterator<std::basic_string<char>>, char>;
 
-  [[maybe_unused]] auto value = std::make_format_args(42, nullptr, false, 1.0);
+  auto value = std::make_format_args(42, nullptr, false, 1.0);
 
   LIBCPP_ASSERT(value.__args.size() == 4);
   LIBCPP_ASSERT(test_basic_format_arg(value.__args[0], 42));

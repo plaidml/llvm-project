@@ -12,8 +12,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef MLIR_IR_MATCHERS_H
-#define MLIR_IR_MATCHERS_H
+#ifndef MLIR_MATCHERS_H
+#define MLIR_MATCHERS_H
 
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/OpDefinition.h"
@@ -110,7 +110,7 @@ struct constant_int_op_binder {
     if (type.isa<VectorType, RankedTensorType>()) {
       if (auto splatAttr = attr.dyn_cast<SplatElementsAttr>()) {
         return attr_value_binder<IntegerAttr>(bind_value)
-            .match(splatAttr.getSplatValue<Attribute>());
+            .match(splatAttr.getSplatValue());
       }
     }
     return false;
@@ -166,7 +166,7 @@ typename std::enable_if_t<
                       Operation *>::value,
     bool>
 matchOperandOrValueAtIndex(Operation *op, unsigned idx, MatcherClass &matcher) {
-  if (auto *defOp = op->getOperand(idx).getDefiningOp())
+  if (auto defOp = op->getOperand(idx).getDefiningOp())
     return matcher.match(defOp);
   return false;
 }
@@ -174,16 +174,6 @@ matchOperandOrValueAtIndex(Operation *op, unsigned idx, MatcherClass &matcher) {
 /// Terminal matcher, always returns true.
 struct AnyValueMatcher {
   bool match(Value op) const { return true; }
-};
-
-/// Terminal matcher, always returns true.
-struct AnyCapturedValueMatcher {
-  Value *what;
-  AnyCapturedValueMatcher(Value *what) : what(what) {}
-  bool match(Value op) const {
-    *what = op;
-    return true;
-  }
 };
 
 /// Binds to a specific value and matches it.
@@ -225,7 +215,7 @@ struct RecursivePatternMatcher {
   std::tuple<OperandMatchers...> operandMatchers;
 };
 
-} // namespace detail
+} // end namespace detail
 
 /// Matches a constant foldable operation.
 inline detail::constant_op_matcher m_Constant() {
@@ -290,10 +280,9 @@ auto m_Op(Matchers... matchers) {
 
 namespace matchers {
 inline auto m_Any() { return detail::AnyValueMatcher(); }
-inline auto m_Any(Value *val) { return detail::AnyCapturedValueMatcher(val); }
 inline auto m_Val(Value v) { return detail::PatternMatcherValue(v); }
 } // namespace matchers
 
-} // namespace mlir
+} // end namespace mlir
 
-#endif // MLIR_IR_MATCHERS_H
+#endif // MLIR_MATCHERS_H

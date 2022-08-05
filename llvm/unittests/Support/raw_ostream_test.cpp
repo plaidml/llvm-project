@@ -21,10 +21,11 @@ namespace {
 
 template<typename T> std::string printToString(const T &Value) {
   std::string res;
-  llvm::raw_string_ostream OS(res);
-  OS.SetBuffered();
-  OS << Value;
-  OS.flush();
+  {
+    llvm::raw_string_ostream OS(res);
+    OS.SetBuffered();
+    OS << Value;
+  }
   return res;
 }
 
@@ -140,8 +141,7 @@ TEST(raw_ostreamTest, TinyBuffer) {
   OS << "hello";
   OS << 1;
   OS << 'w' << 'o' << 'r' << 'l' << 'd';
-  OS.flush();
-  EXPECT_EQ("hello1world", Str);
+  EXPECT_EQ("hello1world", OS.str());
 }
 
 TEST(raw_ostreamTest, WriteEscaped) {
@@ -457,9 +457,6 @@ TEST(raw_ostreamTest, flush_tied_to_stream_on_write) {
   TiedTo << "y";
   TiedStream << "0";
   EXPECT_EQ("acegostuv", TiedToBuffer);
-
-  TiedTo.flush();
-  TiedStream.flush();
 }
 
 TEST(raw_ostreamTest, reserve_stream) {

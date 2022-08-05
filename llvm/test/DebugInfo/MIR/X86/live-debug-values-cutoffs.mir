@@ -4,7 +4,6 @@
 # RUN: llc %s -o - -run-pass=livedebugvalues -mtriple=x86_64-unknown-unknown \
 # RUN:   -livedebugvalues-input-bb-limit=1 \
 # RUN:   -livedebugvalues-input-dbg-value-limit=1 \
-# RUN:   -experimental-debug-variable-locations=false \
 # RUN:   | FileCheck %s -check-prefix=LDV-DISABLED
 # RUN: llc %s -o - -run-pass=livedebugvalues -mtriple=x86_64-unknown-unknown \
 # RUN:   -experimental-debug-variable-locations \
@@ -15,7 +14,6 @@
 # RUN: llc %s -o - -run-pass=livedebugvalues -mtriple=x86_64-unknown-unknown \
 # RUN:   -livedebugvalues-input-bb-limit=1 \
 # RUN:   -livedebugvalues-input-dbg-value-limit=10 \
-# RUN:   -experimental-debug-variable-locations=false \
 # RUN:   | FileCheck %s -check-prefix=LDV-ENABLED
 # RUN: llc %s -o - -run-pass=livedebugvalues -mtriple=x86_64-unknown-unknown \
 # RUN:   -experimental-debug-variable-locations \
@@ -26,7 +24,6 @@
 # RUN: llc %s -o - -run-pass=livedebugvalues -mtriple=x86_64-unknown-unknown \
 # RUN:   -livedebugvalues-input-bb-limit=10 \
 # RUN:   -livedebugvalues-input-dbg-value-limit=1 \
-# RUN:   -experimental-debug-variable-locations=false \
 # RUN:   | FileCheck %s -check-prefix=LDV-ENABLED
 # RUN: llc %s -o - -run-pass=livedebugvalues -mtriple=x86_64-unknown-unknown \
 # RUN:   -experimental-debug-variable-locations \
@@ -37,7 +34,6 @@
 # RUN: llc %s -o - -run-pass=livedebugvalues -mtriple=x86_64-unknown-unknown \
 # RUN:   -livedebugvalues-input-bb-limit=10 \
 # RUN:   -livedebugvalues-input-dbg-value-limit=10 \
-# RUN:   -experimental-debug-variable-locations=false \
 # RUN:   | FileCheck %s -check-prefix=LDV-ENABLED
 # RUN: llc %s -o - -run-pass=livedebugvalues -mtriple=x86_64-unknown-unknown \
 # RUN:   -experimental-debug-variable-locations \

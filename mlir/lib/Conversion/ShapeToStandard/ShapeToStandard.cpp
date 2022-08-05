@@ -193,10 +193,10 @@ LogicalResult ConstShapeOpConverter::matchAndRewrite(
     extentOperands.push_back(
         rewriter.create<arith::ConstantIndexOp>(loc, extent.getLimitedValue()));
   }
-  Type resultTy =
-      RankedTensorType::get({op.getShape().size()}, rewriter.getIndexType());
+  Type indexTy = rewriter.getIndexType();
   Value tensor =
-      rewriter.create<tensor::FromElementsOp>(loc, resultTy, extentOperands);
+      rewriter.create<tensor::FromElementsOp>(loc, indexTy, extentOperands);
+  Type resultTy = RankedTensorType::get({op.getShape().size()}, indexTy);
   rewriter.replaceOpWithNewOp<tensor::CastOp>(op, resultTy, tensor);
   return success();
 }
@@ -318,7 +318,7 @@ LogicalResult IsBroadcastableOpConverter::matchAndRewrite(
         b.create<scf::YieldOp>(loc, broadcastable);
       });
 
-  rewriter.replaceOp(op, reduceResult.getResults().front());
+  rewriter.replaceOp(op, reduceResult.results().front());
   return success();
 }
 
@@ -569,8 +569,7 @@ LogicalResult ShapeOfOpConversion::matchAndRewrite(
 
     // Materialize extent tensor.
     Value staticExtentTensor = rewriter.create<tensor::FromElementsOp>(
-        loc, RankedTensorType::get({rank}, rewriter.getIndexType()),
-        extentValues);
+        loc, rewriter.getIndexType(), extentValues);
     rewriter.replaceOpWithNewOp<tensor::CastOp>(op, op.getType(),
                                                 staticExtentTensor);
     return success();
@@ -578,7 +577,7 @@ LogicalResult ShapeOfOpConversion::matchAndRewrite(
 
   // Lower to `tensor.generate` otherwise.
   auto *ctx = rewriter.getContext();
-  Value rank = rewriter.create<tensor::RankOp>(loc, tensor);
+  Value rank = rewriter.create<mlir::RankOp>(loc, tensor);
   rewriter.replaceOpWithNewOp<tensor::GenerateOp>(
       op, getExtentTensorType(ctx), ValueRange{rank},
       [&](OpBuilder &b, Location loc, ValueRange args) {

@@ -433,7 +433,7 @@ static void RunRandTest(uint64_t Seed, int Size, int MinCount, int MaxCount,
   Function *FnAssume = Intrinsic::getDeclaration(Mod.get(), Intrinsic::assume);
 
   std::vector<Argument *> ShuffledArgs;
-  BitVector HasArg;
+  std::vector<bool> HasArg;
   for (auto &Arg : F->args()) {
     ShuffledArgs.push_back(&Arg);
     HasArg.push_back(false);
@@ -518,7 +518,8 @@ TEST(AssumeQueryAPI, AssumptionCache) {
   BasicBlock::iterator First = F->begin()->begin();
   BasicBlock::iterator Second = F->begin()->begin();
   Second++;
-  AssumptionCache AC(*F);
+  AssumptionCacheTracker ACT;
+  AssumptionCache &AC = ACT.getAssumptionCache(*F);
   auto AR = AC.assumptionsFor(F->getArg(3));
   ASSERT_EQ(AR.size(), 0u);
   AR = AC.assumptionsFor(F->getArg(1));

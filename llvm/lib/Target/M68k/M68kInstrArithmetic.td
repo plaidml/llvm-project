@@ -150,7 +150,8 @@ let mayLoad = 1, mayStore = 1 in {
 
 // FIXME MxBiArOp_FMR/FMI cannot consume CCR from MxAdd/MxSub which leads for
 // MxAdd to survive the match and subsequent mismatch.
-class MxBiArOp_FMR<string MN, MxType TYPE, MxOperand MEMOpd,
+class MxBiArOp_FMR<string MN, SDNode NODE, MxType TYPE,
+                   MxOperand MEMOpd, ComplexPattern MEMPat,
                    bits<4> CMD, MxEncEA EA, MxEncExt EXT>
     : MxInst<(outs), (ins MEMOpd:$dst, TYPE.ROp:$opd),
              MN#"."#TYPE.Prefix#"\t$opd, $dst",
@@ -159,7 +160,8 @@ class MxBiArOp_FMR<string MN, MxType TYPE, MxOperand MEMOpd,
                              !cast<MxEncOpMode>("MxOpMode"#TYPE.Size#"EA"#TYPE.RLet),
                              MxBeadDReg<1>, EA, EXT>>;
 
-class MxBiArOp_FMI<string MN, MxType TYPE, MxOperand MEMOpd,
+class MxBiArOp_FMI<string MN, SDNode NODE, MxType TYPE,
+                   MxOperand MEMOpd, ComplexPattern MEMPat,
                    bits<4> CMD, MxEncEA MEMEA, MxEncExt MEMExt>
     : MxInst<(outs), (ins MEMOpd:$dst, TYPE.IOp:$opd),
              MN#"."#TYPE.Prefix#"\t$opd, $dst",
@@ -216,47 +218,47 @@ multiclass MxBiArOp_DF<string MN, SDNode NODE, bit isComm,
   def NAME#"32di" : MxBiArOp_RFRI_xEA<MN, NODE, MxType32d, CMD>;
 
   // op $reg, $mem
-  def NAME#"8pd"  : MxBiArOp_FMR<MN, MxType8d,  MxType8.POp,
+  def NAME#"8pd"  : MxBiArOp_FMR<MN, NODE, MxType8d,  MxType8.POp,  MxType8.PPat,
                                  CMD, MxEncEAp_0, MxExtI16_0>;
-  def NAME#"16pd" : MxBiArOp_FMR<MN, MxType16d, MxType16.POp,
+  def NAME#"16pd" : MxBiArOp_FMR<MN, NODE, MxType16d, MxType16.POp, MxType16.PPat,
                                  CMD, MxEncEAp_0, MxExtI16_0>;
-  def NAME#"32pd" : MxBiArOp_FMR<MN, MxType32d, MxType32.POp,
+  def NAME#"32pd" : MxBiArOp_FMR<MN, NODE, MxType32d, MxType32.POp, MxType32.PPat,
                                  CMD, MxEncEAp_0, MxExtI16_0>;
 
-  def NAME#"8fd"  : MxBiArOp_FMR<MN, MxType8d,  MxType8.FOp,
+  def NAME#"8fd"  : MxBiArOp_FMR<MN, NODE, MxType8d,  MxType8.FOp,  MxType8.FPat,
                                  CMD, MxEncEAf_0, MxExtBrief_0>;
-  def NAME#"16fd" : MxBiArOp_FMR<MN, MxType16d, MxType16.FOp,
+  def NAME#"16fd" : MxBiArOp_FMR<MN, NODE, MxType16d, MxType16.FOp, MxType16.FPat,
                                  CMD, MxEncEAf_0, MxExtBrief_0>;
-  def NAME#"32fd" : MxBiArOp_FMR<MN, MxType32d, MxType32.FOp,
+  def NAME#"32fd" : MxBiArOp_FMR<MN, NODE, MxType32d, MxType32.FOp, MxType32.FPat,
                                  CMD, MxEncEAf_0, MxExtBrief_0>;
 
-  def NAME#"8jd"  : MxBiArOp_FMR<MN, MxType8d,  MxType8.JOp,
+  def NAME#"8jd"  : MxBiArOp_FMR<MN, NODE, MxType8d,  MxType8.JOp,  MxType8.JPat,
                                  CMD, MxEncEAj_0, MxExtEmpty>;
-  def NAME#"16jd" : MxBiArOp_FMR<MN, MxType16d, MxType16.JOp,
+  def NAME#"16jd" : MxBiArOp_FMR<MN, NODE, MxType16d, MxType16.JOp, MxType16.JPat,
                                  CMD, MxEncEAj_0, MxExtEmpty>;
-  def NAME#"32jd" : MxBiArOp_FMR<MN, MxType32d, MxType32.JOp,
+  def NAME#"32jd" : MxBiArOp_FMR<MN, NODE, MxType32d, MxType32.JOp, MxType32.JPat,
                                  CMD, MxEncEAj_0, MxExtEmpty>;
 
   // op $imm, $mem
-  def NAME#"8pi"  : MxBiArOp_FMI<MN, MxType8,  MxType8.POp,
+  def NAME#"8pi"  : MxBiArOp_FMI<MN, NODE, MxType8,  MxType8.POp,  MxType8.PPat,
                                  CMDI, MxEncEAp_0, MxExtI16_0>;
-  def NAME#"16pi" : MxBiArOp_FMI<MN, MxType16, MxType16.POp,
+  def NAME#"16pi" : MxBiArOp_FMI<MN, NODE, MxType16, MxType16.POp, MxType16.PPat,
                                  CMDI, MxEncEAp_0, MxExtI16_0>;
-  def NAME#"32pi" : MxBiArOp_FMI<MN, MxType32, MxType32.POp,
+  def NAME#"32pi" : MxBiArOp_FMI<MN, NODE, MxType32, MxType32.POp, MxType32.PPat,
                                  CMDI, MxEncEAp_0, MxExtI16_0>;
 
-  def NAME#"8fi"  : MxBiArOp_FMI<MN, MxType8,  MxType8.FOp,
+  def NAME#"8fi"  : MxBiArOp_FMI<MN, NODE, MxType8,  MxType8.FOp,  MxType8.FPat,
                                  CMDI, MxEncEAf_0, MxExtBrief_0>;
-  def NAME#"16fi" : MxBiArOp_FMI<MN, MxType16, MxType16.FOp,
+  def NAME#"16fi" : MxBiArOp_FMI<MN, NODE, MxType16, MxType16.FOp, MxType16.FPat,
                                  CMDI, MxEncEAf_0, MxExtBrief_0>;
-  def NAME#"32fi" : MxBiArOp_FMI<MN, MxType32, MxType32.FOp,
+  def NAME#"32fi" : MxBiArOp_FMI<MN, NODE, MxType32, MxType32.FOp, MxType32.FPat,
                                  CMDI, MxEncEAf_0, MxExtBrief_0>;
 
-  def NAME#"8ji"  : MxBiArOp_FMI<MN, MxType8,  MxType8.JOp,
+  def NAME#"8ji"  : MxBiArOp_FMI<MN, NODE, MxType8,  MxType8.JOp,  MxType8.JPat,
                                  CMDI, MxEncEAj_0, MxExtEmpty>;
-  def NAME#"16ji" : MxBiArOp_FMI<MN, MxType16, MxType16.JOp,
+  def NAME#"16ji" : MxBiArOp_FMI<MN, NODE, MxType16, MxType16.JOp, MxType16.JPat,
                                  CMDI, MxEncEAj_0, MxExtEmpty>;
-  def NAME#"32ji" : MxBiArOp_FMI<MN, MxType32, MxType32.JOp,
+  def NAME#"32ji" : MxBiArOp_FMI<MN, NODE, MxType32, MxType32.JOp, MxType32.JPat,
                                  CMDI, MxEncEAj_0, MxExtEmpty>;
 
   def NAME#"16dr" : MxBiArOp_RFRR_xEA<MN, NODE, MxType16d, MxType16r,
@@ -282,7 +284,8 @@ multiclass MxBiArOp_DF<string MN, SDNode NODE, bit isComm,
 // operations do not produce CCR we should not match them against Mx nodes that
 // produce it.
 let Pattern = [(null_frag)] in
-multiclass MxBiArOp_AF<string MN, SDNode NODE, bits<4> CMD> {
+multiclass MxBiArOp_AF<string MN, SDNode NODE, bit isComm,
+                       bits<4> CMD, bits<4> CMDI> {
 
   def NAME#"32ak" : MxBiArOp_RFRM<MN, NODE, MxType32a, MxType32.KOp, MxType32.KPat,
                                   CMD, MxEncEAk, MxExtBrief_2>;
@@ -304,9 +307,9 @@ multiclass MxBiArOp_AF<string MN, SDNode NODE, bits<4> CMD> {
 // NOTE These naturally produce CCR
 
 defm ADD : MxBiArOp_DF<"add",  MxAdd, 1, 0xD, 0x6>;
-defm ADD : MxBiArOp_AF<"adda", MxAdd, 0xD>;
+defm ADD : MxBiArOp_AF<"adda", MxAdd, 1, 0xD, 0x6>;
 defm SUB : MxBiArOp_DF<"sub",  MxSub, 0, 0x9, 0x4>;
-defm SUB : MxBiArOp_AF<"suba", MxSub, 0x9>;
+defm SUB : MxBiArOp_AF<"suba", MxSub, 0, 0x9, 0x4>;
 
 
 let Uses = [CCR], Defs = [CCR] in {

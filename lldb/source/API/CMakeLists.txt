@@ -1,3 +1,7 @@
+if ( CMAKE_SYSTEM_NAME MATCHES "Windows" )
+  add_definitions( -DEXPORT_LIBLLDB )
+endif()
+
 get_property(LLDB_ALL_PLUGINS GLOBAL PROPERTY LLDB_PLUGINS)
 
 if(LLDB_BUILD_FRAMEWORK)
@@ -90,6 +94,7 @@ add_lldb_library(liblldb SHARED ${option_framework}
   ${lldb_lua_wrapper}
 
   LINK_LIBS
+    lldbBase
     lldbBreakpoint
     lldbCore
     lldbDataFormatters
@@ -100,7 +105,6 @@ add_lldb_library(liblldb SHARED ${option_framework}
     lldbSymbol
     lldbTarget
     lldbUtility
-    lldbVersion
     ${LLDB_ALL_PLUGINS}
   LINK_COMPONENTS
     Support
@@ -161,7 +165,6 @@ set_target_properties(liblldb
   VERSION ${LLDB_VERSION}
 )
 
-target_compile_definitions(liblldb PRIVATE LLDB_IN_LIBLLDB)
 if (NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
   if (NOT LLDB_EXPORT_ALL_SYMBOLS)
     # If we're not exporting all symbols, we'll want to explicitly set

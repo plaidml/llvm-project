@@ -131,7 +131,7 @@ public:
 
 private:
   /// The underlying block.
-  Block *block = nullptr;
+  Block *block;
 
   /// The set of all live in values.
   ValueSetT inValues;
@@ -142,6 +142,6 @@ private:
   friend class Liveness;
 };
 
-} // namespace mlir
+} // end namespace mlir
 
 #endif // MLIR_ANALYSIS_LIVENESS_H

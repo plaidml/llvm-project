@@ -389,11 +389,6 @@ Error objcopy::macho::executeObjcopyOnBinary(const CommonConfig &Config,
   if (!O)
     return createFileError(Config.InputFilename, O.takeError());
 
-  if (O->get()->Header.FileType == MachO::HeaderFileType::MH_PRELOAD)
-    return createStringError(std::errc::not_supported,
-                             "%s: MH_PRELOAD files are not supported",
-                             Config.InputFilename.str().c_str());
-
   if (Error E = handleArgs(Config, MachOConfig, **O))
     return createFileError(Config.InputFilename, std::move(E));
 
@@ -476,8 +471,9 @@ Error objcopy::macho::executeObjcopyOnMachOUniversalBinary(
                                          **ObjOrErr, MemStream))
       return E;
 
-    auto MB = std::make_unique<SmallVectorMemoryBuffer>(
-        std::move(Buffer), ArchFlagName, /*RequiresNullTerminator=*/false);
+    std::unique_ptr<MemoryBuffer> MB =
+        std::make_unique<SmallVectorMemoryBuffer>(std::move(Buffer),
+                                                  ArchFlagName);
     Expected<std::unique_ptr<Binary>> BinaryOrErr = object::createBinary(*MB);
     if (!BinaryOrErr)
       return BinaryOrErr.takeError();

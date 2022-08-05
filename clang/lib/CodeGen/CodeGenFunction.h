@@ -46,6 +46,7 @@ namespace llvm {
 class BasicBlock;
 class LLVMContext;
 class MDNode;
+class Module;
 class SwitchInst;
 class Twine;
 class Value;
@@ -54,11 +55,13 @@ class CanonicalLoopInfo;
 
 namespace clang {
 class ASTContext;
+class BlockDecl;
 class CXXDestructorDecl;
 class CXXForRangeStmt;
 class CXXTryStmt;
 class Decl;
 class LabelDecl;
+class EnumConstantDecl;
 class FunctionDecl;
 class FunctionProtoType;
 class LabelStmt;
@@ -77,6 +80,7 @@ class ObjCAtSynchronizedStmt;
 class ObjCAutoreleasePoolStmt;
 class OMPUseDevicePtrClause;
 class OMPUseDeviceAddrClause;
+class ReturnsNonNullAttr;
 class SVETypeFlags;
 class OMPExecutableDirective;
 
@@ -88,10 +92,12 @@ namespace CodeGen {
 class CodeGenTypes;
 class CGCallee;
 class CGFunctionInfo;
+class CGRecordLayout;
 class CGBlockInfo;
 class CGCXXABI;
 class BlockByrefHelpers;
 class BlockByrefInfo;
+class BlockFlags;
 class BlockFieldFlags;
 class RegionCodeGenTy;
 class TargetCodeGenInfo;
@@ -176,7 +182,6 @@ template <> struct DominatingValue<Address> {
 
   struct saved_type {
     DominatingLLVMValue::saved_type SavedValue;
-    llvm::Type *ElementType;
     CharUnits Alignment;
   };
 
@@ -185,11 +190,11 @@ template <> struct DominatingValue<Address> {
   }
   static saved_type save(CodeGenFunction &CGF, type value) {
     return { DominatingLLVMValue::save(CGF, value.getPointer()),
-             value.getElementType(), value.getAlignment() };
+             value.getAlignment() };
   }
   static type restore(CodeGenFunction &CGF, saved_type value) {
     return Address(DominatingLLVMValue::restore(CGF, value.SavedValue),
-                   value.ElementType, value.Alignment);
+                   value.Alignment);
   }
 };
 
@@ -236,10 +241,11 @@ public:
   /// A jump destination is an abstract label, branching to which may
   /// require a jump out through normal cleanups.
   struct JumpDest {
-    JumpDest() : Block(nullptr), Index(0) {}
-    JumpDest(llvm::BasicBlock *Block, EHScopeStack::stable_iterator Depth,
+    JumpDest() : Block(nullptr), ScopeDepth(), Index(0) {}
+    JumpDest(llvm::BasicBlock *Block,
+             EHScopeStack::stable_iterator Depth,
              unsigned Index)
-        : Block(Block), ScopeDepth(Depth), Index(Index) {}
+      : Block(Block), ScopeDepth(Depth), Index(Index) {}
 
     bool isValid() const { return Block != nullptr; }
     llvm::BasicBlock *getBlock() const { return Block; }
@@ -373,34 +379,6 @@ public:
   /// we prefer to insert allocas.
   llvm::AssertingVH<llvm::Instruction> AllocaInsertPt;
 
-private:
-  /// PostAllocaInsertPt - This is a place in the prologue where code can be
-  /// inserted that will be dominated by all the static allocas. This helps
-  /// achieve two things:
-  ///   1. Contiguity of all static allocas (within the prologue) is maintained.
-  ///   2. All other prologue code (which are dominated by static allocas) do
-  ///      appear in the source order immediately after all static allocas.
-  ///
-  /// PostAllocaInsertPt will be lazily created when it is *really* required.
-  llvm::AssertingVH<llvm::Instruction> PostAllocaInsertPt = nullptr;
-
-public:
-  /// Return PostAllocaInsertPt. If it is not yet created, then insert it
-  /// immediately after AllocaInsertPt.
-  llvm::Instruction *getPostAllocaInsertPoint() {
-    if (!PostAllocaInsertPt) {
-      assert(AllocaInsertPt &&
-             "Expected static alloca insertion point at function prologue");
-      assert(AllocaInsertPt->getParent()->isEntryBlock() &&
-             "EBB should be entry block of the current code gen function");
-      PostAllocaInsertPt = AllocaInsertPt->clone();
-      PostAllocaInsertPt->setName("postallocapt");
-      PostAllocaInsertPt->insertAfter(AllocaInsertPt);
-    }
-
-    return PostAllocaInsertPt;
-  }
-
   /// API for captured statement code generation.
   class CGCapturedStmtInfo {
   public:
@@ -453,11 +431,6 @@ public:
     /// Get the name of the capture helper.
     virtual StringRef getHelperName() const { return "__captured_stmt"; }
 
-    /// Get the CaptureFields
-    llvm::SmallDenseMap<const VarDecl *, FieldDecl *> getCaptureFields() {
-      return CaptureFields;
-    }
-
   private:
     /// The kind of captured statement being generated.
     CapturedRegionKind Kind;
@@ -498,7 +471,7 @@ public:
     AbstractCallee(const FunctionDecl *FD) : CalleeDecl(FD) {}
     AbstractCallee(const ObjCMethodDecl *OMD) : CalleeDecl(OMD) {}
     bool hasFunctionDecl() const {
-      return isa_and_nonnull<FunctionDecl>(CalleeDecl);
+      return dyn_cast_or_null<FunctionDecl>(CalleeDecl);
     }
     const Decl *getDecl() const { return CalleeDecl; }
     unsigned getNumParams() const {
@@ -2493,16 +2466,14 @@ public:
 
   LValue MakeAddrLValue(llvm::Value *V, QualType T, CharUnits Alignment,
                         AlignmentSource Source = AlignmentSource::Type) {
-    Address Addr(V, ConvertTypeForMem(T), Alignment);
-    return LValue::MakeAddr(Addr, T, getContext(), LValueBaseInfo(Source),
-                            CGM.getTBAAAccessInfo(T));
+    return LValue::MakeAddr(Address(V, Alignment), T, getContext(),
+                            LValueBaseInfo(Source), CGM.getTBAAAccessInfo(T));
   }
 
-  LValue
-  MakeAddrLValueWithoutTBAA(Address Addr, QualType T,
-                            AlignmentSource Source = AlignmentSource::Type) {
-    return LValue::MakeAddr(Addr, T, getContext(), LValueBaseInfo(Source),
-                            TBAAAccessInfo());
+  LValue MakeAddrLValue(llvm::Value *V, QualType T, CharUnits Alignment,
+                        LValueBaseInfo BaseInfo, TBAAAccessInfo TBAAInfo) {
+    return LValue::MakeAddr(Address(V, Alignment), T, getContext(),
+                            BaseInfo, TBAAInfo);
   }
 
   LValue MakeNaturalAlignPointeeAddrLValue(llvm::Value *V, QualType T);
@@ -3129,18 +3100,15 @@ public:
 
   class ParamValue {
     llvm::Value *Value;
-    llvm::Type *ElementType;
     unsigned Alignment;
-    ParamValue(llvm::Value *V, llvm::Type *T, unsigned A)
-        : Value(V), ElementType(T), Alignment(A) {}
+    ParamValue(llvm::Value *V, unsigned A) : Value(V), Alignment(A) {}
   public:
     static ParamValue forDirect(llvm::Value *value) {
-      return ParamValue(value, nullptr, 0);
+      return ParamValue(value, 0);
     }
     static ParamValue forIndirect(Address addr) {
       assert(!addr.getAlignment().isZero());
-      return ParamValue(addr.getPointer(), addr.getElementType(),
-                        addr.getAlignment().getQuantity());
+      return ParamValue(addr.getPointer(), addr.getAlignment().getQuantity());
     }
 
     bool isIndirect() const { return Alignment != 0; }
@@ -3153,7 +3121,7 @@ public:
 
     Address getIndirectAddress() const {
       assert(isIndirect());
-      return Address(Value, ElementType, CharUnits::fromQuantity(Alignment));
+      return Address(Value, CharUnits::fromQuantity(Alignment));
     }
   };
 
@@ -4102,9 +4070,10 @@ public:
   RValue EmitCUDAKernelCallExpr(const CUDAKernelCallExpr *E,
                                 ReturnValueSlot ReturnValue);
 
-  RValue EmitNVPTXDevicePrintfCallExpr(const CallExpr *E);
-  RValue EmitAMDGPUDevicePrintfCallExpr(const CallExpr *E);
-  RValue EmitOpenMPDevicePrintfCallExpr(const CallExpr *E);
+  RValue EmitNVPTXDevicePrintfCallExpr(const CallExpr *E,
+                                       ReturnValueSlot ReturnValue);
+  RValue EmitAMDGPUDevicePrintfCallExpr(const CallExpr *E,
+                                        ReturnValueSlot ReturnValue);
 
   RValue EmitBuiltinExpr(const GlobalDecl GD, unsigned BuiltinID,
                          const CallExpr *E, ReturnValueSlot ReturnValue);
@@ -4409,7 +4378,7 @@ public:
 
   /// EmitCXXGlobalVarDeclInit - Create the initializer for a C++
   /// variable with global storage.
-  void EmitCXXGlobalVarDeclInit(const VarDecl &D, llvm::GlobalVariable *GV,
+  void EmitCXXGlobalVarDeclInit(const VarDecl &D, llvm::Constant *DeclPtr,
                                 bool PerformInit);
 
   llvm::Function *createAtExitStub(const VarDecl &VD, llvm::FunctionCallee Dtor,
@@ -4560,7 +4529,7 @@ public:
   /// \p SignedIndices indicates whether any of the GEP indices are signed.
   /// \p IsSubtraction indicates whether the expression used to form the GEP
   /// is a subtraction.
-  llvm::Value *EmitCheckedInBoundsGEP(llvm::Type *ElemTy, llvm::Value *Ptr,
+  llvm::Value *EmitCheckedInBoundsGEP(llvm::Value *Ptr,
                                       ArrayRef<llvm::Value *> IdxList,
                                       bool SignedIndices,
                                       bool IsSubtraction,
@@ -4671,14 +4640,13 @@ private:
                         SmallVectorImpl<llvm::Value *> &IRCallArgs,
                         unsigned &IRCallArgPos);
 
-  std::pair<llvm::Value *, llvm::Type *>
-  EmitAsmInput(const TargetInfo::ConstraintInfo &Info, const Expr *InputExpr,
-               std::string &ConstraintStr);
+  llvm::Value* EmitAsmInput(const TargetInfo::ConstraintInfo &Info,
+                            const Expr *InputExpr, std::string &ConstraintStr);
 
-  std::pair<llvm::Value *, llvm::Type *>
-  EmitAsmInputLValue(const TargetInfo::ConstraintInfo &Info, LValue InputValue,
-                     QualType InputType, std::string &ConstraintStr,
-                     SourceLocation Loc);
+  llvm::Value* EmitAsmInputLValue(const TargetInfo::ConstraintInfo &Info,
+                                  LValue InputValue, QualType InputType,
+                                  std::string &ConstraintStr,
+                                  SourceLocation Loc);
 
   /// Attempts to statically evaluate the object size of E. If that
   /// fails, emits code to figure the size of E out for us. This is

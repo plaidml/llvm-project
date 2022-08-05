@@ -66,30 +66,24 @@ protected:
 class Type : public std::enable_shared_from_this<Type>, public UserID {
 public:
   enum EncodingDataType {
-    /// Invalid encoding.
     eEncodingInvalid,
-    /// This type is the type whose UID is m_encoding_uid.
-    eEncodingIsUID,
-    /// This type is the type whose UID is m_encoding_uid with the const
-    /// qualifier added.
-    eEncodingIsConstUID,
-    /// This type is the type whose UID is m_encoding_uid with the restrict
-    /// qualifier added.
-    eEncodingIsRestrictUID,
-    /// This type is the type whose UID is m_encoding_uid with the volatile
-    /// qualifier added.
-    eEncodingIsVolatileUID,
-    /// This type is alias to a type whose UID is m_encoding_uid.
-    eEncodingIsTypedefUID,
-    /// This type is pointer to a type whose UID is m_encoding_uid.
-    eEncodingIsPointerUID,
-    /// This type is L value reference to a type whose UID is m_encoding_uid.
-    eEncodingIsLValueReferenceUID,
-    /// This type is R value reference to a type whose UID is m_encoding_uid.
-    eEncodingIsRValueReferenceUID,
-    /// This type is the type whose UID is m_encoding_uid as an atomic type.
-    eEncodingIsAtomicUID,
-    /// This type is the synthetic type whose UID is m_encoding_uid.
+    eEncodingIsUID,      ///< This type is the type whose UID is m_encoding_uid
+    eEncodingIsConstUID, ///< This type is the type whose UID is m_encoding_uid
+                         /// with the const qualifier added
+    eEncodingIsRestrictUID, ///< This type is the type whose UID is
+                            /// m_encoding_uid with the restrict qualifier added
+    eEncodingIsVolatileUID, ///< This type is the type whose UID is
+                            /// m_encoding_uid with the volatile qualifier added
+    eEncodingIsTypedefUID,  ///< This type is pointer to a type whose UID is
+                            /// m_encoding_uid
+    eEncodingIsPointerUID,  ///< This type is pointer to a type whose UID is
+                            /// m_encoding_uid
+    eEncodingIsLValueReferenceUID, ///< This type is L value reference to a type
+                                   /// whose UID is m_encoding_uid
+    eEncodingIsRValueReferenceUID, ///< This type is R value reference to a type
+                                   /// whose UID is m_encoding_uid,
+    eEncodingIsAtomicUID,          ///< This type is the type whose UID is
+                                   /// m_encoding_uid as an atomic type.
     eEncodingIsSyntheticUID
   };
 
@@ -203,7 +197,7 @@ public:
 
   // From a fully qualified typename, split the type into the type basename and
   // the remaining type scope (namespaces/classes).
-  static bool GetTypeScopeAndBasename(llvm::StringRef name,
+  static bool GetTypeScopeAndBasename(const llvm::StringRef& name,
                                       llvm::StringRef &scope,
                                       llvm::StringRef &basename,
                                       lldb::TypeClass &type_class);
@@ -314,7 +308,7 @@ private:
 
 class TypeListImpl {
 public:
-  TypeListImpl() {}
+  TypeListImpl() : m_content() {}
 
   void Append(const lldb::TypeImplSP &type) { m_content.push_back(type); }
 
@@ -345,7 +339,10 @@ private:
 
 class TypeMemberImpl {
 public:
-  TypeMemberImpl() {}
+  TypeMemberImpl()
+      : m_type_impl_sp(), m_name()
+
+  {}
 
   TypeMemberImpl(const lldb::TypeImplSP &type_impl_sp, uint64_t bit_offset,
                  ConstString name, uint32_t bitfield_bit_size = 0,
@@ -354,7 +351,7 @@ public:
         m_bitfield_bit_size(bitfield_bit_size), m_is_bitfield(is_bitfield) {}
 
   TypeMemberImpl(const lldb::TypeImplSP &type_impl_sp, uint64_t bit_offset)
-      : m_type_impl_sp(type_impl_sp), m_bit_offset(bit_offset),
+      : m_type_impl_sp(type_impl_sp), m_bit_offset(bit_offset), m_name(),
         m_bitfield_bit_size(0), m_is_bitfield(false) {
     if (m_type_impl_sp)
       m_name = m_type_impl_sp->GetName();
@@ -437,7 +434,7 @@ private:
 
 class TypeMemberFunctionImpl {
 public:
-  TypeMemberFunctionImpl() {}
+  TypeMemberFunctionImpl() : m_type(), m_decl(), m_name() {}
 
   TypeMemberFunctionImpl(const CompilerType &type, const CompilerDecl &decl,
                          const std::string &name,
@@ -474,10 +471,10 @@ private:
 
 class TypeEnumMemberImpl {
 public:
-  TypeEnumMemberImpl() : m_name("<invalid>") {}
+  TypeEnumMemberImpl() : m_integer_type_sp(), m_name("<invalid>"), m_value() {}
 
-  TypeEnumMemberImpl(const lldb::TypeImplSP &integer_type_sp, ConstString name,
-                     const llvm::APSInt &value);
+  TypeEnumMemberImpl(const lldb::TypeImplSP &integer_type_sp,
+                     ConstString name, const llvm::APSInt &value);
 
   TypeEnumMemberImpl(const TypeEnumMemberImpl &rhs) = default;
 
@@ -502,7 +499,7 @@ protected:
 
 class TypeEnumMemberListImpl {
 public:
-  TypeEnumMemberListImpl() {}
+  TypeEnumMemberListImpl() : m_content() {}
 
   void Append(const lldb::TypeEnumMemberImplSP &type) {
     m_content.push_back(type);

@@ -471,7 +471,9 @@ void Thread::SetStopInfoToNothing() {
       StopInfo::CreateStopReasonWithSignal(*this, LLDB_INVALID_SIGNAL_NUMBER));
 }
 
-bool Thread::ThreadStoppedForAReason() { return (bool)GetPrivateStopInfo(); }
+bool Thread::ThreadStoppedForAReason(void) {
+  return (bool)GetPrivateStopInfo();
+}
 
 bool Thread::CheckpointThreadState(ThreadStateCheckpoint &saved_state) {
   saved_state.register_backup_sp.reset();
@@ -842,7 +844,7 @@ bool Thread::ShouldStop(Event *event_ptr) {
             // we're done, otherwise we forward this to the next plan in the
             // stack below.
             done_processing_current_plan =
-                (plan_ptr->IsControllingPlan() && !plan_ptr->OkayToDiscard());
+                (plan_ptr->IsMasterPlan() && !plan_ptr->OkayToDiscard());
           } else
             done_processing_current_plan = true;
 
@@ -880,11 +882,11 @@ bool Thread::ShouldStop(Event *event_ptr) {
                       current_plan->GetName());
           }
 
-          // If a Controlling Plan wants to stop, we let it. Otherwise, see if
-          // the plan's parent wants to stop.
+          // If a Master Plan wants to stop, we let it. Otherwise, see if the
+          // plan's parent wants to stop.
 
           PopPlan();
-          if (should_stop && current_plan->IsControllingPlan() &&
+          if (should_stop && current_plan->IsMasterPlan() &&
               !current_plan->OkayToDiscard()) {
             break;
           }
@@ -903,8 +905,8 @@ bool Thread::ShouldStop(Event *event_ptr) {
       should_stop = false;
   }
 
-  // One other potential problem is that we set up a controlling plan, then stop
-  // in before it is complete - for instance by hitting a breakpoint during a
+  // One other potential problem is that we set up a master plan, then stop in
+  // before it is complete - for instance by hitting a breakpoint during a
   // step-over - then do some step/finish/etc operations that wind up past the
   // end point condition of the initial plan.  We don't want to strand the
   // original plan on the stack, This code clears stale plans off the stack.
@@ -1212,7 +1214,7 @@ void Thread::DiscardThreadPlans(bool force) {
     GetPlans().DiscardAllPlans();
     return;
   }
-  GetPlans().DiscardConsultingControllingPlans();
+  GetPlans().DiscardConsultingMasterPlans();
 }
 
 Status Thread::UnwindInnermostExpression() {
@@ -1368,9 +1370,15 @@ lldb::ThreadPlanSP Thread::QueueThreadPlanForStepScripted(
     bool abort_other_plans, const char *class_name, 
     StructuredData::ObjectSP extra_args_sp,  bool stop_other_threads,
     Status &status) {
+    
+  StructuredDataImpl *extra_args_impl = nullptr; 
+  if (extra_args_sp) {
+    extra_args_impl = new StructuredDataImpl();
+    extra_args_impl->SetObjectSP(extra_args_sp);
+  }
 
-  ThreadPlanSP thread_plan_sp(new ThreadPlanPython(
-      *this, class_name, StructuredDataImpl(extra_args_sp)));
+  ThreadPlanSP thread_plan_sp(new ThreadPlanPython(*this, class_name, 
+                                                   extra_args_impl));
   thread_plan_sp->SetStopOthers(stop_other_threads);
   status = QueueThreadPlan(thread_plan_sp, abort_other_plans);
   return thread_plan_sp;
@@ -1906,7 +1914,7 @@ Status Thread::StepIn(bool source_step,
           false, abort_other_plans, run_mode, error);
     }
 
-    new_plan_sp->SetIsControllingPlan(true);
+    new_plan_sp->SetIsMasterPlan(true);
     new_plan_sp->SetOkayToDiscard(false);
 
     // Why do we need to set the current thread by ID here???
@@ -1939,7 +1947,7 @@ Status Thread::StepOver(bool source_step,
           true, abort_other_plans, run_mode, error);
     }
 
-    new_plan_sp->SetIsControllingPlan(true);
+    new_plan_sp->SetIsMasterPlan(true);
     new_plan_sp->SetOkayToDiscard(false);
 
     // Why do we need to set the current thread by ID here???
@@ -1963,7 +1971,7 @@ Status Thread::StepOut() {
         abort_other_plans, nullptr, first_instruction, stop_other_threads,
         eVoteYes, eVoteNoOpinion, 0, error));
 
-    new_plan_sp->SetIsControllingPlan(true);
+    new_plan_sp->SetIsMasterPlan(true);
     new_plan_sp->SetOkayToDiscard(false);
 
     // Why do we need to set the current thread by ID here???

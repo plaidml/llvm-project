@@ -20,35 +20,27 @@ void registerDialect(DialectRegistry &registry);
 
 namespace arith {
 class ArithmeticDialect;
-} // namespace arith
-
-namespace bufferization {
-class BufferizationDialect;
-} // namespace bufferization
+} // end namespace arith
 
 namespace linalg {
 class LinalgDialect;
-} // namespace linalg
+} // end namespace linalg
 
 namespace scf {
 class SCFDialect;
-} // namespace scf
+} // end namespace scf
 
 namespace memref {
 class MemRefDialect;
-} // namespace memref
-
-namespace tensor {
-class TensorDialect;
-} // namespace tensor
+} // end namespace memref
 
 namespace vector {
 class VectorDialect;
-} // namespace vector
+} // end namespace vector
 
 #define GEN_PASS_CLASSES
 #include "mlir/Dialect/Linalg/Passes.h.inc"
 
-} // namespace mlir
+} // end namespace mlir
 
 #endif // DIALECT_LINALG_TRANSFORMS_PASSDETAIL_H_

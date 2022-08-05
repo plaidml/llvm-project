@@ -153,7 +153,6 @@ private:
   MCLOHContainer LOHContainer;
 
   VersionInfoType VersionInfo;
-  VersionInfoType DarwinTargetVariantVersionInfo;
 
   /// Evaluate a fixup to a relocatable expression and the value which should be
   /// placed into the fixup.
@@ -284,21 +283,6 @@ public:
     VersionInfo.Minor = Minor;
     VersionInfo.Update = Update;
     VersionInfo.SDKVersion = SDKVersion;
-  }
-
-  const VersionInfoType &getDarwinTargetVariantVersionInfo() const {
-    return DarwinTargetVariantVersionInfo;
-  }
-  void setDarwinTargetVariantBuildVersion(MachO::PlatformType Platform,
-                                          unsigned Major, unsigned Minor,
-                                          unsigned Update,
-                                          VersionTuple SDKVersion) {
-    DarwinTargetVariantVersionInfo.EmitBuildVersion = true;
-    DarwinTargetVariantVersionInfo.TypeOrPlatform.Platform = Platform;
-    DarwinTargetVariantVersionInfo.Major = Major;
-    DarwinTargetVariantVersionInfo.Minor = Minor;
-    DarwinTargetVariantVersionInfo.Update = Update;
-    DarwinTargetVariantVersionInfo.SDKVersion = SDKVersion;
   }
 
   /// Reuse an assembler instance

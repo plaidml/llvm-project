@@ -51,10 +51,6 @@ void StructPackAlignCheck::check(const MatchFinder::MatchResult &Result) {
   if (Struct->isTemplated())
      return;
 
-  // Packing and alignment requirements for invalid decls are meaningless.
-  if (Struct->isInvalidDecl())
-    return;
-
   // Get sizing info for the struct.
   llvm::SmallVector<std::pair<unsigned int, unsigned int>, 10> FieldSizes;
   unsigned int TotalBitSize = 0;

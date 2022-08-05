@@ -94,7 +94,7 @@ std::enable_if_t<!llvm::is_detected<has_is_invalidated, AnalysisT>::value, bool>
 isInvalidated(AnalysisT &analysis, const PreservedAnalyses &pa) {
   return !pa.isPreserved<AnalysisT>();
 }
-} // namespace analysis_impl
+} // end namespace analysis_impl
 
 /// The abstract polymorphic base class representing an analysis.
 struct AnalysisConcept {
@@ -401,6 +401,6 @@ private:
   detail::NestedAnalysisMap analyses;
 };
 
-} // namespace mlir
+} // end namespace mlir
 
 #endif // MLIR_PASS_ANALYSISMANAGER_H

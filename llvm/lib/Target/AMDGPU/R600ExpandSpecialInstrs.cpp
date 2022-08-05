@@ -73,7 +73,9 @@ bool R600ExpandSpecialInstrsPass::runOnMachineFunction(MachineFunction &MF) {
 
   const R600RegisterInfo &TRI = TII->getRegisterInfo();
 
-  for (MachineBasicBlock &MBB : MF) {
+  for (MachineFunction::iterator BB = MF.begin(), BB_E = MF.end();
+                                                  BB != BB_E; ++BB) {
+    MachineBasicBlock &MBB = *BB;
     MachineBasicBlock::iterator I = MBB.begin();
     while (I != MBB.end()) {
       MachineInstr &MI = *I;

@@ -55,7 +55,7 @@ struct GDBRemotePacket {
 
   enum Type { ePacketTypeInvalid = 0, ePacketTypeSend, ePacketTypeRecv };
 
-  GDBRemotePacket() {}
+  GDBRemotePacket() : packet() {}
 
   void Clear() {
     packet.data.clear();

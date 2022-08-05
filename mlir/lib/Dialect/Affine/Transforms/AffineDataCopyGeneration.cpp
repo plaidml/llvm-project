@@ -20,7 +20,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "PassDetail.h"
-#include "mlir/Dialect/Affine/Analysis/Utils.h"
+#include "mlir/Analysis/Utils.h"
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/Affine/Passes.h"
 #include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
@@ -65,14 +65,14 @@ struct AffineDataCopyGeneration
     this->fastMemoryCapacity = fastMemCapacityBytes / 1024;
   }
 
-  void runOnOperation() override;
-  void runOnBlock(Block *block, DenseSet<Operation *> &copyNests);
+  void runOnFunction() override;
+  LogicalResult runOnBlock(Block *block, DenseSet<Operation *> &copyNests);
 
   // Constant zero index to avoid too many duplicates.
   Value zeroIndex = nullptr;
 };
 
-} // namespace
+} // end anonymous namespace
 
 /// Generates copies for memref's living in 'slowMemorySpace' into newly created
 /// buffers in 'fastMemorySpace', and replaces memory operations to the former
@@ -94,10 +94,11 @@ mlir::createAffineDataCopyGenerationPass() {
 /// ranges: each range is either a sequence of one or more operations starting
 /// and ending with an affine load or store op, or just an affine.forop (which
 /// could have other affine for op's nested within).
-void AffineDataCopyGeneration::runOnBlock(Block *block,
-                                          DenseSet<Operation *> &copyNests) {
+LogicalResult
+AffineDataCopyGeneration::runOnBlock(Block *block,
+                                     DenseSet<Operation *> &copyNests) {
   if (block->empty())
-    return;
+    return success();
 
   uint64_t fastMemCapacityBytes =
       fastMemoryCapacity != std::numeric_limits<uint64_t>::max()
@@ -107,7 +108,7 @@ void AffineDataCopyGeneration::runOnBlock(Block *block,
                                    fastMemorySpace, tagMemorySpace,
                                    fastMemCapacityBytes};
 
-  // Every affine.for op in the block starts and ends a block range for copying;
+  // Every affine.forop in the block starts and ends a block range for copying;
   // in addition, a contiguous sequence of operations starting with a
   // load/store op but not including any copy nests themselves is also
   // identified as a copy block range. Straightline code (a contiguous chunk of
@@ -132,8 +133,8 @@ void AffineDataCopyGeneration::runOnBlock(Block *block,
     // If you hit a non-copy for loop, we will split there.
     if ((forOp = dyn_cast<AffineForOp>(&*it)) && copyNests.count(forOp) == 0) {
       // Perform the copying up unti this 'for' op first.
-      (void)affineDataCopyGenerate(/*begin=*/curBegin, /*end=*/it, copyOptions,
-                                   /*filterMemRef=*/llvm::None, copyNests);
+      affineDataCopyGenerate(/*begin=*/curBegin, /*end=*/it, copyOptions,
+                             /*filterMemRef=*/llvm::None, copyNests);
 
       // Returns true if the footprint is known to exceed capacity.
       auto exceedsCapacity = [&](AffineForOp forOp) {
@@ -156,7 +157,7 @@ void AffineDataCopyGeneration::runOnBlock(Block *block,
       if (recurseInner) {
         // We'll recurse and do the copies at an inner level for 'forInst'.
         // Recurse onto the body of this loop.
-        runOnBlock(forOp.getBody(), copyNests);
+        (void)runOnBlock(forOp.getBody(), copyNests);
       } else {
         // We have enough capacity, i.e., copies will be computed for the
         // portion of the block until 'it', and for 'it', which is 'forOp'. Note
@@ -166,9 +167,8 @@ void AffineDataCopyGeneration::runOnBlock(Block *block,
         // Inner loop copies have their own scope - we don't thus update
         // consumed capacity. The footprint check above guarantees this inner
         // loop's footprint fits.
-        (void)affineDataCopyGenerate(/*begin=*/it, /*end=*/std::next(it),
-                                     copyOptions,
-                                     /*filterMemRef=*/llvm::None, copyNests);
+        affineDataCopyGenerate(/*begin=*/it, /*end=*/std::next(it), copyOptions,
+                               /*filterMemRef=*/llvm::None, copyNests);
       }
       // Get to the next load or store op after 'forOp'.
       curBegin = std::find_if(std::next(it), block->end(), [&](Operation &op) {
@@ -190,14 +190,15 @@ void AffineDataCopyGeneration::runOnBlock(Block *block,
     assert(!curBegin->hasTrait<OpTrait::IsTerminator>() &&
            "can't be a terminator");
     // Exclude the affine.yield - hence, the std::prev.
-    (void)affineDataCopyGenerate(/*begin=*/curBegin,
-                                 /*end=*/std::prev(block->end()), copyOptions,
-                                 /*filterMemRef=*/llvm::None, copyNests);
+    affineDataCopyGenerate(/*begin=*/curBegin, /*end=*/std::prev(block->end()),
+                           copyOptions, /*filterMemRef=*/llvm::None, copyNests);
   }
+
+  return success();
 }
 
-void AffineDataCopyGeneration::runOnOperation() {
-  FuncOp f = getOperation();
+void AffineDataCopyGeneration::runOnFunction() {
+  FuncOp f = getFunction();
   OpBuilder topBuilder(f.getBody());
   zeroIndex = topBuilder.create<arith::ConstantIndexOp>(f.getLoc(), 0);
 
@@ -209,7 +210,7 @@ void AffineDataCopyGeneration::runOnOperation() {
   copyNests.clear();
 
   for (auto &block : f)
-    runOnBlock(&block, copyNests);
+    (void)runOnBlock(&block, copyNests);
 
   // Promote any single iteration loops in the copy nests and collect
   // load/stores to simplify.

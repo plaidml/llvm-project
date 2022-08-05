@@ -22,7 +22,7 @@ void populateArithmeticToSPIRVPatterns(SPIRVTypeConverter &typeConverter,
                                        RewritePatternSet &patterns);
 
 std::unique_ptr<Pass> createConvertArithmeticToSPIRVPass();
-} // namespace arith
-} // namespace mlir
+} // end namespace arith
+} // end namespace mlir
 
 #endif // MLIR_CONVERSION_ARITHMETICTOSPIRV_ARITHMETICTOSPIRV_H

@@ -14,6 +14,8 @@ define void @test1() {
 ; CHECK-NEXT:    call void @bar()
 ; CHECK-NEXT:    call void @bar()
 ; CHECK-NEXT:    br label [[LATCH_1:%.*]]
+; CHECK:       exit:
+; CHECK-NEXT:    ret void
 ; CHECK:       latch.1:
 ; CHECK-NEXT:    call void @bar()
 ; CHECK-NEXT:    call void @bar()
@@ -53,8 +55,6 @@ define void @test1() {
 ; CHECK:       latch.10:
 ; CHECK-NEXT:    call void @bar()
 ; CHECK-NEXT:    br label [[EXIT]]
-; CHECK:       exit:
-; CHECK-NEXT:    ret void
 ;
 entry:
   br label %loop
@@ -84,6 +84,8 @@ define void @test2(i64 %N) {
 ; CHECK:       latch:
 ; CHECK-NEXT:    call void @bar()
 ; CHECK-NEXT:    br i1 true, label [[LOOP_1:%.*]], label [[EXIT:%.*]]
+; CHECK:       exit:
+; CHECK-NEXT:    ret void
 ; CHECK:       loop.1:
 ; CHECK-NEXT:    call void @bar()
 ; CHECK-NEXT:    br label [[LATCH_1:%.*]]
@@ -160,8 +162,6 @@ define void @test2(i64 %N) {
 ; CHECK:       latch.11:
 ; CHECK-NEXT:    call void @bar()
 ; CHECK-NEXT:    br label [[EXIT]]
-; CHECK:       exit:
-; CHECK-NEXT:    ret void
 ;
 entry:
   br label %loop

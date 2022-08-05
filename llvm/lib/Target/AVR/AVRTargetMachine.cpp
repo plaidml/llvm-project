@@ -70,6 +70,7 @@ public:
   bool addInstSelector() override;
   void addPreSched2() override;
   void addPreEmitPass() override;
+  void addPreRegAlloc() override;
 };
 } // namespace
 
@@ -115,6 +116,11 @@ bool AVRPassConfig::addInstSelector() {
   addPass(createAVRFrameAnalyzerPass());
 
   return false;
+}
+
+void AVRPassConfig::addPreRegAlloc() {
+  // Create the dynalloc SP save/restore pass to handle variable sized allocas.
+  addPass(createAVRDynAllocaSRPass());
 }
 
 void AVRPassConfig::addPreSched2() {

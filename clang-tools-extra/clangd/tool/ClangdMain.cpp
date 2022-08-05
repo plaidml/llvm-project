@@ -12,7 +12,6 @@
 #include "Config.h"
 #include "ConfigProvider.h"
 #include "Feature.h"
-#include "IncludeCleaner.h"
 #include "PathMapping.h"
 #include "Protocol.h"
 #include "TidyProvider.h"
@@ -23,6 +22,7 @@
 #include "index/ProjectAware.h"
 #include "index/Serialization.h"
 #include "index/remote/Client.h"
+#include "refactor/Rename.h"
 #include "support/Path.h"
 #include "support/Shutdown.h"
 #include "support/ThreadCrashReporter.h"
@@ -233,6 +233,7 @@ opt<bool> EnableFunctionArgSnippets{
          "function calls. When enabled, completions also contain "
          "placeholders for method parameters"),
     init(CodeCompleteOptions().EnableFunctionArgSnippets),
+    Hidden,
 };
 
 opt<CodeCompleteOptions::IncludeInsertion> HeaderInsertion{
@@ -249,15 +250,6 @@ opt<CodeCompleteOptions::IncludeInsertion> HeaderInsertion{
         clEnumValN(
             CodeCompleteOptions::NeverInsert, "never",
             "Never insert #include directives as part of code completion")),
-};
-
-opt<bool> IncludeCleanerStdlib{
-    "include-cleaner-stdlib",
-    cat(Features),
-    desc("Apply include-cleaner analysis to standard library headers "
-         "(immature!)"),
-    init(false),
-    Hidden,
 };
 
 opt<bool> HeaderInsertionDecorators{
@@ -293,7 +285,6 @@ RetiredFlag<bool> AsyncPreamble("async-preamble");
 RetiredFlag<bool> CollectMainFileRefs("collect-main-file-refs");
 RetiredFlag<bool> CrossFileRename("cross-file-rename");
 RetiredFlag<std::string> ClangTidyChecks("clang-tidy-checks");
-RetiredFlag<std::string> InlayHints("inlay-hints");
 
 opt<int> LimitResults{
     "limit-results",
@@ -326,6 +317,9 @@ opt<bool> FoldingRanges{
     init(false),
     Hidden,
 };
+
+opt<bool> InlayHints{"inlay-hints", cat(Features),
+                     desc("Enable preview of InlayHints feature"), init(false)};
 
 opt<unsigned> WorkerThreadsCount{
     "j",
@@ -492,12 +486,6 @@ opt<bool> EnableConfig{
     init(true),
 };
 
-opt<bool> UseDirtyHeaders{"use-dirty-headers", cat(Misc),
-                          desc("Use files open in the editor when parsing "
-                               "headers instead of reading from the disk"),
-                          Hidden,
-                          init(ClangdServer::Options().UseDirtyHeaders)};
-
 #if defined(__GLIBC__) && CLANGD_MALLOC_TRIM
 opt<bool> EnableMallocTrim{
     "malloc-trim",
@@ -599,7 +587,7 @@ loadExternalIndex(const Config::ExternalIndexSpec &External,
     auto NewIndex = std::make_unique<SwapIndex>(std::make_unique<MemIndex>());
     auto IndexLoadTask = [File = External.Location,
                           PlaceHolder = NewIndex.get()] {
-      if (auto Idx = loadIndex(File, SymbolOrigin::Static, /*UseDex=*/true))
+      if (auto Idx = loadIndex(File, /*UseDex=*/true))
         PlaceHolder->reset(std::move(Idx));
     };
     if (Tasks) {
@@ -881,6 +869,7 @@ clangd accepts flags on the commandline, and in the CLANGD_FLAGS environment var
   }
   Opts.AsyncThreadsCount = WorkerThreadsCount;
   Opts.FoldingRanges = FoldingRanges;
+  Opts.InlayHints = InlayHints;
   Opts.MemoryCleanup = getMemoryCleanupFunction();
 
   Opts.CodeComplete.IncludeIneligibleResults = IncludeIneligibleResults;
@@ -934,7 +923,6 @@ clangd accepts flags on the commandline, and in the CLANGD_FLAGS environment var
     ClangTidyOptProvider = combine(std::move(Providers));
     Opts.ClangTidyProvider = ClangTidyOptProvider;
   }
-  Opts.UseDirtyHeaders = UseDirtyHeaders;
   Opts.QueryDriverGlobs = std::move(QueryDriverGlobs);
   Opts.TweakFilter = [&](const Tweak &T) {
     if (T.hidden() && !HiddenFeatures)
@@ -945,7 +933,6 @@ clangd accepts flags on the commandline, and in the CLANGD_FLAGS environment var
   };
   if (ForceOffsetEncoding != OffsetEncoding::UnsupportedEncoding)
     Opts.Encoding = ForceOffsetEncoding;
-  setIncludeCleanerAnalyzesStdlib(IncludeCleanerStdlib);
 
   if (CheckFile.getNumOccurrences()) {
     llvm::SmallString<256> Path;

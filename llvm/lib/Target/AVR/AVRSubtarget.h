@@ -91,9 +91,6 @@ public:
     return ELFArch;
   }
 
-  /// Get I/O register address.
-  int getIORegRAMPZ(void) const { return 0x3b; }
-
 private:
   /// The ELF e_flags architecture.
   unsigned ELFArch;

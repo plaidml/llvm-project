@@ -817,7 +817,7 @@ std::unique_ptr<ASTUnit> ASTUnit::LoadFromASTFile(
   AST->Reader = new ASTReader(
       PP, *AST->ModuleCache, AST->Ctx.get(), PCHContainerRdr, {},
       /*isysroot=*/"",
-      /*DisableValidationKind=*/disableValid, AllowASTWithCompilerErrors);
+      /*DisableValidation=*/disableValid, AllowASTWithCompilerErrors);
 
   AST->Reader->setListener(std::make_unique<ASTInfoCollector>(
       *AST->PP, AST->Ctx.get(), *AST->HSOpts, *AST->PPOpts, *AST->LangOpts,
@@ -1922,10 +1922,9 @@ namespace {
     void ProcessOverloadCandidates(Sema &S, unsigned CurrentArg,
                                    OverloadCandidate *Candidates,
                                    unsigned NumCandidates,
-                                   SourceLocation OpenParLoc,
-                                   bool Braced) override {
+                                   SourceLocation OpenParLoc) override {
       Next.ProcessOverloadCandidates(S, CurrentArg, Candidates, NumCandidates,
-                                     OpenParLoc, Braced);
+                                     OpenParLoc);
     }
 
     CodeCompletionAllocator &getAllocator() override {

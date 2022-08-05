@@ -32,6 +32,8 @@
 
 namespace llvm {
 
+class PostDominatorTree;
+
 /// This pass performs function-level constant propagation and merging.
 class SCCPPass : public PassInfoMixin<SCCPPass> {
 public:

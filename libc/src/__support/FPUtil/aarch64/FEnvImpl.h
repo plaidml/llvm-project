@@ -9,12 +9,6 @@
 #ifndef LLVM_LIBC_SRC_SUPPORT_FPUTIL_AARCH64_FENVIMPL_H
 #define LLVM_LIBC_SRC_SUPPORT_FPUTIL_AARCH64_FENVIMPL_H
 
-#include "src/__support/architectures.h"
-
-#if !defined(LLVM_LIBC_ARCH_AARCH64)
-#error "Invalid include"
-#endif
-
 #include <arm_acle.h>
 #include <fenv.h>
 #include <stdint.h>
@@ -34,16 +28,16 @@ struct FEnv {
       sizeof(fenv_t) == sizeof(FPState),
       "Internal floating point state does not match the public fenv_t type.");
 
-  static constexpr uint32_t TONEAREST = 0x0;
-  static constexpr uint32_t UPWARD = 0x1;
-  static constexpr uint32_t DOWNWARD = 0x2;
-  static constexpr uint32_t TOWARDZERO = 0x3;
+  static constexpr uint32_t ToNearest = 0x0;
+  static constexpr uint32_t Upward = 0x1;
+  static constexpr uint32_t Downward = 0x2;
+  static constexpr uint32_t TowardZero = 0x3;
 
-  static constexpr uint32_t INVALID = 0x1;
-  static constexpr uint32_t DIVBYZERO = 0x2;
-  static constexpr uint32_t OVERFLOW = 0x4;
-  static constexpr uint32_t UNDERFLOW = 0x8;
-  static constexpr uint32_t INEXACT = 0x10;
+  static constexpr uint32_t Invalid = 0x1;
+  static constexpr uint32_t DivByZero = 0x2;
+  static constexpr uint32_t Overflow = 0x4;
+  static constexpr uint32_t Underflow = 0x8;
+  static constexpr uint32_t Inexact = 0x10;
 
   // Zero-th bit is the first bit.
   static constexpr uint32_t RoundingControlBitPosition = 22;
@@ -51,19 +45,19 @@ struct FEnv {
   static constexpr uint32_t ExceptionControlFlagsBitPosition = 8;
 
   static inline uint32_t getStatusValueForExcept(int excepts) {
-    return (excepts & FE_INVALID ? INVALID : 0) |
-           (excepts & FE_DIVBYZERO ? DIVBYZERO : 0) |
-           (excepts & FE_OVERFLOW ? OVERFLOW : 0) |
-           (excepts & FE_UNDERFLOW ? UNDERFLOW : 0) |
-           (excepts & FE_INEXACT ? INEXACT : 0);
+    return (excepts & FE_INVALID ? Invalid : 0) |
+           (excepts & FE_DIVBYZERO ? DivByZero : 0) |
+           (excepts & FE_OVERFLOW ? Overflow : 0) |
+           (excepts & FE_UNDERFLOW ? Underflow : 0) |
+           (excepts & FE_INEXACT ? Inexact : 0);
   }
 
   static inline int exceptionStatusToMacro(uint32_t status) {
-    return (status & INVALID ? FE_INVALID : 0) |
-           (status & DIVBYZERO ? FE_DIVBYZERO : 0) |
-           (status & OVERFLOW ? FE_OVERFLOW : 0) |
-           (status & UNDERFLOW ? FE_UNDERFLOW : 0) |
-           (status & INEXACT ? FE_INEXACT : 0);
+    return (status & Invalid ? FE_INVALID : 0) |
+           (status & DivByZero ? FE_DIVBYZERO : 0) |
+           (status & Overflow ? FE_OVERFLOW : 0) |
+           (status & Underflow ? FE_UNDERFLOW : 0) |
+           (status & Inexact ? FE_INEXACT : 0);
   }
 
   static uint32_t getControlWord() { return __arm_rsr("fpcr"); }
@@ -75,7 +69,7 @@ struct FEnv {
   static void writeStatusWord(uint32_t fpsr) { __arm_wsr("fpsr", fpsr); }
 };
 
-static inline int enable_except(int excepts) {
+static inline int enableExcept(int excepts) {
   uint32_t newExcepts = FEnv::getStatusValueForExcept(excepts);
   uint32_t controlWord = FEnv::getControlWord();
   int oldExcepts =
@@ -85,7 +79,7 @@ static inline int enable_except(int excepts) {
   return FEnv::exceptionStatusToMacro(oldExcepts);
 }
 
-static inline int disable_except(int excepts) {
+static inline int disableExcept(int excepts) {
   uint32_t disabledExcepts = FEnv::getStatusValueForExcept(excepts);
   uint32_t controlWord = FEnv::getControlWord();
   int oldExcepts =
@@ -95,14 +89,14 @@ static inline int disable_except(int excepts) {
   return FEnv::exceptionStatusToMacro(oldExcepts);
 }
 
-static inline int get_except() {
+static inline int getExcept() {
   uint32_t controlWord = FEnv::getControlWord();
   int enabledExcepts =
       (controlWord >> FEnv::ExceptionControlFlagsBitPosition) & 0x1F;
   return FEnv::exceptionStatusToMacro(enabledExcepts);
 }
 
-static inline int clear_except(int excepts) {
+static inline int clearExcept(int excepts) {
   uint32_t statusWord = FEnv::getStatusWord();
   uint32_t toClear = FEnv::getStatusValueForExcept(excepts);
   statusWord &= ~(toClear << FEnv::ExceptionStatusFlagsBitPosition);
@@ -110,14 +104,14 @@ static inline int clear_except(int excepts) {
   return 0;
 }
 
-static inline int test_except(int excepts) {
+static inline int testExcept(int excepts) {
   uint32_t toTest = FEnv::getStatusValueForExcept(excepts);
   uint32_t statusWord = FEnv::getStatusWord();
   return FEnv::exceptionStatusToMacro(
       (statusWord >> FEnv::ExceptionStatusFlagsBitPosition) & toTest);
 }
 
-static inline int set_except(int excepts) {
+static inline int setExcept(int excepts) {
   uint32_t statusWord = FEnv::getControlWord();
   uint32_t statusValue = FEnv::getStatusValueForExcept(excepts);
   statusWord |= (statusValue << FEnv::ExceptionStatusFlagsBitPosition);
@@ -125,11 +119,11 @@ static inline int set_except(int excepts) {
   return 0;
 }
 
-static inline int raise_except(int excepts) {
+static inline int raiseExcept(int excepts) {
   float zero = 0.0f;
   float one = 1.0f;
-  float largeValue = float(FPBits<float>(FPBits<float>::MAX_NORMAL));
-  float smallValue = float(FPBits<float>(FPBits<float>::MIN_NORMAL));
+  float largeValue = float(FPBits<float>(FPBits<float>::maxNormal));
+  float smallValue = float(FPBits<float>(FPBits<float>::minNormal));
   auto divfunc = [](float a, float b) {
     __asm__ __volatile__("ldr  s0, %0\n\t"
                          "ldr  s1, %1\n\t"
@@ -141,36 +135,36 @@ static inline int raise_except(int excepts) {
 
   uint32_t toRaise = FEnv::getStatusValueForExcept(excepts);
 
-  if (toRaise & FEnv::INVALID) {
+  if (toRaise & FEnv::Invalid) {
     divfunc(zero, zero);
     uint32_t statusWord = FEnv::getStatusWord();
     if (!((statusWord >> FEnv::ExceptionStatusFlagsBitPosition) &
-          FEnv::INVALID))
+          FEnv::Invalid))
       return -1;
   }
 
-  if (toRaise & FEnv::DIVBYZERO) {
+  if (toRaise & FEnv::DivByZero) {
     divfunc(one, zero);
     uint32_t statusWord = FEnv::getStatusWord();
     if (!((statusWord >> FEnv::ExceptionStatusFlagsBitPosition) &
-          FEnv::DIVBYZERO))
+          FEnv::DivByZero))
       return -1;
   }
-  if (toRaise & FEnv::OVERFLOW) {
+  if (toRaise & FEnv::Overflow) {
     divfunc(largeValue, smallValue);
     uint32_t statusWord = FEnv::getStatusWord();
     if (!((statusWord >> FEnv::ExceptionStatusFlagsBitPosition) &
-          FEnv::OVERFLOW))
+          FEnv::Overflow))
       return -1;
   }
-  if (toRaise & FEnv::UNDERFLOW) {
+  if (toRaise & FEnv::Underflow) {
     divfunc(smallValue, largeValue);
     uint32_t statusWord = FEnv::getStatusWord();
     if (!((statusWord >> FEnv::ExceptionStatusFlagsBitPosition) &
-          FEnv::UNDERFLOW))
+          FEnv::Underflow))
       return -1;
   }
-  if (toRaise & FEnv::INEXACT) {
+  if (toRaise & FEnv::Inexact) {
     float two = 2.0f;
     float three = 3.0f;
     // 2.0 / 3.0 cannot be represented exactly in any radix 2 floating point
@@ -178,43 +172,43 @@ static inline int raise_except(int excepts) {
     divfunc(two, three);
     uint32_t statusWord = FEnv::getStatusWord();
     if (!((statusWord >> FEnv::ExceptionStatusFlagsBitPosition) &
-          FEnv::INEXACT))
+          FEnv::Inexact))
       return -1;
   }
   return 0;
 }
 
-static inline int get_round() {
+static inline int getRound() {
   uint32_t roundingMode =
       (FEnv::getControlWord() >> FEnv::RoundingControlBitPosition) & 0x3;
   switch (roundingMode) {
-  case FEnv::TONEAREST:
+  case FEnv::ToNearest:
     return FE_TONEAREST;
-  case FEnv::DOWNWARD:
+  case FEnv::Downward:
     return FE_DOWNWARD;
-  case FEnv::UPWARD:
+  case FEnv::Upward:
     return FE_UPWARD;
-  case FEnv::TOWARDZERO:
+  case FEnv::TowardZero:
     return FE_TOWARDZERO;
   default:
     return -1; // Error value.
   }
 }
 
-static inline int set_round(int mode) {
+static inline int setRound(int mode) {
   uint16_t bitValue;
   switch (mode) {
   case FE_TONEAREST:
-    bitValue = FEnv::TONEAREST;
+    bitValue = FEnv::ToNearest;
     break;
   case FE_DOWNWARD:
-    bitValue = FEnv::DOWNWARD;
+    bitValue = FEnv::Downward;
     break;
   case FE_UPWARD:
-    bitValue = FEnv::UPWARD;
+    bitValue = FEnv::Upward;
     break;
   case FE_TOWARDZERO:
-    bitValue = FEnv::TOWARDZERO;
+    bitValue = FEnv::TowardZero;
     break;
   default:
     return 1; // To indicate failure
@@ -228,14 +222,14 @@ static inline int set_round(int mode) {
   return 0;
 }
 
-static inline int get_env(fenv_t *envp) {
+static inline int getEnv(fenv_t *envp) {
   FEnv::FPState *state = reinterpret_cast<FEnv::FPState *>(envp);
   state->ControlWord = FEnv::getControlWord();
   state->StatusWord = FEnv::getStatusWord();
   return 0;
 }
 
-static inline int set_env(const fenv_t *envp) {
+static inline int setEnv(const fenv_t *envp) {
   if (envp == FE_DFL_ENV) {
     // Default status and control words bits are all zeros so we just
     // write zeros.

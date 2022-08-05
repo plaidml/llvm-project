@@ -33,7 +33,6 @@ class SanitizerArgs {
   int CoverageFeatures = 0;
   int MsanTrackOrigins = 0;
   bool MsanUseAfterDtor = true;
-  bool MsanParamRetval = false;
   bool CfiCrossDso = false;
   bool CfiICallGeneralizePointers = false;
   bool CfiCanonicalJumpTables = false;
@@ -66,8 +65,7 @@ class SanitizerArgs {
 
 public:
   /// Parses the sanitizer arguments from an argument list.
-  SanitizerArgs(const ToolChain &TC, const llvm::opt::ArgList &Args,
-                bool DiagnoseErrors = true);
+  SanitizerArgs(const ToolChain &TC, const llvm::opt::ArgList &Args);
 
   bool needsSharedRt() const { return SharedRuntime; }
 

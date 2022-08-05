@@ -1,13 +1,10 @@
-// This run stresses global reset happenning concurrently with everything else.
-// RUN: %clangxx_tsan -O1 %s -o %t && %env_tsan_opts=flush_memory_ms=1:flush_symbolizer_ms=1:memory_limit_mb=1 %run %t 2>&1 | FileCheck %s --check-prefix=CHECK-NORACE
-// This run stresses race reporting happenning concurrently with everything else.
-// RUN: %clangxx_tsan -O1 %s -DRACE=1 -o %t && %env_tsan_opts=suppress_equal_stacks=0:suppress_equal_addresses=0 %deflake %run %t | FileCheck %s --check-prefix=CHECK-RACE
+// RUN: %clangxx_tsan -O1 %s -o %t && %env_tsan_opts=flush_memory_ms=1:flush_symbolizer_ms=1:memory_limit_mb=1 %run %t 2>&1 | FileCheck %s
 #include "test.h"
 #include <fcntl.h>
 #include <string.h>
 
 volatile long stop;
-long atomic, read_only, racy;
+long atomic, read_only;
 int fds[2];
 
 __attribute__((noinline)) void *SecondaryThread(void *x) {
@@ -25,7 +22,7 @@ void *Thread(void *x) {
       // just read the stop variable
     }
     if (me == 0 || me == 2) {
-      __atomic_store_n(&atomic, sink, __ATOMIC_RELEASE);
+      __atomic_store_n(&atomic, 1, __ATOMIC_RELEASE);
     }
     if (me == 0 || me == 3) {
       sink += __atomic_fetch_add(&atomic, 1, __ATOMIC_ACQ_REL);
@@ -50,13 +47,6 @@ void *Thread(void *x) {
       memcpy(&buf, &read_only, sizeof(buf));
       sink += buf;
     }
-    if (me == 0 || me == 9) {
-#if RACE
-      sink += racy++;
-#else
-      sink += racy;
-#endif
-    }
     // If you add more actions, update kActions in main.
   }
   return NULL;
@@ -70,12 +60,8 @@ int main() {
     exit((perror("fcntl"), 1));
   if (fcntl(fds[1], F_SETFL, O_NONBLOCK))
     exit((perror("fcntl"), 1));
-  const int kActions = 10;
-#if RACE
-  const int kMultiplier = 1;
-#else
+  const int kActions = 9;
   const int kMultiplier = 4;
-#endif
   pthread_t t[kActions * kMultiplier];
   for (int i = 0; i < kActions * kMultiplier; i++)
     pthread_create(&t[i], NULL, Thread, (void *)(long)(i % kActions));
@@ -87,8 +73,6 @@ int main() {
   return 0;
 }
 
-// CHECK-NORACE-NOT: ThreadSanitizer:
-// CHECK-NORACE: DONE
-// CHECK-NORACE-NOT: ThreadSanitizer:
-// CHECK-RACE: ThreadSanitizer: data race
-// CHECK-RACE: DONE
+// CHECK-NOT: ThreadSanitizer:
+// CHECK: DONE
+// CHECK-NOT: ThreadSanitizer:

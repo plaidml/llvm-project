@@ -20,9 +20,6 @@ using namespace llvm::ELF;
 using namespace lld;
 using namespace lld::elf;
 
-// Undefine the macro predefined by GCC powerpc32.
-#undef PPC
-
 namespace {
 class PPC final : public TargetInfo {
 public:
@@ -77,7 +74,7 @@ void elf::writePPC32GlinkSection(uint8_t *buf, size_t numEntries) {
   // non-GOT-non-PLT relocations referencing external functions for -fpie/-fPIE.
   uint32_t glink = in.plt->getVA(); // VA of .glink
   if (!config->isPic) {
-    for (const Symbol *sym : cast<PPC32GlinkSection>(*in.plt).canonical_plts) {
+    for (const Symbol *sym : cast<PPC32GlinkSection>(in.plt)->canonical_plts) {
       writePPC32PltCallStub(buf, sym->getGotPltVA(), nullptr, 0);
       buf += 16;
       glink += 16;
@@ -192,7 +189,7 @@ void PPC::writeGotHeader(uint8_t *buf) const {
 
 void PPC::writeGotPlt(uint8_t *buf, const Symbol &s) const {
   // Address of the symbol resolver stub in .glink .
-  write32(buf, in.plt->getVA() + in.plt->headerSize + 4 * s.getPltIdx());
+  write32(buf, in.plt->getVA() + in.plt->headerSize + 4 * s.pltIndex);
 }
 
 bool PPC::needsThunk(RelExpr expr, RelType type, const InputFile *file,

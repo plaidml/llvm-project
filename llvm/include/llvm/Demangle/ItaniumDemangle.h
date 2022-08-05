@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef DEMANGLE_ITANIUMDEMANGLE_H
-#define DEMANGLE_ITANIUMDEMANGLE_H
+#ifndef LLVM_DEMANGLE_ITANIUMDEMANGLE_H
+#define LLVM_DEMANGLE_ITANIUMDEMANGLE_H
 
 // FIXME: (possibly) incomplete list of features that clang mangles that this
 // file does not yet support:
@@ -1210,8 +1210,7 @@ public:
 class ParameterPack final : public Node {
   NodeArray Data;
 
-  // Setup OutputBuffer for a pack expansion, unless we're already expanding
-  // one.
+  // Setup OutputBuffer for a pack expansion unless we're already expanding one.
   void initializePackExpansion(OutputBuffer &OB) const {
     if (OB.CurrentPackMax == std::numeric_limits<unsigned>::max()) {
       OB.CurrentPackMax = static_cast<unsigned>(Data.size());
@@ -2474,7 +2473,7 @@ template <typename Derived, typename Alloc> struct AbstractManglingParser {
 
   char consume() { return First != Last ? *First++ : '\0'; }
 
-  char look(unsigned Lookahead = 0) const {
+  char look(unsigned Lookahead = 0) {
     if (static_cast<size_t>(Last - First) <= Lookahead)
       return '\0';
     return First[Lookahead];
@@ -5438,7 +5437,7 @@ Node *AbstractManglingParser<Derived, Alloc>::parseSubstitution() {
   if (!consumeIf('S'))
     return nullptr;
 
-  if (look() >= 'a' && look() <= 'z') {
+  if (std::islower(look())) {
     Node *SpecialSub;
     switch (look()) {
     case 'a':
@@ -5748,4 +5747,4 @@ struct ManglingParser : AbstractManglingParser<ManglingParser<Alloc>, Alloc> {
 
 DEMANGLE_NAMESPACE_END
 
-#endif // DEMANGLE_ITANIUMDEMANGLE_H
+#endif // LLVM_DEMANGLE_ITANIUMDEMANGLE_H

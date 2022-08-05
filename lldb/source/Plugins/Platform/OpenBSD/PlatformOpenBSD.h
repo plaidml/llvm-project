@@ -42,7 +42,7 @@ public:
 
   void GetStatus(Stream &strm) override;
 
-  std::vector<ArchSpec> GetSupportedArchitectures() override;
+  bool GetSupportedArchitectureAtIndex(uint32_t idx, ArchSpec &arch) override;
 
   bool CanDebugProcess() override;
 
@@ -52,8 +52,6 @@ public:
                                   lldb::addr_t length, unsigned prot,
                                   unsigned flags, lldb::addr_t fd,
                                   lldb::addr_t offset) override;
-
-  std::vector<ArchSpec> m_supported_architectures;
 };
 
 } // namespace platform_openbsd

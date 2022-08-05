@@ -7,3 +7,4 @@ move.w	%d1, %ccr
 ; CHECK:      move.w  %ccr, %d1
 ; CHECK-SAME: encoding: [0x42,0xc1]
 move.w	%ccr, %d1
+

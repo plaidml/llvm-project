@@ -103,9 +103,9 @@ static Value getMemRefOperand(vector::TransferWriteOp op) {
 /// Given the permutation map of the original
 /// `vector.transfer_read`/`vector.transfer_write` operations compute the
 /// permutation map to use after the subview is folded with it.
-static AffineMapAttr getPermutationMapAttr(MLIRContext *context,
-                                           memref::SubViewOp subViewOp,
-                                           AffineMap currPermutationMap) {
+static AffineMap getPermutationMap(MLIRContext *context,
+                                   memref::SubViewOp subViewOp,
+                                   AffineMap currPermutationMap) {
   llvm::SmallDenseSet<unsigned> unusedDims = subViewOp.getDroppedDims();
   SmallVector<AffineExpr> exprs;
   int64_t sourceRank = subViewOp.getSourceType().getRank();
@@ -115,8 +115,7 @@ static AffineMapAttr getPermutationMapAttr(MLIRContext *context,
     exprs.push_back(getAffineDimExpr(dim, context));
   }
   auto resultDimToSourceDimMap = AffineMap::get(sourceRank, 0, exprs, context);
-  return AffineMapAttr::get(
-      currPermutationMap.compose(resultDimToSourceDimMap));
+  return currPermutationMap.compose(resultDimToSourceDimMap);
 }
 
 //===----------------------------------------------------------------------===//
@@ -164,18 +163,13 @@ void LoadOpOfSubViewFolder<memref::LoadOp>::replaceOp(
 
 template <>
 void LoadOpOfSubViewFolder<vector::TransferReadOp>::replaceOp(
-    vector::TransferReadOp transferReadOp, memref::SubViewOp subViewOp,
+    vector::TransferReadOp loadOp, memref::SubViewOp subViewOp,
     ArrayRef<Value> sourceIndices, PatternRewriter &rewriter) const {
-  // TODO: support 0-d corner case.
-  if (transferReadOp.getTransferRank() == 0)
-    return;
   rewriter.replaceOpWithNewOp<vector::TransferReadOp>(
-      transferReadOp, transferReadOp.getVectorType(), subViewOp.source(),
-      sourceIndices,
-      getPermutationMapAttr(rewriter.getContext(), subViewOp,
-                            transferReadOp.permutation_map()),
-      transferReadOp.padding(),
-      /*mask=*/Value(), transferReadOp.in_boundsAttr());
+      loadOp, loadOp.getVectorType(), subViewOp.source(), sourceIndices,
+      getPermutationMap(rewriter.getContext(), subViewOp,
+                        loadOp.permutation_map()),
+      loadOp.padding(), loadOp.in_boundsAttr());
 }
 
 template <>
@@ -190,14 +184,11 @@ template <>
 void StoreOpOfSubViewFolder<vector::TransferWriteOp>::replaceOp(
     vector::TransferWriteOp transferWriteOp, memref::SubViewOp subViewOp,
     ArrayRef<Value> sourceIndices, PatternRewriter &rewriter) const {
-  // TODO: support 0-d corner case.
-  if (transferWriteOp.getTransferRank() == 0)
-    return;
   rewriter.replaceOpWithNewOp<vector::TransferWriteOp>(
       transferWriteOp, transferWriteOp.vector(), subViewOp.source(),
       sourceIndices,
-      getPermutationMapAttr(rewriter.getContext(), subViewOp,
-                            transferWriteOp.permutation_map()),
+      getPermutationMap(rewriter.getContext(), subViewOp,
+                        transferWriteOp.permutation_map()),
       transferWriteOp.in_boundsAttr());
 }
 } // namespace

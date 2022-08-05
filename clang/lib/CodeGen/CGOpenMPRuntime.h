@@ -35,6 +35,7 @@ class ArrayType;
 class Constant;
 class FunctionType;
 class GlobalVariable;
+class StructType;
 class Type;
 class Value;
 class OpenMPIRBuilder;
@@ -47,6 +48,7 @@ class OMPExecutableDirective;
 class OMPLoopDirective;
 class VarDecl;
 class OMPDeclareReductionDecl;
+class IdentifierInfo;
 
 namespace CodeGen {
 class Address;
@@ -160,10 +162,10 @@ private:
   /// Performs aggregate initialization.
   /// \param N Number of reduction item in the common list.
   /// \param PrivateAddr Address of the corresponding private item.
-  /// \param SharedAddr Address of the original shared variable.
+  /// \param SharedLVal Address of the original shared variable.
   /// \param DRD Declare reduction construct used for reduction item.
   void emitAggregateInitialization(CodeGenFunction &CGF, unsigned N,
-                                   Address PrivateAddr, Address SharedAddr,
+                                   Address PrivateAddr, LValue SharedLVal,
                                    const OMPDeclareReductionDecl *DRD);
 
 public:
@@ -185,10 +187,10 @@ public:
   /// \param PrivateAddr Address of the corresponding private item.
   /// \param DefaultInit Default initialization sequence that should be
   /// performed if no reduction specific initialization is found.
-  /// \param SharedAddr Address of the original shared variable.
+  /// \param SharedLVal Address of the original shared variable.
   void
   emitInitialization(CodeGenFunction &CGF, unsigned N, Address PrivateAddr,
-                     Address SharedAddr,
+                     LValue SharedLVal,
                      llvm::function_ref<bool(CodeGenFunction &)> DefaultInit);
   /// Returns true if the private copy requires cleanups.
   bool needCleanups(unsigned N);
@@ -469,8 +471,8 @@ private:
   /// <critical_section_name> + ".var" for "omp critical" directives; 2)
   /// <mangled_name_for_global_var> + ".cache." for cache for threadprivate
   /// variables.
-  llvm::StringMap<llvm::AssertingVH<llvm::GlobalVariable>,
-                  llvm::BumpPtrAllocator> InternalVars;
+  llvm::StringMap<llvm::AssertingVH<llvm::Constant>, llvm::BumpPtrAllocator>
+      InternalVars;
   /// Type typedef kmp_int32 (* kmp_routine_entry_t)(kmp_int32, void *);
   llvm::Type *KmpRoutineEntryPtrTy = nullptr;
   QualType KmpRoutineEntryPtrQTy;
@@ -827,9 +829,9 @@ private:
   /// \param Ty Type of the global variable. If it is exist already the type
   /// must be the same.
   /// \param Name Name of the variable.
-  llvm::GlobalVariable *getOrCreateInternalVariable(llvm::Type *Ty,
-                                                    const llvm::Twine &Name,
-                                                    unsigned AddressSpace = 0);
+  llvm::Constant *getOrCreateInternalVariable(llvm::Type *Ty,
+                                              const llvm::Twine &Name,
+                                              unsigned AddressSpace = 0);
 
   /// Set of threadprivate variables with the generated initializer.
   llvm::StringSet<> ThreadPrivateWithDefinition;
@@ -1013,13 +1015,11 @@ public:
   /// variables used in \a OutlinedFn function.
   /// \param IfCond Condition in the associated 'if' clause, if it was
   /// specified, nullptr otherwise.
-  /// \param NumThreads The value corresponding to the num_threads clause, if
-  /// any, or nullptr.
   ///
   virtual void emitParallelCall(CodeGenFunction &CGF, SourceLocation Loc,
                                 llvm::Function *OutlinedFn,
                                 ArrayRef<llvm::Value *> CapturedVars,
-                                const Expr *IfCond, llvm::Value *NumThreads);
+                                const Expr *IfCond);
 
   /// Emits a critical region.
   /// \param CriticalName Name of the critical region.
@@ -1547,8 +1547,7 @@ public:
                                        LValue SharedLVal);
 
   /// Emit code for 'taskwait' directive.
-  virtual void emitTaskwaitCall(CodeGenFunction &CGF, SourceLocation Loc,
-                                const OMPTaskDataTy &Data);
+  virtual void emitTaskwaitCall(CodeGenFunction &CGF, SourceLocation Loc);
 
   /// Emit code for 'cancellation point' construct.
   /// \param CancelRegion Region kind for which the cancellation point must be
@@ -1991,13 +1990,11 @@ public:
   /// variables used in \a OutlinedFn function.
   /// \param IfCond Condition in the associated 'if' clause, if it was
   /// specified, nullptr otherwise.
-  /// \param NumThreads The value corresponding to the num_threads clause, if
-  /// any, or nullptr.
   ///
   void emitParallelCall(CodeGenFunction &CGF, SourceLocation Loc,
                         llvm::Function *OutlinedFn,
                         ArrayRef<llvm::Value *> CapturedVars,
-                        const Expr *IfCond, llvm::Value *NumThreads) override;
+                        const Expr *IfCond) override;
 
   /// Emits a critical region.
   /// \param CriticalName Name of the critical region.
@@ -2388,8 +2385,7 @@ public:
                                LValue SharedLVal) override;
 
   /// Emit code for 'taskwait' directive.
-  void emitTaskwaitCall(CodeGenFunction &CGF, SourceLocation Loc,
-                        const OMPTaskDataTy &Data) override;
+  void emitTaskwaitCall(CodeGenFunction &CGF, SourceLocation Loc) override;
 
   /// Emit code for 'cancellation point' construct.
   /// \param CancelRegion Region kind for which the cancellation point must be

@@ -279,11 +279,11 @@ class TypeFilterImpl : public SyntheticChildren {
 
 public:
   TypeFilterImpl(const SyntheticChildren::Flags &flags)
-      : SyntheticChildren(flags) {}
+      : SyntheticChildren(flags), m_expression_paths() {}
 
   TypeFilterImpl(const SyntheticChildren::Flags &flags,
                  const std::initializer_list<const char *> items)
-      : SyntheticChildren(flags) {
+      : SyntheticChildren(flags), m_expression_paths() {
     for (auto path : items)
       AddExpressionPath(path);
   }
@@ -391,7 +391,7 @@ class ScriptedSyntheticChildren : public SyntheticChildren {
 public:
   ScriptedSyntheticChildren(const SyntheticChildren::Flags &flags,
                             const char *pclass, const char *pcode = nullptr)
-      : SyntheticChildren(flags) {
+      : SyntheticChildren(flags), m_python_class(), m_python_code() {
     if (pclass)
       m_python_class = pclass;
     if (pcode)

@@ -35,7 +35,6 @@ TEST_CONSTEXPR_CXX17 bool tests()
         typedef double T;
         typedef std::array<T, 3> C;
         C c = {1, 2, 3.5};
-        ASSERT_NOEXCEPT(c.data());
         T* p = c.data();
         assert(p[0] == 1);
         assert(p[1] == 2);
@@ -45,7 +44,6 @@ TEST_CONSTEXPR_CXX17 bool tests()
         typedef double T;
         typedef std::array<T, 0> C;
         C c = {};
-        ASSERT_NOEXCEPT(c.data());
         T* p = c.data();
         (void)p;
     }
@@ -53,7 +51,6 @@ TEST_CONSTEXPR_CXX17 bool tests()
         typedef double T;
         typedef std::array<const T, 0> C;
         C c = {{}};
-        ASSERT_NOEXCEPT(c.data());
         const T* p = c.data();
         (void)p;
         static_assert((std::is_same<decltype(c.data()), const T*>::value), "");
@@ -62,7 +59,6 @@ TEST_CONSTEXPR_CXX17 bool tests()
         typedef NoDefault T;
         typedef std::array<T, 0> C;
         C c = {};
-        ASSERT_NOEXCEPT(c.data());
         T* p = c.data();
         (void)p;
     }

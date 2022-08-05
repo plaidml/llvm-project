@@ -44,7 +44,7 @@ public:
   ///
   /// Initializes the mutex, condition and value with their default
   /// constructors.
-  Predicate() : m_value() {}
+  Predicate() : m_value(), m_mutex(), m_condition() {}
 
   /// Construct with initial T value \a initial_value.
   ///
@@ -53,7 +53,8 @@ public:
   ///
   /// \param[in] initial_value
   ///     The initial value for our T object.
-  Predicate(T initial_value) : m_value(initial_value) {}
+  Predicate(T initial_value)
+      : m_value(initial_value), m_mutex(), m_condition() {}
 
   /// Destructor.
   ///

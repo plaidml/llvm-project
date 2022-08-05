@@ -230,7 +230,8 @@ bool Coloring::color() {
       WorkQ.push_back(N);
   }
 
-  for (Node N : WorkQ) {
+  for (unsigned I = 0; I < WorkQ.size(); ++I) {
+    Node N = WorkQ[I];
     NodeSet &Ns = Edges[N];
     auto P = getUniqueColor(Ns);
     if (P.first) {
@@ -269,7 +270,8 @@ bool Coloring::color() {
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
 void Coloring::dump() const {
   dbgs() << "{ Order:   {";
-  for (Node P : Order) {
+  for (unsigned I = 0; I != Order.size(); ++I) {
+    Node P = Order[I];
     if (P != Ignore)
       dbgs() << ' ' << P;
     else
@@ -759,7 +761,8 @@ void ResultStack::print(raw_ostream &OS, const SelectionDAG &G) const {
 namespace {
 struct ShuffleMask {
   ShuffleMask(ArrayRef<int> M) : Mask(M) {
-    for (int M : Mask) {
+    for (unsigned I = 0, E = Mask.size(); I != E; ++I) {
+      int M = Mask[I];
       if (M == -1)
         continue;
       MinSrc = (MinSrc == -1) ? M : std::min(MinSrc, M);
@@ -932,7 +935,8 @@ static SmallVector<unsigned, 4> getInputSegmentList(ShuffleMask SM,
   unsigned Shift = Log2_32(SegLen);
   BitVector Segs(alignTo(SM.MaxSrc + 1, SegLen) >> Shift);
 
-  for (int M : SM.Mask) {
+  for (int I = 0, E = SM.Mask.size(); I != E; ++I) {
+    int M = SM.Mask[I];
     if (M >= 0)
       Segs.set(M >> Shift);
   }
@@ -1002,7 +1006,7 @@ static void packSegmentMask(ArrayRef<int> Mask, ArrayRef<unsigned> OutSegMap,
 
 static bool isPermutation(ArrayRef<int> Mask) {
   // Check by adding all numbers only works if there is no overflow.
-  assert(Mask.size() < 0x00007FFF && "Overflow failure");
+  assert(Mask.size() < 0x00007FFF && "Sanity failure");
   int Sum = 0;
   for (int Idx : Mask) {
     if (Idx == -1)
@@ -1213,7 +1217,7 @@ OpRef HvxSelector::packs(ShuffleMask SM, OpRef Va, OpRef Vb,
       } else if (Seg0 == ~1u) {
         Seg0 = SegList[0] != Seg1 ? SegList[0] : SegList[1];
       } else {
-        assert(Seg1 == ~1u);
+        assert(Seg1 == ~1u); // Sanity
         Seg1 = SegList[0] != Seg0 ? SegList[0] : SegList[1];
       }
     }
@@ -1261,7 +1265,7 @@ OpRef HvxSelector::packs(ShuffleMask SM, OpRef Va, OpRef Vb,
       } else {
         // BC or DA: this could be done via valign by SegLen.
         // Do nothing here, because valign (if possible) will be generated
-        // later on (make sure the Seg0 values are as expected).
+        // later on (make sure the Seg0 values are as expected, for sanity).
         assert(Seg0 == 1 || Seg0 == 3);
       }
     }
@@ -1410,7 +1414,7 @@ OpRef HvxSelector::shuffs1(ShuffleMask SM, OpRef Va, ResultStack &Results) {
     return OpRef::undef(getSingleVT(MVT::i8));
 
   unsigned HalfLen = HwLen / 2;
-  assert(isPowerOf2_32(HalfLen));
+  assert(isPowerOf2_32(HalfLen)); // Sanity.
 
   // Handle special case where the output is the same half of the input
   // repeated twice, i.e. if Va = AB, then handle the output of AA or BB.
@@ -2393,7 +2397,6 @@ void HexagonDAGToDAGISel::SelectV65GatherPred(SDNode *N) {
   SDValue Base = N->getOperand(4);
   SDValue Modifier = N->getOperand(5);
   SDValue Offset = N->getOperand(6);
-  SDValue ImmOperand = CurDAG->getTargetConstant(0, dl, MVT::i32);
 
   unsigned Opcode;
   unsigned IntNo = cast<ConstantSDNode>(N->getOperand(1))->getZExtValue();
@@ -2415,8 +2418,7 @@ void HexagonDAGToDAGISel::SelectV65GatherPred(SDNode *N) {
   }
 
   SDVTList VTs = CurDAG->getVTList(MVT::Other);
-  SDValue Ops[] = { Address, ImmOperand,
-                    Predicate, Base, Modifier, Offset, Chain };
+  SDValue Ops[] = { Address, Predicate, Base, Modifier, Offset, Chain };
   SDNode *Result = CurDAG->getMachineNode(Opcode, dl, VTs, Ops);
 
   MachineMemOperand *MemOp = cast<MemIntrinsicSDNode>(N)->getMemOperand();
@@ -2432,7 +2434,6 @@ void HexagonDAGToDAGISel::SelectV65Gather(SDNode *N) {
   SDValue Base = N->getOperand(3);
   SDValue Modifier = N->getOperand(4);
   SDValue Offset = N->getOperand(5);
-  SDValue ImmOperand = CurDAG->getTargetConstant(0, dl, MVT::i32);
 
   unsigned Opcode;
   unsigned IntNo = cast<ConstantSDNode>(N->getOperand(1))->getZExtValue();
@@ -2454,7 +2455,7 @@ void HexagonDAGToDAGISel::SelectV65Gather(SDNode *N) {
   }
 
   SDVTList VTs = CurDAG->getVTList(MVT::Other);
-  SDValue Ops[] = { Address, ImmOperand, Base, Modifier, Offset, Chain };
+  SDValue Ops[] = { Address, Base, Modifier, Offset, Chain };
   SDNode *Result = CurDAG->getMachineNode(Opcode, dl, VTs, Ops);
 
   MachineMemOperand *MemOp = cast<MemIntrinsicSDNode>(N)->getMemOperand();

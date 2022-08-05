@@ -91,6 +91,7 @@ public:
 
   virtual SymbolFile *GetSymbolFile() const { return m_sym_file; }
 
+  // Returns true if the symbol file changed during the set accessor.
   virtual void SetSymbolFile(SymbolFile *sym_file) { m_sym_file = sym_file; }
 
   // CompilerDecl functions

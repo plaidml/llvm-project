@@ -23,7 +23,16 @@ namespace mlir {
 template <typename Op, typename XOp, typename YOp, typename ZOp>
 struct GPUIndexIntrinsicOpLowering : public ConvertOpToLLVMPattern<Op> {
 private:
+  enum dimension { X = 0, Y = 1, Z = 2, invalid };
   unsigned indexBitwidth;
+
+  static dimension dimensionToIndex(Op op) {
+    return StringSwitch<dimension>(op.dimension())
+        .Case("x", X)
+        .Case("y", Y)
+        .Case("z", Z)
+        .Default(invalid);
+  }
 
 public:
   explicit GPUIndexIntrinsicOpLowering(LLVMTypeConverter &typeConverter)
@@ -37,16 +46,18 @@ public:
     auto loc = op->getLoc();
     MLIRContext *context = rewriter.getContext();
     Value newOp;
-    switch (op.dimension()) {
-    case gpu::Dimension::x:
+    switch (dimensionToIndex(op)) {
+    case X:
       newOp = rewriter.create<XOp>(loc, IntegerType::get(context, 32));
       break;
-    case gpu::Dimension::y:
+    case Y:
       newOp = rewriter.create<YOp>(loc, IntegerType::get(context, 32));
       break;
-    case gpu::Dimension::z:
+    case Z:
       newOp = rewriter.create<ZOp>(loc, IntegerType::get(context, 32));
       break;
+    default:
+      return failure();
     }
 
     if (indexBitwidth > 32) {

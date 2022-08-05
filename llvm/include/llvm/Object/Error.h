@@ -22,6 +22,8 @@ class Twine;
 
 namespace object {
 
+class Binary;
+
 const std::error_category &object_category();
 
 enum class object_error {

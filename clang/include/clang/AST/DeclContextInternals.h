@@ -90,7 +90,7 @@ public:
 
   StoredDeclsList(StoredDeclsList &&RHS) : Data(RHS.Data) {
     RHS.Data.setPointer(nullptr);
-    RHS.Data.setInt(false);
+    RHS.Data.setInt(0);
   }
 
   void MaybeDeallocList() {
@@ -114,7 +114,7 @@ public:
 
     Data = RHS.Data;
     RHS.Data.setPointer(nullptr);
-    RHS.Data.setInt(false);
+    RHS.Data.setInt(0);
     return *this;
   }
 
@@ -142,7 +142,7 @@ public:
   }
 
   void setHasExternalDecls() {
-    Data.setInt(true);
+    Data.setInt(1);
   }
 
   void remove(NamedDecl *D) {
@@ -155,7 +155,7 @@ public:
     erase_if([](NamedDecl *ND) { return ND->isFromASTFile(); });
 
     // Don't have any pending external decls any more.
-    Data.setInt(false);
+    Data.setInt(0);
   }
 
   void replaceExternalDecls(ArrayRef<NamedDecl*> Decls) {
@@ -171,7 +171,7 @@ public:
     });
 
     // Don't have any pending external decls any more.
-    Data.setInt(false);
+    Data.setInt(0);
 
     if (Decls.empty())
       return;

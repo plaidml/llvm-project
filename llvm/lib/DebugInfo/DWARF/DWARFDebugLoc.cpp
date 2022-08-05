@@ -41,7 +41,9 @@ public:
 } // namespace
 
 static Error createResolverError(uint32_t Index, unsigned Kind) {
-  return make_error<ResolverError>(Index, (dwarf::LoclistEntries)Kind);
+  return createStringError(errc::invalid_argument,
+                           "Unable to resolve indirect address %u for: %s",
+                           Index, dwarf::LocListEncodingString(Kind).data());
 }
 
 Expected<Optional<DWARFLocationExpression>>
@@ -402,10 +404,3 @@ void DWARFDebugLoclists::dumpRange(uint64_t StartOffset, uint64_t Size,
     OS << '\n';
   }
 }
-
-void llvm::ResolverError::log(raw_ostream &OS) const {
-  OS << format("unable to resolve indirect address %u for: %s", Index,
-               dwarf::LocListEncodingString(Kind).data());
-}
-
-char llvm::ResolverError::ID;

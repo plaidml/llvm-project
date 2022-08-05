@@ -2,7 +2,7 @@
 // RUN:  -ffp-contract=fast -disable-O0-optnone -emit-llvm -o - %s | opt -S -mem2reg \
 // RUN:  | FileCheck %s
 
-// REQUIRES: aarch64-registered-target || arm-registered-target
+// Test new aarch64 intrinsics with poly64
 
 #include <arm_neon.h>
 

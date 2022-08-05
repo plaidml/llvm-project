@@ -34,8 +34,8 @@ struct ForLoopMapper : public ConvertAffineForToGPUBase<ForLoopMapper> {
     this->numThreadDims = numThreadDims;
   }
 
-  void runOnOperation() override {
-    for (Operation &op : llvm::make_early_inc_range(getOperation().getOps())) {
+  void runOnFunction() override {
+    for (Operation &op : llvm::make_early_inc_range(getFunction().getOps())) {
       if (auto forOp = dyn_cast<AffineForOp>(&op)) {
         if (failed(convertAffineLoopNestToGPULaunch(forOp, numBlockDims,
                                                     numThreadDims)))

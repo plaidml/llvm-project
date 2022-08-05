@@ -70,16 +70,16 @@ public:
 
   /// Append from a list of StringRefs.
   void append(std::initializer_list<StringRef> Refs) {
-    size_t CurrentSize = this->size();
-    size_t SizeNeeded = CurrentSize;
+    size_t SizeNeeded = this->size();
     for (const StringRef &Ref : Refs)
       SizeNeeded += Ref.size();
-    this->resize_for_overwrite(SizeNeeded);
+    this->reserve(SizeNeeded);
+    auto CurEnd = this->end();
     for (const StringRef &Ref : Refs) {
-      std::copy(Ref.begin(), Ref.end(), this->begin() + CurrentSize);
-      CurrentSize += Ref.size();
+      this->uninitialized_copy(Ref.begin(), Ref.end(), CurEnd);
+      CurEnd += Ref.size();
     }
-    assert(CurrentSize == this->size());
+    this->set_size(SizeNeeded);
   }
 
   /// @}

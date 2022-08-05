@@ -21,6 +21,7 @@
 namespace llvm {
 
 class Instruction;
+class BasicBlock;
 
 constexpr const char *PseudoProbeDescMetadataName = "llvm.pseudo_probe_desc";
 

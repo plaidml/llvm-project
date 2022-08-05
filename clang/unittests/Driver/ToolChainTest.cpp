@@ -151,7 +151,7 @@ TEST(ToolChainTest, VFSGCCInstallationRelativeDir) {
     llvm::raw_string_ostream OS(S);
     C->getDefaultToolChain().printVerboseInfo(OS);
   }
-  if (is_style_windows(llvm::sys::path::Style::native))
+  if (is_style_windows(llvm::sys::path::Style::windows))
     std::replace(S.begin(), S.end(), '\\', '/');
   EXPECT_EQ("Found candidate GCC installation: "
             "/home/test/bin/../lib/gcc/arm-linux-gnueabi/4.6.1\n"

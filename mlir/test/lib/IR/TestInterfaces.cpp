@@ -40,7 +40,7 @@ struct TestTypeInterfaces
     });
   }
 };
-} // namespace
+} // end anonymous namespace
 
 namespace mlir {
 namespace test {

@@ -14,21 +14,21 @@ using namespace mlir;
 
 namespace {
 struct TestMemRefStrideCalculation
-    : public PassWrapper<TestMemRefStrideCalculation, OperationPass<FuncOp>> {
+    : public PassWrapper<TestMemRefStrideCalculation, FunctionPass> {
   StringRef getArgument() const final {
     return "test-memref-stride-calculation";
   }
   StringRef getDescription() const final {
     return "Test operation constant folding";
   }
-  void runOnOperation() override;
+  void runOnFunction() override;
 };
-} // namespace
+} // end anonymous namespace
 
 /// Traverse AllocOp and compute strides of each MemRefType independently.
-void TestMemRefStrideCalculation::runOnOperation() {
-  llvm::outs() << "Testing: " << getOperation().getName() << "\n";
-  getOperation().walk([&](memref::AllocOp allocOp) {
+void TestMemRefStrideCalculation::runOnFunction() {
+  llvm::outs() << "Testing: " << getFunction().getName() << "\n";
+  getFunction().walk([&](memref::AllocOp allocOp) {
     auto memrefType = allocOp.getResult().getType().cast<MemRefType>();
     int64_t offset;
     SmallVector<int64_t, 4> strides;

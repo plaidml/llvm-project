@@ -18,7 +18,7 @@ add_mlir_library(MLIRTransformUtils
   MLIRAffine
   MLIRArithmetic
   MLIRAnalysis
-  MLIRAffineAnalysis
+  MLIRLoopAnalysis
   MLIRMemRef
   MLIRSCF
   MLIRPass

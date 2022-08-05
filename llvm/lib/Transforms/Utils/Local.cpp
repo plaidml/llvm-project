@@ -402,18 +402,6 @@ bool llvm::isInstructionTriviallyDead(Instruction *I,
   return wouldInstructionBeTriviallyDead(I, TLI);
 }
 
-bool llvm::wouldInstructionBeTriviallyDeadOnUnusedPaths(
-    Instruction *I, const TargetLibraryInfo *TLI) {
-  // Instructions that are "markers" and have implied meaning on code around
-  // them (without explicit uses), are not dead on unused paths.
-  if (IntrinsicInst *II = dyn_cast<IntrinsicInst>(I))
-    if (II->getIntrinsicID() == Intrinsic::stacksave ||
-        II->getIntrinsicID() == Intrinsic::launder_invariant_group ||
-        II->isLifetimeStartOrEnd())
-      return false;
-  return wouldInstructionBeTriviallyDead(I, TLI);
-}
-
 bool llvm::wouldInstructionBeTriviallyDead(Instruction *I,
                                            const TargetLibraryInfo *TLI) {
   if (I->isTerminator())
@@ -492,7 +480,7 @@ bool llvm::wouldInstructionBeTriviallyDead(Instruction *I,
     }
   }
 
-  if (isAllocationFn(I, TLI) && isAllocRemovable(cast<CallBase>(I), TLI))
+  if (isAllocLikeFn(I, TLI))
     return true;
 
   if (CallInst *CI = isFreeCall(I, TLI))
@@ -541,8 +529,8 @@ bool llvm::RecursivelyDeleteTriviallyDeadInstructionsPermissive(
     std::function<void(Value *)> AboutToDeleteCallback) {
   unsigned S = 0, E = DeadInsts.size(), Alive = 0;
   for (; S != E; ++S) {
-    auto *I = dyn_cast<Instruction>(DeadInsts[S]);
-    if (!I || !isInstructionTriviallyDead(I)) {
+    auto *I = cast<Instruction>(DeadInsts[S]);
+    if (!isInstructionTriviallyDead(I)) {
       DeadInsts[S] = nullptr;
       ++Alive;
     }
@@ -772,18 +760,15 @@ void llvm::MergeBasicBlockIntoOnlyPred(BasicBlock *DestBB,
   SmallVector<DominatorTree::UpdateType, 32> Updates;
 
   if (DTU) {
-    // To avoid processing the same predecessor more than once.
-    SmallPtrSet<BasicBlock *, 2> SeenPreds;
-    Updates.reserve(Updates.size() + 2 * pred_size(PredBB) + 1);
-    for (BasicBlock *PredOfPredBB : predecessors(PredBB))
+    SmallPtrSet<BasicBlock *, 2> PredsOfPredBB(pred_begin(PredBB),
+                                               pred_end(PredBB));
+    Updates.reserve(Updates.size() + 2 * PredsOfPredBB.size() + 1);
+    for (BasicBlock *PredOfPredBB : PredsOfPredBB)
       // This predecessor of PredBB may already have DestBB as a successor.
       if (PredOfPredBB != PredBB)
-        if (SeenPreds.insert(PredOfPredBB).second)
-          Updates.push_back({DominatorTree::Insert, PredOfPredBB, DestBB});
-    SeenPreds.clear();
-    for (BasicBlock *PredOfPredBB : predecessors(PredBB))
-      if (SeenPreds.insert(PredOfPredBB).second)
-        Updates.push_back({DominatorTree::Delete, PredOfPredBB, PredBB});
+        Updates.push_back({DominatorTree::Insert, PredOfPredBB, DestBB});
+    for (BasicBlock *PredOfPredBB : PredsOfPredBB)
+      Updates.push_back({DominatorTree::Delete, PredOfPredBB, PredBB});
     Updates.push_back({DominatorTree::Delete, PredBB, DestBB});
   }
 
@@ -1111,20 +1096,16 @@ bool llvm::TryToSimplifyUncondBranchFromEmptyBlock(BasicBlock *BB,
 
   SmallVector<DominatorTree::UpdateType, 32> Updates;
   if (DTU) {
-    // To avoid processing the same predecessor more than once.
-    SmallPtrSet<BasicBlock *, 8> SeenPreds;
     // All predecessors of BB will be moved to Succ.
+    SmallPtrSet<BasicBlock *, 8> PredsOfBB(pred_begin(BB), pred_end(BB));
     SmallPtrSet<BasicBlock *, 8> PredsOfSucc(pred_begin(Succ), pred_end(Succ));
-    Updates.reserve(Updates.size() + 2 * pred_size(BB) + 1);
-    for (auto *PredOfBB : predecessors(BB))
+    Updates.reserve(Updates.size() + 2 * PredsOfBB.size() + 1);
+    for (auto *PredOfBB : PredsOfBB)
       // This predecessor of BB may already have Succ as a successor.
       if (!PredsOfSucc.contains(PredOfBB))
-        if (SeenPreds.insert(PredOfBB).second)
-          Updates.push_back({DominatorTree::Insert, PredOfBB, Succ});
-    SeenPreds.clear();
-    for (auto *PredOfBB : predecessors(BB))
-      if (SeenPreds.insert(PredOfBB).second)
-        Updates.push_back({DominatorTree::Delete, PredOfBB, BB});
+        Updates.push_back({DominatorTree::Insert, PredOfBB, Succ});
+    for (auto *PredOfBB : PredsOfBB)
+      Updates.push_back({DominatorTree::Delete, PredOfBB, BB});
     Updates.push_back({DominatorTree::Delete, BB, Succ});
   }
 
@@ -2189,8 +2170,8 @@ CallInst *llvm::createCallMatchingInvoke(InvokeInst *II) {
   return NewCall;
 }
 
-// changeToCall - Convert the specified invoke into a normal call.
-CallInst *llvm::changeToCall(InvokeInst *II, DomTreeUpdater *DTU) {
+/// changeToCall - Convert the specified invoke into a normal call.
+void llvm::changeToCall(InvokeInst *II, DomTreeUpdater *DTU) {
   CallInst *NewCall = createCallMatchingInvoke(II);
   NewCall->takeName(II);
   NewCall->insertBefore(II);
@@ -2207,7 +2188,26 @@ CallInst *llvm::changeToCall(InvokeInst *II, DomTreeUpdater *DTU) {
   II->eraseFromParent();
   if (DTU)
     DTU->applyUpdates({{DominatorTree::Delete, BB, UnwindDestBB}});
-  return NewCall;
+}
+
+void llvm::createUnreachableSwitchDefault(SwitchInst *Switch,
+                                          DomTreeUpdater *DTU) {
+  LLVM_DEBUG(dbgs() << "SimplifyCFG: switch default is dead.\n");
+  auto *BB = Switch->getParent();
+  auto *OrigDefaultBlock = Switch->getDefaultDest();
+  OrigDefaultBlock->removePredecessor(BB);
+  BasicBlock *NewDefaultBlock = BasicBlock::Create(
+      BB->getContext(), BB->getName() + ".unreachabledefault", BB->getParent(),
+      OrigDefaultBlock);
+  new UnreachableInst(Switch->getContext(), NewDefaultBlock);
+  Switch->setDefaultDest(&*NewDefaultBlock);
+  if (DTU) {
+    SmallVector<DominatorTree::UpdateType, 2> Updates;
+    Updates.push_back({DominatorTree::Insert, BB, &*NewDefaultBlock});
+    if (!is_contained(successors(BB), OrigDefaultBlock))
+      Updates.push_back({DominatorTree::Delete, BB, &*OrigDefaultBlock});
+    DTU->applyUpdates(Updates);
+  }
 }
 
 BasicBlock *llvm::changeToInvokeAndSplitBasicBlock(CallInst *CI,
@@ -3148,6 +3148,11 @@ bool llvm::recognizeBSwapOrBitReverseIdiom(
   if (!ITy->isIntOrIntVectorTy() || ITy->getScalarSizeInBits() > 128)
     return false;  // Can't do integer/elements > 128 bits.
 
+  Type *DemandedTy = ITy;
+  if (I->hasOneUse())
+    if (auto *Trunc = dyn_cast<TruncInst>(I->user_back()))
+      DemandedTy = Trunc->getType();
+
   // Try to find all the pieces corresponding to the bswap.
   bool FoundRoot = false;
   std::map<Value *, Optional<BitPart>> BPS;
@@ -3161,7 +3166,6 @@ bool llvm::recognizeBSwapOrBitReverseIdiom(
          "Illegal bit provenance index");
 
   // If the upper bits are zero, then attempt to perform as a truncated op.
-  Type *DemandedTy = ITy;
   if (BitProvenance.back() == BitPart::Unset) {
     while (!BitProvenance.empty() && BitProvenance.back() == BitPart::Unset)
       BitProvenance = BitProvenance.drop_back();

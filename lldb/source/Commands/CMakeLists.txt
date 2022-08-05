@@ -41,6 +41,7 @@ add_lldb_library(lldbCommands
   CommandOptionsProcessLaunch.cpp
 
   LINK_LIBS
+    lldbBase
     lldbBreakpoint
     lldbCore
     lldbDataFormatters
@@ -50,7 +51,6 @@ add_lldb_library(lldbCommands
     lldbSymbol
     lldbTarget
     lldbUtility
-    lldbVersion
 
   LINK_COMPONENTS
     Support

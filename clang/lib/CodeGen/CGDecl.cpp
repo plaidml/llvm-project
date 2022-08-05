@@ -405,8 +405,7 @@ void CodeGenFunction::EmitStaticVarDecl(const VarDecl &D,
 
   // Store into LocalDeclMap before generating initializer to handle
   // circular references.
-  llvm::Type *elemTy = ConvertTypeForMem(D.getType());
-  setAddrOfLocalVar(&D, Address(addr, elemTy, alignment));
+  setAddrOfLocalVar(&D, Address(addr, alignment));
 
   // We can't have a VLA here, but we can have a pointer to a VLA,
   // even though that doesn't really make any sense.
@@ -459,7 +458,8 @@ void CodeGenFunction::EmitStaticVarDecl(const VarDecl &D,
   // RAUW's the GV uses of this constant will be invalid.
   llvm::Constant *castedAddr =
     llvm::ConstantExpr::getPointerBitCastOrAddrSpaceCast(var, expectedType);
-  LocalDeclMap.find(&D)->second = Address(castedAddr, elemTy, alignment);
+  if (var != castedAddr)
+    LocalDeclMap.find(&D)->second = Address(castedAddr, alignment);
   CGM.setStaticLocalDeclAddress(&D, castedAddr);
 
   CGM.getSanitizerMetadata()->reportGlobalToASan(var, D);
@@ -1146,7 +1146,7 @@ Address CodeGenModule::createUnnamedGlobalFrom(const VarDecl &D,
     CacheEntry->setAlignment(Align.getAsAlign());
   }
 
-  return Address(CacheEntry, CacheEntry->getValueType(), Align);
+  return Address(CacheEntry, Align);
 }
 
 static Address createUnnamedGlobalForMemcpyFrom(CodeGenModule &CGM,
@@ -1193,7 +1193,7 @@ static void emitStoresForConstant(CodeGenModule &CGM, const VarDecl &D,
     bool valueAlreadyCorrect =
         constant->isNullValue() || isa<llvm::UndefValue>(constant);
     if (!valueAlreadyCorrect) {
-      Loc = Builder.CreateElementBitCast(Loc, Ty);
+      Loc = Builder.CreateBitCast(Loc, Ty->getPointerTo(Loc.getAddressSpace()));
       emitStoresForInitAfterBZero(CGM, constant, Loc, isVolatile, Builder,
                                   IsAutoInit);
     }
@@ -1392,11 +1392,9 @@ void CodeGenFunction::EmitAndRegisterVariableArrayDimensions(
     else {
       // Create an artificial VarDecl to generate debug info for.
       IdentifierInfo *NameIdent = VLAExprNames[NameIdx++];
-      assert(cast<llvm::PointerType>(VlaSize.NumElts->getType())
-                 ->isOpaqueOrPointeeTypeMatches(SizeTy) &&
-             "Number of VLA elements must be SizeTy");
+      auto VlaExprTy = VlaSize.NumElts->getType()->getPointerElementType();
       auto QT = getContext().getIntTypeForBitwidth(
-          SizeTy->getScalarSizeInBits(), false);
+          VlaExprTy->getScalarSizeInBits(), false);
       auto *ArtificialDecl = VarDecl::Create(
           getContext(), const_cast<DeclContext *>(D.getDeclContext()),
           D.getLocation(), D.getLocation(), NameIdent, QT,
@@ -2252,17 +2250,16 @@ void CodeGenFunction::emitArrayDestroy(llvm::Value *begin,
 
   // Shift the address back by one element.
   llvm::Value *negativeOne = llvm::ConstantInt::get(SizeTy, -1, true);
-  llvm::Type *llvmElementType = ConvertTypeForMem(elementType);
   llvm::Value *element = Builder.CreateInBoundsGEP(
-      llvmElementType, elementPast, negativeOne, "arraydestroy.element");
+      elementPast->getType()->getPointerElementType(), elementPast, negativeOne,
+      "arraydestroy.element");
 
   if (useEHCleanup)
     pushRegularPartialArrayCleanup(begin, element, elementType, elementAlign,
                                    destroyer);
 
   // Perform the actual destruction there.
-  destroyer(*this, Address(element, llvmElementType, elementAlign),
-            elementType);
+  destroyer(*this, Address(element, elementAlign), elementType);
 
   if (useEHCleanup)
     PopCleanupBlock();

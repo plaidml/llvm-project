@@ -73,14 +73,18 @@ void ModuloScheduleExpander::expand() {
   // stage difference for each use.  Keep the maximum value.
   for (MachineInstr *MI : Schedule.getInstructions()) {
     int DefStage = Schedule.getStage(MI);
-    for (const MachineOperand &Op : MI->operands()) {
+    for (unsigned i = 0, e = MI->getNumOperands(); i < e; ++i) {
+      MachineOperand &Op = MI->getOperand(i);
       if (!Op.isReg() || !Op.isDef())
         continue;
 
       Register Reg = Op.getReg();
       unsigned MaxDiff = 0;
       bool PhiIsSwapped = false;
-      for (MachineOperand &UseOp : MRI.use_operands(Reg)) {
+      for (MachineRegisterInfo::use_iterator UI = MRI.use_begin(Reg),
+                                             EI = MRI.use_end();
+           UI != EI; ++UI) {
+        MachineOperand &UseOp = *UI;
         MachineInstr *UseMI = UseOp.getParent();
         int UseStage = Schedule.getStage(UseMI);
         unsigned Diff = 0;
@@ -328,10 +332,14 @@ static void replaceRegUsesAfterLoop(unsigned FromReg, unsigned ToReg,
                                     MachineBasicBlock *MBB,
                                     MachineRegisterInfo &MRI,
                                     LiveIntervals &LIS) {
-  for (MachineOperand &O :
-       llvm::make_early_inc_range(MRI.use_operands(FromReg)))
+  for (MachineRegisterInfo::use_iterator I = MRI.use_begin(FromReg),
+                                         E = MRI.use_end();
+       I != E;) {
+    MachineOperand &O = *I;
+    ++I;
     if (O.getParent()->getParent() != MBB)
       O.setReg(ToReg);
+  }
   if (!LIS.hasInterval(ToReg))
     LIS.createEmptyInterval(ToReg);
 }
@@ -340,8 +348,10 @@ static void replaceRegUsesAfterLoop(unsigned FromReg, unsigned ToReg,
 /// specified loop.
 static bool hasUseAfterLoop(unsigned Reg, MachineBasicBlock *BB,
                             MachineRegisterInfo &MRI) {
-  for (const MachineOperand &MO : MRI.use_operands(Reg))
-    if (MO.getParent()->getParent() != BB)
+  for (MachineRegisterInfo::use_iterator I = MRI.use_begin(Reg),
+                                         E = MRI.use_end();
+       I != E; ++I)
+    if (I->getParent()->getParent() != BB)
       return true;
   return false;
 }
@@ -707,22 +717,26 @@ void ModuloScheduleExpander::removeDeadInstructions(MachineBasicBlock *KernelBB,
         continue;
       }
       bool used = true;
-      for (const MachineOperand &MO : MI->operands()) {
-        if (!MO.isReg() || !MO.isDef())
+      for (MachineInstr::mop_iterator MOI = MI->operands_begin(),
+                                      MOE = MI->operands_end();
+           MOI != MOE; ++MOI) {
+        if (!MOI->isReg() || !MOI->isDef())
           continue;
-        Register reg = MO.getReg();
+        Register reg = MOI->getReg();
         // Assume physical registers are used, unless they are marked dead.
         if (Register::isPhysicalRegister(reg)) {
-          used = !MO.isDead();
+          used = !MOI->isDead();
           if (used)
             break;
           continue;
         }
         unsigned realUses = 0;
-        for (const MachineOperand &U : MRI.use_operands(reg)) {
+        for (MachineRegisterInfo::use_iterator UI = MRI.use_begin(reg),
+                                               EI = MRI.use_end();
+             UI != EI; ++UI) {
           // Check if there are any uses that occur only in the original
           // loop.  If so, that's not a real use.
-          if (U.getParent()->getParent() != BB) {
+          if (UI->getParent()->getParent() != BB) {
             realUses++;
             used = true;
             break;
@@ -1005,7 +1019,8 @@ void ModuloScheduleExpander::updateInstruction(MachineInstr *NewMI,
                                                unsigned CurStageNum,
                                                unsigned InstrStageNum,
                                                ValueMapTy *VRMap) {
-  for (MachineOperand &MO : NewMI->operands()) {
+  for (unsigned i = 0, e = NewMI->getNumOperands(); i != e; ++i) {
+    MachineOperand &MO = NewMI->getOperand(i);
     if (!MO.isReg() || !Register::isVirtualRegister(MO.getReg()))
       continue;
     Register reg = MO.getReg();
@@ -1122,9 +1137,12 @@ void ModuloScheduleExpander::rewriteScheduledInstr(
   int StagePhi = Schedule.getStage(Phi) + PhiNum;
   // Rewrite uses that have been scheduled already to use the new
   // Phi register.
-  for (MachineOperand &UseOp :
-       llvm::make_early_inc_range(MRI.use_operands(OldReg))) {
+  for (MachineRegisterInfo::use_iterator UI = MRI.use_begin(OldReg),
+                                         EI = MRI.use_end();
+       UI != EI;) {
+    MachineOperand &UseOp = *UI;
     MachineInstr *UseMI = UseOp.getParent();
+    ++UI;
     if (UseMI->getParent() != BB)
       continue;
     if (UseMI->isPHI()) {
@@ -1704,7 +1722,7 @@ void PeelingModuloScheduleExpander::peelPrologAndEpilogs() {
   // Peel out the prologs.
   LS.reset();
   for (int I = 0; I < Schedule.getNumStages() - 1; ++I) {
-    LS[I] = true;
+    LS[I] = 1;
     Prologs.push_back(peelKernel(LPD_Front));
     LiveStages[Prologs.back()] = LS;
     AvailableStages[Prologs.back()] = LS;
@@ -1752,7 +1770,7 @@ void PeelingModuloScheduleExpander::peelPrologAndEpilogs() {
       // Move stage one block at a time so that Phi nodes are updated correctly.
       for (size_t K = Iteration; K > I; K--)
         moveStageBetweenBlocks(Epilogs[K - 1], Epilogs[K], Stage);
-      LS[Stage] = true;
+      LS[Stage] = 1;
     }
     LiveStages[Epilogs[I]] = LS;
     AvailableStages[Epilogs[I]] = AS;

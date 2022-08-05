@@ -14,6 +14,10 @@
 #include "device.h"
 #include "private.h"
 
+#if OMPT_SUPPORT
+#include "ompt-target.h"
+#endif
+
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
@@ -40,20 +44,7 @@ static char *ProfileTraceFile = nullptr;
 
 __attribute__((constructor(101))) void init() {
   DP("Init target library!\n");
-
-  bool UseEventsForAtomicTransfers = true;
-  if (const char *ForceAtomicMap = getenv("LIBOMPTARGET_MAP_FORCE_ATOMIC")) {
-    std::string ForceAtomicMapStr(ForceAtomicMap);
-    if (ForceAtomicMapStr == "false" || ForceAtomicMapStr == "FALSE")
-      UseEventsForAtomicTransfers = false;
-    else if (ForceAtomicMapStr != "true" && ForceAtomicMapStr != "TRUE")
-      fprintf(stderr,
-              "Warning: 'LIBOMPTARGET_MAP_FORCE_ATOMIC' accepts only "
-              "'true'/'TRUE' or 'false'/'FALSE' as options, '%s' ignored\n",
-              ForceAtomicMap);
-  }
-
-  PM = new PluginManager(UseEventsForAtomicTransfers);
+  PM = new PluginManager();
 
 #ifdef OMPTARGET_PROFILE_ENABLED
   ProfileTraceFile = getenv("LIBOMPTARGET_PROFILE");
@@ -201,6 +192,19 @@ void RTLsTy::LoadRTLs() {
     *((void **)&R.destroy_event) =
         dlsym(dynlib_handle, "__tgt_rtl_destroy_event");
   }
+
+#if OMPT_SUPPORT
+  DP("OMPT_SUPPORT is enabled in libomptarget\n");
+  DP("Init OMPT for libomptarget\n");
+  if (libomp_start_tool) {
+    DP("Retrieve libomp_start_tool successfully\n");
+    if (!libomp_start_tool(&ompt_target_enabled)) {
+      DP("Turn off OMPT in libomptarget because libomp_start_tool returns "
+         "false\n");
+      memset(&ompt_target_enabled, 0, sizeof(ompt_target_enabled));
+    }
+  }
+#endif
 
   DP("RTLs loaded!\n");
 

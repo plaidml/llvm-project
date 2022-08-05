@@ -116,7 +116,7 @@ void ARM::relocateOne(uint8_t *loc, const Reloc &r, uint64_t value,
         return;
       } else if (isBlx && !defined->thumb) {
         Bitfield::set<Cond>(base, 0xe); // unconditional BL
-        Bitfield::set<BitfieldFlag<24>>(base, true);
+        Bitfield::set<BitfieldFlag<24>>(base, 1);
         isBlx = false;
       }
     } else {

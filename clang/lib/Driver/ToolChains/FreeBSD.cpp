@@ -145,7 +145,7 @@ void freebsd::Linker::ConstructJob(Compilation &C, const JobAction &JA,
   const llvm::Triple::ArchType Arch = ToolChain.getArch();
   const bool IsPIE =
       !Args.hasArg(options::OPT_shared) &&
-      (Args.hasArg(options::OPT_pie) || ToolChain.isPIEDefault(Args));
+      (Args.hasArg(options::OPT_pie) || ToolChain.isPIEDefault());
   ArgStringList CmdArgs;
 
   // Silence warning for "clang -g foo.o -o foo"
@@ -247,8 +247,7 @@ void freebsd::Linker::ConstructJob(Compilation &C, const JobAction &JA,
     assert(Output.isNothing() && "Invalid output.");
   }
 
-  if (!Args.hasArg(options::OPT_nostdlib, options::OPT_nostartfiles,
-                   options::OPT_r)) {
+  if (!Args.hasArg(options::OPT_nostdlib, options::OPT_nostartfiles)) {
     const char *crt1 = nullptr;
     if (!Args.hasArg(options::OPT_shared)) {
       if (Args.hasArg(options::OPT_pg))
@@ -294,10 +293,9 @@ void freebsd::Linker::ConstructJob(Compilation &C, const JobAction &JA,
   addLinkerCompressDebugSectionsOption(ToolChain, Args, CmdArgs);
   AddLinkerInputs(ToolChain, Inputs, Args, CmdArgs, JA);
 
-  unsigned Major = ToolChain.getTriple().getOSMajorVersion();
-  bool Profiling = Args.hasArg(options::OPT_pg) && Major != 0 && Major < 14;
-  if (!Args.hasArg(options::OPT_nostdlib, options::OPT_nodefaultlibs,
-                   options::OPT_r)) {
+  bool Profiling = Args.hasArg(options::OPT_pg) &&
+                   ToolChain.getTriple().getOSMajorVersion() < 14;
+  if (!Args.hasArg(options::OPT_nostdlib, options::OPT_nodefaultlibs)) {
     // Use the static OpenMP runtime with -static-openmp
     bool StaticOpenMP = Args.hasArg(options::OPT_static_openmp) &&
                         !Args.hasArg(options::OPT_static);
@@ -360,8 +358,7 @@ void freebsd::Linker::ConstructJob(Compilation &C, const JobAction &JA,
     }
   }
 
-  if (!Args.hasArg(options::OPT_nostdlib, options::OPT_nostartfiles,
-                   options::OPT_r)) {
+  if (!Args.hasArg(options::OPT_nostdlib, options::OPT_nostartfiles)) {
     if (Args.hasArg(options::OPT_shared) || IsPIE)
       CmdArgs.push_back(Args.MakeArgString(ToolChain.GetFilePath("crtendS.o")));
     else
@@ -394,8 +391,7 @@ FreeBSD::FreeBSD(const Driver &D, const llvm::Triple &Triple,
 }
 
 ToolChain::CXXStdlibType FreeBSD::GetDefaultCXXStdlibType() const {
-  unsigned Major = getTriple().getOSMajorVersion();
-  if (Major >= 10 || Major == 0)
+  if (getTriple().getOSMajorVersion() >= 10)
     return ToolChain::CST_Libcxx;
   return ToolChain::CST_Libstdcxx;
 }
@@ -422,8 +418,8 @@ void FreeBSD::addLibStdCxxIncludePaths(
 void FreeBSD::AddCXXStdlibLibArgs(const ArgList &Args,
                                   ArgStringList &CmdArgs) const {
   CXXStdlibType Type = GetCXXStdlibType(Args);
-  unsigned Major = getTriple().getOSMajorVersion();
-  bool Profiling = Args.hasArg(options::OPT_pg) && Major != 0 && Major < 14;
+  bool Profiling =
+      Args.hasArg(options::OPT_pg) && getTriple().getOSMajorVersion() < 14;
 
   switch (Type) {
   case ToolChain::CST_Libcxx:
@@ -471,9 +467,7 @@ bool FreeBSD::HasNativeLLVMSupport() const { return true; }
 
 bool FreeBSD::IsUnwindTablesDefault(const ArgList &Args) const { return true; }
 
-bool FreeBSD::isPIEDefault(const llvm::opt::ArgList &Args) const {
-  return getSanitizerArgs(Args).requiresPIE();
-}
+bool FreeBSD::isPIEDefault() const { return getSanitizerArgs().requiresPIE(); }
 
 SanitizerMask FreeBSD::getSupportedSanitizers() const {
   const bool IsAArch64 = getTriple().getArch() == llvm::Triple::aarch64;

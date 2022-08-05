@@ -20,8 +20,6 @@
 
 #include <dlfcn.h>
 
-DLWRAP_INITIALIZE();
-
 DLWRAP_INTERNAL(cuInit, 1);
 
 DLWRAP(cuCtxGetDevice, 1);

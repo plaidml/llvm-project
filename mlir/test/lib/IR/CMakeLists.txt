@@ -15,7 +15,6 @@ add_mlir_library(MLIRTestIR
   TestSymbolUses.cpp
   TestTypes.cpp
   TestVisitors.cpp
-  TestVisitorsGeneric.cpp
 
   EXCLUDE_FROM_LIBMLIR
 

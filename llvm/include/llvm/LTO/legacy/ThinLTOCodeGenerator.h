@@ -29,6 +29,7 @@
 
 namespace llvm {
 class StringRef;
+class LLVMContext;
 class TargetMachine;
 
 /// Helper to gather options relevant to the target machine creation

@@ -199,6 +199,17 @@ ParamValue *DerivedTypeSpec::FindParameter(SourceName target) {
       const_cast<const DerivedTypeSpec *>(this)->FindParameter(target));
 }
 
+// Objects of derived types might be assignment compatible if they are equal
+// with respect to everything other than their instantiated type parameters
+// and their constant instantiated type parameters have the same values.
+bool DerivedTypeSpec::MightBeAssignmentCompatibleWith(
+    const DerivedTypeSpec &that) const {
+  if (!RawEquals(that)) {
+    return false;
+  }
+  return AreTypeParamCompatible(*this, that);
+}
+
 class InstantiateHelper {
 public:
   InstantiateHelper(Scope &scope) : scope_{scope} {}
@@ -520,9 +531,9 @@ llvm::raw_ostream &operator<<(llvm::raw_ostream &o, const DerivedTypeSpec &x) {
 Bound::Bound(common::ConstantSubscript bound) : expr_{bound} {}
 
 llvm::raw_ostream &operator<<(llvm::raw_ostream &o, const Bound &x) {
-  if (x.isStar()) {
+  if (x.isAssumed()) {
     o << '*';
-  } else if (x.isColon()) {
+  } else if (x.isDeferred()) {
     o << ':';
   } else if (x.expr_) {
     x.expr_->AsFortran(o);
@@ -533,15 +544,15 @@ llvm::raw_ostream &operator<<(llvm::raw_ostream &o, const Bound &x) {
 }
 
 llvm::raw_ostream &operator<<(llvm::raw_ostream &o, const ShapeSpec &x) {
-  if (x.lb_.isStar()) {
-    CHECK(x.ub_.isStar());
+  if (x.lb_.isAssumed()) {
+    CHECK(x.ub_.isAssumed());
     o << "..";
   } else {
-    if (!x.lb_.isColon()) {
+    if (!x.lb_.isDeferred()) {
       o << x.lb_;
     }
     o << ':';
-    if (!x.ub_.isColon()) {
+    if (!x.ub_.isDeferred()) {
       o << x.ub_;
     }
   }
@@ -686,14 +697,7 @@ std::string DeclTypeSpec::AsFortran() const {
   case Character:
     return characterTypeSpec().AsFortran();
   case TypeDerived:
-    if (derivedTypeSpec()
-            .typeSymbol()
-            .get<DerivedTypeDetails>()
-            .isDECStructure()) {
-      return "RECORD" + derivedTypeSpec().typeSymbol().name().ToString();
-    } else {
-      return "TYPE(" + derivedTypeSpec().AsFortran() + ')';
-    }
+    return "TYPE(" + derivedTypeSpec().AsFortran() + ')';
   case ClassDerived:
     return "CLASS(" + derivedTypeSpec().AsFortran() + ')';
   case TypeStar:

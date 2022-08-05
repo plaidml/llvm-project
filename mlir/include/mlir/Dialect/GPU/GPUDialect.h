@@ -19,11 +19,10 @@
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Dialect.h"
-#include "mlir/IR/FunctionInterfaces.h"
+#include "mlir/IR/FunctionSupport.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/SymbolTable.h"
-#include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 
 namespace mlir {
@@ -164,17 +163,14 @@ public:
 // Adds a `gpu.async.token` to the front of the argument list.
 void addAsyncDependency(Operation *op, Value token);
 
-} // namespace gpu
-} // namespace mlir
+} // end namespace gpu
+} // end namespace mlir
 
 #include "mlir/Dialect/GPU/GPUOpsEnums.h.inc"
 
 #include "mlir/Dialect/GPU/GPUOpsDialect.h.inc"
 
 #include "mlir/Dialect/GPU/GPUOpInterfaces.h.inc"
-
-#define GET_ATTRDEF_CLASSES
-#include "mlir/Dialect/GPU/GPUOpsAttributes.h.inc"
 
 #define GET_OP_CLASSES
 #include "mlir/Dialect/GPU/GPUOps.h.inc"

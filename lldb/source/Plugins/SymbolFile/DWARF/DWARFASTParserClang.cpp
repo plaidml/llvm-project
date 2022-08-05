@@ -933,7 +933,7 @@ TypeSP DWARFASTParserClang::ParseSubroutine(const DWARFDIE &die,
                DW_TAG_value_to_name(tag), type_name_cstr);
 
   CompilerType return_clang_type;
-  Type *func_type = nullptr;
+  Type *func_type = NULL;
 
   if (attrs.type.IsValid())
     func_type = dwarf->ResolveTypeUID(attrs.type.Reference(), true);
@@ -1027,7 +1027,7 @@ TypeSP DWARFASTParserClang::ParseSubroutine(const DWARFDIE &die,
                   class_opaque_type, attrs.name.GetCString(), clang_type,
                   attrs.accessibility, attrs.is_artificial, is_variadic,
                   attrs.is_objc_direct_call);
-          type_handled = objc_method_decl != nullptr;
+          type_handled = objc_method_decl != NULL;
           if (type_handled) {
             LinkDeclContextToDIE(objc_method_decl, die);
             m_ast.SetMetadataAsUserID(objc_method_decl, die.GetID());
@@ -1178,7 +1178,7 @@ TypeSP DWARFASTParserClang::ParseSubroutine(const DWARFDIE &die,
                             is_static, attrs.is_inline, attrs.is_explicit,
                             is_attr_used, attrs.is_artificial);
 
-                    type_handled = cxx_method_decl != nullptr;
+                    type_handled = cxx_method_decl != NULL;
                     // Artificial methods are always handled even when we
                     // don't create a new declaration for them.
                     type_handled |= attrs.is_artificial;
@@ -1530,6 +1530,7 @@ TypeSP DWARFASTParserClang::UpdateSymbolContextScopeForType(
     return type_sp;
 
   SymbolFileDWARF *dwarf = die.GetDWARF();
+  TypeList &type_list = dwarf->GetTypeList();
   DWARFDIE sc_parent_die = SymbolFileDWARF::GetParentSymbolContextDIE(die);
   dw_tag_t sc_parent_tag = sc_parent_die.Tag();
 
@@ -1548,6 +1549,10 @@ TypeSP DWARFASTParserClang::UpdateSymbolContextScopeForType(
 
   if (symbol_context_scope != nullptr)
     type_sp->SetSymbolContextScope(symbol_context_scope);
+
+  // We are ready to put this type into the uniqued list up at the module
+  // level.
+  type_list.Insert(type_sp);
 
   dwarf->GetDIEToType()[die.GetDIE()] = type_sp.get();
   return type_sp;
@@ -2036,7 +2041,7 @@ bool DWARFASTParserClang::ParseTemplateDIE(
         if (name && name[0])
           template_param_infos.names.push_back(name);
         else
-          template_param_infos.names.push_back(nullptr);
+          template_param_infos.names.push_back(NULL);
 
         // Get the signed value for any integer or enumeration if available
         clang_type.IsIntegerOrEnumerationType(is_signed);
@@ -3336,8 +3341,7 @@ DWARFASTParserClang::GetOwningClangModule(const DWARFDIE &die) {
       auto it = m_die_to_module.find(module_die.GetDIE());
       if (it != m_die_to_module.end())
         return it->second;
-      const char *name =
-          module_die.GetAttributeValueAsString(DW_AT_name, nullptr);
+      const char *name = module_die.GetAttributeValueAsString(DW_AT_name, 0);
       if (!name)
         return {};
 

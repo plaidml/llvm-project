@@ -185,10 +185,6 @@ public:
 
     return RegName;
   }
-
-  bool isNonallocatableRegisterCalleeSave(MCRegister Reg) const override {
-    return Reg == PPC::LR || Reg == PPC::LR8;
-  }
 };
 
 } // end namespace llvm

@@ -81,7 +81,7 @@ mlir::Value Fortran::lower::FirOpBuilder::allocateLocal(
   });
   llvm::SmallVector<mlir::NamedAttribute, 2> attrs;
   if (asTarget)
-    attrs.emplace_back(mlir::StringAttr::get(getContext(), "target"),
+    attrs.emplace_back(mlir::Identifier::get("target", getContext()),
                        getUnitAttr());
   return create<fir::AllocaOp>(loc, ty, nm, llvm::None, indices, attrs);
 }
@@ -175,9 +175,9 @@ mlir::Value Fortran::lower::FirOpBuilder::createConvert(mlir::Location loc,
 fir::StringLitOp Fortran::lower::FirOpBuilder::createStringLit(
     mlir::Location loc, mlir::Type eleTy, llvm::StringRef data) {
   auto strAttr = mlir::StringAttr::get(getContext(), data);
-  auto valTag = mlir::StringAttr::get(getContext(), fir::StringLitOp::value());
+  auto valTag = mlir::Identifier::get(fir::StringLitOp::value(), getContext());
   mlir::NamedAttribute dataAttr(valTag, strAttr);
-  auto sizeTag = mlir::StringAttr::get(getContext(), fir::StringLitOp::size());
+  auto sizeTag = mlir::Identifier::get(fir::StringLitOp::size(), getContext());
   mlir::NamedAttribute sizeAttr(sizeTag, getI64IntegerAttr(data.size()));
   llvm::SmallVector<mlir::NamedAttribute, 2> attrs{dataAttr, sizeAttr};
   auto arrTy =

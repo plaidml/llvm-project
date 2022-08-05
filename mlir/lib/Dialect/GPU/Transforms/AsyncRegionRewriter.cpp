@@ -31,7 +31,7 @@ class GpuAsyncRegionPass : public GpuAsyncRegionPassBase<GpuAsyncRegionPass> {
   struct ThreadTokenCallback;
   struct DeferWaitCallback;
   struct SingleTokenUseCallback;
-  void runOnOperation() override;
+  void runOnFunction() override;
 };
 } // namespace
 
@@ -252,9 +252,7 @@ private:
           executeOp.operandsMutable().append(asyncTokens);
           SmallVector<Type, 1> tokenTypes(
               asyncTokens.size(), builder.getType<gpu::AsyncTokenType>());
-          SmallVector<Location, 1> tokenLocs(asyncTokens.size(),
-                                             executeOp.getLoc());
-          copy(executeOp.getBody()->addArguments(tokenTypes, tokenLocs),
+          copy(executeOp.getBody()->addArguments(tokenTypes),
                std::back_inserter(tokens));
         });
 
@@ -329,14 +327,14 @@ struct GpuAsyncRegionPass::SingleTokenUseCallback {
 // Replaces synchronous GPU ops in the op's region with asynchronous ones and
 // inserts the necessary synchronization (as gpu.wait ops). Assumes sequential
 // execution semantics and that no GPU ops are asynchronous yet.
-void GpuAsyncRegionPass::runOnOperation() {
-  if (getOperation()->walk(ThreadTokenCallback(getContext())).wasInterrupted())
+void GpuAsyncRegionPass::runOnFunction() {
+  if (getFunction()->walk(ThreadTokenCallback(getContext())).wasInterrupted())
     return signalPassFailure();
 
   // Collect gpu.wait ops that we can move out of async.execute regions.
-  getOperation().getRegion().walk(DeferWaitCallback());
+  getFunction().getRegion().walk(DeferWaitCallback());
   // Makes each !gpu.async.token returned from async.execute op have single use.
-  getOperation().getRegion().walk(SingleTokenUseCallback());
+  getFunction().getRegion().walk(SingleTokenUseCallback());
 }
 
 std::unique_ptr<OperationPass<FuncOp>> mlir::createGpuAsyncRegionPass() {

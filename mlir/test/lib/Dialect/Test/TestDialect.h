@@ -14,11 +14,10 @@
 #ifndef MLIR_TESTDIALECT_H
 #define MLIR_TESTDIALECT_H
 
-#include "TestAttributes.h"
 #include "TestInterfaces.h"
 #include "mlir/Dialect/DLTI/DLTI.h"
 #include "mlir/Dialect/DLTI/Traits.h"
-#include "mlir/Dialect/Linalg/IR/Linalg.h"
+#include "mlir/Dialect/Linalg/IR/LinalgOps.h"
 #include "mlir/Dialect/Traits.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/BuiltinTypes.h"
@@ -39,6 +38,7 @@ class DLTIDialect;
 class RewritePatternSet;
 } // namespace mlir
 
+#include "TestOpEnums.h.inc"
 #include "TestOpInterfaces.h.inc"
 #include "TestOpStructs.h.inc"
 #include "TestOpsDialect.h.inc"
@@ -49,6 +49,6 @@ class RewritePatternSet;
 namespace test {
 void registerTestDialect(::mlir::DialectRegistry &registry);
 void populateTestReductionPatterns(::mlir::RewritePatternSet &patterns);
-} // namespace test
+} // end namespace test
 
 #endif // MLIR_TESTDIALECT_H

@@ -67,7 +67,7 @@ UnsignedDivisonByConstantInfo::get(const APInt &D, unsigned LeadingZeros) {
   unsigned P;
   APInt NC, Delta, Q1, R1, Q2, R2;
   struct UnsignedDivisonByConstantInfo Retval;
-  Retval.IsAdd = false; // initialize "add" indicator
+  Retval.IsAdd = 0; // initialize "add" indicator
   APInt AllOnes = APInt::getAllOnes(D.getBitWidth()).lshr(LeadingZeros);
   APInt SignedMin = APInt::getSignedMinValue(D.getBitWidth());
   APInt SignedMax = APInt::getSignedMaxValue(D.getBitWidth());
@@ -89,12 +89,12 @@ UnsignedDivisonByConstantInfo::get(const APInt &D, unsigned LeadingZeros) {
     }
     if ((R2 + 1).uge(D - R2)) {
       if (Q2.uge(SignedMax))
-        Retval.IsAdd = true;
+        Retval.IsAdd = 1;
       Q2 = Q2 + Q2 + 1;     // update Q2
       R2 = R2 + R2 + 1 - D; // update R2
     } else {
       if (Q2.uge(SignedMin))
-        Retval.IsAdd = true;
+        Retval.IsAdd = 1;
       Q2 = Q2 + Q2;     // update Q2
       R2 = R2 + R2 + 1; // update R2
     }

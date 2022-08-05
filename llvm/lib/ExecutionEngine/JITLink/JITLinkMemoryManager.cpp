@@ -15,11 +15,67 @@
 
 using namespace llvm;
 
+namespace {
+
+// FIXME: Remove this copy of CWrapperFunctionResult as soon as JITLink can
+// depend on shared utils from Orc.
+
+// Must be kept in-sync with compiler-rt/lib/orc/c-api.h.
+union CWrapperFunctionResultDataUnion {
+  char *ValuePtr;
+  char Value[sizeof(ValuePtr)];
+};
+
+// Must be kept in-sync with compiler-rt/lib/orc/c-api.h.
+typedef struct {
+  CWrapperFunctionResultDataUnion Data;
+  size_t Size;
+} CWrapperFunctionResult;
+
+Error toError(CWrapperFunctionResult R) {
+  bool HasError = false;
+  std::string ErrMsg;
+  if (R.Size) {
+    bool Large = R.Size > sizeof(CWrapperFunctionResultDataUnion);
+    char *Content = Large ? R.Data.ValuePtr : R.Data.Value;
+    if (Content[0]) {
+      HasError = true;
+      ErrMsg.resize(R.Size - 1);
+      memcpy(&ErrMsg[0], Content + 1, R.Size - 1);
+    }
+    if (Large)
+      free(R.Data.ValuePtr);
+  } else if (R.Data.ValuePtr) {
+    HasError = true;
+    ErrMsg = R.Data.ValuePtr;
+    free(R.Data.ValuePtr);
+  }
+
+  if (HasError)
+    return make_error<StringError>(std::move(ErrMsg), inconvertibleErrorCode());
+  return Error::success();
+}
+} // namespace
+
 namespace llvm {
 namespace jitlink {
 
 JITLinkMemoryManager::~JITLinkMemoryManager() = default;
 JITLinkMemoryManager::InFlightAlloc::~InFlightAlloc() = default;
+
+static Error runAllocAction(JITLinkMemoryManager::AllocActionCall &C) {
+  using WrapperFnTy = CWrapperFunctionResult (*)(const void *, size_t);
+  auto *Fn = jitTargetAddressToPointer<WrapperFnTy>(C.FnAddr);
+
+  return toError(Fn(jitTargetAddressToPointer<const void *>(C.CtxAddr),
+                    static_cast<size_t>(C.CtxSize)));
+}
+
+// Align a JITTargetAddress to conform with block alignment requirements.
+static JITTargetAddress alignToBlock(JITTargetAddress Addr, Block &B) {
+  uint64_t Delta = (B.getAlignmentOffset() - Addr) % B.getAlignment();
+  return Addr + Delta;
+}
 
 BasicLayout::BasicLayout(LinkGraph &G) : G(G) {
 
@@ -138,7 +194,7 @@ Error BasicLayout::apply() {
   return Error::success();
 }
 
-orc::shared::AllocActions &BasicLayout::graphAllocActions() {
+JITLinkMemoryManager::AllocActions &BasicLayout::graphAllocActions() {
   return G.allocActions();
 }
 
@@ -158,7 +214,7 @@ void SimpleSegmentAlloc::Create(JITLinkMemoryManager &MemMgr,
       std::make_unique<LinkGraph>("", Triple(), 0, support::native, nullptr);
   AllocGroupSmallMap<Block *> ContentBlocks;
 
-  orc::ExecutorAddr NextAddr(0x100000);
+  JITTargetAddress NextAddr = 0x100000;
   for (auto &KV : Segments) {
     auto &AG = KV.first;
     auto &Seg = KV.second;
@@ -171,8 +227,7 @@ void SimpleSegmentAlloc::Create(JITLinkMemoryManager &MemMgr,
     Sec.setMemDeallocPolicy(AG.getMemDeallocPolicy());
 
     if (Seg.ContentSize != 0) {
-      NextAddr =
-          orc::ExecutorAddr(alignTo(NextAddr.getValue(), Seg.ContentAlign));
+      NextAddr = alignTo(NextAddr, Seg.ContentAlign);
       auto &B =
           G->createMutableContentBlock(Sec, G->allocateBuffer(Seg.ContentSize),
                                        NextAddr, Seg.ContentAlign.value(), 0);
@@ -247,11 +302,19 @@ public:
     }
 
     // Run finalization actions.
-    auto DeallocActions = runFinalizeActions(G.allocActions());
-    if (!DeallocActions) {
-      OnFinalized(DeallocActions.takeError());
-      return;
+    // FIXME: Roll back previous successful actions on failure.
+    std::vector<AllocActionCall> DeallocActions;
+    DeallocActions.reserve(G.allocActions().size());
+    for (auto &ActPair : G.allocActions()) {
+      if (ActPair.Finalize.FnAddr)
+        if (auto Err = runAllocAction(ActPair.Finalize)) {
+          OnFinalized(std::move(Err));
+          return;
+        }
+      if (ActPair.Dealloc.FnAddr)
+        DeallocActions.push_back(ActPair.Dealloc);
     }
+    G.allocActions().clear();
 
     // Release the finalize segments slab.
     if (auto EC = sys::Memory::releaseMappedMemory(FinalizationSegments)) {
@@ -261,7 +324,7 @@ public:
 
     // Continue with finalized allocation.
     OnFinalized(MemMgr.createFinalizedAlloc(std::move(StandardSegments),
-                                            std::move(*DeallocActions)));
+                                            std::move(DeallocActions)));
   }
 
   void abandon(OnAbandonedFunction OnAbandoned) override {
@@ -370,8 +433,8 @@ void InProcessMemoryManager::allocate(const JITLinkDylib *JD, LinkGraph &G,
                        static_cast<size_t>(SegsSizes->FinalizeSegs)};
   }
 
-  auto NextStandardSegAddr = orc::ExecutorAddr::fromPtr(StandardSegsMem.base());
-  auto NextFinalizeSegAddr = orc::ExecutorAddr::fromPtr(FinalizeSegsMem.base());
+  auto NextStandardSegAddr = pointerToJITTargetAddress(StandardSegsMem.base());
+  auto NextFinalizeSegAddr = pointerToJITTargetAddress(FinalizeSegsMem.base());
 
   LLVM_DEBUG({
     dbgs() << "InProcessMemoryManager allocated:\n";
@@ -398,7 +461,7 @@ void InProcessMemoryManager::allocate(const JITLinkDylib *JD, LinkGraph &G,
                         ? NextStandardSegAddr
                         : NextFinalizeSegAddr;
 
-    Seg.WorkingMem = SegAddr.toPtr<char *>();
+    Seg.WorkingMem = jitTargetAddressToPointer<char *>(SegAddr);
     Seg.Addr = SegAddr;
 
     SegAddr += alignTo(Seg.ContentSize + Seg.ZeroFillSize, PageSize);
@@ -417,12 +480,13 @@ void InProcessMemoryManager::allocate(const JITLinkDylib *JD, LinkGraph &G,
 void InProcessMemoryManager::deallocate(std::vector<FinalizedAlloc> Allocs,
                                         OnDeallocatedFunction OnDeallocated) {
   std::vector<sys::MemoryBlock> StandardSegmentsList;
-  std::vector<std::vector<orc::shared::WrapperFunctionCall>> DeallocActionsList;
+  std::vector<std::vector<AllocActionCall>> DeallocActionsList;
 
   {
     std::lock_guard<std::mutex> Lock(FinalizedAllocsMutex);
     for (auto &Alloc : Allocs) {
-      auto *FA = Alloc.release().toPtr<FinalizedAllocInfo *>();
+      auto *FA =
+          jitTargetAddressToPointer<FinalizedAllocInfo *>(Alloc.release());
       StandardSegmentsList.push_back(std::move(FA->StandardSegments));
       if (!FA->DeallocActions.empty())
         DeallocActionsList.push_back(std::move(FA->DeallocActions));
@@ -439,7 +503,7 @@ void InProcessMemoryManager::deallocate(std::vector<FinalizedAlloc> Allocs,
 
     /// Run any deallocate calls.
     while (!DeallocActions.empty()) {
-      if (auto Err = DeallocActions.back().runWithSPSRetErrorMerged())
+      if (auto Err = runAllocAction(DeallocActions.back()))
         DeallocErr = joinErrors(std::move(DeallocErr), std::move(Err));
       DeallocActions.pop_back();
     }
@@ -458,12 +522,12 @@ void InProcessMemoryManager::deallocate(std::vector<FinalizedAlloc> Allocs,
 JITLinkMemoryManager::FinalizedAlloc
 InProcessMemoryManager::createFinalizedAlloc(
     sys::MemoryBlock StandardSegments,
-    std::vector<orc::shared::WrapperFunctionCall> DeallocActions) {
+    std::vector<AllocActionCall> DeallocActions) {
   std::lock_guard<std::mutex> Lock(FinalizedAllocsMutex);
   auto *FA = FinalizedAllocInfos.Allocate<FinalizedAllocInfo>();
   new (FA) FinalizedAllocInfo(
       {std::move(StandardSegments), std::move(DeallocActions)});
-  return FinalizedAlloc(orc::ExecutorAddr::fromPtr(FA));
+  return FinalizedAlloc(pointerToJITTargetAddress(FA));
 }
 
 } // end namespace jitlink

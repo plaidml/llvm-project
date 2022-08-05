@@ -136,7 +136,6 @@ static void EmitDeclDestroy(CodeGenFunction &CGF, const VarDecl &D,
     }
   // Otherwise, the standard logic requires a helper function.
   } else {
-    Addr = Addr.getElementBitCast(CGF.ConvertTypeForMem(Type));
     Func = CodeGenFunction(CGM)
            .generateDestroyHelper(Addr, Type, CGF.getDestroyer(DtorKind),
                                   CGF.needsEHCleanup(DtorKind), &D);
@@ -173,7 +172,7 @@ void CodeGenFunction::EmitInvariantStart(llvm::Constant *Addr, CharUnits Size) {
 }
 
 void CodeGenFunction::EmitCXXGlobalVarDeclInit(const VarDecl &D,
-                                               llvm::GlobalVariable *GV,
+                                               llvm::Constant *DeclPtr,
                                                bool PerformInit) {
 
   const Expr *Init = D.getInit();
@@ -195,16 +194,14 @@ void CodeGenFunction::EmitCXXGlobalVarDeclInit(const VarDecl &D,
   // "shared" address space qualifier, but the constructor of StructWithCtor
   // expects "this" in the "generic" address space.
   unsigned ExpectedAddrSpace = getContext().getTargetAddressSpace(T);
-  unsigned ActualAddrSpace = GV->getAddressSpace();
-  llvm::Constant *DeclPtr = GV;
+  unsigned ActualAddrSpace = DeclPtr->getType()->getPointerAddressSpace();
   if (ActualAddrSpace != ExpectedAddrSpace) {
-    llvm::PointerType *PTy = llvm::PointerType::getWithSamePointeeType(
-        GV->getType(), ExpectedAddrSpace);
+    llvm::Type *LTy = CGM.getTypes().ConvertTypeForMem(T);
+    llvm::PointerType *PTy = llvm::PointerType::get(LTy, ExpectedAddrSpace);
     DeclPtr = llvm::ConstantExpr::getAddrSpaceCast(DeclPtr, PTy);
   }
 
-  ConstantAddress DeclAddr(
-      DeclPtr, GV->getValueType(), getContext().getDeclAlign(&D));
+  ConstantAddress DeclAddr(DeclPtr, getContext().getDeclAlign(&D));
 
   if (!T->isReferenceType()) {
     if (getLangOpts().OpenMP && !getLangOpts().OpenMPSimd &&

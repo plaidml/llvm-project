@@ -49,18 +49,18 @@ static constexpr int64_t kDefaultDevice = -1;
 /// Create a constant string location from the MLIR Location information.
 static llvm::Constant *createSourceLocStrFromLocation(Location loc,
                                                       OpenACCIRBuilder &builder,
-                                                      StringRef name,
-                                                      uint32_t &strLen) {
+                                                      StringRef name) {
   if (auto fileLoc = loc.dyn_cast<FileLineColLoc>()) {
     StringRef fileName = fileLoc.getFilename();
     unsigned lineNo = fileLoc.getLine();
     unsigned colNo = fileLoc.getColumn();
-    return builder.getOrCreateSrcLocStr(name, fileName, lineNo, colNo, strLen);
+    return builder.getOrCreateSrcLocStr(name, fileName, lineNo, colNo);
+  } else {
+    std::string locStr;
+    llvm::raw_string_ostream locOS(locStr);
+    locOS << loc;
+    return builder.getOrCreateSrcLocStr(locOS.str());
   }
-  std::string locStr;
-  llvm::raw_string_ostream locOS(locStr);
-  locOS << loc;
-  return builder.getOrCreateSrcLocStr(locOS.str(), strLen);
 }
 
 /// Create the location struct from the operation location information.
@@ -69,23 +69,21 @@ static llvm::Value *createSourceLocationInfo(OpenACCIRBuilder &builder,
   auto loc = op->getLoc();
   auto funcOp = op->getParentOfType<LLVM::LLVMFuncOp>();
   StringRef funcName = funcOp ? funcOp.getName() : "unknown";
-  uint32_t strLen;
   llvm::Constant *locStr =
-      createSourceLocStrFromLocation(loc, builder, funcName, strLen);
-  return builder.getOrCreateIdent(locStr, strLen);
+      createSourceLocStrFromLocation(loc, builder, funcName);
+  return builder.getOrCreateIdent(locStr);
 }
 
 /// Create a constant string representing the mapping information extracted from
 /// the MLIR location information.
 static llvm::Constant *createMappingInformation(Location loc,
                                                 OpenACCIRBuilder &builder) {
-  uint32_t strLen;
   if (auto nameLoc = loc.dyn_cast<NameLoc>()) {
     StringRef name = nameLoc.getName();
-    return createSourceLocStrFromLocation(nameLoc.getChildLoc(), builder, name,
-                                          strLen);
+    return createSourceLocStrFromLocation(nameLoc.getChildLoc(), builder, name);
+  } else {
+    return createSourceLocStrFromLocation(loc, builder, "unknown");
   }
-  return createSourceLocStrFromLocation(loc, builder, "unknown", strLen);
 }
 
 /// Return the runtime function used to lower the given operation.
@@ -494,7 +492,7 @@ public:
                    LLVM::ModuleTranslation &moduleTranslation) const final;
 };
 
-} // namespace
+} // end namespace
 
 /// Given an OpenACC MLIR operation, create the corresponding LLVM IR
 /// (including OpenACC runtime calls).

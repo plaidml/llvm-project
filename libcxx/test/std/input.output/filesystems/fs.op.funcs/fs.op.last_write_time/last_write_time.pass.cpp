@@ -8,11 +8,12 @@
 
 // UNSUPPORTED: c++03
 
-// XFAIL: LIBCXX-AIX-FIXME
-
 // The string reported on errors changed, which makes those tests fail when run
 // against already-released libc++'s.
 // XFAIL: use_system_cxx_lib && target={{.+}}-apple-macosx10.15
+
+// TODO(ldionne): This test fails on Ubuntu Focal on our CI nodes (and only there), in 32 bit mode.
+// UNSUPPORTED: linux && 32bits-on-64bits
 
 // <filesystem>
 
@@ -27,7 +28,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
-#include <ratio>
 #include <type_traits>
 
 #include "test_macros.h"

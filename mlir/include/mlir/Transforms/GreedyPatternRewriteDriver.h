@@ -94,6 +94,6 @@ bool applyOpPatternsAndFold(ArrayRef<Operation *> ops,
                             const FrozenRewritePatternSet &patterns,
                             bool strict);
 
-} // namespace mlir
+} // end namespace mlir
 
 #endif // MLIR_TRANSFORMS_GREEDYPATTERNREWRITEDRIVER_H_

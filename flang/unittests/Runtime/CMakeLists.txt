@@ -11,11 +11,9 @@ add_flang_unittest(FlangRuntimeTests
   Namelist.cpp
   Numeric.cpp
   NumericalFormatTest.cpp
-  Ragged.cpp
   Random.cpp
   Reduction.cpp
   RuntimeCrashTest.cpp
-  Stop.cpp
   Time.cpp
   Transformational.cpp
 )

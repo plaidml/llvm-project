@@ -16,7 +16,6 @@
 #define MLIR_DIALECT_SPIRV_IR_STRUCTURE_OPS
 
 include "mlir/Dialect/SPIRV/IR/SPIRVBase.td"
-include "mlir/IR/FunctionInterfaces.td"
 include "mlir/IR/OpAsmInterface.td"
 include "mlir/IR/SymbolInterfaces.td"
 include "mlir/Interfaces/CallInterfaces.td"
@@ -254,7 +253,7 @@ def SPV_ExecutionModeOp : SPV_Op<"ExecutionMode", [InModuleScope]> {
 
 def SPV_FuncOp : SPV_Op<"func", [
     AutomaticAllocationScope, DeclareOpInterfaceMethods<CallableOpInterface>,
-    FunctionOpInterface, InModuleScope, IsolatedFromAbove, Symbol
+    FunctionLike, InModuleScope, IsolatedFromAbove, Symbol
   ]> {
   let summary = "Declare or define a function";
 
@@ -308,24 +307,22 @@ def SPV_FuncOp : SPV_Op<"func", [
   let autogenSerialization = 0;
 
   let extraClassDeclaration = [{
-    /// Returns the type of this function.
-    /// FIXME: We should drive this via the ODS `type` param.
-    FunctionType getType() { 
-      return getTypeAttr().getValue().cast<FunctionType>();
-    }
+  private:
+    // This trait needs access to the hooks defined below.
+    friend class OpTrait::FunctionLike<FuncOp>;
 
-    /// Returns the argument types of this function.
-    ArrayRef<Type> getArgumentTypes() { return getType().getInputs(); }
+    /// Returns the number of arguments. Hook for OpTrait::FunctionLike.
+    unsigned getNumFuncArguments() { return getType().getNumInputs(); }
 
-    /// Returns the result types of this function.
-    ArrayRef<Type> getResultTypes() { return getType().getResults(); }
+    /// Returns the number of results. Hook for OpTrait::FunctionLike.
+    unsigned getNumFuncResults() { return getType().getNumResults(); }
 
-    /// Hook for FunctionOpInterface, called after verifying that the 'type'
+    /// Hook for OpTrait::FunctionLike, called after verifying that the 'type'
     /// attribute is present and checks if it holds a function type. Ensures
-    /// getType, getNumArguments, and getNumResults can be called safely
+    /// getType, getNumFuncArguments, and getNumFuncResults can be called safely
     LogicalResult verifyType();
 
-    /// Hook for FunctionOpInterface, called after verifying the function
+    /// Hook for OpTrait::FunctionLike, called after verifying the function
     /// type and the presence of the (potentially empty) function body.
     /// Ensures SPIR-V specific semantics.
     LogicalResult verifyBody();

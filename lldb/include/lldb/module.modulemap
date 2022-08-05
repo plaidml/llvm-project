@@ -2,7 +2,7 @@
 module lldb_API {
   requires cplusplus
 
-  textual header "Utility/Instrumentation.h"
+  textual header "Utility/ReproducerInstrumentation.h"
 
   umbrella "API"
   module * { export * }

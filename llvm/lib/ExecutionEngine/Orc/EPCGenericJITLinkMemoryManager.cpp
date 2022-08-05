@@ -56,7 +56,17 @@ public:
     }
 
     // Transfer allocation actions.
-    std::swap(FR.Actions, G.allocActions());
+    // FIXME: Merge JITLink and ORC SupportFunctionCall and Action list types,
+    //        turn this into a std::swap.
+    FR.Actions.reserve(G.allocActions().size());
+    for (auto &ActPair : G.allocActions())
+      FR.Actions.push_back({{ExecutorAddr(ActPair.Finalize.FnAddr),
+                             {ExecutorAddr(ActPair.Finalize.CtxAddr),
+                              ExecutorAddrDiff(ActPair.Finalize.CtxSize)}},
+                            {ExecutorAddr(ActPair.Dealloc.FnAddr),
+                             {ExecutorAddr(ActPair.Dealloc.CtxAddr),
+                              ExecutorAddrDiff(ActPair.Dealloc.CtxSize)}}});
+    G.allocActions().clear();
 
     Parent.EPC.callSPSWrapperAsync<
         rt::SPSSimpleExecutorMemoryManagerFinalizeSignature>(
@@ -70,7 +80,7 @@ public:
           } else if (FinalizeErr)
             OnFinalize(std::move(FinalizeErr));
           else
-            OnFinalize(FinalizedAlloc(AllocAddr));
+            OnFinalize(FinalizedAlloc(AllocAddr.getValue()));
         },
         Parent.SAs.Allocator, std::move(FR));
   }
@@ -151,7 +161,7 @@ void EPCGenericJITLinkMemoryManager::completeAllocation(
     const auto &AG = KV.first;
     auto &Seg = KV.second;
 
-    Seg.Addr = NextSegAddr;
+    Seg.Addr = NextSegAddr.getValue();
     KV.second.WorkingMem = BL.getGraph().allocateBuffer(Seg.ContentSize).data();
     NextSegAddr += ExecutorAddrDiff(
         alignTo(Seg.ContentSize + Seg.ZeroFillSize, EPC.getPageSize()));

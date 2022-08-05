@@ -417,7 +417,7 @@ bool MigrationContext::rewritePropertyAttribute(StringRef fromAttr,
   if (tok.is(tok::r_paren))
     return false;
 
-  while (true) {
+  while (1) {
     if (tok.isNot(tok::raw_identifier)) return false;
     if (tok.getRawIdentifier() == fromAttr) {
       if (!toAttr.empty()) {

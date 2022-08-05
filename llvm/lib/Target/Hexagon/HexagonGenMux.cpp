@@ -183,11 +183,12 @@ void HexagonGenMux::buildMaps(MachineBasicBlock &B, InstrIndexMap &I2X,
   unsigned NR = HRI->getNumRegs();
   BitVector Defs(NR), Uses(NR);
 
-  for (MachineInstr &MI : B) {
-    I2X.insert(std::make_pair(&MI, Index));
+  for (MachineBasicBlock::iterator I = B.begin(), E = B.end(); I != E; ++I) {
+    MachineInstr *MI = &*I;
+    I2X.insert(std::make_pair(MI, Index));
     Defs.reset();
     Uses.reset();
-    getDefsUses(&MI, Defs, Uses);
+    getDefsUses(MI, Defs, Uses);
     DUM.insert(std::make_pair(Index, DefUseInfo(Defs, Uses)));
     Index++;
   }
@@ -328,7 +329,7 @@ bool HexagonGenMux::genMuxInBlock(MachineBasicBlock &B) {
     unsigned MxOpc = getMuxOpcode(*MX.SrcT, *MX.SrcF);
     if (!MxOpc)
       continue;
-    // Basic correctness check: since we are deleting instructions, validate the
+    // Basic sanity check: since we are deleting instructions, validate the
     // iterators. There is a possibility that one of Def1 or Def2 is translated
     // to "mux" and being considered for other "mux" instructions.
     if (!MX.At->getParent() || !MX.Def1->getParent() || !MX.Def2->getParent())

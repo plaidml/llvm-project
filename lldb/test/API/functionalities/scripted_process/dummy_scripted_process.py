@@ -43,8 +43,8 @@ class DummyScriptedProcess(ScriptedProcess):
 
 
 class DummyScriptedThread(ScriptedThread):
-    def __init__(self, process, args):
-        super().__init__(process, args)
+    def __init__(self, target):
+        super().__init__(target)
 
     def get_thread_id(self) -> int:
         return 0x19

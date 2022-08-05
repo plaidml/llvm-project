@@ -38,10 +38,9 @@ extern cl::opt<int> SampleColdCallSiteThreshold;
 extern cl::opt<int> ProfileInlineGrowthLimit;
 extern cl::opt<int> ProfileInlineLimitMin;
 extern cl::opt<int> ProfileInlineLimitMax;
-extern cl::opt<bool> SortProfiledSCC;
 
 cl::opt<bool> EnableCSPreInliner(
-    "csspgo-preinliner", cl::Hidden, cl::init(true),
+    "csspgo-preinliner", cl::Hidden, cl::init(false),
     cl::desc("Run a global pre-inliner to merge context profile based on "
              "estimated global top-down inline decisions"));
 
@@ -61,14 +60,7 @@ CSPreInliner::CSPreInliner(SampleProfileMap &Profiles, ProfiledBinary &Binary,
       // ContextTracker.getFuncNameFor to work, if `Profiles` can have md5 codes
       // as their profile context.
       ContextTracker(Profiles, nullptr), ProfileMap(Profiles), Binary(Binary),
-      HotCountThreshold(HotThreshold), ColdCountThreshold(ColdThreshold) {
-  // Set default preinliner hot/cold call site threshold tuned with CSSPGO.
-  // for good performance with reasonable profile size.
-  if (!SampleHotCallSiteThreshold.getNumOccurrences())
-    SampleHotCallSiteThreshold = 1500;
-  if (!SampleColdCallSiteThreshold.getNumOccurrences())
-    SampleColdCallSiteThreshold = 0;
-}
+      HotCountThreshold(HotThreshold), ColdCountThreshold(ColdThreshold) {}
 
 std::vector<StringRef> CSPreInliner::buildTopDownOrder() {
   std::vector<StringRef> Order;
@@ -78,13 +70,7 @@ std::vector<StringRef> CSPreInliner::buildTopDownOrder() {
   // by building up SCC and reversing SCC order.
   scc_iterator<ProfiledCallGraph *> I = scc_begin(&ProfiledCG);
   while (!I.isAtEnd()) {
-    auto Range = *I;
-    if (SortProfiledSCC) {
-      // Sort nodes in one SCC based on callsite hotness.
-      scc_member_iterator<ProfiledCallGraph *> SI(*I);
-      Range = *SI;
-    }
-    for (auto *Node : Range) {
+    for (ProfiledCallGraphNode *Node : *I) {
       if (Node != ProfiledCG.getEntryNode())
         Order.push_back(Node->Name);
     }

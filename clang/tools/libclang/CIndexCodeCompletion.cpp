@@ -656,15 +656,14 @@ namespace {
     void ProcessOverloadCandidates(Sema &S, unsigned CurrentArg,
                                    OverloadCandidate *Candidates,
                                    unsigned NumCandidates,
-                                   SourceLocation OpenParLoc,
-                                   bool Braced) override {
+                                   SourceLocation OpenParLoc) override {
       StoredResults.reserve(StoredResults.size() + NumCandidates);
       for (unsigned I = 0; I != NumCandidates; ++I) {
-        CodeCompletionString *StoredCompletion =
-            Candidates[I].CreateSignatureString(CurrentArg, S, getAllocator(),
+        CodeCompletionString *StoredCompletion
+          = Candidates[I].CreateSignatureString(CurrentArg, S, getAllocator(),
                                                 getCodeCompletionTUInfo(),
-                                                includeBriefComments(), Braced);
-
+                                                includeBriefComments());
+        
         CXCompletionResult R;
         R.CursorKind = CXCursor_OverloadCandidate;
         R.CompletionString = StoredCompletion;

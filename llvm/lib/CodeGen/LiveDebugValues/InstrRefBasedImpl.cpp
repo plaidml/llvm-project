@@ -251,10 +251,9 @@ public:
   /// creates DBG_VALUEs and puts them in #Transfers, then prepares the other
   /// object fields to track variable locations as we step through the block.
   /// FIXME: could just examine mloctracker instead of passing in \p mlocs?
-  void
-  loadInlocs(MachineBasicBlock &MBB, ValueIDNum *MLocs,
-             const SmallVectorImpl<std::pair<DebugVariable, DbgValue>> &VLocs,
-             unsigned NumLocs) {
+  void loadInlocs(MachineBasicBlock &MBB, ValueIDNum *MLocs,
+                  SmallVectorImpl<std::pair<DebugVariable, DbgValue>> &VLocs,
+                  unsigned NumLocs) {
     ActiveMLocs.clear();
     ActiveVLocs.clear();
     VarLocs.clear();
@@ -273,7 +272,7 @@ public:
     };
 
     // Map of the preferred location for each value.
-    DenseMap<ValueIDNum, LocIdx> ValueToLoc;
+    std::map<ValueIDNum, LocIdx> ValueToLoc;
     ActiveMLocs.reserve(VLocs.size());
     ActiveVLocs.reserve(VLocs.size());
 
@@ -284,11 +283,6 @@ public:
       LocIdx Idx = Location.Idx;
       ValueIDNum &VNum = MLocs[Idx.asU64()];
       VarLocs.push_back(VNum);
-
-      // Short-circuit unnecessary preferred location update.
-      if (VLocs.empty())
-        continue;
-
       auto it = ValueToLoc.find(VNum);
       // In order of preference, pick:
       //  * Callee saved registers,
@@ -304,7 +298,7 @@ public:
     }
 
     // Now map variables to their picked LocIdxes.
-    for (const auto &Var : VLocs) {
+    for (auto Var : VLocs) {
       if (Var.second.Kind == DbgValue::Const) {
         PendingDbgValues.push_back(
             emitMOLoc(*Var.second.MO, Var.first, Var.second.Properties));
@@ -419,8 +413,7 @@ public:
     return Reg != SP && Reg != FP;
   }
 
-  bool recoverAsEntryValue(const DebugVariable &Var,
-                           const DbgValueProperties &Prop,
+  bool recoverAsEntryValue(const DebugVariable &Var, DbgValueProperties &Prop,
                            const ValueIDNum &Num) {
     // Is this variable location a candidate to be an entry value. First,
     // should we be trying this at all?
@@ -551,7 +544,8 @@ public:
       // Re-state the variable location: if there's no replacement then NewLoc
       // is None and a $noreg DBG_VALUE will be created. Otherwise, a DBG_VALUE
       // identifying the alternative location will be emitted.
-      const DbgValueProperties &Properties = ActiveVLocIt->second.Properties;
+      const DIExpression *Expr = ActiveVLocIt->second.Properties.DIExpr;
+      DbgValueProperties Properties(Expr, false);
       PendingDbgValues.push_back(MTracker->emitLoc(NewLoc, Var, Properties));
 
       // Update machine locations <=> variable locations maps. Defer updating
@@ -842,15 +836,6 @@ MachineInstrBuilder MLocTracker::emitLoc(Optional<LocIdx> MLoc,
       unsigned Base = Spill.SpillBase;
       MIB.addReg(Base);
       MIB.addImm(0);
-
-      // Being on the stack makes this location indirect; if it was _already_
-      // indirect though, we need to add extra indirection. See this test for
-      // a scenario where this happens:
-      //     llvm/test/DebugInfo/X86/spill-nontrivial-param.ll
-      if (Properties.Indirect) {
-        std::vector<uint64_t> Elts = {dwarf::DW_OP_deref};
-        Expr = DIExpression::append(Expr, Elts);
-      }
     } else {
       // This is a stack location with a weird subregister offset: emit an undef
       // DBG_VALUE instead.
@@ -1256,8 +1241,8 @@ bool InstrRefBasedLDV::transferDebugPHI(MachineInstr &MI) {
     std::array<unsigned, 4> CandidateSizes = {64, 32, 16, 8};
     Optional<ValueIDNum> Result = None;
     Optional<LocIdx> SpillLoc = None;
-    for (unsigned CS : CandidateSizes) {
-      unsigned SpillID = MTracker->getLocID(SpillNo, {CS, 0});
+    for (unsigned int I = 0; I < CandidateSizes.size(); ++I) {
+      unsigned SpillID = MTracker->getLocID(SpillNo, {CandidateSizes[I], 0});
       SpillLoc = MTracker->getSpillMLoc(SpillID);
       ValueIDNum Val = MTracker->readMLoc(*SpillLoc);
       // If this value was defined in it's own position, then it was probably
@@ -1303,24 +1288,6 @@ void InstrRefBasedLDV::transferRegisterDef(MachineInstr &MI) {
   } else if (MI.isMetaInstruction())
     return;
 
-  // We always ignore SP defines on call instructions, they don't actually
-  // change the value of the stack pointer... except for win32's _chkstk. This
-  // is rare: filter quickly for the common case (no stack adjustments, not a
-  // call, etc). If it is a call that modifies SP, recognise the SP register
-  // defs.
-  bool CallChangesSP = false;
-  if (AdjustsStackInCalls && MI.isCall() && MI.getOperand(0).isSymbol() &&
-      !strcmp(MI.getOperand(0).getSymbolName(), StackProbeSymbolName.data()))
-    CallChangesSP = true;
-
-  // Test whether we should ignore a def of this register due to it being part
-  // of the stack pointer.
-  auto IgnoreSPAlias = [this, &MI, CallChangesSP](Register R) -> bool {
-    if (CallChangesSP)
-      return false;
-    return MI.isCall() && MTracker->SPAliases.count(R);
-  };
-
   // Find the regs killed by MI, and find regmasks of preserved regs.
   // Max out the number of statically allocated elements in `DeadRegs`, as this
   // prevents fallback to std::set::count() operations.
@@ -1331,7 +1298,7 @@ void InstrRefBasedLDV::transferRegisterDef(MachineInstr &MI) {
     // Determine whether the operand is a register def.
     if (MO.isReg() && MO.isDef() && MO.getReg() &&
         Register::isPhysicalRegister(MO.getReg()) &&
-        !IgnoreSPAlias(MO.getReg())) {
+        !(MI.isCall() && MTracker->SPAliases.count(MO.getReg()))) {
       // Remove ranges of all aliased registers.
       for (MCRegAliasIterator RAI(MO.getReg(), TRI, true); RAI.isValid(); ++RAI)
         // FIXME: Can we break out of this loop early if no insertion occurs?
@@ -1380,9 +1347,6 @@ void InstrRefBasedLDV::transferRegisterDef(MachineInstr &MI) {
       continue;
 
     Register Reg = MTracker->LocIdxToLocID[L.Idx];
-    if (IgnoreSPAlias(Reg))
-      continue;
-
     for (auto *MO : RegMaskPtrs)
       if (MO->clobbersPhysReg(Reg))
         TTracker->clobberMloc(L.Idx, MI.getIterator(), false);
@@ -1664,10 +1628,9 @@ bool InstrRefBasedLDV::transferRegisterCopy(MachineInstr &MI) {
 /// fragments of that DILocalVariable which overlap. This reduces work during
 /// the data-flow stage from "Find any overlapping fragments" to "Check if the
 /// known-to-overlap fragments are present".
-/// \param MI A previously unprocessed debug instruction to analyze for
+/// \param MI A previously unprocessed DEBUG_VALUE instruction to analyze for
 ///           fragment usage.
 void InstrRefBasedLDV::accumulateFragmentMap(MachineInstr &MI) {
-  assert(MI.isDebugValue() || MI.isDebugRef());
   DebugVariable MIVar(MI.getDebugVariable(), MI.getDebugExpression(),
                       MI.getDebugLoc()->getInlinedAt());
   FragmentInfo ThisFragment = MIVar.getFragmentOrDefault();
@@ -1769,7 +1732,7 @@ void InstrRefBasedLDV::produceMLocTransferFunction(
     for (auto &MI : MBB) {
       process(MI);
       // Also accumulate fragment map.
-      if (MI.isDebugValue() || MI.isDebugRef())
+      if (MI.isDebugValue())
         accumulateFragmentMap(MI);
 
       // Create a map from the instruction number (if present) to the
@@ -2359,8 +2322,15 @@ Optional<ValueIDNum> InstrRefBasedLDV::pickVPHILoc(
 
 bool InstrRefBasedLDV::vlocJoin(
     MachineBasicBlock &MBB, LiveIdxT &VLOCOutLocs,
+    SmallPtrSet<const MachineBasicBlock *, 8> &InScopeBlocks,
     SmallPtrSet<const MachineBasicBlock *, 8> &BlocksToExplore,
     DbgValue &LiveIn) {
+  // To emulate VarLocBasedImpl, process this block if it's not in scope but
+  // _does_ assign a variable value. No live-ins for this scope are transferred
+  // in though, so we can return immediately.
+  if (InScopeBlocks.count(&MBB) == 0 && !ArtificialBlocks.count(&MBB))
+    return false;
+
   LLVM_DEBUG(dbgs() << "join MBB: " << MBB.getNumber() << "\n");
   bool Changed = false;
 
@@ -2496,10 +2466,11 @@ void InstrRefBasedLDV::buildVLocValueMap(const DILocation *DILoc,
   // "blocks that are potentially in scope. See comment at start of vlocJoin.
   SmallPtrSet<const MachineBasicBlock *, 8> InScopeBlocks = BlocksToExplore;
 
-  // VarLoc LiveDebugValues tracks variable locations that are defined in
-  // blocks not in scope. This is something we could legitimately ignore, but
-  // lets allow it for now for the sake of coverage.
-  BlocksToExplore.insert(AssignBlocks.begin(), AssignBlocks.end());
+  // Old LiveDebugValues tracks variable locations that come out of blocks
+  // not in scope, where DBG_VALUEs occur. This is something we could
+  // legitimately ignore, but lets allow it for now.
+  if (EmulateOldLDV)
+    BlocksToExplore.insert(AssignBlocks.begin(), AssignBlocks.end());
 
   // We also need to propagate variable values through any artificial blocks
   // that immediately follow blocks in scope.
@@ -2664,7 +2635,7 @@ void InstrRefBasedLDV::buildVLocValueMap(const DILocation *DILoc,
         // Join values from predecessors. Updates LiveInIdx, and writes output
         // into JoinedInLocs.
         bool InLocsChanged =
-            vlocJoin(*MBB, LiveOutIdx, BlocksToExplore, *LiveIn);
+            vlocJoin(*MBB, LiveOutIdx, InScopeBlocks, BlocksToExplore, *LiveIn);
 
         SmallVector<const MachineBasicBlock *, 8> Preds;
         for (const auto *Pred : MBB->predecessors())
@@ -2759,8 +2730,6 @@ void InstrRefBasedLDV::buildVLocValueMap(const DILocation *DILoc,
         continue;
       if (BlockLiveIn->Kind == DbgValue::VPHI)
         BlockLiveIn->Kind = DbgValue::Def;
-      assert(BlockLiveIn->Properties.DIExpr->getFragmentInfo() ==
-             Var.getFragment() && "Fragment info missing during value prop");
       Output[MBB->getNumber()].push_back(std::make_pair(Var, *BlockLiveIn));
     }
   } // Per-variable loop.
@@ -2806,28 +2775,31 @@ void InstrRefBasedLDV::emitLocations(
     }
   }
 
+  // We have to insert DBG_VALUEs in a consistent order, otherwise they appeaer
+  // in DWARF in different orders. Use the order that they appear when walking
+  // through each block / each instruction, stored in AllVarsNumbering.
+  auto OrderDbgValues = [&](const MachineInstr *A,
+                            const MachineInstr *B) -> bool {
+    DebugVariable VarA(A->getDebugVariable(), A->getDebugExpression(),
+                       A->getDebugLoc()->getInlinedAt());
+    DebugVariable VarB(B->getDebugVariable(), B->getDebugExpression(),
+                       B->getDebugLoc()->getInlinedAt());
+    return AllVarsNumbering.find(VarA)->second <
+           AllVarsNumbering.find(VarB)->second;
+  };
+
   // Go through all the transfers recorded in the TransferTracker -- this is
   // both the live-ins to a block, and any movements of values that happen
   // in the middle.
-  for (const auto &P : TTracker->Transfers) {
-    // We have to insert DBG_VALUEs in a consistent order, otherwise they
-    // appear in DWARF in different orders. Use the order that they appear
-    // when walking through each block / each instruction, stored in
-    // AllVarsNumbering.
-    SmallVector<std::pair<unsigned, MachineInstr *>> Insts;
-    for (MachineInstr *MI : P.Insts) {
-      DebugVariable Var(MI->getDebugVariable(), MI->getDebugExpression(),
-                        MI->getDebugLoc()->getInlinedAt());
-      Insts.emplace_back(AllVarsNumbering.find(Var)->second, MI);
-    }
-    llvm::sort(Insts,
-               [](const auto &A, const auto &B) { return A.first < B.first; });
-
+  for (auto &P : TTracker->Transfers) {
+    // Sort them according to appearance order.
+    llvm::sort(P.Insts, OrderDbgValues);
     // Insert either before or after the designated point...
     if (P.MBB) {
       MachineBasicBlock &MBB = *P.MBB;
-      for (const auto &Pair : Insts)
-        MBB.insert(P.Pos, Pair.second);
+      for (auto *MI : P.Insts) {
+        MBB.insert(P.Pos, MI);
+      }
     } else {
       // Terminators, like tail calls, can clobber things. Don't try and place
       // transfers after them.
@@ -2835,8 +2807,9 @@ void InstrRefBasedLDV::emitLocations(
         continue;
 
       MachineBasicBlock &MBB = *P.Pos->getParent();
-      for (const auto &Pair : Insts)
-        MBB.insertAfterBundle(P.Pos, Pair.second);
+      for (auto *MI : P.Insts) {
+        MBB.insertAfterBundle(P.Pos, MI);
+      }
     }
   }
 }
@@ -2906,12 +2879,6 @@ bool InstrRefBasedLDV::ExtendRanges(MachineFunction &MF,
   MFI = &MF.getFrameInfo();
   LS.initialize(MF);
 
-  const auto &STI = MF.getSubtarget();
-  AdjustsStackInCalls = MFI->adjustsStack() &&
-                        STI.getFrameLowering()->stackProbeFunctionModifiesSP();
-  if (AdjustsStackInCalls)
-    StackProbeSymbolName = STI.getTargetLowering()->getStackProbeSymbolName(MF);
-
   MTracker =
       new MLocTracker(MF, *TII, *TRI, *MF.getSubtarget().getTargetLowering());
   VTracker = nullptr;
@@ -2928,7 +2895,7 @@ bool InstrRefBasedLDV::ExtendRanges(MachineFunction &MF,
   ++MaxNumBlocks;
 
   MLocTransfer.resize(MaxNumBlocks);
-  vlocs.resize(MaxNumBlocks, VLocTracker(OverlapFragments, EmptyExpr));
+  vlocs.resize(MaxNumBlocks);
   SavedLiveIns.resize(MaxNumBlocks);
 
   initialSetup(MF);
@@ -3073,8 +3040,6 @@ bool InstrRefBasedLDV::ExtendRanges(MachineFunction &MF,
   BBNumToRPO.clear();
   DebugInstrNumToInstr.clear();
   DebugPHINumToValue.clear();
-  OverlapFragments.clear();
-  SeenFragments.clear();
 
   return Changed;
 }
@@ -3275,8 +3240,10 @@ public:
   /// vector.
   static void FindPredecessorBlocks(LDVSSABlock *BB,
                                     SmallVectorImpl<LDVSSABlock *> *Preds) {
-    for (MachineBasicBlock *Pred : BB->BB.predecessors())
-      Preds->push_back(BB->Updater.getSSALDVBlock(Pred));
+    for (MachineBasicBlock::pred_iterator PI = BB->BB.pred_begin(),
+                                          E = BB->BB.pred_end();
+         PI != E; ++PI)
+      Preds->push_back(BB->Updater.getSSALDVBlock(*PI));
   }
 
   /// GetUndefVal - Normally creates an IMPLICIT_DEF instruction with a new

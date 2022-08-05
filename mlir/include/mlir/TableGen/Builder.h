@@ -23,7 +23,7 @@ namespace llvm {
 class Init;
 class Record;
 class SMLoc;
-} // namespace llvm
+} // end namespace llvm
 
 namespace mlir {
 namespace tblgen {
@@ -79,7 +79,7 @@ private:
   SmallVector<Parameter> parameters;
 };
 
-} // namespace tblgen
-} // namespace mlir
+} // end namespace tblgen
+} // end namespace mlir
 
 #endif // MLIR_TABLEGEN_BUILDER_H_

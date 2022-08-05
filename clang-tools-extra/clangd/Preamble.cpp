@@ -23,7 +23,6 @@
 #include "clang/Basic/TokenKinds.h"
 #include "clang/Frontend/CompilerInvocation.h"
 #include "clang/Frontend/FrontendActions.h"
-#include "clang/Lex/HeaderSearch.h"
 #include "clang/Lex/Lexer.h"
 #include "clang/Lex/PPCallbacks.h"
 #include "clang/Lex/Preprocessor.h"
@@ -84,7 +83,8 @@ public:
   void AfterExecute(CompilerInstance &CI) override {
     if (ParsedCallback) {
       trace::Span Tracer("Running PreambleCallback");
-      ParsedCallback(CI.getASTContext(), CI.getPreprocessor(), CanonIncludes);
+      ParsedCallback(CI.getASTContext(), CI.getPreprocessorPtr(),
+                     CanonIncludes);
     }
 
     const SourceManager &SM = CI.getSourceManager();
@@ -98,7 +98,6 @@ public:
     CanonIncludes.addSystemHeadersMapping(CI.getLangOpts());
     LangOpts = &CI.getLangOpts();
     SourceMgr = &CI.getSourceManager();
-    Includes.collect(CI);
   }
 
   std::unique_ptr<PPCallbacks> createPPCallbacks() override {
@@ -106,8 +105,10 @@ public:
            "SourceMgr and LangOpts must be set at this point");
 
     return std::make_unique<PPChainedCallbacks>(
-        std::make_unique<CollectMainFileMacros>(*SourceMgr, Macros),
-        collectPragmaMarksCallback(*SourceMgr, Marks));
+        Includes.collect(*SourceMgr),
+        std::make_unique<PPChainedCallbacks>(
+            std::make_unique<CollectMainFileMacros>(*SourceMgr, Macros),
+            collectPragmaMarksCallback(*SourceMgr, Marks)));
   }
 
   CommentHandler *getCommentHandler() override {
@@ -282,9 +283,10 @@ scanPreamble(llvm::StringRef Contents, const tooling::CompileCommand &Cmd) {
   PreprocessOnlyAction Action;
   if (!Action.BeginSourceFile(*Clang, Clang->getFrontendOpts().Inputs[0]))
     return error("failed BeginSourceFile");
+  const auto &SM = Clang->getSourceManager();
   Preprocessor &PP = Clang->getPreprocessor();
   IncludeStructure Includes;
-  Includes.collect(*Clang);
+  PP.addPPCallbacks(Includes.collect(SM));
   ScannedPreamble SP;
   SP.Bounds = Bounds;
   PP.addPPCallbacks(
@@ -350,8 +352,7 @@ buildPreamble(PathRef FileName, CompilerInvocation CI,
   PreambleDiagnostics.setLevelAdjuster([&](DiagnosticsEngine::Level DiagLevel,
                                            const clang::Diagnostic &Info) {
     if (Cfg.Diagnostics.SuppressAll ||
-        isBuiltinDiagnosticSuppressed(Info.getID(), Cfg.Diagnostics.Suppress,
-                                      *CI.getLangOpts()))
+        isBuiltinDiagnosticSuppressed(Info.getID(), Cfg.Diagnostics.Suppress))
       return DiagnosticsEngine::Ignored;
     switch (Info.getID()) {
     case diag::warn_no_newline_eof:

@@ -260,13 +260,13 @@ private:
       while (Start != References.end() && Start->FormattingOff) {
         // Skip over all imports w/ disabled formatting.
         ReferencesSorted.push_back(*Start);
-        ++Start;
+        Start++;
       }
       SmallVector<JsModuleReference, 16> SortChunk;
       while (Start != References.end() && !Start->FormattingOff) {
         // Skip over all imports w/ disabled formatting.
         SortChunk.push_back(*Start);
-        ++Start;
+        Start++;
       }
       llvm::stable_sort(SortChunk);
       mergeModuleReferences(SortChunk);
@@ -338,12 +338,10 @@ private:
     // Stitch together the module reference start...
     Buffer += getSourceText(Reference.Range.getBegin(), Reference.SymbolsStart);
     // ... then the references in order ...
-    if (!Symbols.empty()) {
-      Buffer += getSourceText(Symbols.front().Range);
-      for (const JsImportedSymbol &Symbol : llvm::drop_begin(Symbols)) {
+    for (auto I = Symbols.begin(), E = Symbols.end(); I != E; ++I) {
+      if (I != Symbols.begin())
         Buffer += ",";
-        Buffer += getSourceText(Symbol.Range);
-      }
+      Buffer += getSourceText(I->Range);
     }
     // ... followed by the module reference end.
     Buffer += getSourceText(Reference.SymbolsEnd, Reference.Range.getEnd());
@@ -412,8 +410,9 @@ private:
                      << ", cat: " << Reference.Category
                      << ", url: " << Reference.URL
                      << ", prefix: " << Reference.Prefix;
-        for (const JsImportedSymbol &Symbol : Reference.Symbols)
-          llvm::dbgs() << ", " << Symbol.Symbol << " as " << Symbol.Alias;
+        for (size_t I = 0; I < Reference.Symbols.size(); ++I)
+          llvm::dbgs() << ", " << Reference.Symbols[I].Symbol << " as "
+                       << Reference.Symbols[I].Alias;
         llvm::dbgs() << ", text: " << getSourceText(Reference.Range);
         llvm::dbgs() << "}\n";
       });
@@ -551,10 +550,9 @@ tooling::Replacements sortJavaScriptImports(const FormatStyle &Style,
                                             ArrayRef<tooling::Range> Ranges,
                                             StringRef FileName) {
   // FIXME: Cursor support.
-  auto Env = Environment::make(Code, FileName, Ranges);
-  if (!Env)
-    return {};
-  return JavaScriptImportSorter(*Env, Style).process().first;
+  return JavaScriptImportSorter(Environment(Code, FileName, Ranges), Style)
+      .process()
+      .first;
 }
 
 } // end namespace format

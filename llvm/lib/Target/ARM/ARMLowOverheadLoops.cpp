@@ -251,7 +251,10 @@ namespace {
       SetVector<MachineInstr *> &Predicates = PredicatedInsts[MI]->Predicates;
       if (Exclusive && Predicates.size() != 1)
         return false;
-      return llvm::any_of(Predicates, isVCTP);
+      for (auto *PredMI : Predicates)
+        if (isVCTP(PredMI))
+          return true;
+      return false;
     }
 
     // Is the VPST, controlling the block entry, predicated upon a VCTP.
@@ -348,7 +351,10 @@ namespace {
     }
 
     bool containsVCTP() const {
-      return llvm::any_of(Insts, isVCTP);
+      for (auto *MI : Insts)
+        if (isVCTP(MI))
+          return true;
+      return false;
     }
 
     unsigned size() const { return Insts.size(); }
@@ -1328,8 +1334,8 @@ bool ARMLowOverheadLoops::ProcessLoop(MachineLoop *ML) {
   bool Changed = false;
 
   // Process inner loops first.
-  for (MachineLoop *L : *ML)
-    Changed |= ProcessLoop(L);
+  for (auto I = ML->begin(), E = ML->end(); I != E; ++I)
+    Changed |= ProcessLoop(*I);
 
   LLVM_DEBUG({
     dbgs() << "ARM Loops: Processing loop containing:\n";
@@ -1693,7 +1699,7 @@ void ARMLowOverheadLoops::ConvertVPTBlocks(LowOverheadLoop &LoLoop) {
         // If any of the instructions between the VCMP and VPST are predicated
         // then a different code path is expected to have merged the VCMP and
         // VPST already.
-        if (std::none_of(++MachineBasicBlock::iterator(VCMP),
+        if (!std::any_of(++MachineBasicBlock::iterator(VCMP),
                          MachineBasicBlock::iterator(VPST), hasVPRUse) &&
             RDA->hasSameReachingDef(VCMP, VPST, VCMP->getOperand(1).getReg()) &&
             RDA->hasSameReachingDef(VCMP, VPST, VCMP->getOperand(2).getReg())) {

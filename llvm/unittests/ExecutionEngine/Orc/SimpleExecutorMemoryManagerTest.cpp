@@ -22,12 +22,8 @@ namespace {
 
 orc::shared::CWrapperFunctionResult incrementWrapper(const char *ArgData,
                                                      size_t ArgSize) {
-  return WrapperFunction<SPSError(SPSExecutorAddr)>::handle(
-             ArgData, ArgSize,
-             [](ExecutorAddr A) -> Error {
-               *A.toPtr<int *>() += 1;
-               return Error::success();
-             })
+  return WrapperFunction<void(SPSExecutorAddr)>::handle(
+             ArgData, ArgSize, [](ExecutorAddr A) { *A.toPtr<int *>() += 1; })
       .release();
 }
 
@@ -41,7 +37,15 @@ TEST(SimpleExecutorMemoryManagerTest, AllocFinalizeFree) {
   std::string HW = "Hello, world!";
 
   int FinalizeCounter = 0;
+  auto FinalizeCounterAddrArgBuffer =
+      orc::shared::detail::serializeViaSPSToWrapperFunctionResult<
+          SPSArgList<SPSExecutorAddr>>(ExecutorAddr::fromPtr(&FinalizeCounter));
+
   int DeallocateCounter = 0;
+  auto DeallocateCounterAddrArgBuffer =
+      orc::shared::detail::serializeViaSPSToWrapperFunctionResult<
+          SPSArgList<SPSExecutorAddr>>(
+          ExecutorAddr::fromPtr(&DeallocateCounter));
 
   tpctypes::FinalizeRequest FR;
   FR.Segments.push_back(
@@ -51,13 +55,13 @@ TEST(SimpleExecutorMemoryManagerTest, AllocFinalizeFree) {
                                    {HW.data(), HW.size() + 1}});
   FR.Actions.push_back(
       {/* Finalize: */
-       cantFail(WrapperFunctionCall::Create<SPSArgList<SPSExecutorAddr>>(
-           ExecutorAddr::fromPtr(incrementWrapper),
-           ExecutorAddr::fromPtr(&FinalizeCounter))),
+       {ExecutorAddr::fromPtr(incrementWrapper),
+        {ExecutorAddr::fromPtr(FinalizeCounterAddrArgBuffer.data()),
+         ExecutorAddrDiff(FinalizeCounterAddrArgBuffer.size())}},
        /*  Deallocate: */
-       cantFail(WrapperFunctionCall::Create<SPSArgList<SPSExecutorAddr>>(
-           ExecutorAddr::fromPtr(incrementWrapper),
-           ExecutorAddr::fromPtr(&DeallocateCounter)))});
+       {ExecutorAddr::fromPtr(incrementWrapper),
+        {ExecutorAddr::fromPtr(DeallocateCounterAddrArgBuffer.data()),
+         ExecutorAddrDiff(DeallocateCounterAddrArgBuffer.size())}}});
 
   EXPECT_EQ(FinalizeCounter, 0);
   EXPECT_EQ(DeallocateCounter, 0);

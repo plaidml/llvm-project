@@ -32,6 +32,7 @@ class Module;
 class OptPassGate;
 template <typename T> class SmallVectorImpl;
 template <typename T> class StringMapEntry;
+class SMDiagnostic;
 class StringRef;
 class Twine;
 class LLVMRemarkStreamer;

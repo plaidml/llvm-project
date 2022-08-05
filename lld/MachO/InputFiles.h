@@ -41,7 +41,6 @@ namespace macho {
 struct PlatformInfo;
 class ConcatInputSection;
 class Symbol;
-class Defined;
 struct Reloc;
 enum class RefState : uint8_t;
 
@@ -52,28 +51,11 @@ extern std::unique_ptr<llvm::TarWriter> tar;
 // If .subsections_via_symbols is set, each InputSection will be split along
 // symbol boundaries. The field offset represents the offset of the subsection
 // from the start of the original pre-split InputSection.
-struct Subsection {
-  uint64_t offset = 0;
-  InputSection *isec = nullptr;
+struct SubsectionEntry {
+  uint64_t offset;
+  InputSection *isec;
 };
-
-using Subsections = std::vector<Subsection>;
-
-struct Section {
-  uint64_t address = 0;
-  Subsections subsections;
-  Section(uint64_t addr) : address(addr){};
-};
-
-// Represents a call graph profile edge.
-struct CallGraphEntry {
-  // The index of the caller in the symbol table.
-  uint32_t fromIndex;
-  // The index of the callee in the symbol table.
-  uint32_t toIndex;
-  // Number of calls from callee to caller in the profile.
-  uint64_t count;
-};
+using SubsectionMap = std::vector<SubsectionEntry>;
 
 class InputFile {
 public:
@@ -93,22 +75,17 @@ public:
   MemoryBufferRef mb;
 
   std::vector<Symbol *> symbols;
-  std::vector<Section> sections;
+  std::vector<SubsectionMap> subsections;
+  // Provides an easy way to sort InputFiles deterministically.
+  const int id;
 
   // If not empty, this stores the name of the archive containing this file.
   // We use this string for creating error messages.
   std::string archiveName;
 
-  // Provides an easy way to sort InputFiles deterministically.
-  const int id;
-
-  // True if this is a lazy ObjFile or BitcodeFile.
-  bool lazy = false;
-
 protected:
-  InputFile(Kind kind, MemoryBufferRef mb, bool lazy = false)
-      : mb(mb), id(idCount++), lazy(lazy), fileKind(kind),
-        name(mb.getBufferIdentifier()) {}
+  InputFile(Kind kind, MemoryBufferRef mb)
+      : mb(mb), id(idCount++), fileKind(kind), name(mb.getBufferIdentifier()) {}
 
   InputFile(Kind, const llvm::MachO::InterfaceFile &);
 
@@ -122,33 +99,28 @@ private:
 // .o file
 class ObjFile final : public InputFile {
 public:
-  ObjFile(MemoryBufferRef mb, uint32_t modTime, StringRef archiveName,
-          bool lazy = false);
-  ArrayRef<llvm::MachO::data_in_code_entry> getDataInCode() const;
-  template <class LP> void parse();
-
+  ObjFile(MemoryBufferRef mb, uint32_t modTime, StringRef archiveName);
   static bool classof(const InputFile *f) { return f->kind() == ObjKind; }
 
   llvm::DWARFUnit *compileUnit = nullptr;
   const uint32_t modTime;
   std::vector<ConcatInputSection *> debugSections;
-  std::vector<CallGraphEntry> callGraph;
+  ArrayRef<llvm::MachO::data_in_code_entry> dataInCodeEntries;
 
 private:
-  Section *compactUnwindSection = nullptr;
-
-  template <class LP> void parseLazy();
-  template <class SectionHeader> void parseSections(ArrayRef<SectionHeader>);
+  template <class LP> void parse();
+  template <class Section> void parseSections(ArrayRef<Section>);
   template <class LP>
   void parseSymbols(ArrayRef<typename LP::section> sectionHeaders,
                     ArrayRef<typename LP::nlist> nList, const char *strtab,
                     bool subsectionsViaSymbols);
   template <class NList>
   Symbol *parseNonSectionSymbol(const NList &sym, StringRef name);
-  template <class SectionHeader>
-  void parseRelocations(ArrayRef<SectionHeader> sectionHeaders,
-                        const SectionHeader &, Subsections &);
+  template <class Section>
+  void parseRelocations(ArrayRef<Section> sectionHeaders, const Section &,
+                        SubsectionMap &);
   void parseDebugInfo();
+  void parseDataInCode();
   void registerCompactUnwind();
 };
 
@@ -208,10 +180,7 @@ private:
   bool handleLDSymbol(StringRef originalName);
   void handleLDPreviousSymbol(StringRef name, StringRef originalName);
   void handleLDInstallNameSymbol(StringRef name, StringRef originalName);
-  void handleLDHideSymbol(StringRef name, StringRef originalName);
   void checkAppExtensionSafety(bool dylibIsAppExtensionSafe) const;
-
-  llvm::DenseSet<llvm::CachedHashStringRef> hiddenSymbols;
 };
 
 // .a file
@@ -236,22 +205,16 @@ private:
 class BitcodeFile final : public InputFile {
 public:
   explicit BitcodeFile(MemoryBufferRef mb, StringRef archiveName,
-                       uint64_t offsetInArchive, bool lazy = false);
+                       uint64_t offsetInArchive);
   static bool classof(const InputFile *f) { return f->kind() == BitcodeKind; }
-  void parse();
 
   std::unique_ptr<llvm::lto::InputFile> obj;
-
-private:
-  void parseLazy();
 };
 
 extern llvm::SetVector<InputFile *> inputFiles;
 extern llvm::DenseMap<llvm::CachedHashStringRef, MemoryBufferRef> cachedReads;
 
 llvm::Optional<MemoryBufferRef> readFile(StringRef path);
-
-void extract(InputFile &file, StringRef reason);
 
 namespace detail {
 

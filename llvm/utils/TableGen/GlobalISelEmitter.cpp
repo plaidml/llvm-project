@@ -109,7 +109,7 @@ public:
     raw_string_ostream OS(Str);
 
     emitCxxEnumValue(OS);
-    return Str;
+    return OS.str();
   }
 
   void emitCxxEnumValue(raw_ostream &OS) const {
@@ -883,7 +883,9 @@ protected:
 
 public:
   RuleMatcher(ArrayRef<SMLoc> SrcLoc)
-      : NextInsnVarID(0), NextOutputInsnID(0), NextTempRegID(0), SrcLoc(SrcLoc),
+      : Matchers(), Actions(), InsnVariableIDs(), MutatableInsns(),
+        DefinedOperands(), NextInsnVarID(0), NextOutputInsnID(0),
+        NextTempRegID(0), SrcLoc(SrcLoc), ComplexSubOperands(),
         RuleID(NextRuleID++) {}
   RuleMatcher(RuleMatcher &&Other) = default;
   RuleMatcher &operator=(RuleMatcher &&Other) = default;
@@ -1671,7 +1673,7 @@ public:
         CommentOS << "Operand " << OpIdx;
       else
         CommentOS << SymbolicName;
-      Table << MatchTable::Comment(Comment) << MatchTable::LineBreak;
+      Table << MatchTable::Comment(CommentOS.str()) << MatchTable::LineBreak;
     }
 
     emitPredicateListOpcodes(Table, Rule);

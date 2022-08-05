@@ -30,7 +30,6 @@ unittest("CodeGenTests") {
     "MachineInstrTest.cpp",
     "MachineOperandTest.cpp",
     "PassManagerTest.cpp",
-    "RegAllocScoreTest.cpp",
     "ScalableVectorMVTsTest.cpp",
     "SelectionDAGAddressAnalysisTest.cpp",
     "TargetOptionsTest.cpp",

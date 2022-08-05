@@ -792,7 +792,7 @@ static void PrintPreprocessedTokens(Preprocessor &PP, Token &Tok,
 
   bool IsStartOfLine = false;
   char Buffer[256];
-  while (true) {
+  while (1) {
     // Two lines joined with line continuation ('\' as last character on the
     // line) must be emitted as one line even though Tok.getLine() returns two
     // different values. In this situation Tok.isAtStartOfLine() is false even

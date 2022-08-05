@@ -15,55 +15,58 @@
 
 #include <ranges>
 
-struct Child {
-  int *begin() const;
-  int *end() const;
-};
+#include "test_iterators.h"
 
+template<class T>
 struct View : std::ranges::view_base {
-  Child *begin() const;
-  Child *end() const;
+  // All friends here are defined to prevent GCC warnings.
+  friend T* begin(View&) { return nullptr; }
+  friend T* begin(View const&) { return nullptr; }
+  friend sentinel_wrapper<T*> end(View&) { return sentinel_wrapper<T*>(nullptr); }
+  friend sentinel_wrapper<T*> end(View const&) { return sentinel_wrapper<T*>(nullptr); }
 };
 
+template<class T>
 struct Range {
-  Child *begin() const;
-  Child *end() const;
+  friend T* begin(Range&) { return nullptr; }
+  friend T* begin(Range const&) { return nullptr; }
+  friend sentinel_wrapper<T*> end(Range&) { return sentinel_wrapper<T*>(nullptr); }
+  friend sentinel_wrapper<T*> end(Range const&) { return sentinel_wrapper<T*>(nullptr); }
 };
 
+template<class T>
 struct BorrowedRange {
-  Child *begin() const;
-  Child *end() const;
+  friend T* begin(BorrowedRange&) { return nullptr; }
+  friend T* begin(BorrowedRange const&) { return nullptr; }
+  friend sentinel_wrapper<T*> end(BorrowedRange&) { return sentinel_wrapper<T*>(nullptr); }
+  friend sentinel_wrapper<T*> end(BorrowedRange const&) { return sentinel_wrapper<T*>(nullptr); }
 };
+
 template<>
-inline constexpr bool std::ranges::enable_borrowed_range<BorrowedRange> = true;
+inline constexpr bool std::ranges::enable_borrowed_range<BorrowedRange<BorrowedRange<int>>> = true;
 
 void testCTAD() {
-    View v;
-    Range r;
-    BorrowedRange br;
+    View<View<int>> v;
+    Range<Range<int>> r;
+    BorrowedRange<BorrowedRange<int>> br;
 
     static_assert(std::same_as<
         decltype(std::ranges::join_view(v)),
-        std::ranges::join_view<View>
-    >);
-    static_assert(std::same_as<
-        decltype(std::ranges::join_view(std::move(v))),
-        std::ranges::join_view<View>
+        std::ranges::join_view<View<View<int>>>
     >);
     static_assert(std::same_as<
         decltype(std::ranges::join_view(r)),
-        std::ranges::join_view<std::ranges::ref_view<Range>>
+        std::ranges::join_view<std::ranges::ref_view<Range<Range<int>>>>
     >);
-    static_assert(std::same_as<
-        decltype(std::ranges::join_view(std::move(r))),
-        std::ranges::join_view<std::ranges::owning_view<Range>>
-    >);
+    // std::ranges::join_view(std::move(r)) invalid. RValue range must be borrowed.
     static_assert(std::same_as<
         decltype(std::ranges::join_view(br)),
-        std::ranges::join_view<std::ranges::ref_view<BorrowedRange>>
+        std::ranges::join_view<std::ranges::ref_view<BorrowedRange<BorrowedRange<int>>>>
     >);
     static_assert(std::same_as<
         decltype(std::ranges::join_view(std::move(br))),
-        std::ranges::join_view<std::ranges::owning_view<BorrowedRange>>
+        std::ranges::join_view<std::ranges::subrange<BorrowedRange<int> *,
+                               sentinel_wrapper<BorrowedRange<int> *>,
+                               std::ranges::subrange_kind::unsized>>
     >);
 }

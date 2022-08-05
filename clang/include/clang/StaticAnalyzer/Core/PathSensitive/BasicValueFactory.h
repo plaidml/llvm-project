@@ -34,6 +34,7 @@
 namespace clang {
 
 class CXXBaseSpecifier;
+class DeclaratorDecl;
 
 namespace ento {
 

@@ -402,19 +402,6 @@ static LLVMValueRef clone_constant_impl(LLVMValueRef Cst, LLVMModuleRef M) {
     case LLVMBitCast:
       return LLVMConstBitCast(clone_constant(LLVMGetOperand(Cst, 0), M),
                               TypeCloner(M).Clone(Cst));
-    case LLVMGetElementPtr: {
-      LLVMTypeRef ElemTy =
-          TypeCloner(M).Clone(LLVMGetGEPSourceElementType(Cst));
-      LLVMValueRef Ptr = clone_constant(LLVMGetOperand(Cst, 0), M);
-      int NumIdx = LLVMGetNumIndices(Cst);
-      SmallVector<LLVMValueRef, 8> Idx;
-      for (int i = 1; i <= NumIdx; i++)
-        Idx.push_back(clone_constant(LLVMGetOperand(Cst, i), M));
-      if (LLVMIsInBounds(Cst))
-        return LLVMConstInBoundsGEP2(ElemTy, Ptr, Idx.data(), NumIdx);
-      else
-        return LLVMConstGEP2(ElemTy, Ptr, Idx.data(), NumIdx);
-    }
     default:
       fprintf(stderr, "%d is not a supported opcode for constant expressions\n",
               Op);
@@ -537,12 +524,11 @@ struct FunCloner {
         int ArgCount = LLVMGetNumArgOperands(Src);
         for (int i = 0; i < ArgCount; i++)
           Args.push_back(CloneValue(LLVMGetOperand(Src, i)));
-        LLVMTypeRef FnTy = CloneType(LLVMGetCalledFunctionType(Src));
         LLVMValueRef Fn = CloneValue(LLVMGetCalledValue(Src));
         LLVMBasicBlockRef Then = DeclareBB(LLVMGetNormalDest(Src));
         LLVMBasicBlockRef Unwind = DeclareBB(LLVMGetUnwindDest(Src));
-        Dst = LLVMBuildInvoke2(Builder, FnTy, Fn, Args.data(), ArgCount,
-                               Then, Unwind, Name);
+        Dst = LLVMBuildInvoke(Builder, Fn, Args.data(), ArgCount,
+                              Then, Unwind, Name);
         CloneAttrs(Src, Dst);
         break;
       }
@@ -635,7 +621,7 @@ struct FunCloner {
       }
       case LLVMLoad: {
         LLVMValueRef Ptr = CloneValue(LLVMGetOperand(Src, 0));
-        Dst = LLVMBuildLoad2(Builder, CloneType(Src), Ptr, Name);
+        Dst = LLVMBuildLoad(Builder, Ptr, Name);
         LLVMSetAlignment(Dst, LLVMGetAlignment(Src));
         LLVMSetOrdering(Dst, LLVMGetOrdering(Src));
         LLVMSetVolatile(Dst, LLVMGetVolatile(Src));
@@ -651,17 +637,15 @@ struct FunCloner {
         break;
       }
       case LLVMGetElementPtr: {
-        LLVMTypeRef ElemTy = CloneType(LLVMGetGEPSourceElementType(Src));
         LLVMValueRef Ptr = CloneValue(LLVMGetOperand(Src, 0));
         SmallVector<LLVMValueRef, 8> Idx;
         int NumIdx = LLVMGetNumIndices(Src);
         for (int i = 1; i <= NumIdx; i++)
           Idx.push_back(CloneValue(LLVMGetOperand(Src, i)));
         if (LLVMIsInBounds(Src))
-          Dst = LLVMBuildInBoundsGEP2(Builder, ElemTy, Ptr, Idx.data(), NumIdx,
-                                      Name);
+          Dst = LLVMBuildInBoundsGEP(Builder, Ptr, Idx.data(), NumIdx, Name);
         else
-          Dst = LLVMBuildGEP2(Builder, ElemTy, Ptr, Idx.data(), NumIdx, Name);
+          Dst = LLVMBuildGEP(Builder, Ptr, Idx.data(), NumIdx, Name);
         break;
       }
       case LLVMAtomicRMW: {
@@ -725,9 +709,8 @@ struct FunCloner {
         int ArgCount = LLVMGetNumArgOperands(Src);
         for (int i = 0; i < ArgCount; i++)
           Args.push_back(CloneValue(LLVMGetOperand(Src, i)));
-        LLVMTypeRef FnTy = CloneType(LLVMGetCalledFunctionType(Src));
         LLVMValueRef Fn = CloneValue(LLVMGetCalledValue(Src));
-        Dst = LLVMBuildCall2(Builder, FnTy, Fn, Args.data(), ArgCount, Name);
+        Dst = LLVMBuildCall(Builder, Fn, Args.data(), ArgCount, Name);
         LLVMSetTailCall(Dst, LLVMIsTailCall(Src));
         CloneAttrs(Src, Dst);
         break;
@@ -1073,11 +1056,9 @@ AliasDecl:
     const char *Name = LLVMGetValueName2(Cur, &NameLen);
     if (LLVMGetNamedGlobalAlias(M, Name, NameLen))
       report_fatal_error("Global alias already cloned");
-    LLVMTypeRef PtrType = TypeCloner(M).Clone(Cur);
-    LLVMTypeRef ValType = TypeCloner(M).Clone(LLVMGlobalGetValueType(Cur));
-    unsigned AddrSpace = LLVMGetPointerAddressSpace(PtrType);
+    LLVMTypeRef CurType = TypeCloner(M).Clone(Cur);
     // FIXME: Allow NULL aliasee.
-    LLVMAddAlias2(M, ValType, AddrSpace, LLVMGetUndef(PtrType), Name);
+    LLVMAddAlias(M, CurType, LLVMGetUndef(CurType), Name);
 
     Next = LLVMGetNextGlobalAlias(Cur);
     if (Next == nullptr) {

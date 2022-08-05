@@ -26,19 +26,19 @@ struct TestOpaqueLoc
   /// A simple structure which is used for testing as an underlying location in
   /// OpaqueLoc.
   struct MyLocation {
-    MyLocation() = default;
+    MyLocation() : id(42) {}
     MyLocation(int id) : id(id) {}
     int getId() { return id; }
 
-    int id{42};
+    int id;
   };
 
   void runOnOperation() override {
     std::vector<std::unique_ptr<MyLocation>> myLocs;
-    int lastIt = 0;
+    int last_it = 0;
 
     getOperation().getBody()->walk([&](Operation *op) {
-      myLocs.push_back(std::make_unique<MyLocation>(lastIt++));
+      myLocs.push_back(std::make_unique<MyLocation>(last_it++));
 
       Location loc = op->getLoc();
 
@@ -54,13 +54,14 @@ struct TestOpaqueLoc
 
       /// Add the same operation but with fallback location to test the
       /// corresponding get method and serialization.
-      Operation *opCloned1 = builder.clone(*op);
-      opCloned1->setLoc(OpaqueLoc::get<MyLocation *>(myLocs.back().get(), loc));
+      Operation *op_cloned_1 = builder.clone(*op);
+      op_cloned_1->setLoc(
+          OpaqueLoc::get<MyLocation *>(myLocs.back().get(), loc));
 
       /// Add the same operation but with void* instead of MyLocation* to test
       /// getUnderlyingLocationOrNull method.
-      Operation *opCloned2 = builder.clone(*op);
-      opCloned2->setLoc(OpaqueLoc::get<void *>(nullptr, loc));
+      Operation *op_cloned_2 = builder.clone(*op);
+      op_cloned_2->setLoc(OpaqueLoc::get<void *>(nullptr, loc));
     });
 
     ScopedDiagnosticHandler diagHandler(&getContext(), [](Diagnostic &diag) {
@@ -81,7 +82,7 @@ struct TestOpaqueLoc
   }
 };
 
-} // namespace
+} // end anonymous namespace
 
 namespace mlir {
 namespace test {

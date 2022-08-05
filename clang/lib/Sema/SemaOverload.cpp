@@ -2405,8 +2405,9 @@ bool Sema::IsPointerConversion(Expr *From, QualType FromType, QualType ToType,
   if (FromType->isObjCObjectPointerType() && ToPointeeType->isVoidType() &&
       !getLangOpts().ObjCAutoRefCount) {
     ConvertedType = BuildSimilarlyQualifiedPointerType(
-        FromType->castAs<ObjCObjectPointerType>(), ToPointeeType, ToType,
-        Context);
+                                      FromType->getAs<ObjCObjectPointerType>(),
+                                                       ToPointeeType,
+                                                       ToType, Context);
     return true;
   }
   const PointerType *FromTypePtr = FromType->getAs<PointerType>();
@@ -3717,7 +3718,8 @@ compareConversionFunctions(Sema &S, FunctionDecl *Function1,
     CallingConv Conv2CC = Conv2FuncRet->getCallConv();
 
     CXXMethodDecl *CallOp = Conv2->getParent()->getLambdaCallOperator();
-    const auto *CallOpProto = CallOp->getType()->castAs<FunctionProtoType>();
+    const FunctionProtoType *CallOpProto =
+        CallOp->getType()->getAs<FunctionProtoType>();
 
     CallingConv CallOpCC =
         CallOp->getType()->castAs<FunctionType>()->getCallConv();
@@ -6454,8 +6456,7 @@ void Sema::AddOverloadCandidate(
   // parameters is viable only if it has an ellipsis in its parameter
   // list (8.3.5).
   if (TooManyArguments(NumParams, Args.size(), PartialOverloading) &&
-      !Proto->isVariadic() &&
-      shouldEnforceArgLimit(PartialOverloading, Function)) {
+      !Proto->isVariadic()) {
     Candidate.Viable = false;
     Candidate.FailureKind = ovl_fail_too_many_arguments;
     return;
@@ -6945,8 +6946,7 @@ Sema::AddMethodCandidate(CXXMethodDecl *Method, DeclAccessPair FoundDecl,
   // parameters is viable only if it has an ellipsis in its parameter
   // list (8.3.5).
   if (TooManyArguments(NumParams, Args.size(), PartialOverloading) &&
-      !Proto->isVariadic() &&
-      shouldEnforceArgLimit(PartialOverloading, Method)) {
+      !Proto->isVariadic()) {
     Candidate.Viable = false;
     Candidate.FailureKind = ovl_fail_too_many_arguments;
     return;
@@ -9414,12 +9414,12 @@ Sema::AddArgumentDependentLookupCandidates(DeclarationName Name,
       AddOverloadCandidate(
           FD, FoundDecl, Args, CandidateSet, /*SuppressUserConversions=*/false,
           PartialOverloading, /*AllowExplicit=*/true,
-          /*AllowExplicitConversion=*/false, ADLCallKind::UsesADL);
+          /*AllowExplicitConversions=*/false, ADLCallKind::UsesADL);
       if (CandidateSet.getRewriteInfo().shouldAddReversed(Context, FD)) {
         AddOverloadCandidate(
             FD, FoundDecl, {Args[1], Args[0]}, CandidateSet,
             /*SuppressUserConversions=*/false, PartialOverloading,
-            /*AllowExplicit=*/true, /*AllowExplicitConversion=*/false,
+            /*AllowExplicit=*/true, /*AllowExplicitConversions=*/false,
             ADLCallKind::UsesADL, None, OverloadCandidateParamOrder::Reversed);
       }
     } else {
@@ -9860,9 +9860,9 @@ bool clang::isBetterOverloadCandidate(
   //      F1 and F2 have the same type.
   // FIXME: Implement the "all parameters have the same type" check.
   bool Cand1IsInherited =
-      isa_and_nonnull<ConstructorUsingShadowDecl>(Cand1.FoundDecl.getDecl());
+      dyn_cast_or_null<ConstructorUsingShadowDecl>(Cand1.FoundDecl.getDecl());
   bool Cand2IsInherited =
-      isa_and_nonnull<ConstructorUsingShadowDecl>(Cand2.FoundDecl.getDecl());
+      dyn_cast_or_null<ConstructorUsingShadowDecl>(Cand2.FoundDecl.getDecl());
   if (Cand1IsInherited != Cand2IsInherited)
     return Cand2IsInherited;
   else if (Cand1IsInherited) {
@@ -12673,7 +12673,7 @@ static void AddOverloadedCallCandidate(Sema &S,
       return;
     }
     // Prevent ill-formed function decls to be added as overload candidates.
-    if (!isa<FunctionProtoType>(Func->getType()->getAs<FunctionType>()))
+    if (!dyn_cast<FunctionProtoType>(Func->getType()->getAs<FunctionType>()))
       return;
 
     S.AddOverloadCandidate(Func, FoundDecl, Args, CandidateSet,
@@ -14320,7 +14320,8 @@ ExprResult Sema::BuildCallToMemberFunction(Scope *S, Expr *MemExprE,
     FoundDecl = MemExpr->getFoundDecl();
     Qualifier = MemExpr->getQualifier();
     UnbridgedCasts.restore();
-  } else if (auto *UnresExpr = dyn_cast<UnresolvedMemberExpr>(NakedMemExpr)) {
+  } else {
+    UnresolvedMemberExpr *UnresExpr = cast<UnresolvedMemberExpr>(NakedMemExpr);
     Qualifier = UnresExpr->getQualifier();
 
     QualType ObjectType = UnresExpr->getBaseType();
@@ -14433,9 +14434,7 @@ ExprResult Sema::BuildCallToMemberFunction(Scope *S, Expr *MemExprE,
     }
 
     MemExpr = cast<MemberExpr>(MemExprE->IgnoreParens());
-  } else
-    // Unimaged NakedMemExpr type.
-    return ExprError();
+  }
 
   QualType ResultType = Method->getReturnType();
   ExprValueKind VK = Expr::getValueKindForType(ResultType);
@@ -15242,22 +15241,4 @@ ExprResult Sema::FixOverloadedFunctionReference(ExprResult E,
                                                 DeclAccessPair Found,
                                                 FunctionDecl *Fn) {
   return FixOverloadedFunctionReference(E.get(), Found, Fn);
-}
-
-bool clang::shouldEnforceArgLimit(bool PartialOverloading,
-                                  FunctionDecl *Function) {
-  if (!PartialOverloading || !Function)
-    return true;
-  if (Function->isVariadic())
-    return false;
-  if (const auto *Proto =
-          dyn_cast<FunctionProtoType>(Function->getFunctionType()))
-    if (Proto->isTemplateVariadic())
-      return false;
-  if (auto *Pattern = Function->getTemplateInstantiationPattern())
-    if (const auto *Proto =
-            dyn_cast<FunctionProtoType>(Pattern->getFunctionType()))
-      if (Proto->isTemplateVariadic())
-        return false;
-  return true;
 }

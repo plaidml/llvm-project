@@ -11,14 +11,13 @@
 
 include "mlir/Pass/PassBase.td"
 
-def StdBufferize : Pass<"std-bufferize", "FuncOp"> {
+def StdBufferize : FunctionPass<"std-bufferize"> {
   let summary = "Bufferize the std dialect";
   let constructor = "mlir::createStdBufferizePass()";
-  let dependentDialects = ["bufferization::BufferizationDialect",
-                           "memref::MemRefDialect", "scf::SCFDialect"];
+  let dependentDialects = ["memref::MemRefDialect", "scf::SCFDialect"];
 }
 
-def StdExpandOps : Pass<"std-expand", "FuncOp"> {
+def StdExpandOps : FunctionPass<"std-expand"> {
   let summary = "Legalize std operations to be convertible to LLVM.";
   let constructor = "mlir::createStdExpandOpsPass()";
 }
@@ -48,8 +47,7 @@ def FuncBufferize : Pass<"func-bufferize", "ModuleOp"> {
     whether they need rewriting.
   }];
   let constructor = "mlir::createFuncBufferizePass()";
-  let dependentDialects = ["bufferization::BufferizationDialect",
-                           "memref::MemRefDialect"];
+  let dependentDialects = ["memref::MemRefDialect"];
 }
 
 def TensorConstantBufferize : Pass<"tensor-constant-bufferize", "ModuleOp"> {
@@ -63,8 +61,7 @@ def TensorConstantBufferize : Pass<"tensor-constant-bufferize", "ModuleOp"> {
     function granularity.
   }];
   let constructor = "mlir::createTensorConstantBufferizePass()";
-  let dependentDialects = ["bufferization::BufferizationDialect",
-                           "memref::MemRefDialect"];
+  let dependentDialects = ["memref::MemRefDialect"];
   let options = [
     Option<"alignment", "alignment", "unsigned", /*default=*/"0",
            "Create global memrefs with a specified alignment">,

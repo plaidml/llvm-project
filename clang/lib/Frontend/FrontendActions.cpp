@@ -310,8 +310,9 @@ bool GenerateHeaderModuleAction::BeginSourceFileAction(
   auto &HS = CI.getPreprocessor().getHeaderSearchInfo();
   SmallVector<Module::Header, 16> Headers;
   for (StringRef Name : ModuleHeaders) {
+    const DirectoryLookup *CurDir = nullptr;
     Optional<FileEntryRef> FE = HS.LookupFile(
-        Name, SourceLocation(), /*Angled*/ false, nullptr, nullptr, None,
+        Name, SourceLocation(), /*Angled*/ false, nullptr, CurDir, None,
         nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
     if (!FE) {
       CI.getDiagnostics().Report(diag::err_module_header_file_not_found)
@@ -841,7 +842,7 @@ void PrintPreprocessedAction::ExecuteAction() {
       const char *next = (cur != end) ? cur + 1 : end;
 
       // Limit ourselves to only scanning 256 characters into the source
-      // file.  This is mostly a check in case the file has no
+      // file.  This is mostly a sanity check in case the file has no
       // newlines whatsoever.
       if (end - cur > 256)
         end = cur + 256;

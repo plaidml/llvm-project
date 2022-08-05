@@ -11,6 +11,7 @@ define double @in_nostrict(double %a, double %b, double %c, double %d) {
 ; CHECK-NEXT:    xsdivdp 1, 1, 2
 ; CHECK-NEXT:    xsadddp 1, 1, 3
 ; CHECK-NEXT:    xsadddp 0, 1, 0
+; CHECK-NEXT:    mffs 1
 ; CHECK-NEXT:    mtfsf 255, 4
 ; CHECK-NEXT:    xsdivdp 1, 3, 4
 ; CHECK-NEXT:    xsadddp 1, 1, 2
@@ -46,6 +47,7 @@ define double @in_strict(double %a, double %b, double %c, double %d) #0 {
 ; CHECK-NEXT:    xsdivdp 1, 1, 2
 ; CHECK-NEXT:    xsadddp 1, 1, 3
 ; CHECK-NEXT:    xsadddp 0, 1, 0
+; CHECK-NEXT:    mffs 1
 ; CHECK-NEXT:    mtfsf 255, 4
 ; CHECK-NEXT:    xsdivdp 1, 3, 4
 ; CHECK-NEXT:    xsadddp 1, 1, 2
@@ -94,6 +96,7 @@ define void @cse_nomerge(double* %f1, double* %f2, double %f3) #0 {
 ; CHECK-NEXT:    nop
 ; CHECK-NEXT:    mffs 0
 ; CHECK-NEXT:    stfd 0, 0(30)
+; CHECK-NEXT:    mffs 0
 ; CHECK-NEXT:    mtfsf 255, 31
 ; CHECK-NEXT:    addi 1, 1, 64
 ; CHECK-NEXT:    ld 0, 16(1)
@@ -131,6 +134,7 @@ define void @cse_nomerge_readonly(double* %f1, double* %f2, double %f3) #0 {
 ; CHECK-NEXT:    nop
 ; CHECK-NEXT:    mffs 0
 ; CHECK-NEXT:    stfd 0, 0(30)
+; CHECK-NEXT:    mffs 0
 ; CHECK-NEXT:    mtfsf 255, 31
 ; CHECK-NEXT:    addi 1, 1, 64
 ; CHECK-NEXT:    ld 0, 16(1)

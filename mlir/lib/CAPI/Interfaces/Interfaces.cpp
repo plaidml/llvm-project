@@ -17,17 +17,17 @@ using namespace mlir;
 
 bool mlirOperationImplementsInterface(MlirOperation operation,
                                       MlirTypeID interfaceTypeID) {
-  Optional<RegisteredOperationName> info =
-      unwrap(operation)->getRegisteredInfo();
-  return info && info->hasInterface(unwrap(interfaceTypeID));
+  const AbstractOperation *abstractOp =
+      unwrap(operation)->getAbstractOperation();
+  return abstractOp && abstractOp->hasInterface(unwrap(interfaceTypeID));
 }
 
 bool mlirOperationImplementsInterfaceStatic(MlirStringRef operationName,
                                             MlirContext context,
                                             MlirTypeID interfaceTypeID) {
-  Optional<RegisteredOperationName> info = RegisteredOperationName::lookup(
+  const AbstractOperation *abstractOp = AbstractOperation::lookup(
       StringRef(operationName.data, operationName.length), unwrap(context));
-  return info && info->hasInterface(unwrap(interfaceTypeID));
+  return abstractOp && abstractOp->hasInterface(unwrap(interfaceTypeID));
 }
 
 MlirTypeID mlirInferTypeOpInterfaceTypeID() {
@@ -40,9 +40,9 @@ MlirLogicalResult mlirInferTypeOpInterfaceInferReturnTypes(
     intptr_t nRegions, MlirRegion *regions, MlirTypesCallback callback,
     void *userData) {
   StringRef name(opName.data, opName.length);
-  Optional<RegisteredOperationName> info =
-      RegisteredOperationName::lookup(name, unwrap(context));
-  if (!info)
+  const AbstractOperation *abstractOp =
+      AbstractOperation::lookup(name, unwrap(context));
+  if (!abstractOp)
     return mlirLogicalResultFailure();
 
   llvm::Optional<Location> maybeLocation = llvm::None;
@@ -68,7 +68,7 @@ MlirLogicalResult mlirInferTypeOpInterfaceInferReturnTypes(
   });
 
   SmallVector<Type> inferredTypes;
-  if (failed(info->getInterface<InferTypeOpInterface>()->inferReturnTypes(
+  if (failed(abstractOp->getInterface<InferTypeOpInterface>()->inferReturnTypes(
           unwrap(context), maybeLocation, unwrappedOperands, attributeDict,
           unwrappedRegions, inferredTypes)))
     return mlirLogicalResultFailure();

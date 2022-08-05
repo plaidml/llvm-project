@@ -9,6 +9,9 @@
 // UNSUPPORTED: libcpp-has-no-threads
 // UNSUPPORTED: c++03
 
+// TODO(ldionne): This test fails on Ubuntu Focal on our CI nodes (and only there), in 32 bit mode.
+// UNSUPPORTED: linux && 32bits-on-64bits
+
 // <future>
 
 // template <class F, class... Args>
@@ -30,7 +33,7 @@
 typedef std::chrono::high_resolution_clock Clock;
 typedef std::chrono::milliseconds ms;
 
-std::atomic_bool invoked{false};
+std::atomic_bool invoked = ATOMIC_VAR_INIT(false);
 
 int f0()
 {

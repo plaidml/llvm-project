@@ -35,8 +35,6 @@ class ExternalFileUnit : public ConnectionState,
                          public FileFrame<ExternalFileUnit> {
 public:
   explicit ExternalFileUnit(int unitNumber) : unitNumber_{unitNumber} {}
-  ~ExternalFileUnit() {}
-
   int unitNumber() const { return unitNumber_; }
   bool swapEndianness() const { return swapEndianness_; }
   bool createdForInternalChildIo() const { return createdForInternalChildIo_; }
@@ -78,7 +76,6 @@ public:
   bool Emit(
       const char *, std::size_t, std::size_t elementBytes, IoErrorHandler &);
   bool Receive(char *, std::size_t, std::size_t elementBytes, IoErrorHandler &);
-  std::size_t GetNextInputBytes(const char *&, IoErrorHandler &);
   std::optional<char32_t> GetCurrentChar(IoErrorHandler &);
   void SetLeftTabLimit();
   bool BeginReadingRecord(IoErrorHandler &);

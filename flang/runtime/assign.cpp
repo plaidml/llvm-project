@@ -193,9 +193,9 @@ void Assign(Descriptor &to, const Descriptor &from, Terminator &terminator) {
           Descriptor &fromCompDesc{statDesc[1].descriptor()};
           for (std::size_t j{0}; j < toElements; ++j,
                to.IncrementSubscripts(toAt), from.IncrementSubscripts(fromAt)) {
-            comp.CreatePointerDescriptor(toCompDesc, to, terminator, toAt);
+            comp.CreatePointerDescriptor(toCompDesc, to, toAt, terminator);
             comp.CreatePointerDescriptor(
-                fromCompDesc, from, terminator, fromAt);
+                fromCompDesc, from, fromAt, terminator);
             Assign(toCompDesc, fromCompDesc, terminator);
           }
         } else { // Component has intrinsic type; simply copy raw bytes

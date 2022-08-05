@@ -80,17 +80,15 @@ cleanup:                                          ; preds = %for.cond, %entry
 ; CHECK:           schedule: "[call15] -> [{ Stmt_for_body30[i0, i1] -> [((i0) mod 32)]; Stmt_for_body23[i0, i1] -> [((i0) mod 32)] }]"
 ; CHECK:           permutable: 1
 ; CHECK:           child:
-; CHECK:             sequence:
-; CHECK:             - filter: "[call15] -> { Stmt_for_body23[i0, i1] }"
-; CHECK:               child:
-; CHECK:                 mark: "SIMD"
+; CHECK:             mark: "SIMD"
+; CHECK:             child:
+; CHECK:               sequence:
+; CHECK:               - filter: "[call15] -> { Stmt_for_body23[i0, i1] }"
 ; CHECK:                 child:
 ; CHECK:                   schedule: "[call15] -> [{ Stmt_for_body30[i0, i1] -> [((i1) mod 4)]; Stmt_for_body23[i0, i1] -> [((i1) mod 4)] }]"
 ; CHECK:                   permutable: 1
 ; CHECK:                   coincident: [ 1 ]
-; CHECK:             - filter: "[call15] -> { Stmt_for_body30[i0, i1] }"
-; CHECK:               child:
-; CHECK:                 mark: "SIMD"
+; CHECK:               - filter: "[call15] -> { Stmt_for_body30[i0, i1] }"
 ; CHECK:                 child:
 ; CHECK:                   schedule: "[call15] -> [{ Stmt_for_body30[i0, i1] -> [((i1) mod 4)]; Stmt_for_body23[i0, i1] -> [((i1) mod 4)] }]"
 ; CHECK:                   permutable: 1

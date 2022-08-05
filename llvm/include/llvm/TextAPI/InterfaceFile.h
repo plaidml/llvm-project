@@ -381,8 +381,6 @@ public:
     return {Symbols.begin(), Symbols.end()};
   }
 
-  size_t symbolsCount() const { return Symbols.size(); }
-
   const_filtered_symbol_range exports() const {
     std::function<bool(const Symbol *)> fn = [](const Symbol *Symbol) {
       return !Symbol->isUndefined();

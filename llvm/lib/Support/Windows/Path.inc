@@ -132,8 +132,7 @@ const file_t kInvalidFile = INVALID_HANDLE_VALUE;
 
 std::string getMainExecutable(const char *argv0, void *MainExecAddr) {
   SmallVector<wchar_t, MAX_PATH> PathName;
-  PathName.resize_for_overwrite(PathName.capacity());
-  DWORD Size = ::GetModuleFileNameW(NULL, PathName.data(), PathName.size());
+  DWORD Size = ::GetModuleFileNameW(NULL, PathName.data(), PathName.capacity());
 
   // A zero return value indicates a failure other than insufficient space.
   if (Size == 0)
@@ -146,7 +145,7 @@ std::string getMainExecutable(const char *argv0, void *MainExecAddr) {
 
   // On success, GetModuleFileNameW returns the number of characters written to
   // the buffer not including the NULL terminator.
-  PathName.truncate(Size);
+  PathName.set_size(Size);
 
   // Convert the result from UTF-16 to UTF-8.
   SmallVector<char, MAX_PATH> PathNameUTF8;
@@ -202,8 +201,8 @@ std::error_code current_path(SmallVectorImpl<char> &result) {
   DWORD len = MAX_PATH;
 
   do {
-    cur_path.resize_for_overwrite(len);
-    len = ::GetCurrentDirectoryW(cur_path.size(), cur_path.data());
+    cur_path.reserve(len);
+    len = ::GetCurrentDirectoryW(cur_path.capacity(), cur_path.data());
 
     // A zero return value indicates a failure other than insufficient space.
     if (len == 0)
@@ -211,11 +210,11 @@ std::error_code current_path(SmallVectorImpl<char> &result) {
 
     // If there's insufficient space, the len returned is larger than the len
     // given.
-  } while (len > cur_path.size());
+  } while (len > cur_path.capacity());
 
   // On success, GetCurrentDirectoryW returns the number of characters not
   // including the null-terminator.
-  cur_path.truncate(len);
+  cur_path.set_size(len);
 
   if (std::error_code EC =
           UTF16ToUTF8(cur_path.begin(), cur_path.size(), result))
@@ -329,7 +328,7 @@ static std::error_code is_local_internal(SmallVectorImpl<wchar_t> &Path,
   // the null terminator, it will leave the output unterminated.  Push a null
   // terminator onto the end to ensure that this never happens.
   VolumePath.push_back(L'\0');
-  VolumePath.truncate(wcslen(VolumePath.data()));
+  VolumePath.set_size(wcslen(VolumePath.data()));
   const wchar_t *P = VolumePath.data();
 
   UINT Type = ::GetDriveTypeW(P);
@@ -365,19 +364,18 @@ std::error_code is_local(const Twine &path, bool &result) {
 
 static std::error_code realPathFromHandle(HANDLE H,
                                           SmallVectorImpl<wchar_t> &Buffer) {
-  Buffer.resize_for_overwrite(Buffer.capacity());
   DWORD CountChars = ::GetFinalPathNameByHandleW(
       H, Buffer.begin(), Buffer.capacity(), FILE_NAME_NORMALIZED);
   if (CountChars && CountChars >= Buffer.capacity()) {
     // The buffer wasn't big enough, try again.  In this case the return value
     // *does* indicate the size of the null terminator.
-    Buffer.resize_for_overwrite(CountChars);
+    Buffer.reserve(CountChars);
     CountChars = ::GetFinalPathNameByHandleW(
-        H, Buffer.begin(), Buffer.size(), FILE_NAME_NORMALIZED);
+        H, Buffer.begin(), Buffer.capacity(), FILE_NAME_NORMALIZED);
   }
-  Buffer.truncate(CountChars);
   if (CountChars == 0)
     return mapWindowsError(GetLastError());
+  Buffer.set_size(CountChars);
   return std::error_code();
 }
 
@@ -961,8 +959,6 @@ void mapped_file_region::unmapImpl() {
   }
 }
 
-void mapped_file_region::dontNeedImpl() {}
-
 int mapped_file_region::alignment() {
   SYSTEM_INFO SysInfo;
   ::GetSystemInfo(&SysInfo);
@@ -1452,14 +1448,14 @@ static bool getTempDirEnvVar(const wchar_t *Var, SmallVectorImpl<char> &Res) {
   SmallVector<wchar_t, 1024> Buf;
   size_t Size = 1024;
   do {
-    Buf.resize_for_overwrite(Size);
-    Size = GetEnvironmentVariableW(Var, Buf.data(), Buf.size());
+    Buf.reserve(Size);
+    Size = GetEnvironmentVariableW(Var, Buf.data(), Buf.capacity());
     if (Size == 0)
       return false;
 
     // Try again with larger buffer.
-  } while (Size > Buf.size());
-  Buf.truncate(Size);
+  } while (Size > Buf.capacity());
+  Buf.set_size(Size);
 
   return !windows::UTF16ToUTF8(Buf.data(), Size, Res);
 }
@@ -1508,7 +1504,7 @@ std::error_code CodePageToUTF16(unsigned codepage,
     }
 
     utf16.reserve(len + 1);
-    utf16.resize_for_overwrite(len);
+    utf16.set_size(len);
 
     len = ::MultiByteToWideChar(codepage, MB_ERR_INVALID_CHARS, original.begin(),
                                 original.size(), utf16.begin(), utf16.size());
@@ -1548,8 +1544,8 @@ std::error_code UTF16ToCodePage(unsigned codepage, const wchar_t *utf16,
       return mapWindowsError(::GetLastError());
     }
 
-    converted.reserve(len + 1);
-    converted.resize_for_overwrite(len);
+    converted.reserve(len);
+    converted.set_size(len);
 
     // Now do the actual conversion.
     len = ::WideCharToMultiByte(codepage, 0, utf16, utf16_len, converted.data(),

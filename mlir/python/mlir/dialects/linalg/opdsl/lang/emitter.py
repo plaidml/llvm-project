@@ -2,9 +2,10 @@
 #  See https://llvm.org/LICENSE.txt for license information.
 #  SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 
-from typing import Callable, Dict, List, Sequence, Tuple, Union
+from typing import Dict, List, Sequence, Tuple, Union
 
 from .....ir import *
+from ....._mlir_libs._mlir.dialects.linalg import fill_builtin_region
 
 from .... import linalg
 from .... import std
@@ -23,7 +24,6 @@ __all__ = [
 ]
 
 ValueList = Union[Sequence[Value], OpResultList]
-
 
 def isa(cls: Type, ty: Type):
   try:
@@ -173,7 +173,8 @@ def emit_named_structured_op(op_config: LinalgStructuredOpConfig, op_name: str,
         f"Unknown named op_name / op_class_name: {op_name} / {op_class_name}")
 
   named_op = getattr(linalg, op_class_name)(ins, outs, result_types)
-  linalg.fill_builtin_region(named_op.operation)
+  linalgDialect = ctx.get_dialect_descriptor("linalg")
+  fill_builtin_region(linalgDialect, named_op.operation)
   # Note: mlir-linalg-ods-yaml-gen.cpp uses a special linalg.memoized_indexing_maps
   # attribute that the non-yaml path does not. The non-yaml path hardcodes the
   # indexing_maps in C++ directly.
@@ -221,39 +222,25 @@ class _BodyBuilder:
       dim_attr = IntegerAttr.get(
           IntegerType.get_signless(64), expr.scalar_index.dim)
       return linalg.IndexOp(dim_attr).result
-    elif expr.arith_fn:
-      fn = self._get_function(f"_arithfn_{expr.arith_fn.fn_name}")
+    elif expr.scalar_apply:
+      try:
+        fn = getattr(self, f"_eval_{expr.scalar_apply.fn_name}")
+      except AttributeError:
+        raise ValueError(
+            f"Function '{expr.scalar_apply.fn_name}' is not a known "
+            "scalar body function")
       operand_values = [
-          self.expression(operand) for operand in expr.arith_fn.operands
+          self.expression(operand) for operand in expr.scalar_apply.operands
       ]
       return fn(*operand_values)
-    elif expr.type_fn:
-      fn = self._get_function(f"_typefn_{expr.type_fn.fn_name}")
-      operand = self.expression(expr.type_fn.operand)
-      return fn(expr.type_fn.type_var.name, operand)
+    elif expr.symbolic_cast:
+      operand_value = self.expression(expr.symbolic_cast.operand)
+      return self.cast(expr.symbolic_cast.to_type.name, operand_value,
+                       expr.symbolic_cast.is_unsigned_cast)
     raise NotImplementedError(f"Unimplemented scalar body expression: {expr}")
 
-  def yield_outputs(self, *output_names: str):
-    output_values = []
-    for n in output_names:
-      try:
-        output_values.append(self.yield_mapping[n])
-      except KeyError:
-        raise ValueError(f"Body assignments do not assign all outputs: "
-                         f"missing '{n}'")
-    linalg.YieldOp(output_values)
-
-  def _get_function(self, fn_name: str) -> Callable:
-    try:
-      fn = getattr(self, f"{fn_name}")
-    except AttributeError:
-      raise ValueError(f"Function '{fn_name}' is not a known function")
-    return fn
-
-  def _cast(self,
-            type_var_name: str,
-            operand: Value,
-            is_unsigned_cast: bool = False) -> Value:
+  def cast(self, type_var_name: str, operand: Value,
+           is_unsigned_cast: bool) -> Value:
     try:
       to_type = self.type_mapping[type_var_name]
     except KeyError:
@@ -304,69 +291,73 @@ class _BodyBuilder:
     raise ValueError(f"Unable to cast body expression from {operand_type} to "
                      f"{to_type}")
 
-  def _typefn_cast(self, type_var_name: str, operand: Value) -> Value:
-    return self._cast(type_var_name, operand, False)
+  def yield_outputs(self, *output_names: str):
+    output_values = []
+    for n in output_names:
+      try:
+        output_values.append(self.yield_mapping[n])
+      except KeyError:
+        raise ValueError(f"Body assignments do not assign all outputs: "
+                         f"missing '{n}'")
+    linalg.YieldOp(output_values)
 
-  def _typefn_cast_unsigned(self, type_var_name: str, operand: Value) -> Value:
-    return self._cast(type_var_name, operand, True)
-
-  def _arithfn_add(self, lhs: Value, rhs: Value) -> Value:
+  def _eval_add(self, lhs: Value, rhs: Value) -> Value:
     if _is_floating_point_type(lhs.type):
       return arith.AddFOp(lhs, rhs).result
     if _is_integer_type(lhs.type) or _is_index_type(lhs.type):
       return arith.AddIOp(lhs, rhs).result
     raise NotImplementedError("Unsupported 'add' operand: {lhs}")
 
-  def _arithfn_exp(self, x: Value) -> Value:
+  def _eval_exp(self, x: Value) -> Value:
     if _is_floating_point_type(x.type):
       return math.ExpOp(x).result
     raise NotImplementedError("Unsupported 'exp' operand: {x}")
 
-  def _arithfn_log(self, x: Value) -> Value:
+  def _eval_log(self, x: Value) -> Value:
     if _is_floating_point_type(x.type):
       return math.LogOp(x).result
     raise NotImplementedError("Unsupported 'log' operand: {x}")
 
-  def _arithfn_sub(self, lhs: Value, rhs: Value) -> Value:
+  def _eval_sub(self, lhs: Value, rhs: Value) -> Value:
     if _is_floating_point_type(lhs.type):
       return arith.SubFOp(lhs, rhs).result
     if _is_integer_type(lhs.type) or _is_index_type(lhs.type):
       return arith.SubIOp(lhs, rhs).result
     raise NotImplementedError("Unsupported 'sub' operand: {lhs}")
 
-  def _arithfn_mul(self, lhs: Value, rhs: Value) -> Value:
+  def _eval_mul(self, lhs: Value, rhs: Value) -> Value:
     if _is_floating_point_type(lhs.type):
       return arith.MulFOp(lhs, rhs).result
     if _is_integer_type(lhs.type) or _is_index_type(lhs.type):
       return arith.MulIOp(lhs, rhs).result
     raise NotImplementedError("Unsupported 'mul' operand: {lhs}")
 
-  def _arithfn_max(self, lhs: Value, rhs: Value) -> Value:
+  def _eval_max(self, lhs: Value, rhs: Value) -> Value:
     if _is_floating_point_type(lhs.type):
-      return arith.MaxFOp(lhs, rhs).result
+      return std.MaxFOp(lhs, rhs).result
     if _is_integer_type(lhs.type) or _is_index_type(lhs.type):
-      return arith.MaxSIOp(lhs, rhs).result
+      return std.MaxSIOp(lhs, rhs).result
     raise NotImplementedError("Unsupported 'max' operand: {lhs}")
 
-  def _arithfn_max_unsigned(self, lhs: Value, rhs: Value) -> Value:
+  def _eval_max_unsigned(self, lhs: Value, rhs: Value) -> Value:
     if _is_floating_point_type(lhs.type):
-      return arith.MaxFOp(lhs, rhs).result
+      return std.MaxFOp(lhs, rhs).result
     if _is_integer_type(lhs.type) or _is_index_type(lhs.type):
-      return arith.MaxUIOp(lhs, rhs).result
+      return std.MaxUIOp(lhs, rhs).result
     raise NotImplementedError("Unsupported 'max_unsigned' operand: {lhs}")
 
-  def _arithfn_min(self, lhs: Value, rhs: Value) -> Value:
+  def _eval_min(self, lhs: Value, rhs: Value) -> Value:
     if _is_floating_point_type(lhs.type):
-      return arith.MinFOp(lhs, rhs).result
+      return std.MinFOp(lhs, rhs).result
     if _is_integer_type(lhs.type) or _is_index_type(lhs.type):
-      return arith.MinSIOp(lhs, rhs).result
+      return std.MinSIOp(lhs, rhs).result
     raise NotImplementedError("Unsupported 'min' operand: {lhs}")
 
-  def _arithfn_min_unsigned(self, lhs: Value, rhs: Value) -> Value:
+  def _eval_min_unsigned(self, lhs: Value, rhs: Value) -> Value:
     if _is_floating_point_type(lhs.type):
-      return arith.MinFOp(lhs, rhs).result
+      return std.MinFOp(lhs, rhs).result
     if _is_integer_type(lhs.type) or _is_index_type(lhs.type):
-      return arith.MinUIOp(lhs, rhs).result
+      return std.MinUIOp(lhs, rhs).result
     raise NotImplementedError("Unsupported 'min_unsigned' operand: {lhs}")
 
 

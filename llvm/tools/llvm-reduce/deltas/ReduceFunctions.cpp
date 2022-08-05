@@ -48,8 +48,27 @@ static void extractFunctionsFromModule(Oracle &O, Module &Program) {
   }
 }
 
+/// Counts the amount of functions and prints their
+/// respective name & index
+static int countFunctions(Module &Program) {
+  // TODO: Silence index with --quiet flag
+  errs() << "----------------------------\n";
+  errs() << "Function Index Reference:\n";
+  int FunctionCount = 0;
+  for (auto &F : Program) {
+    if (F.isIntrinsic() && !F.use_empty())
+      continue;
+
+    errs() << '\t' << ++FunctionCount << ": " << F.getName() << '\n';
+  }
+
+  errs() << "----------------------------\n";
+  return FunctionCount;
+}
+
 void llvm::reduceFunctionsDeltaPass(TestRunner &Test) {
   errs() << "*** Reducing Functions...\n";
-  runDeltaPass(Test, extractFunctionsFromModule);
+  int Functions = countFunctions(Test.getProgram());
+  runDeltaPass(Test, Functions, extractFunctionsFromModule);
   errs() << "----------------------------\n";
 }

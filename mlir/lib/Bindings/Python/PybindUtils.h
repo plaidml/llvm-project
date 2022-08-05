@@ -133,14 +133,14 @@ struct PyPrintAccumulator {
 /// or binary.
 class PyFileAccumulator {
 public:
-  PyFileAccumulator(const pybind11::object &fileObject, bool binary)
+  PyFileAccumulator(pybind11::object fileObject, bool binary)
       : pyWriteFunction(fileObject.attr("write")), binary(binary) {}
 
   void *getUserData() { return this; }
 
   MlirStringCallback getCallback() {
     return [](MlirStringRef part, void *userData) {
-      pybind11::gil_scoped_acquire acquire;
+      pybind11::gil_scoped_acquire();
       PyFileAccumulator *accum = static_cast<PyFileAccumulator *>(userData);
       if (accum->binary) {
         // Note: Still has to copy and not avoidable with this API.

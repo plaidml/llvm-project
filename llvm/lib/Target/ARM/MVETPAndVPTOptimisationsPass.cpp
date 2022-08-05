@@ -366,7 +366,7 @@ bool MVETPAndVPTOptimisations::MergeLoopEnd(MachineLoop *ML) {
     while (!Worklist.empty()) {
       Register Reg = Worklist.pop_back_val();
       for (MachineInstr &MI : MRI->use_nodbg_instructions(Reg)) {
-        if (llvm::is_contained(ExpectedUsers, &MI))
+        if (count(ExpectedUsers, &MI))
           continue;
         if (MI.getOpcode() != TargetOpcode::COPY ||
             !MI.getOperand(0).getReg().isVirtual()) {

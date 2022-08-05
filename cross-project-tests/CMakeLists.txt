@@ -55,7 +55,8 @@ if("lldb" IN_LIST LLVM_ENABLE_PROJECTS)
   list(APPEND CROSS_PROJECT_TEST_DEPS lldb lldb-server)
 endif()
 
-if ("lld" IN_LIST LLVM_ENABLE_PROJECTS)
+# The Windows builder scripts pass -fuse-ld=lld.
+if (WIN32 OR "lld" IN_LIST LLVM_ENABLE_PROJECTS)
   list(APPEND CROSS_PROJECT_TEST_DEPS lld)
 endif()
 

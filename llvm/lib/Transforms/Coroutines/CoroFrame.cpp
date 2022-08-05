@@ -587,7 +587,7 @@ void FrameTypeBuilder::addFieldForAllocas(const Function &F,
     }
   });
 
-  if (!Shape.OptimizeFrame && !EnableReuseStorageInFrame) {
+  if (!Shape.ReuseFrameSlot && !EnableReuseStorageInFrame) {
     for (const auto &A : FrameData.Allocas) {
       AllocaInst *Alloca = A.Alloca;
       NonOverlapedAllocas.emplace_back(AllocaSetType(1, Alloca));
@@ -1237,10 +1237,8 @@ namespace {
 struct AllocaUseVisitor : PtrUseVisitor<AllocaUseVisitor> {
   using Base = PtrUseVisitor<AllocaUseVisitor>;
   AllocaUseVisitor(const DataLayout &DL, const DominatorTree &DT,
-                   const CoroBeginInst &CB, const SuspendCrossingInfo &Checker,
-                   bool ShouldUseLifetimeStartInfo)
-      : PtrUseVisitor(DL), DT(DT), CoroBegin(CB), Checker(Checker),
-        ShouldUseLifetimeStartInfo(ShouldUseLifetimeStartInfo) {}
+                   const CoroBeginInst &CB, const SuspendCrossingInfo &Checker)
+      : PtrUseVisitor(DL), DT(DT), CoroBegin(CB), Checker(Checker) {}
 
   void visit(Instruction &I) {
     Users.insert(&I);
@@ -1392,7 +1390,6 @@ private:
   SmallPtrSet<Instruction *, 4> Users{};
   SmallPtrSet<IntrinsicInst *, 2> LifetimeStarts{};
   bool MayWriteBeforeCoroBegin{false};
-  bool ShouldUseLifetimeStartInfo{true};
 
   mutable llvm::Optional<bool> ShouldLiveOnFrame{};
 
@@ -1401,7 +1398,7 @@ private:
     // more precise. We look at every pair of lifetime.start intrinsic and
     // every basic block that uses the pointer to see if they cross suspension
     // points. The uses cover both direct uses as well as indirect uses.
-    if (ShouldUseLifetimeStartInfo && !LifetimeStarts.empty()) {
+    if (!LifetimeStarts.empty()) {
       for (auto *I : Users)
         for (auto *S : LifetimeStarts)
           if (Checker.isDefinitionAcrossSuspend(*S, I))
@@ -1659,7 +1656,7 @@ static Instruction *insertSpills(const FrameDataInfo &FrameData,
                              &*Builder.GetInsertPoint());
           // This dbg.declare is for the main function entry point.  It
           // will be deleted in all coro-split functions.
-          coro::salvageDebugInfo(DbgPtrAllocaCache, DDI, Shape.OptimizeFrame);
+          coro::salvageDebugInfo(DbgPtrAllocaCache, DDI, Shape.ReuseFrameSlot);
         }
       }
 
@@ -2487,15 +2484,8 @@ static void collectFrameAllocas(Function &F, coro::Shape &Shape,
       continue;
     }
     DominatorTree DT(F);
-    // The code that uses lifetime.start intrinsic does not work for functions
-    // with loops without exit. Disable it on ABIs we know to generate such
-    // code.
-    bool ShouldUseLifetimeStartInfo =
-        (Shape.ABI != coro::ABI::Async && Shape.ABI != coro::ABI::Retcon &&
-         Shape.ABI != coro::ABI::RetconOnce);
     AllocaUseVisitor Visitor{F.getParent()->getDataLayout(), DT,
-                             *Shape.CoroBegin, Checker,
-                             ShouldUseLifetimeStartInfo};
+                             *Shape.CoroBegin, Checker};
     Visitor.visitPtr(*AI);
     if (!Visitor.getShouldLiveOnFrame())
       continue;
@@ -2506,7 +2496,7 @@ static void collectFrameAllocas(Function &F, coro::Shape &Shape,
 
 void coro::salvageDebugInfo(
     SmallDenseMap<llvm::Value *, llvm::AllocaInst *, 4> &DbgPtrAllocaCache,
-    DbgVariableIntrinsic *DVI, bool OptimizeFrame) {
+    DbgVariableIntrinsic *DVI, bool ReuseFrameSlot) {
   Function *F = DVI->getFunction();
   IRBuilder<> Builder(F->getContext());
   auto InsertPt = F->getEntryBlock().getFirstInsertionPt();
@@ -2558,7 +2548,7 @@ void coro::salvageDebugInfo(
   //
   // Avoid to create the alloca would be eliminated by optimization
   // passes and the corresponding dbg.declares would be invalid.
-  if (!OptimizeFrame && !EnableReuseStorageInFrame)
+  if (!ReuseFrameSlot && !EnableReuseStorageInFrame)
     if (auto *Arg = dyn_cast<llvm::Argument>(Storage)) {
       auto &Cached = DbgPtrAllocaCache[Storage];
       if (!Cached) {
@@ -2582,15 +2572,9 @@ void coro::salvageDebugInfo(
   DVI->setExpression(Expr);
   /// It makes no sense to move the dbg.value intrinsic.
   if (!isa<DbgValueInst>(DVI)) {
-    if (auto *II = dyn_cast<InvokeInst>(Storage))
-      DVI->moveBefore(II->getNormalDest()->getFirstNonPHI());
-    else if (auto *CBI = dyn_cast<CallBrInst>(Storage))
-      DVI->moveBefore(CBI->getDefaultDest()->getFirstNonPHI());
-    else if (auto *InsertPt = dyn_cast<Instruction>(Storage)) {
-      assert(!InsertPt->isTerminator() &&
-             "Unimaged terminator that could return a storage.");
+    if (auto *InsertPt = dyn_cast<Instruction>(Storage))
       DVI->moveAfter(InsertPt);
-    } else if (isa<Argument>(Storage))
+    else if (isa<Argument>(Storage))
       DVI->moveAfter(F->getEntryBlock().getFirstNonPHI());
   }
 }
@@ -2680,10 +2664,7 @@ void coro::buildCoroutineFrame(Function &F, Shape &Shape) {
     }
   }
 
-  if (Shape.ABI != coro::ABI::Async && Shape.ABI != coro::ABI::Retcon &&
-      Shape.ABI != coro::ABI::RetconOnce)
-    sinkLifetimeStartMarkers(F, Shape, Checker);
-
+  sinkLifetimeStartMarkers(F, Shape, Checker);
   if (Shape.ABI != coro::ABI::Async || !Shape.CoroSuspends.empty())
     collectFrameAllocas(F, Shape, Checker, FrameData.Allocas);
   LLVM_DEBUG(dumpAllocas(FrameData.Allocas));

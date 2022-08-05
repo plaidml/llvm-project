@@ -265,9 +265,10 @@ public:
           << DOT::EscapeString(DTraits.getEdgeDestLabel(Node, i));
       }
 
-      if (i != e)
-        O << "|<d64>truncated...";
-      O << "}";
+      if (RenderUsingHTML)
+        O << "<td colspan=\"1\">... truncated</td>";
+      else if (i != e)
+        O << "|<d64>truncated...}";
     }
 
     if (RenderUsingHTML)

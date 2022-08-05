@@ -50,13 +50,17 @@ getElementTraits(StringElementType ElemType) {
 
 template <StringElementType ElemType>
 static bool CharStringSummaryProvider(ValueObject &valobj, Stream &stream) {
-  Address valobj_addr = GetArrayAddressOrPointerValue(valobj);
-  if (!valobj_addr.IsValid())
+  ProcessSP process_sp = valobj.GetProcessSP();
+  if (!process_sp)
+    return false;
+
+  lldb::addr_t valobj_addr = GetArrayAddressOrPointerValue(valobj);
+  if (valobj_addr == 0 || valobj_addr == LLDB_INVALID_ADDRESS)
     return false;
 
   StringPrinter::ReadStringAndDumpToStreamOptions options(valobj);
   options.SetLocation(valobj_addr);
-  options.SetTargetSP(valobj.GetTargetSP());
+  options.SetProcessSP(process_sp);
   options.SetStream(&stream);
   options.SetPrefixToken(getElementTraits(ElemType).first);
 
@@ -111,8 +115,12 @@ bool lldb_private::formatters::Char32StringSummaryProvider(
 
 bool lldb_private::formatters::WCharStringSummaryProvider(
     ValueObject &valobj, Stream &stream, const TypeSummaryOptions &) {
-  Address valobj_addr = GetArrayAddressOrPointerValue(valobj);
-  if (!valobj_addr.IsValid())
+  ProcessSP process_sp = valobj.GetProcessSP();
+  if (!process_sp)
+    return false;
+
+  lldb::addr_t valobj_addr = GetArrayAddressOrPointerValue(valobj);
+  if (valobj_addr == 0 || valobj_addr == LLDB_INVALID_ADDRESS)
     return false;
 
   // Get a wchar_t basic type from the current type system
@@ -130,7 +138,7 @@ bool lldb_private::formatters::WCharStringSummaryProvider(
 
   StringPrinter::ReadStringAndDumpToStreamOptions options(valobj);
   options.SetLocation(valobj_addr);
-  options.SetTargetSP(valobj.GetTargetSP());
+  options.SetProcessSP(process_sp);
   options.SetStream(&stream);
   options.SetPrefixToken("L");
 

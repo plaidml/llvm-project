@@ -37,6 +37,7 @@ class MemorySSAUpdater;
 class OptimizationRemarkEmitter;
 class PredIteratorCache;
 class ScalarEvolution;
+class ScalarEvolutionExpander;
 class SCEV;
 class SCEVExpander;
 class TargetLibraryInfo;
@@ -366,12 +367,14 @@ Value *createMinMaxOp(IRBuilderBase &Builder, RecurKind RK, Value *Left,
 
 /// Generates an ordered vector reduction using extracts to reduce the value.
 Value *getOrderedReduction(IRBuilderBase &Builder, Value *Acc, Value *Src,
-                           unsigned Op, RecurKind MinMaxKind = RecurKind::None);
+                           unsigned Op, RecurKind MinMaxKind = RecurKind::None,
+                           ArrayRef<Value *> RedOps = None);
 
 /// Generates a vector reduction using shufflevectors to reduce the value.
 /// Fast-math-flags are propagated using the IRBuilder's setting.
 Value *getShuffleReduction(IRBuilderBase &Builder, Value *Src, unsigned Op,
-                           RecurKind MinMaxKind = RecurKind::None);
+                           RecurKind MinMaxKind = RecurKind::None,
+                           ArrayRef<Value *> RedOps = None);
 
 /// Create a target reduction of the given vector. The reduction operation
 /// is described by the \p Opcode parameter. min/max reductions require
@@ -381,7 +384,8 @@ Value *getShuffleReduction(IRBuilderBase &Builder, Value *Src, unsigned Op,
 /// Fast-math-flags are propagated using the IRBuilder's setting.
 Value *createSimpleTargetReduction(IRBuilderBase &B,
                                    const TargetTransformInfo *TTI, Value *Src,
-                                   RecurKind RdxKind);
+                                   RecurKind RdxKind,
+                                   ArrayRef<Value *> RedOps = None);
 
 /// Create a target reduction of the given vector \p Src for a reduction of the
 /// kind RecurKind::SelectICmp or RecurKind::SelectFCmp. The reduction operation

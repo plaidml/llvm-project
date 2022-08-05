@@ -10,7 +10,6 @@
 #define _LIBCPP___ALGORITHM_IS_SORTED_H
 
 #include <__algorithm/comp.h>
-#include <__algorithm/comp_ref_type.h>
 #include <__algorithm/is_sorted_until.h>
 #include <__config>
 #include <__iterator/iterator_traits.h>
@@ -27,8 +26,7 @@ _LIBCPP_INLINE_VISIBILITY _LIBCPP_CONSTEXPR_AFTER_CXX17
 bool
 is_sorted(_ForwardIterator __first, _ForwardIterator __last, _Compare __comp)
 {
-    typedef typename __comp_ref_type<_Compare>::type _Comp_ref;
-    return _VSTD::__is_sorted_until<_Comp_ref>(__first, __last, __comp) == __last;
+    return _VSTD::is_sorted_until(__first, __last, __comp) == __last;
 }
 
 template<class _ForwardIterator>

@@ -124,19 +124,35 @@ PlatformSP PlatformRemoteMacOSX::CreateInstance(bool force,
   return PlatformSP();
 }
 
-std::vector<ArchSpec> PlatformRemoteMacOSX::GetSupportedArchitectures() {
+bool PlatformRemoteMacOSX::GetSupportedArchitectureAtIndex(uint32_t idx,
+                                                           ArchSpec &arch) {
   // macOS for ARM64 support both native and translated x86_64 processes
-  std::vector<ArchSpec> result;
-  ARMGetSupportedArchitectures(result, llvm::Triple::MacOSX);
+  if (!m_num_arm_arches || idx < m_num_arm_arches) {
+    bool res = ARMGetSupportedArchitectureAtIndex(idx, arch);
+    if (res)
+      return true;
+    if (!m_num_arm_arches)
+      m_num_arm_arches = idx;
+  }
 
-  // We can't use x86GetSupportedArchitectures() because it uses
+  // We can't use x86GetSupportedArchitectureAtIndex() because it uses
   // the system architecture for some of its return values and also
   // has a 32bits variant.
-  result.push_back(ArchSpec("x86_64-apple-macosx"));
-  result.push_back(ArchSpec("x86_64-apple-ios-macabi"));
-  result.push_back(ArchSpec("arm64-apple-ios"));
-  result.push_back(ArchSpec("arm64e-apple-ios"));
-  return result;
+  if (idx == m_num_arm_arches) {
+    arch.SetTriple("x86_64-apple-macosx");
+    return true;
+  } else if (idx == m_num_arm_arches + 1) {
+    arch.SetTriple("x86_64-apple-ios-macabi");
+    return true;
+  } else if (idx == m_num_arm_arches + 2) {
+    arch.SetTriple("arm64-apple-ios");
+    return true;
+  } else if (idx == m_num_arm_arches + 3) {
+    arch.SetTriple("arm64e-apple-ios");
+    return true;
+  }
+
+  return false;
 }
 
 lldb_private::Status PlatformRemoteMacOSX::GetFileWithUUID(

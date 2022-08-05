@@ -56,7 +56,7 @@ bool isTopLevelValue(Value value);
 //
 //   %num_elements = arith.constant 256
 //   %idx = arith.constant 0 : index
-//   %tag = memref.alloc() : memref<1xi32, 4>
+//   %tag = alloc() : memref<1xi32, 4>
 //   affine.dma_start %src[%i + 3, %j], %dst[%k + 7, %l], %tag[%idx],
 //     %num_elements :
 //       memref<40x128xf32, 0>, memref<2x1024xf32, 1>, memref<1xi32, 2>
@@ -188,14 +188,14 @@ public:
   /// Returns the AffineMapAttr associated with 'memref'.
   NamedAttribute getAffineMapAttrForMemRef(Value memref) {
     if (memref == getSrcMemRef())
-      return {StringAttr::get(getContext(), getSrcMapAttrName()),
+      return {Identifier::get(getSrcMapAttrName(), getContext()),
               getSrcMapAttr()};
     if (memref == getDstMemRef())
-      return {StringAttr::get(getContext(), getDstMapAttrName()),
+      return {Identifier::get(getDstMapAttrName(), getContext()),
               getDstMapAttr()};
     assert(memref == getTagMemRef() &&
            "DmaStartOp expected source, destination or tag memref");
-    return {StringAttr::get(getContext(), getTagMapAttrName()),
+    return {Identifier::get(getTagMapAttrName(), getContext()),
             getTagMapAttr()};
   }
 
@@ -303,7 +303,7 @@ public:
   /// associated with 'memref'.
   NamedAttribute getAffineMapAttrForMemRef(Value memref) {
     assert(memref == getTagMemRef());
-    return {StringAttr::get(getContext(), getTagMapAttrName()),
+    return {Identifier::get(getTagMapAttrName(), getContext()),
             getTagMapAttr()};
   }
 
@@ -362,10 +362,6 @@ AffineApplyOp makeComposedAffineApply(OpBuilder &b, Location loc, AffineMap map,
 /// Variant of `makeComposedAffineApply` which infers the AffineMap from `e`.
 AffineApplyOp makeComposedAffineApply(OpBuilder &b, Location loc, AffineExpr e,
                                       ValueRange values);
-
-/// Returns the values obtained by applying `map` to the list of values.
-SmallVector<Value, 4> applyMapToValues(OpBuilder &b, Location loc,
-                                       AffineMap map, ValueRange values);
 
 /// Given an affine map `map` and its input `operands`, this method composes
 /// into `map`, maps of AffineApplyOps whose results are the values in
@@ -440,9 +436,9 @@ public:
   using operand_iterator = AffineForOp::operand_iterator;
   using operand_range = AffineForOp::operand_range;
 
-  operand_iterator operandBegin() { return op.operand_begin() + opStart; }
-  operand_iterator operandEnd() { return op.operand_begin() + opEnd; }
-  operand_range getOperands() { return {operandBegin(), operandEnd()}; }
+  operand_iterator operand_begin() { return op.operand_begin() + opStart; }
+  operand_iterator operand_end() { return op.operand_begin() + opEnd; }
+  operand_range getOperands() { return {operand_begin(), operand_end()}; }
 
 private:
   // 'affine.for' operation that contains this bound.
@@ -459,6 +455,6 @@ private:
   friend class AffineForOp;
 };
 
-} // namespace mlir
+} // end namespace mlir
 
 #endif

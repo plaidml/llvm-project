@@ -133,17 +133,9 @@ llvm::StringRef PlatformRemoteiOS::GetDescriptionStatic() {
 PlatformRemoteiOS::PlatformRemoteiOS()
     : PlatformRemoteDarwinDevice() {}
 
-std::vector<ArchSpec> PlatformRemoteiOS::GetSupportedArchitectures() {
-  std::vector<ArchSpec> result;
-  ARMGetSupportedArchitectures(result, llvm::Triple::IOS);
-  return result;
-}
-
-bool PlatformRemoteiOS::CheckLocalSharedCache() const {
-  // You can run iPhone and iPad apps on Mac with Apple Silicon. At the
-  // platform level there's no way to distinguish them from remote iOS
-  // applications. Make sure we still read from our own shared cache.
-  return true;
+bool PlatformRemoteiOS::GetSupportedArchitectureAtIndex(uint32_t idx,
+                                                        ArchSpec &arch) {
+  return ARMGetSupportedArchitectureAtIndex(idx, arch);
 }
 
 llvm::StringRef PlatformRemoteiOS::GetDeviceSupportDirectoryName() {

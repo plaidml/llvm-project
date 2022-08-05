@@ -410,13 +410,9 @@ StmtResult Sema::ActOnCompoundStmt(SourceLocation L, SourceLocation R,
                                    ArrayRef<Stmt *> Elts, bool isStmtExpr) {
   const unsigned NumElts = Elts.size();
 
-  // If we're in C mode, check that we don't have any decls after stmts.  If
-  // so, emit an extension diagnostic in C89 and potentially a warning in later
-  // versions.
-  const unsigned MixedDeclsCodeID = getLangOpts().C99
-                                        ? diag::warn_mixed_decls_code
-                                        : diag::ext_mixed_decls_code;
-  if (!getLangOpts().CPlusPlus && !Diags.isIgnored(MixedDeclsCodeID, L)) {
+  // If we're in C89 mode, check that we don't have any decls after stmts.  If
+  // so, emit an extension diagnostic.
+  if (!getLangOpts().C99 && !getLangOpts().CPlusPlus) {
     // Note that __extension__ can be around a decl.
     unsigned i = 0;
     // Skip over all declarations.
@@ -429,7 +425,7 @@ StmtResult Sema::ActOnCompoundStmt(SourceLocation L, SourceLocation R,
 
     if (i != NumElts) {
       Decl *D = *cast<DeclStmt>(Elts[i])->decl_begin();
-      Diag(D->getLocation(), MixedDeclsCodeID);
+      Diag(D->getLocation(), diag::ext_mixed_decls_code);
     }
   }
 
@@ -873,7 +869,12 @@ StmtResult Sema::ActOnIfStmt(SourceLocation IfLoc,
                              Stmt *thenStmt, SourceLocation ElseLoc,
                              Stmt *elseStmt) {
   if (Cond.isInvalid())
-    return StmtError();
+    Cond = ConditionResult(
+        *this, nullptr,
+        MakeFullExpr(new (Context) OpaqueValueExpr(SourceLocation(),
+                                                   Context.BoolTy, VK_PRValue),
+                     IfLoc),
+        false);
 
   bool ConstevalOrNegatedConsteval =
       StatementKind == IfStatementKind::ConstevalNonNegated ||
@@ -2467,7 +2468,6 @@ StmtResult Sema::ActOnCXXForRangeStmt(Scope *S, SourceLocation ForLoc,
                                       Stmt *First, SourceLocation ColonLoc,
                                       Expr *Range, SourceLocation RParenLoc,
                                       BuildForRangeKind Kind) {
-  // FIXME: recover in order to allow the body to be parsed.
   if (!First)
     return StmtError();
 
@@ -2759,7 +2759,7 @@ StmtResult Sema::BuildCXXForRangeStmt(SourceLocation ForLoc,
       if (auto *DD = dyn_cast<DecompositionDecl>(LoopVar))
         for (auto *Binding : DD->bindings())
           Binding->setType(Context.DependentTy);
-      LoopVar->setType(SubstAutoTypeDependent(LoopVar->getType()));
+      LoopVar->setType(SubstAutoType(LoopVar->getType(), Context.DependentTy));
     }
   } else if (!BeginDeclStmt.get()) {
     SourceLocation RangeLoc = RangeVar->getLocation();
@@ -3563,7 +3563,8 @@ StmtResult Sema::ActOnCapScopeReturnStmt(SourceLocation ReturnLoc,
   bool HasDeducedReturnType =
       CurLambda && hasDeducedReturnType(CurLambda->CallOperator);
 
-  if (ExprEvalContexts.back().isDiscardedStatementContext() &&
+  if (ExprEvalContexts.back().Context ==
+          ExpressionEvaluationContext::DiscardedStatement &&
       (HasDeducedReturnType || CurCap->HasImplicitReturnType)) {
     if (RetValExp) {
       ExprResult ER =
@@ -3878,9 +3879,9 @@ Sema::ActOnReturnStmt(SourceLocation ReturnLoc, Expr *RetValExp,
       RetValExp, nullptr, /*RecoverUncorrectedTypos=*/true);
   if (RetVal.isInvalid())
     return StmtError();
-  StmtResult R =
-      BuildReturnStmt(ReturnLoc, RetVal.get(), /*AllowRecovery=*/true);
-  if (R.isInvalid() || ExprEvalContexts.back().isDiscardedStatementContext())
+  StmtResult R = BuildReturnStmt(ReturnLoc, RetVal.get());
+  if (R.isInvalid() || ExprEvalContexts.back().Context ==
+                           ExpressionEvaluationContext::DiscardedStatement)
     return R;
 
   if (VarDecl *VD =
@@ -3909,8 +3910,7 @@ static bool CheckSimplerImplicitMovesMSVCWorkaround(const Sema &S,
   return false;
 }
 
-StmtResult Sema::BuildReturnStmt(SourceLocation ReturnLoc, Expr *RetValExp,
-                                 bool AllowRecovery) {
+StmtResult Sema::BuildReturnStmt(SourceLocation ReturnLoc, Expr *RetValExp) {
   // Check for unexpanded parameter packs.
   if (RetValExp && DiagnoseUnexpandedParameterPack(RetValExp))
     return StmtError();
@@ -3966,7 +3966,8 @@ StmtResult Sema::BuildReturnStmt(SourceLocation ReturnLoc, Expr *RetValExp,
 
   // C++1z: discarded return statements are not considered when deducing a
   // return type.
-  if (ExprEvalContexts.back().isDiscardedStatementContext() &&
+  if (ExprEvalContexts.back().Context ==
+          ExpressionEvaluationContext::DiscardedStatement &&
       FnRetType->getContainedAutoType()) {
     if (RetValExp) {
       ExprResult ER =
@@ -3987,25 +3988,11 @@ StmtResult Sema::BuildReturnStmt(SourceLocation ReturnLoc, Expr *RetValExp,
       // If we've already decided this function is invalid, e.g. because
       // we saw a `return` whose expression had an error, don't keep
       // trying to deduce its return type.
-      // (Some return values may be needlessly wrapped in RecoveryExpr).
-      if (FD->isInvalidDecl() ||
-          DeduceFunctionTypeFromReturnExpr(FD, ReturnLoc, RetValExp, AT)) {
+      if (FD->isInvalidDecl())
+        return StmtError();
+      if (DeduceFunctionTypeFromReturnExpr(FD, ReturnLoc, RetValExp, AT)) {
         FD->setInvalidDecl();
-        if (!AllowRecovery)
-          return StmtError();
-        // The deduction failure is diagnosed and marked, try to recover.
-        if (RetValExp) {
-          // Wrap return value with a recovery expression of the previous type.
-          // If no deduction yet, use DependentTy.
-          auto Recovery = CreateRecoveryExpr(
-              RetValExp->getBeginLoc(), RetValExp->getEndLoc(), RetValExp,
-              AT->isDeduced() ? FnRetType : QualType());
-          if (Recovery.isInvalid())
-            return StmtError();
-          RetValExp = Recovery.get();
-        } else {
-          // Nothing to do: a ReturnStmt with no value is fine recovery.
-        }
+        return StmtError();
       } else {
         FnRetType = FD->getReturnType();
       }
@@ -4018,7 +4005,7 @@ StmtResult Sema::BuildReturnStmt(SourceLocation ReturnLoc, Expr *RetValExp,
   ReturnStmt *Result = nullptr;
   if (FnRetType->isVoidType()) {
     if (RetValExp) {
-      if (auto *ILE = dyn_cast<InitListExpr>(RetValExp)) {
+      if (isa<InitListExpr>(RetValExp)) {
         // We simply never allow init lists as the return value of void
         // functions. This is compatible because this was never allowed before,
         // so there's no legacy code to deal with.
@@ -4034,12 +4021,8 @@ StmtResult Sema::BuildReturnStmt(SourceLocation ReturnLoc, Expr *RetValExp,
         Diag(ReturnLoc, diag::err_return_init_list)
             << CurDecl << FunctionKind << RetValExp->getSourceRange();
 
-        // Preserve the initializers in the AST.
-        RetValExp = AllowRecovery
-                        ? CreateRecoveryExpr(ILE->getLBraceLoc(),
-                                             ILE->getRBraceLoc(), ILE->inits())
-                              .get()
-                        : nullptr;
+        // Drop the expression.
+        RetValExp = nullptr;
       } else if (!RetValExp->isTypeDependent()) {
         // C99 6.8.6.4p1 (ext_ since GCC warns)
         unsigned D = diag::ext_return_has_expr;
@@ -4136,9 +4119,6 @@ StmtResult Sema::BuildReturnStmt(SourceLocation ReturnLoc, Expr *RetValExp,
           InitializedEntity::InitializeResult(ReturnLoc, RetType);
       ExprResult Res = PerformMoveOrCopyInitialization(
           Entity, NRInfo, RetValExp, SupressSimplerImplicitMoves);
-      if (Res.isInvalid() && AllowRecovery)
-        Res = CreateRecoveryExpr(RetValExp->getBeginLoc(),
-                                 RetValExp->getEndLoc(), RetValExp, RetType);
       if (Res.isInvalid()) {
         // FIXME: Clean up temporaries here anyway?
         return StmtError();

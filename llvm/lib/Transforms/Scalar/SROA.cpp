@@ -323,7 +323,7 @@ private:
   ///
   /// Note that these are not separated by slice. This is because we expect an
   /// alloca to be completely rewritten or not rewritten at all. If rewritten,
-  /// all these instructions can simply be removed and replaced with poison as
+  /// all these instructions can simply be removed and replaced with undef as
   /// they come from outside of the allocated space.
   SmallVector<Instruction *, 8> DeadUsers;
 
@@ -333,10 +333,10 @@ private:
   /// Operands which will become dead if we rewrite the alloca.
   ///
   /// These are operands that in their particular use can be replaced with
-  /// poison when we rewrite the alloca. These show up in out-of-bounds inputs
+  /// undef when we rewrite the alloca. These show up in out-of-bounds inputs
   /// to PHI nodes and the like. They aren't entirely dead (there might be
   /// a GEP back into the bounds using it elsewhere) and nor is the PHI, but we
-  /// want to swap this particular input for poison to simplify the use lists of
+  /// want to swap this particular input for undef to simplify the use lists of
   /// the alloca.
   SmallVector<Use *, 8> DeadOperands;
 };
@@ -1008,13 +1008,6 @@ private:
     if (I.use_empty())
       return markAsDead(I);
 
-    // If this is a PHI node before a catchswitch, we cannot insert any non-PHI
-    // instructions in this BB, which may be required during rewriting. Bail out
-    // on these cases.
-    if (isa<PHINode>(I) &&
-        I.getParent()->getFirstInsertionPt() == I.getParent()->end())
-      return PI.setAborted(&I);
-
     // TODO: We could use SimplifyInstruction here to fold PHINodes and
     // SelectInsts. However, doing so requires to change the current
     // dead-operand-tracking mechanism. For instance, suppose neither loading
@@ -1030,7 +1023,7 @@ private:
         enqueueUsers(I);
       else
         // Otherwise the operand to the PHI/select is dead, and we can replace
-        // it with poison.
+        // it with undef.
         AS.DeadOperands.push_back(U);
 
       return;
@@ -1050,7 +1043,7 @@ private:
     // For PHI and select operands outside the alloca, we can't nuke the entire
     // phi or select -- the other side might still be relevant, so we special
     // case them here and use a separate structure to track the operands
-    // themselves which should be replaced with poison.
+    // themselves which should be replaced with undef.
     // FIXME: This should instead be escaped in the event we're instrumenting
     // for address sanitization.
     if (Offset.uge(AllocSize)) {
@@ -1271,14 +1264,14 @@ static bool isSafePHIToSpeculate(PHINode &PN) {
   return true;
 }
 
-static void speculatePHINodeLoads(IRBuilderTy &IRB, PHINode &PN) {
+static void speculatePHINodeLoads(PHINode &PN) {
   LLVM_DEBUG(dbgs() << "    original: " << PN << "\n");
 
   LoadInst *SomeLoad = cast<LoadInst>(PN.user_back());
   Type *LoadTy = SomeLoad->getType();
-  IRB.SetInsertPoint(&PN);
-  PHINode *NewPN = IRB.CreatePHI(LoadTy, PN.getNumIncomingValues(),
-                                 PN.getName() + ".sroa.speculated");
+  IRBuilderTy PHIBuilder(&PN);
+  PHINode *NewPN = PHIBuilder.CreatePHI(LoadTy, PN.getNumIncomingValues(),
+                                        PN.getName() + ".sroa.speculated");
 
   // Get the AA tags and alignment to use from one of the loads. It does not
   // matter which one we get and if any differ.
@@ -1308,9 +1301,9 @@ static void speculatePHINodeLoads(IRBuilderTy &IRB, PHINode &PN) {
     }
 
     Instruction *TI = Pred->getTerminator();
-    IRB.SetInsertPoint(TI);
+    IRBuilderTy PredBuilder(TI);
 
-    LoadInst *Load = IRB.CreateAlignedLoad(
+    LoadInst *Load = PredBuilder.CreateAlignedLoad(
         LoadTy, InVal, Alignment,
         (PN.getName() + ".sroa.speculate.load." + Pred->getName()));
     ++NumLoadsSpeculated;
@@ -1368,10 +1361,10 @@ static bool isSafeSelectToSpeculate(SelectInst &SI) {
   return true;
 }
 
-static void speculateSelectInstLoads(IRBuilderTy &IRB, SelectInst &SI) {
+static void speculateSelectInstLoads(SelectInst &SI) {
   LLVM_DEBUG(dbgs() << "    original: " << SI << "\n");
 
-  IRB.SetInsertPoint(&SI);
+  IRBuilderTy IRB(&SI);
   Value *TV = SI.getTrueValue();
   Value *FV = SI.getFalseValue();
   // Replace the loads of the select with a select of two loads.
@@ -2249,7 +2242,7 @@ class llvm::sroa::AllocaSliceRewriter
 
   const DataLayout &DL;
   AllocaSlices &AS;
-  SROAPass &Pass;
+  SROA &Pass;
   AllocaInst &OldAI, &NewAI;
   const uint64_t NewAllocaBeginOffset, NewAllocaEndOffset;
   Type *NewAllocaTy;
@@ -2297,7 +2290,7 @@ class llvm::sroa::AllocaSliceRewriter
   IRBuilderTy IRB;
 
 public:
-  AllocaSliceRewriter(const DataLayout &DL, AllocaSlices &AS, SROAPass &Pass,
+  AllocaSliceRewriter(const DataLayout &DL, AllocaSlices &AS, SROA &Pass,
                       AllocaInst &OldAI, AllocaInst &NewAI,
                       uint64_t NewAllocaBeginOffset,
                       uint64_t NewAllocaEndOffset, bool IsIntegerPromotable,
@@ -2565,7 +2558,7 @@ private:
       // the computed value, and then replace the placeholder with LI, leaving
       // LI only used for this computation.
       Value *Placeholder = new LoadInst(
-          LI.getType(), PoisonValue::get(LI.getType()->getPointerTo(AS)), "",
+          LI.getType(), UndefValue::get(LI.getType()->getPointerTo(AS)), "",
           false, Align(1));
       V = insertInteger(DL, IRB, Placeholder, V, NewBeginOffset - BeginOffset,
                         "insert");
@@ -3230,11 +3223,8 @@ class AggLoadStoreRewriter : public InstVisitor<AggLoadStoreRewriter, bool> {
   /// Used to calculate offsets, and hence alignment, of subobjects.
   const DataLayout &DL;
 
-  IRBuilderTy &IRB;
-
 public:
-  AggLoadStoreRewriter(const DataLayout &DL, IRBuilderTy &IRB)
-      : DL(DL), IRB(IRB) {}
+  AggLoadStoreRewriter(const DataLayout &DL) : DL(DL) {}
 
   /// Rewrite loads and stores through a pointer and all pointers derived from
   /// it.
@@ -3265,7 +3255,7 @@ private:
   template <typename Derived> class OpSplitter {
   protected:
     /// The builder used to form new instructions.
-    IRBuilderTy &IRB;
+    IRBuilderTy IRB;
 
     /// The indices which to be used with insert- or extractvalue to select the
     /// appropriate value within the aggregate.
@@ -3292,11 +3282,9 @@ private:
     /// Initialize the splitter with an insertion point, Ptr and start with a
     /// single zero GEP index.
     OpSplitter(Instruction *InsertionPoint, Value *Ptr, Type *BaseTy,
-               Align BaseAlign, const DataLayout &DL, IRBuilderTy &IRB)
-        : IRB(IRB), GEPIndices(1, IRB.getInt32(0)), Ptr(Ptr), BaseTy(BaseTy),
-          BaseAlign(BaseAlign), DL(DL) {
-      IRB.SetInsertPoint(InsertionPoint);
-    }
+               Align BaseAlign, const DataLayout &DL)
+        : IRB(InsertionPoint), GEPIndices(1, IRB.getInt32(0)), Ptr(Ptr),
+          BaseTy(BaseTy), BaseAlign(BaseAlign), DL(DL) {}
 
   public:
     /// Generic recursive split emission routine.
@@ -3357,10 +3345,9 @@ private:
     AAMDNodes AATags;
 
     LoadOpSplitter(Instruction *InsertionPoint, Value *Ptr, Type *BaseTy,
-                   AAMDNodes AATags, Align BaseAlign, const DataLayout &DL,
-                   IRBuilderTy &IRB)
-        : OpSplitter<LoadOpSplitter>(InsertionPoint, Ptr, BaseTy, BaseAlign, DL,
-                                     IRB),
+                   AAMDNodes AATags, Align BaseAlign, const DataLayout &DL)
+        : OpSplitter<LoadOpSplitter>(InsertionPoint, Ptr, BaseTy, BaseAlign,
+                                     DL),
           AATags(AATags) {}
 
     /// Emit a leaf load of a single value. This is called at the leaves of the
@@ -3392,8 +3379,8 @@ private:
     // We have an aggregate being loaded, split it apart.
     LLVM_DEBUG(dbgs() << "    original: " << LI << "\n");
     LoadOpSplitter Splitter(&LI, *U, LI.getType(), LI.getAAMetadata(),
-                            getAdjustedAlignment(&LI, 0), DL, IRB);
-    Value *V = PoisonValue::get(LI.getType());
+                            getAdjustedAlignment(&LI, 0), DL);
+    Value *V = UndefValue::get(LI.getType());
     Splitter.emitSplitOps(LI.getType(), V, LI.getName() + ".fca");
     Visited.erase(&LI);
     LI.replaceAllUsesWith(V);
@@ -3403,10 +3390,9 @@ private:
 
   struct StoreOpSplitter : public OpSplitter<StoreOpSplitter> {
     StoreOpSplitter(Instruction *InsertionPoint, Value *Ptr, Type *BaseTy,
-                    AAMDNodes AATags, Align BaseAlign, const DataLayout &DL,
-                    IRBuilderTy &IRB)
+                    AAMDNodes AATags, Align BaseAlign, const DataLayout &DL)
         : OpSplitter<StoreOpSplitter>(InsertionPoint, Ptr, BaseTy, BaseAlign,
-                                      DL, IRB),
+                                      DL),
           AATags(AATags) {}
     AAMDNodes AATags;
     /// Emit a leaf store of a single value. This is called at the leaves of the
@@ -3444,7 +3430,7 @@ private:
     // We have an aggregate being stored, split it apart.
     LLVM_DEBUG(dbgs() << "    original: " << SI << "\n");
     StoreOpSplitter Splitter(&SI, *U, V->getType(), SI.getAAMetadata(),
-                             getAdjustedAlignment(&SI, 0), DL, IRB);
+                             getAdjustedAlignment(&SI, 0), DL);
     Splitter.emitSplitOps(V->getType(), V, V->getName() + ".fca");
     Visited.erase(&SI);
     SI.eraseFromParent();
@@ -3472,7 +3458,7 @@ private:
                       << "\n    original: " << *Sel
                       << "\n              " << GEPI);
 
-    IRB.SetInsertPoint(&GEPI);
+    IRBuilderTy Builder(&GEPI);
     SmallVector<Value *, 4> Index(GEPI.indices());
     bool IsInBounds = GEPI.isInBounds();
 
@@ -3480,20 +3466,21 @@ private:
     Value *True = Sel->getTrueValue();
     Value *NTrue =
         IsInBounds
-            ? IRB.CreateInBoundsGEP(Ty, True, Index,
-                                    True->getName() + ".sroa.gep")
-            : IRB.CreateGEP(Ty, True, Index, True->getName() + ".sroa.gep");
+            ? Builder.CreateInBoundsGEP(Ty, True, Index,
+                                        True->getName() + ".sroa.gep")
+            : Builder.CreateGEP(Ty, True, Index, True->getName() + ".sroa.gep");
 
     Value *False = Sel->getFalseValue();
 
     Value *NFalse =
         IsInBounds
-            ? IRB.CreateInBoundsGEP(Ty, False, Index,
-                                    False->getName() + ".sroa.gep")
-            : IRB.CreateGEP(Ty, False, Index, False->getName() + ".sroa.gep");
+            ? Builder.CreateInBoundsGEP(Ty, False, Index,
+                                        False->getName() + ".sroa.gep")
+            : Builder.CreateGEP(Ty, False, Index,
+                                False->getName() + ".sroa.gep");
 
-    Value *NSel = IRB.CreateSelect(Sel->getCondition(), NTrue, NFalse,
-                                   Sel->getName() + ".sroa.sel");
+    Value *NSel = Builder.CreateSelect(Sel->getCondition(), NTrue, NFalse,
+                                       Sel->getName() + ".sroa.sel");
     Visited.erase(&GEPI);
     GEPI.replaceAllUsesWith(NSel);
     GEPI.eraseFromParent();
@@ -3530,9 +3517,10 @@ private:
 
     SmallVector<Value *, 4> Index(GEPI.indices());
     bool IsInBounds = GEPI.isInBounds();
-    IRB.SetInsertPoint(GEPI.getParent()->getFirstNonPHI());
-    PHINode *NewPN = IRB.CreatePHI(GEPI.getType(), PHI->getNumIncomingValues(),
-                                   PHI->getName() + ".sroa.phi");
+    IRBuilderTy PHIBuilder(GEPI.getParent()->getFirstNonPHI());
+    PHINode *NewPN = PHIBuilder.CreatePHI(GEPI.getType(),
+                                          PHI->getNumIncomingValues(),
+                                          PHI->getName() + ".sroa.phi");
     for (unsigned I = 0, E = PHI->getNumIncomingValues(); I != E; ++I) {
       BasicBlock *B = PHI->getIncomingBlock(I);
       Value *NewVal = nullptr;
@@ -3542,12 +3530,11 @@ private:
       } else {
         Instruction *In = cast<Instruction>(PHI->getIncomingValue(I));
 
-        IRB.SetInsertPoint(In->getParent(), std::next(In->getIterator()));
+        IRBuilderTy B(In->getParent(), std::next(In->getIterator()));
         Type *Ty = GEPI.getSourceElementType();
-        NewVal = IsInBounds ? IRB.CreateInBoundsGEP(Ty, In, Index,
-                                                    In->getName() + ".sroa.gep")
-                            : IRB.CreateGEP(Ty, In, Index,
-                                            In->getName() + ".sroa.gep");
+        NewVal = IsInBounds
+            ? B.CreateInBoundsGEP(Ty, In, Index, In->getName() + ".sroa.gep")
+            : B.CreateGEP(Ty, In, Index, In->getName() + ".sroa.gep");
       }
       NewPN->addIncoming(NewVal, B);
     }
@@ -3768,7 +3755,7 @@ static Type *getTypePartition(const DataLayout &DL, Type *Ty, uint64_t Offset,
 /// there all along.
 ///
 /// \returns true if any changes are made.
-bool SROAPass::presplitLoadsAndStores(AllocaInst &AI, AllocaSlices &AS) {
+bool SROA::presplitLoadsAndStores(AllocaInst &AI, AllocaSlices &AS) {
   LLVM_DEBUG(dbgs() << "Pre-splitting loads and stores\n");
 
   // Track the loads and stores which are candidates for pre-splitting here, in
@@ -4248,8 +4235,8 @@ bool SROAPass::presplitLoadsAndStores(AllocaInst &AI, AllocaSlices &AS) {
 /// appropriate new offsets. It also evaluates how successful the rewrite was
 /// at enabling promotion and if it was successful queues the alloca to be
 /// promoted.
-AllocaInst *SROAPass::rewritePartition(AllocaInst &AI, AllocaSlices &AS,
-                                       Partition &P) {
+AllocaInst *SROA::rewritePartition(AllocaInst &AI, AllocaSlices &AS,
+                                   Partition &P) {
   // Try to compute a friendly type for this partition of the alloca. This
   // won't always succeed, in which case we fall back to a legal integer type
   // or an i8 array of an appropriate size.
@@ -4400,7 +4387,7 @@ AllocaInst *SROAPass::rewritePartition(AllocaInst &AI, AllocaSlices &AS,
 
 /// Walks the slices of an alloca and form partitions based on them,
 /// rewriting each of their uses.
-bool SROAPass::splitAlloca(AllocaInst &AI, AllocaSlices &AS) {
+bool SROA::splitAlloca(AllocaInst &AI, AllocaSlices &AS) {
   if (AS.begin() == AS.end())
     return false;
 
@@ -4570,11 +4557,11 @@ bool SROAPass::splitAlloca(AllocaInst &AI, AllocaSlices &AS) {
   return Changed;
 }
 
-/// Clobber a use with poison, deleting the used value if it becomes dead.
-void SROAPass::clobberUse(Use &U) {
+/// Clobber a use with undef, deleting the used value if it becomes dead.
+void SROA::clobberUse(Use &U) {
   Value *OldV = U;
-  // Replace the use with an poison value.
-  U = PoisonValue::get(OldV->getType());
+  // Replace the use with an undef value.
+  U = UndefValue::get(OldV->getType());
 
   // Check for this making an instruction dead. We have to garbage collect
   // all the dead instructions to ensure the uses of any alloca end up being
@@ -4590,7 +4577,7 @@ void SROAPass::clobberUse(Use &U) {
 /// This analyzes the alloca to ensure we can reason about it, builds
 /// the slices of the alloca, and then hands it off to be split and
 /// rewritten as needed.
-bool SROAPass::runOnAlloca(AllocaInst &AI) {
+bool SROA::runOnAlloca(AllocaInst &AI) {
   LLVM_DEBUG(dbgs() << "SROA alloca: " << AI << "\n");
   ++NumAllocasAnalyzed;
 
@@ -4611,8 +4598,7 @@ bool SROAPass::runOnAlloca(AllocaInst &AI) {
 
   // First, split any FCA loads and stores touching this alloca to promote
   // better splitting and promotion opportunities.
-  IRBuilderTy IRB(&AI);
-  AggLoadStoreRewriter AggRewriter(DL, IRB);
+  AggLoadStoreRewriter AggRewriter(DL);
   Changed |= AggRewriter.rewrite(AI);
 
   // Build the slices using a recursive instruction-visiting builder.
@@ -4628,7 +4614,7 @@ bool SROAPass::runOnAlloca(AllocaInst &AI) {
       clobberUse(DeadOp);
 
     // Now replace the uses of this instruction.
-    DeadUser->replaceAllUsesWith(PoisonValue::get(DeadUser->getType()));
+    DeadUser->replaceAllUsesWith(UndefValue::get(DeadUser->getType()));
 
     // And mark it for deletion.
     DeadInsts.push_back(DeadUser);
@@ -4647,11 +4633,11 @@ bool SROAPass::runOnAlloca(AllocaInst &AI) {
 
   LLVM_DEBUG(dbgs() << "  Speculating PHIs\n");
   while (!SpeculatablePHIs.empty())
-    speculatePHINodeLoads(IRB, *SpeculatablePHIs.pop_back_val());
+    speculatePHINodeLoads(*SpeculatablePHIs.pop_back_val());
 
   LLVM_DEBUG(dbgs() << "  Speculating Selects\n");
   while (!SpeculatableSelects.empty())
-    speculateSelectInstLoads(IRB, *SpeculatableSelects.pop_back_val());
+    speculateSelectInstLoads(*SpeculatableSelects.pop_back_val());
 
   return Changed;
 }
@@ -4665,7 +4651,7 @@ bool SROAPass::runOnAlloca(AllocaInst &AI) {
 ///
 /// We also record the alloca instructions deleted here so that they aren't
 /// subsequently handed to mem2reg to promote.
-bool SROAPass::deleteDeadInstructions(
+bool SROA::deleteDeadInstructions(
     SmallPtrSetImpl<AllocaInst *> &DeletedAllocas) {
   bool Changed = false;
   while (!DeadInsts.empty()) {
@@ -4704,7 +4690,7 @@ bool SROAPass::deleteDeadInstructions(
 /// This attempts to promote whatever allocas have been identified as viable in
 /// the PromotableAllocas list. If that list is empty, there is nothing to do.
 /// This function returns whether any promotion occurred.
-bool SROAPass::promoteAllocas(Function &F) {
+bool SROA::promoteAllocas(Function &F) {
   if (PromotableAllocas.empty())
     return false;
 
@@ -4716,8 +4702,8 @@ bool SROAPass::promoteAllocas(Function &F) {
   return true;
 }
 
-PreservedAnalyses SROAPass::runImpl(Function &F, DominatorTree &RunDT,
-                                    AssumptionCache &RunAC) {
+PreservedAnalyses SROA::runImpl(Function &F, DominatorTree &RunDT,
+                                AssumptionCache &RunAC) {
   LLVM_DEBUG(dbgs() << "SROA function: " << F.getName() << "\n");
   C = &F.getContext();
   DT = &RunDT;
@@ -4771,7 +4757,7 @@ PreservedAnalyses SROAPass::runImpl(Function &F, DominatorTree &RunDT,
   return PA;
 }
 
-PreservedAnalyses SROAPass::run(Function &F, FunctionAnalysisManager &AM) {
+PreservedAnalyses SROA::run(Function &F, FunctionAnalysisManager &AM) {
   return runImpl(F, AM.getResult<DominatorTreeAnalysis>(F),
                  AM.getResult<AssumptionAnalysis>(F));
 }
@@ -4782,7 +4768,7 @@ PreservedAnalyses SROAPass::run(Function &F, FunctionAnalysisManager &AM) {
 /// SROA pass.
 class llvm::sroa::SROALegacyPass : public FunctionPass {
   /// The SROA implementation.
-  SROAPass Impl;
+  SROA Impl;
 
 public:
   static char ID;

@@ -133,7 +133,7 @@ static bool isDefOrUse(const AsmParserState::SMDefinition &def, llvm::SMLoc loc,
   }
 
   // Check the uses.
-  const auto *useIt = llvm::find_if(def.uses, [&](const llvm::SMRange &range) {
+  auto useIt = llvm::find_if(def.uses, [&](const llvm::SMRange &range) {
     return contains(range, loc);
   });
   if (useIt != def.uses.end()) {
@@ -367,7 +367,7 @@ void MLIRDocument::getLocationsOf(const lsp::URIForFile &uri,
     if (contains(op.loc, posLoc))
       return collectLocationsFromLoc(op.op->getLoc(), locations, uri);
     for (const auto &result : op.resultGroups)
-      if (containsPosition(result.definition))
+      if (containsPosition(result.second))
         return collectLocationsFromLoc(op.op->getLoc(), locations, uri);
     for (const auto &symUse : op.symbolUses) {
       if (contains(symUse, posLoc)) {
@@ -404,15 +404,15 @@ void MLIRDocument::findReferencesOf(const lsp::URIForFile &uri,
   for (const AsmParserState::OperationDefinition &op : asmState.getOpDefs()) {
     if (contains(op.loc, posLoc)) {
       for (const auto &result : op.resultGroups)
-        appendSMDef(result.definition);
+        appendSMDef(result.second);
       for (const auto &symUse : op.symbolUses)
         if (contains(symUse, posLoc))
           references.push_back(getLocationFromLoc(sourceMgr, symUse, uri));
       return;
     }
     for (const auto &result : op.resultGroups)
-      if (isDefOrUse(result.definition, posLoc))
-        return appendSMDef(result.definition);
+      if (isDefOrUse(result.second, posLoc))
+        return appendSMDef(result.second);
     for (const auto &symUse : op.symbolUses) {
       if (!contains(symUse, posLoc))
         continue;
@@ -456,13 +456,13 @@ Optional<lsp::Hover> MLIRDocument::findHover(const lsp::URIForFile &uri,
     // Check if the position points at a result group.
     for (unsigned i = 0, e = op.resultGroups.size(); i < e; ++i) {
       const auto &result = op.resultGroups[i];
-      if (!isDefOrUse(result.definition, posLoc, &hoverRange))
+      if (!isDefOrUse(result.second, posLoc, &hoverRange))
         continue;
 
       // Get the range of results covered by the over position.
-      unsigned resultStart = result.startIndex;
-      unsigned resultEnd = (i == e - 1) ? op.op->getNumResults()
-                                        : op.resultGroups[i + 1].startIndex;
+      unsigned resultStart = result.first;
+      unsigned resultEnd =
+          (i == e - 1) ? op.op->getNumResults() : op.resultGroups[i + 1].first;
       return buildHoverForOperationResult(hoverRange, op.op, resultStart,
                                           resultEnd, posLoc);
     }
@@ -619,7 +619,7 @@ void MLIRDocument::findDocumentSymbols(
     // If this operation defines a symbol, record it.
     if (SymbolOpInterface symbol = dyn_cast<SymbolOpInterface>(op)) {
       symbols.emplace_back(symbol.getName(),
-                           isa<FunctionOpInterface>(op)
+                           op->hasTrait<OpTrait::FunctionLike>()
                                ? lsp::SymbolKind::Function
                                : lsp::SymbolKind::Class,
                            getRangeFromLoc(sourceMgr, def->scopeLoc),
@@ -878,7 +878,7 @@ struct lsp::MLIRServer::Impl {
 
 lsp::MLIRServer::MLIRServer(DialectRegistry &registry)
     : impl(std::make_unique<Impl>(registry)) {}
-lsp::MLIRServer::~MLIRServer() = default;
+lsp::MLIRServer::~MLIRServer() {}
 
 void lsp::MLIRServer::addOrUpdateDocument(
     const URIForFile &uri, StringRef contents, int64_t version,

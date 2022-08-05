@@ -64,7 +64,6 @@
 #include "clang/StaticAnalyzer/Core/BugReporter/CommonBugCategories.h"
 #include "clang/StaticAnalyzer/Core/Checker.h"
 #include "clang/StaticAnalyzer/Core/CheckerManager.h"
-#include "clang/StaticAnalyzer/Core/PathSensitive/CallDescription.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/CallEvent.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/CheckerContext.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/CheckerHelpers.h"
@@ -1643,7 +1642,7 @@ void MallocChecker::checkPostObjCMessage(const ObjCMethodCall &Call,
   ProgramStateRef State =
       FreeMemAux(C, Call.getArgExpr(0), Call, C.getState(),
                  /*Hold=*/true, IsKnownToBeAllocatedMemory, AF_Malloc,
-                 /*ReturnsNullOnFailure=*/true);
+                 /*RetNullOnFailure=*/true);
 
   C.addTransition(State);
 }

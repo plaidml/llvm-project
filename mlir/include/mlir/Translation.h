@@ -79,7 +79,7 @@ struct TranslateToMLIRRegistration {
 struct TranslateFromMLIRRegistration {
   TranslateFromMLIRRegistration(
       llvm::StringRef name, const TranslateFromMLIRFunction &function,
-      const std::function<void(DialectRegistry &)> &dialectRegistration =
+      std::function<void(DialectRegistry &)> dialectRegistration =
           [](DialectRegistry &) {});
 };
 struct TranslateRegistration {

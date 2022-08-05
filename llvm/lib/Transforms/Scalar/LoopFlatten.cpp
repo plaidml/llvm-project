@@ -31,7 +31,6 @@
 #include "llvm/ADT/Statistic.h"
 #include "llvm/Analysis/AssumptionCache.h"
 #include "llvm/Analysis/LoopInfo.h"
-#include "llvm/Analysis/MemorySSAUpdater.h"
 #include "llvm/Analysis/OptimizationRemarkEmitter.h"
 #include "llvm/Analysis/ScalarEvolution.h"
 #include "llvm/Analysis/TargetTransformInfo.h"
@@ -71,7 +70,8 @@ static cl::opt<bool>
                               "trip counts will never overflow"));
 
 static cl::opt<bool>
-    WidenIV("loop-flatten-widen-iv", cl::Hidden, cl::init(true),
+    WidenIV("loop-flatten-widen-iv", cl::Hidden,
+            cl::init(true),
             cl::desc("Widen the loop induction variables, if possible, so "
                      "overflow checks won't reject flattening"));
 
@@ -100,7 +100,7 @@ struct FlattenInfo {
   PHINode *NarrowInnerInductionPHI = nullptr;
   PHINode *NarrowOuterInductionPHI = nullptr;
 
-  FlattenInfo(Loop *OL, Loop *IL) : OuterLoop(OL), InnerLoop(IL){};
+  FlattenInfo(Loop *OL, Loop *IL) : OuterLoop(OL), InnerLoop(IL) {};
 
   bool isNarrowInductionPhi(PHINode *Phi) {
     // This can't be the narrow phi if we haven't widened the IV first.
@@ -207,7 +207,7 @@ static bool findLoopComponents(
   // nothing obvious in the surrounding code when handles the overflow case.
   // FIXME: audit code to establish whether there's a latent bug here.
   const SCEV *SCEVTripCount =
-      SE->getTripCountFromExitCount(BackedgeTakenCount, false);
+    SE->getTripCountFromExitCount(BackedgeTakenCount, false);
   const SCEV *SCEVRHS = SE->getSCEV(RHS);
   if (SCEVRHS == SCEVTripCount)
     return setLoopComponents(RHS, TripCount, Increment, IterationInstructions);
@@ -535,7 +535,7 @@ static OverflowResult checkOverflow(FlattenInfo &FI, DominatorTree *DT,
     for (Value *U : V->users()) {
       if (auto *GEP = dyn_cast<GetElementPtrInst>(U)) {
         for (Value *GEPUser : U->users()) {
-          auto *GEPUserInst = cast<Instruction>(GEPUser);
+          Instruction *GEPUserInst = dyn_cast<Instruction>(GEPUser);
           if (!isa<LoadInst>(GEPUserInst) &&
               !(isa<StoreInst>(GEPUserInst) &&
                 GEP == GEPUserInst->getOperand(1)))
@@ -611,8 +611,7 @@ static bool CanFlattenLoopPair(FlattenInfo &FI, DominatorTree *DT, LoopInfo *LI,
 
 static bool DoFlattenLoopPair(FlattenInfo &FI, DominatorTree *DT, LoopInfo *LI,
                               ScalarEvolution *SE, AssumptionCache *AC,
-                              const TargetTransformInfo *TTI, LPMUpdater *U,
-                              MemorySSAUpdater *MSSAU) {
+                              const TargetTransformInfo *TTI, LPMUpdater *U) {
   Function *F = FI.OuterLoop->getHeader()->getParent();
   LLVM_DEBUG(dbgs() << "Checks all passed, doing the transformation\n");
   {
@@ -648,11 +647,7 @@ static bool DoFlattenLoopPair(FlattenInfo &FI, DominatorTree *DT, LoopInfo *LI,
   BasicBlock *InnerExitingBlock = FI.InnerLoop->getExitingBlock();
   InnerExitingBlock->getTerminator()->eraseFromParent();
   BranchInst::Create(InnerExitBlock, InnerExitingBlock);
-
-  // Update the DomTree and MemorySSA.
   DT->deleteEdge(InnerExitingBlock, FI.InnerLoop->getHeader());
-  if (MSSAU)
-    MSSAU->removeEdge(InnerExitingBlock, FI.InnerLoop->getHeader());
 
   // Replace all uses of the polynomial calculated from the two induction
   // variables with the one new one.
@@ -663,8 +658,8 @@ static bool DoFlattenLoopPair(FlattenInfo &FI, DominatorTree *DT, LoopInfo *LI,
       OuterValue = Builder.CreateTrunc(FI.OuterInductionPHI, V->getType(),
                                        "flatten.trunciv");
 
-    LLVM_DEBUG(dbgs() << "Replacing: "; V->dump(); dbgs() << "with:      ";
-               OuterValue->dump());
+    LLVM_DEBUG(dbgs() << "Replacing: "; V->dump();
+               dbgs() << "with:      "; OuterValue->dump());
     V->replaceAllUsesWith(OuterValue);
   }
 
@@ -703,8 +698,7 @@ static bool CanWidenIV(FlattenInfo &FI, DominatorTree *DT, LoopInfo *LI,
   // (OuterTripCount * InnerTripCount) as the new trip count is safe.
   if (InnerType != OuterType ||
       InnerType->getScalarSizeInBits() >= MaxLegalSize ||
-      MaxLegalType->getScalarSizeInBits() <
-          InnerType->getScalarSizeInBits() * 2) {
+      MaxLegalType->getScalarSizeInBits() < InnerType->getScalarSizeInBits() * 2) {
     LLVM_DEBUG(dbgs() << "Can't widen the IV\n");
     return false;
   }
@@ -714,10 +708,10 @@ static bool CanWidenIV(FlattenInfo &FI, DominatorTree *DT, LoopInfo *LI,
   unsigned ElimExt = 0;
   unsigned Widened = 0;
 
-  auto CreateWideIV = [&](WideIVInfo WideIV, bool &Deleted) -> bool {
-    PHINode *WidePhi =
-        createWideIV(WideIV, LI, SE, Rewriter, DT, DeadInsts, ElimExt, Widened,
-                     true /* HasGuards */, true /* UsePostIncrementRanges */);
+  auto CreateWideIV = [&] (WideIVInfo WideIV, bool &Deleted) -> bool {
+    PHINode *WidePhi = createWideIV(WideIV, LI, SE, Rewriter, DT, DeadInsts,
+                                    ElimExt, Widened, true /* HasGuards */,
+                                    true /* UsePostIncrementRanges */);
     if (!WidePhi)
       return false;
     LLVM_DEBUG(dbgs() << "Created wide phi: "; WidePhi->dump());
@@ -727,14 +721,14 @@ static bool CanWidenIV(FlattenInfo &FI, DominatorTree *DT, LoopInfo *LI,
   };
 
   bool Deleted;
-  if (!CreateWideIV({FI.InnerInductionPHI, MaxLegalType, false}, Deleted))
+  if (!CreateWideIV({FI.InnerInductionPHI, MaxLegalType, false }, Deleted))
     return false;
   // Add the narrow phi to list, so that it will be adjusted later when the
   // the transformation is performed.
   if (!Deleted)
     FI.InnerPHIsToTransform.insert(FI.InnerInductionPHI);
 
-  if (!CreateWideIV({FI.OuterInductionPHI, MaxLegalType, false}, Deleted))
+  if (!CreateWideIV({FI.OuterInductionPHI, MaxLegalType, false }, Deleted))
     return false;
 
   assert(Widened && "Widened IV expected");
@@ -750,8 +744,7 @@ static bool CanWidenIV(FlattenInfo &FI, DominatorTree *DT, LoopInfo *LI,
 
 static bool FlattenLoopPair(FlattenInfo &FI, DominatorTree *DT, LoopInfo *LI,
                             ScalarEvolution *SE, AssumptionCache *AC,
-                            const TargetTransformInfo *TTI, LPMUpdater *U,
-                            MemorySSAUpdater *MSSAU) {
+                            const TargetTransformInfo *TTI, LPMUpdater *U) {
   LLVM_DEBUG(
       dbgs() << "Loop flattening running on outer loop "
              << FI.OuterLoop->getHeader()->getName() << " and inner loop "
@@ -780,7 +773,7 @@ static bool FlattenLoopPair(FlattenInfo &FI, DominatorTree *DT, LoopInfo *LI,
 
   // If we have widened and can perform the transformation, do that here.
   if (CanFlatten)
-    return DoFlattenLoopPair(FI, DT, LI, SE, AC, TTI, U, MSSAU);
+    return DoFlattenLoopPair(FI, DT, LI, SE, AC, TTI, U);
 
   // Otherwise, if we haven't widened the IV, check if the new iteration
   // variable might overflow. In this case, we need to version the loop, and
@@ -798,19 +791,18 @@ static bool FlattenLoopPair(FlattenInfo &FI, DominatorTree *DT, LoopInfo *LI,
   }
 
   LLVM_DEBUG(dbgs() << "Multiply cannot overflow, modifying loop in-place\n");
-  return DoFlattenLoopPair(FI, DT, LI, SE, AC, TTI, U, MSSAU);
+  return DoFlattenLoopPair(FI, DT, LI, SE, AC, TTI, U);
 }
 
 bool Flatten(LoopNest &LN, DominatorTree *DT, LoopInfo *LI, ScalarEvolution *SE,
-             AssumptionCache *AC, TargetTransformInfo *TTI, LPMUpdater *U,
-             MemorySSAUpdater *MSSAU) {
+             AssumptionCache *AC, TargetTransformInfo *TTI, LPMUpdater *U) {
   bool Changed = false;
   for (Loop *InnerLoop : LN.getLoops()) {
     auto *OuterLoop = InnerLoop->getParentLoop();
     if (!OuterLoop)
       continue;
     FlattenInfo FI(OuterLoop, InnerLoop);
-    Changed |= FlattenLoopPair(FI, DT, LI, SE, AC, TTI, U, MSSAU);
+    Changed |= FlattenLoopPair(FI, DT, LI, SE, AC, TTI, U);
   }
   return Changed;
 }
@@ -821,30 +813,16 @@ PreservedAnalyses LoopFlattenPass::run(LoopNest &LN, LoopAnalysisManager &LAM,
 
   bool Changed = false;
 
-  Optional<MemorySSAUpdater> MSSAU;
-  if (AR.MSSA) {
-    MSSAU = MemorySSAUpdater(AR.MSSA);
-    if (VerifyMemorySSA)
-      AR.MSSA->verifyMemorySSA();
-  }
-
   // The loop flattening pass requires loops to be
   // in simplified form, and also needs LCSSA. Running
   // this pass will simplify all loops that contain inner loops,
   // regardless of whether anything ends up being flattened.
-  Changed |= Flatten(LN, &AR.DT, &AR.LI, &AR.SE, &AR.AC, &AR.TTI, &U,
-                     MSSAU.hasValue() ? MSSAU.getPointer() : nullptr);
+  Changed |= Flatten(LN, &AR.DT, &AR.LI, &AR.SE, &AR.AC, &AR.TTI, &U);
 
   if (!Changed)
     return PreservedAnalyses::all();
 
-  if (AR.MSSA && VerifyMemorySSA)
-    AR.MSSA->verifyMemorySSA();
-
-  auto PA = getLoopPassPreservedAnalyses();
-  if (AR.MSSA)
-    PA.preserve<MemorySSAAnalysis>();
-  return PA;
+  return getLoopPassPreservedAnalyses();
 }
 
 namespace {
@@ -864,7 +842,6 @@ public:
     AU.addPreserved<TargetTransformInfoWrapperPass>();
     AU.addRequired<AssumptionCacheTracker>();
     AU.addPreserved<AssumptionCacheTracker>();
-    AU.addPreserved<MemorySSAWrapperPass>();
   }
 };
 } // namespace
@@ -877,9 +854,7 @@ INITIALIZE_PASS_DEPENDENCY(AssumptionCacheTracker)
 INITIALIZE_PASS_END(LoopFlattenLegacyPass, "loop-flatten", "Flattens loops",
                     false, false)
 
-FunctionPass *llvm::createLoopFlattenPass() {
-  return new LoopFlattenLegacyPass();
-}
+FunctionPass *llvm::createLoopFlattenPass() { return new LoopFlattenLegacyPass(); }
 
 bool LoopFlattenLegacyPass::runOnFunction(Function &F) {
   ScalarEvolution *SE = &getAnalysis<ScalarEvolutionWrapperPass>().getSE();
@@ -889,17 +864,10 @@ bool LoopFlattenLegacyPass::runOnFunction(Function &F) {
   auto &TTIP = getAnalysis<TargetTransformInfoWrapperPass>();
   auto *TTI = &TTIP.getTTI(F);
   auto *AC = &getAnalysis<AssumptionCacheTracker>().getAssumptionCache(F);
-  auto *MSSA = getAnalysisIfAvailable<MemorySSAWrapperPass>();
-
-  Optional<MemorySSAUpdater> MSSAU;
-  if (MSSA)
-    MSSAU = MemorySSAUpdater(&MSSA->getMSSA());
-
   bool Changed = false;
   for (Loop *L : *LI) {
     auto LN = LoopNest::getLoopNest(*L, *SE);
-    Changed |= Flatten(*LN, DT, LI, SE, AC, TTI, nullptr,
-                       MSSAU.hasValue() ? MSSAU.getPointer() : nullptr);
+    Changed |= Flatten(*LN, DT, LI, SE, AC, TTI, nullptr);
   }
   return Changed;
 }

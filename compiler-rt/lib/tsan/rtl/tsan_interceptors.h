@@ -36,10 +36,6 @@ inline bool in_symbolizer() {
 }
 #endif
 
-inline bool MustIgnoreInterceptor(ThreadState *thr) {
-  return !thr->is_inited || thr->ignore_interceptors || thr->in_ignored_lib;
-}
-
 }  // namespace __tsan
 
 #define SCOPED_INTERCEPTOR_RAW(func, ...)            \
@@ -64,10 +60,10 @@ inline bool MustIgnoreInterceptor(ThreadState *thr) {
 #  define CHECK_REAL_FUNC(func) DCHECK(REAL(func))
 #endif
 
-#define SCOPED_TSAN_INTERCEPTOR(func, ...)   \
-  SCOPED_INTERCEPTOR_RAW(func, __VA_ARGS__); \
-  CHECK_REAL_FUNC(func);                     \
-  if (MustIgnoreInterceptor(thr))            \
+#define SCOPED_TSAN_INTERCEPTOR(func, ...)                                \
+  SCOPED_INTERCEPTOR_RAW(func, __VA_ARGS__);                              \
+  CHECK_REAL_FUNC(func);                                                  \
+  if (!thr->is_inited || thr->ignore_interceptors || thr->in_ignored_lib) \
     return REAL(func)(__VA_ARGS__);
 
 #define SCOPED_TSAN_INTERCEPTOR_USER_CALLBACK_START() \

@@ -54,7 +54,6 @@ private:
   void writeNameList(raw_ostream &OS);
   void writeStringTable(raw_ostream &OS);
   void writeExportTrie(raw_ostream &OS);
-  void writeDynamicSymbolTable(raw_ostream &OS);
 
   void dumpExportEntry(raw_ostream &OS, MachOYAML::ExportEntry &Entry);
   void ZeroToOffset(raw_ostream &OS, size_t offset);
@@ -289,7 +288,6 @@ void MachOWriter::writeLoadCommands(raw_ostream &OS) {
 }
 
 Error MachOWriter::writeSectionData(raw_ostream &OS) {
-  uint64_t LinkEditOff = 0;
   for (auto &LC : Obj.LoadCommands) {
     switch (LC.Data.load_command_data.cmd) {
     case MachO::LC_SEGMENT:
@@ -299,9 +297,6 @@ Error MachOWriter::writeSectionData(raw_ostream &OS) {
       if (0 ==
           strncmp(&LC.Data.segment_command_data.segname[0], "__LINKEDIT", 16)) {
         FoundLinkEditSeg = true;
-        LinkEditOff = segOff;
-        if (Obj.RawLinkEditSegment)
-          continue;
         writeLinkEditData(OS);
       }
       for (auto &Sec : LC.Sections) {
@@ -349,13 +344,6 @@ Error MachOWriter::writeSectionData(raw_ostream &OS) {
     }
   }
 
-  if (Obj.RawLinkEditSegment) {
-    ZeroToOffset(OS, LinkEditOff);
-    if (OS.tell() - fileStart > LinkEditOff || !LinkEditOff)
-      return createStringError(errc::invalid_argument,
-                               "section offsets don't line up");
-    Obj.RawLinkEditSegment->writeAsBinary(OS);
-  }
   return Error::success();
 }
 
@@ -481,9 +469,8 @@ void MachOWriter::writeLinkEditData(raw_ostream &OS) {
   typedef std::pair<uint64_t, writeHandler> writeOperation;
   std::vector<writeOperation> WriteQueue;
 
-  MachO::dyld_info_command *DyldInfoOnlyCmd = nullptr;
-  MachO::symtab_command *SymtabCmd = nullptr;
-  MachO::dysymtab_command *DSymtabCmd = nullptr;
+  MachO::dyld_info_command *DyldInfoOnlyCmd = 0;
+  MachO::symtab_command *SymtabCmd = 0;
   for (auto &LC : Obj.LoadCommands) {
     switch (LC.Data.load_command_data.cmd) {
     case MachO::LC_SYMTAB:
@@ -505,11 +492,6 @@ void MachOWriter::writeLinkEditData(raw_ostream &OS) {
                                           &MachOWriter::writeLazyBindOpcodes));
       WriteQueue.push_back(std::make_pair(DyldInfoOnlyCmd->export_off,
                                           &MachOWriter::writeExportTrie));
-      break;
-    case MachO::LC_DYSYMTAB:
-      DSymtabCmd = &LC.Data.dysymtab_command_data;
-      WriteQueue.push_back(std::make_pair(
-          DSymtabCmd->indirectsymoff, &MachOWriter::writeDynamicSymbolTable));
       break;
     }
   }
@@ -561,12 +543,6 @@ void MachOWriter::writeStringTable(raw_ostream &OS) {
     OS.write(Str.data(), Str.size());
     OS.write('\0');
   }
-}
-
-void MachOWriter::writeDynamicSymbolTable(raw_ostream &OS) {
-  for (auto Data : Obj.LinkEdit.IndirectSymbols)
-    OS.write(reinterpret_cast<const char *>(&Data),
-             sizeof(yaml::Hex32::BaseType));
 }
 
 class UniversalWriter {

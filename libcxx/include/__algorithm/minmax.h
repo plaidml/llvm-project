@@ -9,10 +9,11 @@
 #ifndef _LIBCPP___ALGORITHM_MINMAX_H
 #define _LIBCPP___ALGORITHM_MINMAX_H
 
-#include <__algorithm/comp.h>
 #include <__config>
+#include <__algorithm/comp.h>
 #include <initializer_list>
 #include <utility>
+
 
 #if !defined(_LIBCPP_HAS_NO_PRAGMA_SYSTEM_HEADER)
 #pragma GCC system_header

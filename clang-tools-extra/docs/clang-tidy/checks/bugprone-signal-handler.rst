@@ -32,5 +32,6 @@ and has an alias name ``cert-sig30-c``.
   assumable that  the reason is that the list was not updated for C11.
   The checker includes ``quick_exit`` in the set of safe functions.
   Functions registered as exit handlers are not checked.
-
+  
   Default is ``POSIX``.
+

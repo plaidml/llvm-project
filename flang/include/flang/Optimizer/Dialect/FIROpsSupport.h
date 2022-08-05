@@ -61,7 +61,6 @@ fir::GlobalOp createGlobalOp(mlir::Location loc, mlir::ModuleOp module,
 
 /// Attribute to mark Fortran entities with the CONTIGUOUS attribute.
 constexpr llvm::StringRef getContiguousAttrName() { return "fir.contiguous"; }
-
 /// Attribute to mark Fortran entities with the OPTIONAL attribute.
 constexpr llvm::StringRef getOptionalAttrName() { return "fir.optional"; }
 

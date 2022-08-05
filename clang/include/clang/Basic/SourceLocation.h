@@ -23,6 +23,8 @@
 
 namespace llvm {
 
+template <typename T> struct DenseMapInfo;
+
 class FoldingSetNodeID;
 template <typename T> struct FoldingSetTrait;
 
@@ -465,7 +467,7 @@ namespace llvm {
   /// Define DenseMapInfo so that FileID's can be used as keys in DenseMap and
   /// DenseSets.
   template <>
-  struct DenseMapInfo<clang::FileID, void> {
+  struct DenseMapInfo<clang::FileID> {
     static clang::FileID getEmptyKey() {
       return {};
     }
@@ -486,7 +488,7 @@ namespace llvm {
   /// Define DenseMapInfo so that SourceLocation's can be used as keys in
   /// DenseMap and DenseSet. This trait class is eqivalent to
   /// DenseMapInfo<unsigned> which uses SourceLocation::ID is used as a key.
-  template <> struct DenseMapInfo<clang::SourceLocation, void> {
+  template <> struct DenseMapInfo<clang::SourceLocation> {
     static clang::SourceLocation getEmptyKey() {
       constexpr clang::SourceLocation::UIntTy Zero = 0;
       return clang::SourceLocation::getFromRawEncoding(~Zero);

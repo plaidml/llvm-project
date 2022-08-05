@@ -92,14 +92,14 @@ struct LayoutAlignElem {
 struct PointerAlignElem {
   Align ABIAlign;
   Align PrefAlign;
-  uint32_t TypeBitWidth;
+  uint32_t TypeByteWidth;
   uint32_t AddressSpace;
-  uint32_t IndexBitWidth;
+  uint32_t IndexWidth;
 
   /// Initializer
-  static PointerAlignElem getInBits(uint32_t AddressSpace, Align ABIAlign,
-                                    Align PrefAlign, uint32_t TypeBitWidth,
-                                    uint32_t IndexBitWidth);
+  static PointerAlignElem get(uint32_t AddressSpace, Align ABIAlign,
+                              Align PrefAlign, uint32_t TypeByteWidth,
+                              uint32_t IndexWidth);
 
   bool operator==(const PointerAlignElem &rhs) const;
 };
@@ -180,9 +180,8 @@ private:
 
   /// Attempts to set the alignment of a pointer in the given address space.
   /// Returns an error description on failure.
-  Error setPointerAlignmentInBits(uint32_t AddrSpace, Align ABIAlign,
-                                  Align PrefAlign, uint32_t TypeBitWidth,
-                                  uint32_t IndexBitWidth);
+  Error setPointerAlignment(uint32_t AddrSpace, Align ABIAlign, Align PrefAlign,
+                            uint32_t TypeByteWidth, uint32_t IndexWidth);
 
   /// Internal helper to get alignment for integer of given bitwidth.
   Align getIntegerAlignment(uint32_t BitWidth, bool abi_or_pref) const;
@@ -373,8 +372,7 @@ public:
   /// the backends/clients are updated.
   Align getPointerPrefAlignment(unsigned AS = 0) const;
 
-  /// Layout pointer size in bytes, rounded up to a whole
-  /// number of bytes.
+  /// Layout pointer size
   /// FIXME: The defaults need to be removed once all of
   /// the backends/clients are updated.
   unsigned getPointerSize(unsigned AS = 0) const;
@@ -382,8 +380,7 @@ public:
   /// Returns the maximum index size over all address spaces.
   unsigned getMaxIndexSize() const;
 
-  // Index size in bytes used for address calculation,
-  /// rounded up to a whole number of bytes.
+  // Index size used for address calculation.
   unsigned getIndexSize(unsigned AS) const;
 
   /// Return the address spaces containing non-integral pointers.  Pointers in
@@ -410,7 +407,7 @@ public:
   /// FIXME: The defaults need to be removed once all of
   /// the backends/clients are updated.
   unsigned getPointerSizeInBits(unsigned AS = 0) const {
-    return getPointerAlignElem(AS).TypeBitWidth;
+    return getPointerSize(AS) * 8;
   }
 
   /// Returns the maximum index size over all address spaces.
@@ -420,7 +417,7 @@ public:
 
   /// Size in bits of index used for address calculation in getelementptr.
   unsigned getIndexSizeInBits(unsigned AS) const {
-    return getPointerAlignElem(AS).IndexBitWidth;
+    return getIndexSize(AS) * 8;
   }
 
   /// Layout pointer size, in bits, based on the type.  If this function is
@@ -473,7 +470,7 @@ public:
   /// For example, returns 5 for i36 and 10 for x86_fp80.
   TypeSize getTypeStoreSize(Type *Ty) const {
     TypeSize BaseSize = getTypeSizeInBits(Ty);
-    return {divideCeil(BaseSize.getKnownMinSize(), 8), BaseSize.isScalable()};
+    return { (BaseSize.getKnownMinSize() + 7) / 8, BaseSize.isScalable() };
   }
 
   /// Returns the maximum number of bits that may be overwritten by
@@ -590,12 +587,6 @@ public:
   /// Get GEP indices to access Offset inside ElemTy. ElemTy is updated to be
   /// the result element type and Offset to be the residual offset.
   SmallVector<APInt> getGEPIndicesForOffset(Type *&ElemTy, APInt &Offset) const;
-
-  /// Get single GEP index to access Offset inside ElemTy. Returns None if
-  /// index cannot be computed, e.g. because the type is not an aggregate.
-  /// ElemTy is updated to be the result element type and Offset to be the
-  /// residual offset.
-  Optional<APInt> getGEPIndexForOffset(Type *&ElemTy, APInt &Offset) const;
 
   /// Returns a StructLayout object, indicating the alignment of the
   /// struct, its size, and the offsets of its fields.

@@ -48,7 +48,7 @@ def ResolveShapedTypeResultDims : Pass<"resolve-shaped-type-result-dims"> {
   }];
   let constructor = "mlir::memref::createResolveShapedTypeResultDimsPass()";
   let dependentDialects = [
-    "AffineDialect", "memref::MemRefDialect", "tensor::TensorDialect"
+    "memref::MemRefDialect", "tensor::TensorDialect"
   ];
 }
 

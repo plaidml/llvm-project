@@ -57,7 +57,6 @@ Getting Started, How-tos, Developer Guides, and Tutorials.
    GettingStartedTutorials
    Reference
    UserGuides
-   DiscourseMigrationGuide
 
 :doc:`GettingStartedTutorials`
   For those new to the LLVM system.
@@ -67,9 +66,6 @@ Getting Started, How-tos, Developer Guides, and Tutorials.
 
 :doc:`Reference`
   LLVM and API reference documentation.
-
-:doc:`DiscourseMigrationGuide`
-  Guide for users to migrate to Discourse
 
 Community
 =========

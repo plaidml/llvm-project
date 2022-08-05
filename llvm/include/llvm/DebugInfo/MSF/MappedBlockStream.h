@@ -154,7 +154,7 @@ private:
   WritableBinaryStreamRef WriteInterface;
 };
 
-} // namespace msf
+} // end namespace pdb
 } // end namespace llvm
 
 #endif // LLVM_DEBUGINFO_MSF_MAPPEDBLOCKSTREAM_H

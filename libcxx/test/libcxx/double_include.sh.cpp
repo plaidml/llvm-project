@@ -31,7 +31,9 @@
 #include <algorithm>
 #include <any>
 #include <array>
-#include <atomic>
+#ifndef _LIBCPP_HAS_NO_THREADS
+#    include <atomic>
+#endif
 #ifndef _LIBCPP_HAS_NO_THREADS
 #    include <barrier>
 #endif
@@ -60,9 +62,6 @@
 #include <complex.h>
 #include <concepts>
 #include <condition_variable>
-#ifndef _LIBCPP_HAS_NO_CXX20_COROUTINES
-#    include <coroutine>
-#endif
 #include <csetjmp>
 #include <csignal>
 #include <cstdarg>
@@ -206,7 +205,7 @@
 // experimental headers
 #if __cplusplus >= 201103L
 #    include <experimental/algorithm>
-#    ifndef _LIBCPP_HAS_NO_EXPERIMENTAL_COROUTINES
+#    if defined(__cpp_coroutines)
 #        include <experimental/coroutine>
 #    endif
 #    include <experimental/deque>

@@ -57,7 +57,11 @@ bool MetadataVerifier::verifyArray(
   auto &Array = Node.getArray();
   if (Size && Array.size() != *Size)
     return false;
-  return llvm::all_of(Array, verifyNode);
+  for (auto &Item : Array)
+    if (!verifyNode(Item))
+      return false;
+
+  return true;
 }
 
 bool MetadataVerifier::verifyEntry(

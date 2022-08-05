@@ -51,6 +51,7 @@ struct PhdrEntry {
 };
 
 void addReservedSymbols();
+llvm::StringRef getOutputSectionName(const InputSectionBase *s);
 
 template <class ELFT> uint32_t calcMipsEFlags();
 

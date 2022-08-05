@@ -581,13 +581,6 @@ public:
     // If there are calls to unknown targets (e.g. indirect)
     unsigned HasUnknownCall : 1;
 
-    // Indicate if a function must be an unreachable function.
-    //
-    // This bit is sufficient but not necessary;
-    // if this bit is on, the function must be regarded as unreachable;
-    // if this bit is off, the function might be reachable or unreachable.
-    unsigned MustBeUnreachable : 1;
-
     FFlags &operator&=(const FFlags &RHS) {
       this->ReadNone &= RHS.ReadNone;
       this->ReadOnly &= RHS.ReadOnly;
@@ -598,15 +591,13 @@ public:
       this->NoUnwind &= RHS.NoUnwind;
       this->MayThrow &= RHS.MayThrow;
       this->HasUnknownCall &= RHS.HasUnknownCall;
-      this->MustBeUnreachable &= RHS.MustBeUnreachable;
       return *this;
     }
 
     bool anyFlagSet() {
       return this->ReadNone | this->ReadOnly | this->NoRecurse |
              this->ReturnDoesNotAlias | this->NoInline | this->AlwaysInline |
-             this->NoUnwind | this->MayThrow | this->HasUnknownCall |
-             this->MustBeUnreachable;
+             this->NoUnwind | this->MayThrow | this->HasUnknownCall;
     }
 
     operator std::string() {
@@ -622,7 +613,6 @@ public:
       OS << ", noUnwind: " << this->NoUnwind;
       OS << ", mayThrow: " << this->MayThrow;
       OS << ", hasUnknownCall: " << this->HasUnknownCall;
-      OS << ", mustBeUnreachable: " << this->MustBeUnreachable;
       OS << ")";
       return OS.str();
     }

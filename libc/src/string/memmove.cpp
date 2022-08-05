@@ -10,7 +10,7 @@
 
 #include "src/__support/common.h"
 #include "src/__support/integer_operations.h"
-#include "src/string/memory_utils/memcpy_implementations.h"
+#include "src/string/memcpy.h"
 #include <stddef.h> // size_t, ptrdiff_t
 
 namespace __llvm_libc {
@@ -40,11 +40,8 @@ LLVM_LIBC_FUNCTION(void *, memmove,
   // dest_c:[_____yz_]  [___yz___]  [__yz____]
 
   // Call `memcpy` if `src_c` and `dest_c` do not overlap.
-  if (__llvm_libc::integer_abs(src_c - dest_c) >=
-      static_cast<ptrdiff_t>(count)) {
-    inline_memcpy(dest_c, src_c, count);
-    return dest_c;
-  }
+  if (__llvm_libc::integerAbs(src_c - dest_c) >= static_cast<ptrdiff_t>(count))
+    return __llvm_libc::memcpy(dest_c, src_c, count);
 
   // Overlapping cases.
   // If `dest_c` starts before `src_c` (dest_c < src_c), copy

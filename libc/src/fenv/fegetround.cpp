@@ -12,6 +12,6 @@
 
 namespace __llvm_libc {
 
-LLVM_LIBC_FUNCTION(int, fegetround, ()) { return fputil::get_round(); }
+LLVM_LIBC_FUNCTION(int, fegetround, ()) { return fputil::getRound(); }
 
 } // namespace __llvm_libc

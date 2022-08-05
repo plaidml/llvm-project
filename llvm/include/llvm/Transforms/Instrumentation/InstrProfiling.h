@@ -100,7 +100,7 @@ private:
   ///
   /// If the counter array doesn't yet exist, the profile data variables
   /// referring to them will also be created.
-  GlobalVariable *getOrCreateRegionCounters(InstrProfInstBase *Inc);
+  GlobalVariable *getOrCreateRegionCounters(InstrProfIncrementInst *Inc);
 
   /// Emit the section with compressed function names.
   void emitNameData();

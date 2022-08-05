@@ -15,7 +15,6 @@
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/IndexedMap.h"
-#include "llvm/ADT/MapVector.h"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/SparseSet.h"
@@ -433,7 +432,7 @@ void RegAllocFast::spill(MachineBasicBlock::iterator Before, Register VirtReg,
   // every definition of it, meaning we can switch all the DBG_VALUEs over
   // to just reference the stack slot.
   SmallVectorImpl<MachineOperand *> &LRIDbgOperands = LiveDbgValueMap[VirtReg];
-  SmallMapVector<MachineInstr *, SmallVector<const MachineOperand *>, 2>
+  SmallDenseMap<MachineInstr *, SmallVector<const MachineOperand *>>
       SpilledOperandsMap;
   for (MachineOperand *MO : LRIDbgOperands)
     SpilledOperandsMap[MO->getParent()].push_back(MO);
@@ -1258,7 +1257,8 @@ void RegAllocFast::allocateInstruction(MachineInstr &MI) {
     // Free registers occupied by defs.
     // Iterate operands in reverse order, so we see the implicit super register
     // defs first (we added them earlier in case of <def,read-undef>).
-    for (MachineOperand &MO : llvm::reverse(MI.operands())) {
+    for (unsigned I = MI.getNumOperands(); I-- > 0;) {
+      MachineOperand &MO = MI.getOperand(I);
       if (!MO.isReg() || !MO.isDef())
         continue;
 
@@ -1361,7 +1361,8 @@ void RegAllocFast::allocateInstruction(MachineInstr &MI) {
 
   // Free early clobbers.
   if (HasEarlyClobber) {
-    for (MachineOperand &MO : llvm::reverse(MI.operands())) {
+    for (unsigned I = MI.getNumOperands(); I-- > 0; ) {
+      MachineOperand &MO = MI.getOperand(I);
       if (!MO.isReg() || !MO.isDef() || !MO.isEarlyClobber())
         continue;
       // subreg defs don't free the full register. We left the subreg number
@@ -1438,7 +1439,8 @@ void RegAllocFast::handleBundle(MachineInstr &MI) {
   MachineBasicBlock::instr_iterator BundledMI = MI.getIterator();
   ++BundledMI;
   while (BundledMI->isBundledWithPred()) {
-    for (MachineOperand &MO : BundledMI->operands()) {
+    for (unsigned I = 0; I < BundledMI->getNumOperands(); ++I) {
+      MachineOperand &MO = BundledMI->getOperand(I);
       if (!MO.isReg())
         continue;
 

@@ -11,8 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef MLIR_IR_AFFINEMAP_H
-#define MLIR_IR_AFFINEMAP_H
+#ifndef MLIR_IR_AFFINE_MAP_H
+#define MLIR_IR_AFFINE_MAP_H
 
 #include "mlir/IR/AffineExpr.h"
 #include "mlir/Support/LLVM.h"
@@ -24,7 +24,7 @@ namespace mlir {
 
 namespace detail {
 struct AffineMapStorage;
-} // namespace detail
+} // end namespace detail
 
 class Attribute;
 struct LogicalResult;
@@ -39,7 +39,7 @@ class AffineMap {
 public:
   using ImplType = detail::AffineMapStorage;
 
-  constexpr AffineMap() = default;
+  constexpr AffineMap() : map(nullptr) {}
   explicit AffineMap(ImplType *map) : map(map) {}
 
   /// Returns a zero result affine map with no dimensions or symbols: () -> ().
@@ -182,7 +182,7 @@ public:
 
   /// Walk all of the AffineExpr's in this mapping. Each node in an expression
   /// tree is visited in postorder.
-  void walkExprs(llvm::function_ref<void(AffineExpr)> callback) const;
+  void walkExprs(std::function<void(AffineExpr)> callback) const;
 
   /// This method substitutes any uses of dimensions and symbols (e.g.
   /// dim#0 with dimReplacements[0]) in subexpressions and returns the modified
@@ -309,7 +309,7 @@ public:
   }
 
 private:
-  ImplType *map{nullptr};
+  ImplType *map;
 
   static AffineMap getImpl(unsigned dimCount, unsigned symbolCount,
                            ArrayRef<AffineExpr> results, MLIRContext *context);
@@ -323,7 +323,7 @@ inline ::llvm::hash_code hash_value(AffineMap arg) {
 /// A mutable affine map. Its affine expressions are however unique.
 struct MutableAffineMap {
 public:
-  MutableAffineMap() = default;
+  MutableAffineMap() {}
   MutableAffineMap(AffineMap map);
 
   ArrayRef<AffineExpr> getResults() const { return results; }
@@ -353,11 +353,11 @@ public:
 private:
   // Same meaning as AffineMap's fields.
   SmallVector<AffineExpr, 8> results;
-  unsigned numDims = 0;
-  unsigned numSymbols = 0;
+  unsigned numDims;
+  unsigned numSymbols;
   /// A pointer to the IR's context to store all newly created
   /// AffineExprStorage's.
-  MLIRContext *context = nullptr;
+  MLIRContext *context;
 };
 
 /// Simplifies an affine map by simplifying its underlying AffineExpr results.
@@ -546,28 +546,11 @@ SmallVector<T> applyPermutationMap(AffineMap map, llvm::ArrayRef<T> source) {
   return result;
 }
 
-/// Calculates maxmimum dimension and symbol positions from the expressions
-/// in `exprsLists` and stores them in `maxDim` and `maxSym` respectively.
-template <typename AffineExprContainer>
-static void getMaxDimAndSymbol(ArrayRef<AffineExprContainer> exprsList,
-                               int64_t &maxDim, int64_t &maxSym) {
-  for (const auto &exprs : exprsList) {
-    for (auto expr : exprs) {
-      expr.walk([&maxDim, &maxSym](AffineExpr e) {
-        if (auto d = e.dyn_cast<AffineDimExpr>())
-          maxDim = std::max(maxDim, static_cast<int64_t>(d.getPosition()));
-        if (auto s = e.dyn_cast<AffineSymbolExpr>())
-          maxSym = std::max(maxSym, static_cast<int64_t>(s.getPosition()));
-      });
-    }
-  }
-}
-
 inline raw_ostream &operator<<(raw_ostream &os, AffineMap map) {
   map.print(os);
   return os;
 }
-} // namespace mlir
+} // end namespace mlir
 
 namespace llvm {
 
@@ -575,11 +558,11 @@ namespace llvm {
 template <>
 struct DenseMapInfo<mlir::AffineMap> {
   static mlir::AffineMap getEmptyKey() {
-    auto *pointer = llvm::DenseMapInfo<void *>::getEmptyKey();
+    auto pointer = llvm::DenseMapInfo<void *>::getEmptyKey();
     return mlir::AffineMap(static_cast<mlir::AffineMap::ImplType *>(pointer));
   }
   static mlir::AffineMap getTombstoneKey() {
-    auto *pointer = llvm::DenseMapInfo<void *>::getTombstoneKey();
+    auto pointer = llvm::DenseMapInfo<void *>::getTombstoneKey();
     return mlir::AffineMap(static_cast<mlir::AffineMap::ImplType *>(pointer));
   }
   static unsigned getHashValue(mlir::AffineMap val) {
@@ -592,4 +575,4 @@ struct DenseMapInfo<mlir::AffineMap> {
 
 } // namespace llvm
 
-#endif // MLIR_IR_AFFINEMAP_H
+#endif // MLIR_IR_AFFINE_MAP_H

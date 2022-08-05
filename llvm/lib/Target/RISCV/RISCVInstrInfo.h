@@ -18,7 +18,6 @@
 #include "llvm/IR/DiagnosticInfo.h"
 
 #define GET_INSTRINFO_HEADER
-#define GET_INSTRINFO_OPERAND_ENUM
 #include "RISCVGenInstrInfo.inc"
 
 namespace llvm {
@@ -161,8 +160,8 @@ public:
                                        unsigned OpIdx1,
                                        unsigned OpIdx2) const override;
 
-  MachineInstr *convertToThreeAddress(MachineInstr &MI, LiveVariables *LV,
-                                      LiveIntervals *LIS) const override;
+  MachineInstr *convertToThreeAddress(MachineInstr &MI,
+                                      LiveVariables *LV) const override;
 
   Register getVLENFactoredAmount(
       MachineFunction &MF, MachineBasicBlock &MBB,
@@ -182,10 +181,6 @@ protected:
 };
 
 namespace RISCV {
-
-// Implemented in RISCVGenInstrInfo.inc
-int16_t getNamedOperandIdx(uint16_t Opcode, uint16_t NamedIndex);
-
 // Special immediate for AVL operand of V pseudo instructions to indicate VLMax.
 static constexpr int64_t VLMaxSentinel = -1LL;
 } // namespace RISCV

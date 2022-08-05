@@ -6,11 +6,9 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "mlir/Transforms/Bufferize.h"
 #include "PassDetail.h"
-
 #include "mlir/Dialect/Arithmetic/Transforms/Passes.h"
-#include "mlir/Dialect/Bufferization/IR/Bufferization.h"
-#include "mlir/Dialect/Bufferization/Transforms/Bufferize.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 
 using namespace mlir;
@@ -35,8 +33,8 @@ struct BufferizeIndexCastOp : public OpConversionPattern<arith::IndexCastOp> {
 /// Pass to bufferize Arithmetic ops.
 struct ArithmeticBufferizePass
     : public ArithmeticBufferizeBase<ArithmeticBufferizePass> {
-  void runOnOperation() override {
-    bufferization::BufferizeTypeConverter typeConverter;
+  void runOnFunction() override {
+    BufferizeTypeConverter typeConverter;
     RewritePatternSet patterns(&getContext());
     ConversionTarget target(getContext());
 
@@ -49,17 +47,16 @@ struct ArithmeticBufferizePass
           return typeConverter.isLegal(op.getType());
         });
 
-    if (failed(applyPartialConversion(getOperation(), target,
-                                      std::move(patterns))))
+    if (failed(
+            applyPartialConversion(getFunction(), target, std::move(patterns))))
       signalPassFailure();
   }
 };
 
-} // namespace
+} // end anonymous namespace
 
 void mlir::arith::populateArithmeticBufferizePatterns(
-    bufferization::BufferizeTypeConverter &typeConverter,
-    RewritePatternSet &patterns) {
+    BufferizeTypeConverter &typeConverter, RewritePatternSet &patterns) {
   patterns.add<BufferizeIndexCastOp>(typeConverter, patterns.getContext());
 }
 

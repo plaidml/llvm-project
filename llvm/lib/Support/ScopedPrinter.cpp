@@ -43,14 +43,4 @@ void ScopedPrinter::printBinaryImpl(StringRef Label, StringRef Str,
   }
 }
 
-JSONScopedPrinter::JSONScopedPrinter(
-    raw_ostream &OS, bool PrettyPrint,
-    std::unique_ptr<DelimitedScope> &&OuterScope)
-    : ScopedPrinter(OS, ScopedPrinter::ScopedPrinterKind::JSON),
-      JOS(OS, /*Indent=*/PrettyPrint ? 2 : 0),
-      OuterScope(std::move(OuterScope)) {
-  if (this->OuterScope)
-    this->OuterScope->setPrinter(*this);
-}
-
 } // namespace llvm

@@ -22,8 +22,7 @@ def testConstShape():
       @builtin.FuncOp.from_py_func(
           RankedTensorType.get((12, -1), f32))
       def const_shape_tensor(arg):
-        return shape.ConstShapeOp(
-          DenseElementsAttr.get(np.array([10, 20]), type=IndexType.get()))
+        return shape.ConstShapeOp(DenseElementsAttr.get(np.array([10, 20])))
 
     # CHECK-LABEL: func @const_shape_tensor(%arg0: tensor<12x?xf32>)
     # CHECK: shape.const_shape [10, 20] : tensor<2xindex>

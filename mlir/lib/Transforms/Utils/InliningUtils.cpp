@@ -215,10 +215,9 @@ inlineRegionImpl(InlinerInterface &interface, Region *src, Block *inlineBlock,
   } else {
     // Otherwise, there were multiple blocks inlined. Add arguments to the post
     // insertion block to represent the results to replace.
-    for (const auto &resultToRepl : llvm::enumerate(resultsToReplace)) {
-      resultToRepl.value().replaceAllUsesWith(
-          postInsertBlock->addArgument(regionResultTypes[resultToRepl.index()],
-                                       resultToRepl.value().getLoc()));
+    for (auto resultToRepl : llvm::enumerate(resultsToReplace)) {
+      resultToRepl.value().replaceAllUsesWith(postInsertBlock->addArgument(
+          regionResultTypes[resultToRepl.index()]));
     }
 
     /// Handle the terminators for each of the new blocks.

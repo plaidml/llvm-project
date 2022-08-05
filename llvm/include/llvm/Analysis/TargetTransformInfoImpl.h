@@ -24,7 +24,6 @@
 #include "llvm/IR/Operator.h"
 #include "llvm/IR/PatternMatch.h"
 #include "llvm/IR/Type.h"
-#include <utility>
 
 using namespace llvm::PatternMatch;
 
@@ -110,11 +109,6 @@ public:
   };
 
   unsigned getAssumedAddrSpace(const Value *V) const { return -1; }
-
-  std::pair<const Value *, unsigned>
-  getPredicatedAddrSpace(const Value *V) const {
-    return std::make_pair(nullptr, -1);
-  }
 
   Value *rewriteIntrinsicWithAddressSpace(IntrinsicInst *II, Value *OldV,
                                           Value *NewV) const {
@@ -267,15 +261,6 @@ public:
     return false;
   }
 
-  bool forceScalarizeMaskedGather(VectorType *DataType, Align Alignment) const {
-    return false;
-  }
-
-  bool forceScalarizeMaskedScatter(VectorType *DataType,
-                                   Align Alignment) const {
-    return false;
-  }
-
   bool isLegalMaskedCompressStore(Type *DataType) const { return false; }
 
   bool isLegalMaskedExpandLoad(Type *DataType) const { return false; }
@@ -414,7 +399,6 @@ public:
   unsigned getMinVectorRegisterBitWidth() const { return 128; }
 
   Optional<unsigned> getMaxVScale() const { return None; }
-  Optional<unsigned> getVScaleForTuning() const { return None; }
 
   bool shouldMaximizeVectorBandwidth() const { return false; }
 
@@ -561,7 +545,13 @@ public:
   }
 
   unsigned getReplicationShuffleCost(Type *EltTy, int ReplicationFactor, int VF,
-                                     const APInt &DemandedDstElts,
+                                     const APInt &DemandedSrcElts,
+                                     const APInt &DemandedReplicatedElts,
+                                     TTI::TargetCostKind CostKind) {
+    return 1;
+  }
+  unsigned getReplicationShuffleCost(Type *EltTy, int ReplicationFactor, int VF,
+                                     ArrayRef<int> Mask,
                                      TTI::TargetCostKind CostKind) {
     return 1;
   }
@@ -570,13 +560,6 @@ public:
                                   unsigned AddressSpace,
                                   TTI::TargetCostKind CostKind,
                                   const Instruction *I) const {
-    return 1;
-  }
-
-  InstructionCost getVPMemoryOpCost(unsigned Opcode, Type *Src, Align Alignment,
-                                    unsigned AddressSpace,
-                                    TTI::TargetCostKind CostKind,
-                                    const Instruction *I) const {
     return 1;
   }
 
@@ -633,8 +616,8 @@ public:
     case Intrinsic::coro_end:
     case Intrinsic::coro_frame:
     case Intrinsic::coro_size:
-    case Intrinsic::coro_align:
     case Intrinsic::coro_suspend:
+    case Intrinsic::coro_param:
     case Intrinsic::coro_subfn_addr:
       // These intrinsics don't actually represent code after lowering.
       return 0;
@@ -648,8 +631,7 @@ public:
     return 1;
   }
 
-  // Assume that we have a register of the right size for the type.
-  unsigned getNumberOfParts(Type *Tp) const { return 1; }
+  unsigned getNumberOfParts(Type *Tp) const { return 0; }
 
   InstructionCost getAddressComputationCost(Type *Tp, ScalarEvolution *,
                                             const SCEV *) const {
@@ -718,8 +700,9 @@ public:
             Callee->getFnAttribute("target-features"));
   }
 
-  bool areTypesABICompatible(const Function *Caller, const Function *Callee,
-                             const ArrayRef<Type *> &Types) const {
+  bool areFunctionArgsABICompatible(const Function *Caller,
+                                    const Function *Callee,
+                                    SmallPtrSetImpl<Argument *> &Args) const {
     return (Caller->getFnAttribute("target-cpu") ==
             Callee->getFnAttribute("target-cpu")) &&
            (Caller->getFnAttribute("target-features") ==
@@ -787,12 +770,7 @@ public:
 
   bool supportsScalableVectors() const { return false; }
 
-  bool enableScalableVectorization() const { return false; }
-
-  bool hasActiveVectorLength(unsigned Opcode, Type *DataType,
-                             Align Alignment) const {
-    return false;
-  }
+  bool hasActiveVectorLength() const { return false; }
 
   TargetTransformInfo::VPLegalization
   getVPLegalizationStrategy(const VPIntrinsic &PI) const {
@@ -1062,20 +1040,7 @@ public:
     }
     case Instruction::Load: {
       auto *LI = cast<LoadInst>(U);
-      Type *LoadType = U->getType();
-      // If there is a non-register sized type, the cost estimation may expand
-      // it to be several instructions to load into multiple registers on the
-      // target.  But, if the only use of the load is a trunc instruction to a
-      // register sized type, the instruction selector can combine these
-      // instructions to be a single load.  So, in this case, we use the
-      // destination type of the trunc instruction rather than the load to
-      // accurately estimate the cost of this load instruction.
-      if (CostKind == TTI::TCK_CodeSize && LI->hasOneUse() &&
-          !LoadType->isVectorTy()) {    
-        if (const TruncInst *TI = dyn_cast<TruncInst>(*LI->user_begin()))
-          LoadType = TI->getDestTy();
-      }
-      return TargetTTI->getMemoryOpCost(Opcode, LoadType, LI->getAlign(),
+      return TargetTTI->getMemoryOpCost(Opcode, U->getType(), LI->getAlign(),
                                         LI->getPointerAddressSpace(),
                                         CostKind, I);
     }
@@ -1147,17 +1112,10 @@ public:
               FixedVectorType::get(VecTy->getScalarType(), NumSubElts));
 
         int ReplicationFactor, VF;
-        if (Shuffle->isReplicationMask(ReplicationFactor, VF)) {
-          APInt DemandedDstElts =
-              APInt::getNullValue(Shuffle->getShuffleMask().size());
-          for (auto I : enumerate(Shuffle->getShuffleMask())) {
-            if (I.value() != UndefMaskElem)
-              DemandedDstElts.setBit(I.index());
-          }
+        if (Shuffle->isReplicationMask(ReplicationFactor, VF))
           return TargetTTI->getReplicationShuffleCost(
               VecSrcTy->getElementType(), ReplicationFactor, VF,
-              DemandedDstElts, CostKind);
-        }
+              Shuffle->getShuffleMask(), CostKind);
 
         return CostKind == TTI::TCK_RecipThroughput ? -1 : 1;
       }

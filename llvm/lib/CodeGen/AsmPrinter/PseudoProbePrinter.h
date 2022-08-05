@@ -19,6 +19,8 @@
 namespace llvm {
 
 class AsmPrinter;
+class MCStreamer;
+class Module;
 class DILocation;
 
 class PseudoProbeHandler : public AsmPrinterHandler {

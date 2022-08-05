@@ -33,6 +33,7 @@ using namespace lld;
 using namespace lld::elf;
 
 uint8_t *Out::bufferStart;
+uint8_t Out::first;
 PhdrEntry *Out::tlsPhdr;
 OutputSection *Out::elfHeader;
 OutputSection *Out::programHeaders;
@@ -40,7 +41,7 @@ OutputSection *Out::preinitArray;
 OutputSection *Out::initArray;
 OutputSection *Out::finiArray;
 
-SmallVector<OutputSection *, 0> elf::outputSections;
+std::vector<OutputSection *> elf::outputSections;
 
 uint32_t OutputSection::getPhdrFlags() const {
   uint32_t ret = 0;
@@ -68,7 +69,7 @@ void OutputSection::writeHeaderTo(typename ELFT::Shdr *shdr) {
 }
 
 OutputSection::OutputSection(StringRef name, uint32_t type, uint64_t flags)
-    : SectionCommand(OutputSectionKind),
+    : BaseCommand(OutputSectionKind),
       SectionBase(Output, name, flags, /*Entsize*/ 0, /*Alignment*/ 1, type,
                   /*Info*/ 0, /*Link*/ 0) {}
 
@@ -99,9 +100,10 @@ static bool canMergeToProgbits(unsigned type) {
 void OutputSection::recordSection(InputSectionBase *isec) {
   partition = isec->partition;
   isec->parent = this;
-  if (commands.empty() || !isa<InputSectionDescription>(commands.back()))
-    commands.push_back(make<InputSectionDescription>(""));
-  auto *isd = cast<InputSectionDescription>(commands.back());
+  if (sectionCommands.empty() ||
+      !isa<InputSectionDescription>(sectionCommands.back()))
+    sectionCommands.push_back(make<InputSectionDescription>(""));
+  auto *isd = cast<InputSectionDescription>(sectionCommands.back());
   isd->sectionBases.push_back(isec);
 }
 
@@ -155,15 +157,6 @@ void OutputSection::commitSection(InputSection *isec) {
     entsize = 0;
 }
 
-static MergeSyntheticSection *createMergeSynthetic(StringRef name,
-                                                   uint32_t type,
-                                                   uint64_t flags,
-                                                   uint32_t alignment) {
-  if ((flags & SHF_STRINGS) && config->optimize >= 2)
-    return make<MergeTailSection>(name, type, flags, alignment);
-  return make<MergeNoTailSection>(name, type, flags, alignment);
-}
-
 // This function scans over the InputSectionBase list sectionBases to create
 // InputSectionDescription::sections.
 //
@@ -173,15 +166,15 @@ static MergeSyntheticSection *createMergeSynthetic(StringRef name,
 // to compute an output offset for each piece of each input section.
 void OutputSection::finalizeInputSections() {
   std::vector<MergeSyntheticSection *> mergeSections;
-  for (SectionCommand *cmd : commands) {
-    auto *isd = dyn_cast<InputSectionDescription>(cmd);
-    if (!isd)
+  for (BaseCommand *base : sectionCommands) {
+    auto *cmd = dyn_cast<InputSectionDescription>(base);
+    if (!cmd)
       continue;
-    isd->sections.reserve(isd->sectionBases.size());
-    for (InputSectionBase *s : isd->sectionBases) {
+    cmd->sections.reserve(cmd->sectionBases.size());
+    for (InputSectionBase *s : cmd->sectionBases) {
       MergeInputSection *ms = dyn_cast<MergeInputSection>(s);
       if (!ms) {
-        isd->sections.push_back(cast<InputSection>(s));
+        cmd->sections.push_back(cast<InputSection>(s));
         continue;
       }
 
@@ -210,17 +203,17 @@ void OutputSection::finalizeInputSections() {
         mergeSections.push_back(syn);
         i = std::prev(mergeSections.end());
         syn->entsize = ms->entsize;
-        isd->sections.push_back(syn);
+        cmd->sections.push_back(syn);
       }
       (*i)->addSection(ms);
     }
 
     // sectionBases should not be used from this point onwards. Clear it to
     // catch misuses.
-    isd->sectionBases.clear();
+    cmd->sectionBases.clear();
 
     // Some input sections may be removed from the list after ICF.
-    for (InputSection *s : isd->sections)
+    for (InputSection *s : cmd->sections)
       commitSection(s);
   }
   for (auto *ms : mergeSections)
@@ -244,13 +237,13 @@ uint64_t elf::getHeaderSize() {
   return Out::elfHeader->size + Out::programHeaders->size;
 }
 
-bool OutputSection::classof(const SectionCommand *c) {
+bool OutputSection::classof(const BaseCommand *c) {
   return c->kind == OutputSectionKind;
 }
 
 void OutputSection::sort(llvm::function_ref<int(InputSectionBase *s)> order) {
   assert(isLive());
-  for (SectionCommand *b : commands)
+  for (BaseCommand *b : sectionCommands)
     if (auto *isd = dyn_cast<InputSectionDescription>(b))
       sortByOrder(isd->sections, order);
 }
@@ -332,7 +325,6 @@ static void writeInt(uint8_t *buf, uint64_t data, uint64_t size) {
 }
 
 template <class ELFT> void OutputSection::writeTo(uint8_t *buf) {
-  llvm::TimeTraceScope timeScope("Write sections", name);
   if (type == SHT_NOBITS)
     return;
 
@@ -347,7 +339,7 @@ template <class ELFT> void OutputSection::writeTo(uint8_t *buf) {
   }
 
   // Write leading padding.
-  SmallVector<InputSection *, 0> sections = getInputSections(*this);
+  std::vector<InputSection *> sections = getInputSections(this);
   std::array<uint8_t, 4> filler = getFiller();
   bool nonZeroFiller = read32(filler.data()) != 0;
   if (nonZeroFiller)
@@ -355,7 +347,7 @@ template <class ELFT> void OutputSection::writeTo(uint8_t *buf) {
 
   parallelForEachN(0, sections.size(), [&](size_t i) {
     InputSection *isec = sections[i];
-    isec->writeTo<ELFT>(buf + isec->outSecOff);
+    isec->writeTo<ELFT>(buf);
 
     // Fill gaps between sections.
     if (nonZeroFiller) {
@@ -375,8 +367,8 @@ template <class ELFT> void OutputSection::writeTo(uint8_t *buf) {
 
   // Linker scripts may have BYTE()-family commands with which you
   // can write arbitrary bytes to the output. Process them if any.
-  for (SectionCommand *cmd : commands)
-    if (auto *data = dyn_cast<ByteCommand>(cmd))
+  for (BaseCommand *base : sectionCommands)
+    if (auto *data = dyn_cast<ByteCommand>(base))
       writeInt(buf + data->offset, data->expression().getValue(), data->size);
 }
 
@@ -493,8 +485,8 @@ static bool compCtors(const InputSection *a, const InputSection *b) {
 // Unfortunately, the rules are different from the one for .{init,fini}_array.
 // Read the comment above.
 void OutputSection::sortCtorsDtors() {
-  assert(commands.size() == 1);
-  auto *isd = cast<InputSectionDescription>(commands[0]);
+  assert(sectionCommands.size() == 1);
+  auto *isd = cast<InputSectionDescription>(sectionCommands[0]);
   llvm::stable_sort(isd->sections, compCtors);
 }
 
@@ -513,17 +505,17 @@ int elf::getPriority(StringRef s) {
 }
 
 InputSection *elf::getFirstInputSection(const OutputSection *os) {
-  for (SectionCommand *cmd : os->commands)
-    if (auto *isd = dyn_cast<InputSectionDescription>(cmd))
+  for (BaseCommand *base : os->sectionCommands)
+    if (auto *isd = dyn_cast<InputSectionDescription>(base))
       if (!isd->sections.empty())
         return isd->sections[0];
   return nullptr;
 }
 
-SmallVector<InputSection *, 0> elf::getInputSections(const OutputSection &os) {
-  SmallVector<InputSection *, 0> ret;
-  for (SectionCommand *cmd : os.commands)
-    if (auto *isd = dyn_cast<InputSectionDescription>(cmd))
+std::vector<InputSection *> elf::getInputSections(const OutputSection *os) {
+  std::vector<InputSection *> ret;
+  for (BaseCommand *base : os->sectionCommands)
+    if (auto *isd = dyn_cast<InputSectionDescription>(base))
       ret.insert(ret.end(), isd->sections.begin(), isd->sections.end());
   return ret;
 }
@@ -550,7 +542,7 @@ std::array<uint8_t, 4> OutputSection::getFiller() {
 void OutputSection::checkDynRelAddends(const uint8_t *bufStart) {
   assert(config->writeAddends && config->checkDynamicRelocs);
   assert(type == SHT_REL || type == SHT_RELA);
-  SmallVector<InputSection *, 0> sections = getInputSections(*this);
+  std::vector<InputSection *> sections = getInputSections(this);
   parallelForEachN(0, sections.size(), [&](size_t i) {
     // When linking with -r or --emit-relocs we might also call this function
     // for input .rel[a].<sec> sections which we simply pass through to the
@@ -560,7 +552,7 @@ void OutputSection::checkDynRelAddends(const uint8_t *bufStart) {
     if (!sec)
       return;
     for (const DynamicReloc &rel : sec->relocs) {
-      int64_t addend = rel.addend;
+      int64_t addend = rel.computeAddend();
       const OutputSection *relOsec = rel.inputSec->getOutputSection();
       assert(relOsec != nullptr && "missing output section for relocation");
       const uint8_t *relocTarget =

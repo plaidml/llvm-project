@@ -60,19 +60,6 @@ struct SaturatingUINT64 {
   }
 };
 
-/// Utility struct to store the full location of a DIE - its CU and offset.
-struct DIELocation {
-  DWARFUnit *DwUnit;
-  uint64_t DIEOffset;
-  DIELocation(DWARFUnit *_DwUnit, uint64_t _DIEOffset)
-      : DwUnit(_DwUnit), DIEOffset(_DIEOffset) {}
-};
-/// This represents DWARF locations of CrossCU referencing DIEs.
-using CrossCUReferencingDIELocationTy = llvm::SmallVector<DIELocation>;
-
-/// This maps function DIE offset to its DWARF CU.
-using FunctionDIECUTyMap = llvm::DenseMap<uint64_t, DWARFUnit *>;
-
 /// Holds statistics for one function (or other entity that has a PC range and
 /// contains variables, such as a compile unit).
 struct PerFunctionStats {
@@ -335,7 +322,7 @@ static void collectStatsForDie(DWARFDie Die, const std::string &FnPrefix,
                                U->getFormParams().Format);
     // Consider the expression containing the DW_OP_entry_value as
     // an entry value.
-    return llvm::any_of(Expression, [](const DWARFExpression::Operation &Op) {
+    return llvm::any_of(Expression, [](DWARFExpression::Operation &Op) {
       return Op.getCode() == dwarf::DW_OP_entry_value ||
              Op.getCode() == dwarf::DW_OP_GNU_entry_value;
     });
@@ -463,18 +450,15 @@ static void collectStatsForDie(DWARFDie Die, const std::string &FnPrefix,
 /// Recursively collect variables from subprogram with DW_AT_inline attribute.
 static void collectAbstractOriginFnInfo(
     DWARFDie Die, uint64_t SPOffset,
-    AbstractOriginVarsTyMap &GlobalAbstractOriginFnInfo,
-    AbstractOriginVarsTyMap &LocalAbstractOriginFnInfo) {
+    AbstractOriginVarsTyMap &GlobalAbstractOriginFnInfo) {
   DWARFDie Child = Die.getFirstChild();
   while (Child) {
     const dwarf::Tag ChildTag = Child.getTag();
     if (ChildTag == dwarf::DW_TAG_formal_parameter ||
-        ChildTag == dwarf::DW_TAG_variable) {
+        ChildTag == dwarf::DW_TAG_variable)
       GlobalAbstractOriginFnInfo[SPOffset].push_back(Child.getOffset());
-      LocalAbstractOriginFnInfo[SPOffset].push_back(Child.getOffset());
-    } else if (ChildTag == dwarf::DW_TAG_lexical_block)
-      collectAbstractOriginFnInfo(Child, SPOffset, GlobalAbstractOriginFnInfo,
-                                  LocalAbstractOriginFnInfo);
+    else if (ChildTag == dwarf::DW_TAG_lexical_block)
+      collectAbstractOriginFnInfo(Child, SPOffset, GlobalAbstractOriginFnInfo);
     Child = Child.getSibling();
   }
 }
@@ -484,9 +468,8 @@ static void collectStatsRecursive(
     DWARFDie Die, std::string FnPrefix, std::string VarPrefix,
     uint64_t BytesInScope, uint32_t InlineDepth,
     StringMap<PerFunctionStats> &FnStatMap, GlobalStats &GlobalStats,
-    LocationStats &LocStats, FunctionDIECUTyMap &AbstractOriginFnCUs,
+    LocationStats &LocStats,
     AbstractOriginVarsTyMap &GlobalAbstractOriginFnInfo,
-    AbstractOriginVarsTyMap &LocalAbstractOriginFnInfo,
     FunctionsWithAbstractOriginTy &FnsWithAbstractOriginToBeProcessed,
     AbstractOriginVarsTy *AbstractOriginVarsPtr = nullptr) {
   // Skip NULL nodes.
@@ -516,12 +499,11 @@ static void collectStatsRecursive(
     auto OffsetFn = Die.find(dwarf::DW_AT_abstract_origin);
     if (OffsetFn) {
       uint64_t OffsetOfInlineFnCopy = (*OffsetFn).getRawUValue();
-      if (LocalAbstractOriginFnInfo.count(OffsetOfInlineFnCopy)) {
-        AbstractOriginVars = LocalAbstractOriginFnInfo[OffsetOfInlineFnCopy];
+      if (GlobalAbstractOriginFnInfo.count(OffsetOfInlineFnCopy)) {
+        AbstractOriginVars = GlobalAbstractOriginFnInfo[OffsetOfInlineFnCopy];
         AbstractOriginVarsPtr = &AbstractOriginVars;
       } else {
-        // This means that the DW_AT_inline fn copy is out of order
-        // or that the abstract_origin references another CU,
+        // This means that the DW_AT_inline fn copy is out of order,
         // so this abstract origin instance will be processed later.
         FnsWithAbstractOriginToBeProcessed.push_back(Die.getOffset());
         AbstractOriginVarsPtr = nullptr;
@@ -561,9 +543,7 @@ static void collectStatsRecursive(
       // for inlined instancies.
       if (Die.find(dwarf::DW_AT_inline)) {
         uint64_t SPOffset = Die.getOffset();
-        AbstractOriginFnCUs[SPOffset] = Die.getDwarfUnit();
-        collectAbstractOriginFnInfo(Die, SPOffset, GlobalAbstractOriginFnInfo,
-                                    LocalAbstractOriginFnInfo);
+        collectAbstractOriginFnInfo(Die, SPOffset, GlobalAbstractOriginFnInfo);
         return;
       }
 
@@ -617,9 +597,8 @@ static void collectStatsRecursive(
 
     collectStatsRecursive(
         Child, FnPrefix, ChildVarPrefix, BytesInScope, InlineDepth, FnStatMap,
-        GlobalStats, LocStats, AbstractOriginFnCUs, GlobalAbstractOriginFnInfo,
-        LocalAbstractOriginFnInfo, FnsWithAbstractOriginToBeProcessed,
-        AbstractOriginVarsPtr);
+        GlobalStats, LocStats, GlobalAbstractOriginFnInfo,
+        FnsWithAbstractOriginToBeProcessed, AbstractOriginVarsPtr);
     Child = Child.getSibling();
   }
 
@@ -754,24 +733,16 @@ static void updateVarsWithAbstractOriginLocCovInfo(
 /// the DW_TAG_subprogram) with an abstract_origin attribute.
 static void collectZeroLocCovForVarsWithAbstractOrigin(
     DWARFUnit *DwUnit, GlobalStats &GlobalStats, LocationStats &LocStats,
-    AbstractOriginVarsTyMap &LocalAbstractOriginFnInfo,
+    AbstractOriginVarsTyMap &GlobalAbstractOriginFnInfo,
     FunctionsWithAbstractOriginTy &FnsWithAbstractOriginToBeProcessed) {
-  // The next variable is used to filter out functions that have been processed,
-  // leaving FnsWithAbstractOriginToBeProcessed with just CrossCU references.
-  FunctionsWithAbstractOriginTy ProcessedFns;
   for (auto FnOffset : FnsWithAbstractOriginToBeProcessed) {
     DWARFDie FnDieWithAbstractOrigin = DwUnit->getDIEForOffset(FnOffset);
     auto FnCopy = FnDieWithAbstractOrigin.find(dwarf::DW_AT_abstract_origin);
     AbstractOriginVarsTy AbstractOriginVars;
     if (!FnCopy)
       continue;
-    uint64_t FnCopyRawUValue = (*FnCopy).getRawUValue();
-    // If there is no entry within LocalAbstractOriginFnInfo for the given
-    // FnCopyRawUValue, function isn't out-of-order in DWARF. Rather, we have
-    // CrossCU referencing.
-    if (!LocalAbstractOriginFnInfo.count(FnCopyRawUValue))
-      continue;
-    AbstractOriginVars = LocalAbstractOriginFnInfo[FnCopyRawUValue];
+
+    AbstractOriginVars = GlobalAbstractOriginFnInfo[(*FnCopy).getRawUValue()];
     updateVarsWithAbstractOriginLocCovInfo(FnDieWithAbstractOrigin,
                                            AbstractOriginVars);
 
@@ -779,46 +750,6 @@ static void collectZeroLocCovForVarsWithAbstractOrigin(
       LocStats.NumVarParam++;
       LocStats.VarParamLocStats[ZeroCoverageBucket]++;
       auto Tag = DwUnit->getDIEForOffset(Offset).getTag();
-      if (Tag == dwarf::DW_TAG_formal_parameter) {
-        LocStats.NumParam++;
-        LocStats.ParamLocStats[ZeroCoverageBucket]++;
-      } else if (Tag == dwarf::DW_TAG_variable) {
-        LocStats.NumVar++;
-        LocStats.LocalVarLocStats[ZeroCoverageBucket]++;
-      }
-    }
-    ProcessedFns.push_back(FnOffset);
-  }
-  for (auto ProcessedFn : ProcessedFns)
-    llvm::erase_value(FnsWithAbstractOriginToBeProcessed, ProcessedFn);
-}
-
-/// Collect zero location coverage for inlined variables which refer to
-/// a DW_AT_inline copy of subprogram that is in a different CU.
-static void collectZeroLocCovForVarsWithCrossCUReferencingAbstractOrigin(
-    LocationStats &LocStats, FunctionDIECUTyMap AbstractOriginFnCUs,
-    AbstractOriginVarsTyMap &GlobalAbstractOriginFnInfo,
-    CrossCUReferencingDIELocationTy &CrossCUReferencesToBeResolved) {
-  for (const auto &CrossCUReferenceToBeResolved :
-       CrossCUReferencesToBeResolved) {
-    DWARFUnit *DwUnit = CrossCUReferenceToBeResolved.DwUnit;
-    DWARFDie FnDIEWithCrossCUReferencing =
-        DwUnit->getDIEForOffset(CrossCUReferenceToBeResolved.DIEOffset);
-    auto FnCopy =
-        FnDIEWithCrossCUReferencing.find(dwarf::DW_AT_abstract_origin);
-    if (!FnCopy)
-      continue;
-    uint64_t FnCopyRawUValue = (*FnCopy).getRawUValue();
-    AbstractOriginVarsTy AbstractOriginVars =
-        GlobalAbstractOriginFnInfo[FnCopyRawUValue];
-    updateVarsWithAbstractOriginLocCovInfo(FnDIEWithCrossCUReferencing,
-                                           AbstractOriginVars);
-    for (auto Offset : AbstractOriginVars) {
-      LocStats.NumVarParam++;
-      LocStats.VarParamLocStats[ZeroCoverageBucket]++;
-      auto Tag = (AbstractOriginFnCUs[FnCopyRawUValue])
-                     ->getDIEForOffset(Offset)
-                     .getTag();
       if (Tag == dwarf::DW_TAG_formal_parameter) {
         LocStats.NumParam++;
         LocStats.ParamLocStats[ZeroCoverageBucket]++;
@@ -847,45 +778,27 @@ bool dwarfdump::collectStatsForObjectFile(ObjectFile &Obj, DWARFContext &DICtx,
   GlobalStats GlobalStats;
   LocationStats LocStats;
   StringMap<PerFunctionStats> Statistics;
-  // This variable holds variable information for functions with
-  // abstract_origin globally, across all CUs.
-  AbstractOriginVarsTyMap GlobalAbstractOriginFnInfo;
-  // This variable holds information about the CU of a function with
-  // abstract_origin.
-  FunctionDIECUTyMap AbstractOriginFnCUs;
-  CrossCUReferencingDIELocationTy CrossCUReferencesToBeResolved;
   for (const auto &CU : static_cast<DWARFContext *>(&DICtx)->compile_units()) {
     if (DWARFDie CUDie = CU->getNonSkeletonUnitDIE(false)) {
-      // This variable holds variable information for functions with
-      // abstract_origin, but just for the current CU.
-      AbstractOriginVarsTyMap LocalAbstractOriginFnInfo;
+      // These variables are being reset for each CU, since there could be
+      // a situation where we have two subprogram DIEs with the same offsets
+      // in two diferent CUs, and we can end up using wrong variables info
+      // when trying to resolve abstract_origin attribute.
+      // TODO: Handle LTO cases where the abstract origin of
+      // the function is in a different CU than the one it's
+      // referenced from or inlined into.
+      AbstractOriginVarsTyMap GlobalAbstractOriginFnInfo;
       FunctionsWithAbstractOriginTy FnsWithAbstractOriginToBeProcessed;
 
-      collectStatsRecursive(
-          CUDie, "/", "g", 0, 0, Statistics, GlobalStats, LocStats,
-          AbstractOriginFnCUs, GlobalAbstractOriginFnInfo,
-          LocalAbstractOriginFnInfo, FnsWithAbstractOriginToBeProcessed);
+      collectStatsRecursive(CUDie, "/", "g", 0, 0, Statistics, GlobalStats,
+                            LocStats, GlobalAbstractOriginFnInfo,
+                            FnsWithAbstractOriginToBeProcessed);
 
-      // collectZeroLocCovForVarsWithAbstractOrigin will filter out all
-      // out-of-order DWARF functions that have been processed within it,
-      // leaving FnsWithAbstractOriginToBeProcessed with only CrossCU
-      // references.
       collectZeroLocCovForVarsWithAbstractOrigin(
           CUDie.getDwarfUnit(), GlobalStats, LocStats,
-          LocalAbstractOriginFnInfo, FnsWithAbstractOriginToBeProcessed);
-
-      // Collect all CrossCU references into CrossCUReferencesToBeResolved.
-      for (auto CrossCUReferencingDIEOffset :
-           FnsWithAbstractOriginToBeProcessed)
-        CrossCUReferencesToBeResolved.push_back(
-            DIELocation(CUDie.getDwarfUnit(), CrossCUReferencingDIEOffset));
+          GlobalAbstractOriginFnInfo, FnsWithAbstractOriginToBeProcessed);
     }
   }
-
-  /// Resolve CrossCU references.
-  collectZeroLocCovForVarsWithCrossCUReferencingAbstractOrigin(
-      LocStats, AbstractOriginFnCUs, GlobalAbstractOriginFnInfo,
-      CrossCUReferencesToBeResolved);
 
   /// Collect the sizes of debug sections.
   SectionSizes Sizes;

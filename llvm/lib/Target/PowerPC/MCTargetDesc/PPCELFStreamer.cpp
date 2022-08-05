@@ -40,8 +40,9 @@ PPCELFStreamer::PPCELFStreamer(MCContext &Context,
                                std::unique_ptr<MCAsmBackend> MAB,
                                std::unique_ptr<MCObjectWriter> OW,
                                std::unique_ptr<MCCodeEmitter> Emitter)
-    : MCELFStreamer(Context, std::move(MAB), std::move(OW), std::move(Emitter)),
-      LastLabel(nullptr) {}
+    : MCELFStreamer(Context, std::move(MAB), std::move(OW),
+                    std::move(Emitter)), LastLabel(NULL) {
+}
 
 void PPCELFStreamer::emitPrefixedInstruction(const MCInst &Inst,
                                              const MCSubtargetInfo &STI) {

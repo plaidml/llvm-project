@@ -140,7 +140,7 @@ enum RISCVExtension : uint8_t {
   F = 1 << 1,
   D = 1 << 2,
   Zfh = 1 << 3,
-  RV64 = 1 << 4,
+  Zvlsseg = 1 << 4,
 };
 
 // TODO refactor RVVIntrinsic class design after support all intrinsic
@@ -174,7 +174,7 @@ public:
                bool HasNoMaskedOverloaded, bool HasAutoDef,
                StringRef ManualCodegen, const RVVTypes &Types,
                const std::vector<int64_t> &IntrinsicTypes,
-               const std::vector<StringRef> &RequiredExtensions, unsigned NF);
+               StringRef RequiredExtension, unsigned NF);
   ~RVVIntrinsic() = default;
 
   StringRef getBuiltinName() const { return BuiltinName; }
@@ -444,8 +444,8 @@ void RVVType::initBuiltinStr() {
     return;
   }
   BuiltinStr = "q" + utostr(Scale.getValue()) + BuiltinStr;
-  // Pointer to vector types. Defined for segment load intrinsics.
-  // segment load intrinsics have pointer type arguments to store the loaded
+  // Pointer to vector types. Defined for Zvlsseg load intrinsics.
+  // Zvlsseg load intrinsics have pointer type arguments to store the loaded
   // vector values.
   if (IsPointer)
     BuiltinStr += "*";
@@ -764,8 +764,7 @@ RVVIntrinsic::RVVIntrinsic(StringRef NewName, StringRef Suffix,
                            bool HasNoMaskedOverloaded, bool HasAutoDef,
                            StringRef ManualCodegen, const RVVTypes &OutInTypes,
                            const std::vector<int64_t> &NewIntrinsicTypes,
-                           const std::vector<StringRef> &RequiredExtensions,
-                           unsigned NF)
+                           StringRef RequiredExtension, unsigned NF)
     : IRName(IRName), IsMask(IsMask), HasVL(HasVL), HasPolicy(HasPolicy),
       HasNoMaskedOverloaded(HasNoMaskedOverloaded), HasAutoDef(HasAutoDef),
       ManualCodegen(ManualCodegen.str()), NF(NF) {
@@ -795,10 +794,8 @@ RVVIntrinsic::RVVIntrinsic(StringRef NewName, StringRef Suffix,
     else if (T->isFloatVector(64) || T->isFloat(64))
       RISCVExtensions |= RISCVExtension::D;
   }
-  for (auto Extension : RequiredExtensions) {
-    if (Extension == "RV64")
-      RISCVExtensions |= RISCVExtension::RV64;
-  }
+  if (RequiredExtension == "Zvlsseg")
+    RISCVExtensions |= RISCVExtension::Zvlsseg;
 
   // Init OutputType and InputTypes
   OutputType = OutInTypes[0];
@@ -1024,7 +1021,7 @@ void RVVEmitter::createBuiltins(raw_ostream &OS) {
 
   OS << "#if defined(TARGET_BUILTIN) && !defined(RISCVV_BUILTIN)\n";
   OS << "#define RISCVV_BUILTIN(ID, TYPE, ATTRS) TARGET_BUILTIN(ID, TYPE, "
-        "ATTRS, \"experimental-zve32x\")\n";
+        "ATTRS, \"experimental-v\")\n";
   OS << "#endif\n";
   for (auto &Def : Defs) {
     auto P =
@@ -1144,8 +1141,7 @@ void RVVEmitter::createRVVIntrinsics(
     StringRef ManualCodegenMask = R->getValueAsString("ManualCodegenMask");
     std::vector<int64_t> IntrinsicTypes =
         R->getValueAsListOfInts("IntrinsicTypes");
-    std::vector<StringRef> RequiredExtensions =
-        R->getValueAsListOfStrings("RequiredExtensions");
+    StringRef RequiredExtension = R->getValueAsString("RequiredExtension");
     StringRef IRName = R->getValueAsString("IRName");
     StringRef IRNameMask = R->getValueAsString("IRNameMask");
     unsigned NF = R->getValueAsInt("NF");
@@ -1213,7 +1209,7 @@ void RVVEmitter::createRVVIntrinsics(
             Name, SuffixStr, MangledName, MangledSuffixStr, IRName,
             /*IsMask=*/false, /*HasMaskedOffOperand=*/false, HasVL, HasPolicy,
             HasNoMaskedOverloaded, HasAutoDef, ManualCodegen, Types.getValue(),
-            IntrinsicTypes, RequiredExtensions, NF));
+            IntrinsicTypes, RequiredExtension, NF));
         if (HasMask) {
           // Create a mask intrinsic
           Optional<RVVTypes> MaskTypes =
@@ -1222,7 +1218,7 @@ void RVVEmitter::createRVVIntrinsics(
               Name, SuffixStr, MangledName, MangledSuffixStr, IRNameMask,
               /*IsMask=*/true, HasMaskedOffOperand, HasVL, HasPolicy,
               HasNoMaskedOverloaded, HasAutoDef, ManualCodegenMask,
-              MaskTypes.getValue(), IntrinsicTypes, RequiredExtensions, NF));
+              MaskTypes.getValue(), IntrinsicTypes, RequiredExtension, NF));
         }
       } // end for Log2LMULList
     }   // end for TypeRange
@@ -1308,8 +1304,8 @@ bool RVVEmitter::emitExtDefStr(uint8_t Extents, raw_ostream &OS) {
     OS << LS << "defined(__riscv_d)";
   if (Extents & RISCVExtension::Zfh)
     OS << LS << "defined(__riscv_zfh)";
-  if (Extents & RISCVExtension::RV64)
-    OS << LS << "(__riscv_xlen == 64)";
+  if (Extents & RISCVExtension::Zvlsseg)
+    OS << LS << "defined(__riscv_zvlsseg)";
   OS << "\n";
   return true;
 }

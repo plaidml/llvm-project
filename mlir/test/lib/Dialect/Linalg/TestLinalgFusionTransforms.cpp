@@ -31,88 +31,87 @@ static void fillFusionPatterns(MLIRContext *context,
       LinalgTilingOptions().setTileSizes({32, 64, 16}).setLoopType(LoopType),
       LinalgFusionOptions().setIndicesToFuse({2}),
       LinalgTransformationFilter(
-          StringAttr::get(context, "basic_fusion"),
-          StringAttr::get(context, "after_basic_fusion")),
+          Identifier::get("basic_fusion", context),
+          Identifier::get("after_basic_fusion", context)),
       LinalgTransformationFilter(
-          ArrayRef<StringAttr>(),
-          StringAttr::get(context, "after_basic_fusion_producer")),
+          ArrayRef<Identifier>(),
+          Identifier::get("after_basic_fusion_producer", context)),
       LinalgTransformationFilter(
-          ArrayRef<StringAttr>(),
-          StringAttr::get(context, "after_basic_fusion_original")));
+          ArrayRef<Identifier>(),
+          Identifier::get("after_basic_fusion_original", context)));
 
   patterns.add<LinalgTileAndFusePattern<MatmulOp>>(
       context, dependenceGraph,
       LinalgTilingOptions().setTileSizes({32, 64, 16}).setLoopType(LoopType),
       LinalgFusionOptions().setIndicesToFuse({0}),
-      LinalgTransformationFilter(StringAttr::get(context, "lhs_fusion"),
-                                 StringAttr::get(context, "after_lhs_fusion")),
+      LinalgTransformationFilter(Identifier::get("lhs_fusion", context),
+                                 Identifier::get("after_lhs_fusion", context)),
       LinalgTransformationFilter(
-          ArrayRef<StringAttr>(),
-          StringAttr::get(context, "after_lhs_fusion_producer")),
+          ArrayRef<Identifier>(),
+          Identifier::get("after_lhs_fusion_producer", context)),
       LinalgTransformationFilter(
-          ArrayRef<StringAttr>(),
-          StringAttr::get(context, "after_lhs_fusion_original")));
+          ArrayRef<Identifier>(),
+          Identifier::get("after_lhs_fusion_original", context)));
 
   patterns.add<LinalgTileAndFusePattern<MatmulOp>>(
       context, dependenceGraph,
       LinalgTilingOptions().setTileSizes({32, 64, 16}).setLoopType(LoopType),
       LinalgFusionOptions().setIndicesToFuse({2}),
-      LinalgTransformationFilter(StringAttr::get(context, "out_fusion"),
-                                 StringAttr::get(context, "after_out_fusion")),
+      LinalgTransformationFilter(Identifier::get("out_fusion", context),
+                                 Identifier::get("after_out_fusion", context)),
       LinalgTransformationFilter(
-          ArrayRef<StringAttr>(),
-          StringAttr::get(context, "after_out_fusion_producer")),
+          ArrayRef<Identifier>(),
+          Identifier::get("after_out_fusion_producer", context)),
       LinalgTransformationFilter(
-          ArrayRef<StringAttr>(),
-          StringAttr::get(context, "after_out_fusion_original")));
+          ArrayRef<Identifier>(),
+          Identifier::get("after_out_fusion_original", context)));
 
   patterns.add<LinalgTileAndFusePattern<MatmulOp>>(
       context, dependenceGraph,
       LinalgTilingOptions().setTileSizes({32, 64, 16}).setLoopType(LoopType),
       LinalgFusionOptions().setIndicesToFuse({1}),
-      LinalgTransformationFilter(StringAttr::get(context, "rhs_fusion"),
-                                 StringAttr::get(context, "after_rhs_fusion")),
+      LinalgTransformationFilter(Identifier::get("rhs_fusion", context),
+                                 Identifier::get("after_rhs_fusion", context)),
       LinalgTransformationFilter(
-          ArrayRef<StringAttr>(),
-          StringAttr::get(context, "after_rhs_fusion_producer")),
+          ArrayRef<Identifier>(),
+          Identifier::get("after_rhs_fusion_producer", context)),
       LinalgTransformationFilter(
-          ArrayRef<StringAttr>(),
-          StringAttr::get(context, "after_rhs_fusion_original")));
+          ArrayRef<Identifier>(),
+          Identifier::get("after_rhs_fusion_original", context)));
 
   patterns.add<LinalgTileAndFusePattern<MatmulOp>>(
       context, dependenceGraph,
       LinalgTilingOptions().setTileSizes({32, 64, 16}).setLoopType(LoopType),
       LinalgFusionOptions().setIndicesToFuse({0, 2}),
       LinalgTransformationFilter(
-          StringAttr::get(context, "two_operand_fusion"),
-          StringAttr::get(context, "after_two_operand_fusion")),
+          Identifier::get("two_operand_fusion", context),
+          Identifier::get("after_two_operand_fusion", context)),
       LinalgTransformationFilter(
-          ArrayRef<StringAttr>(),
-          StringAttr::get(context, "after_two_operand_fusion_producer")),
+          ArrayRef<Identifier>(),
+          Identifier::get("after_two_operand_fusion_producer", context)),
       LinalgTransformationFilter(
-          ArrayRef<StringAttr>(),
-          StringAttr::get(context, "after_two_operand_fusion_original")));
+          ArrayRef<Identifier>(),
+          Identifier::get("after_two_operand_fusion_original", context)));
 
   patterns.add<LinalgTileAndFusePattern<GenericOp>>(
       context, dependenceGraph,
       LinalgTilingOptions().setTileSizes({32, 64}).setLoopType(LoopType),
       LinalgFusionOptions().setIndicesToFuse({0, 1}),
       LinalgTransformationFilter(
-          StringAttr::get(context, "transpose_fusion"),
-          StringAttr::get(context, "after_transpose_fusion")),
+          Identifier::get("transpose_fusion", context),
+          Identifier::get("after_transpose_fusion", context)),
       LinalgTransformationFilter(
-          ArrayRef<StringAttr>(),
-          StringAttr::get(context, "after_transpose_fusion_producer")),
+          ArrayRef<Identifier>(),
+          Identifier::get("after_transpose_fusion_producer", context)),
       LinalgTransformationFilter(
-          ArrayRef<StringAttr>(),
-          StringAttr::get(context, "after_transpose_fusion_original")));
+          ArrayRef<Identifier>(),
+          Identifier::get("after_transpose_fusion_original", context)));
 }
 
 namespace {
 template <LinalgTilingLoopType LoopType>
 struct TestLinalgFusionTransforms
-    : public PassWrapper<TestLinalgFusionTransforms<LoopType>,
-                         OperationPass<FuncOp>> {
+    : public PassWrapper<TestLinalgFusionTransforms<LoopType>, FunctionPass> {
   void getDependentDialects(DialectRegistry &registry) const override {
     registry.insert<AffineDialect, linalg::LinalgDialect, memref::MemRefDialect,
                     scf::SCFDialect, StandardOpsDialect>();
@@ -120,9 +119,9 @@ struct TestLinalgFusionTransforms
   TestLinalgFusionTransforms() = default;
   TestLinalgFusionTransforms(const TestLinalgFusionTransforms &pass) {}
 
-  void runOnOperation() override {
+  void runOnFunction() override {
     MLIRContext *context = &this->getContext();
-    FuncOp funcOp = this->getOperation();
+    FuncOp funcOp = this->getFunction();
     RewritePatternSet fusionPatterns(context);
     Aliases alias;
     LinalgDependenceGraph dependenceGraph =
@@ -226,7 +225,7 @@ static LogicalResult fuseLinalgOpsGreedily(FuncOp f) {
 
 namespace {
 struct TestLinalgGreedyFusion
-    : public PassWrapper<TestLinalgGreedyFusion, OperationPass<FuncOp>> {
+    : public PassWrapper<TestLinalgGreedyFusion, FunctionPass> {
   void getDependentDialects(DialectRegistry &registry) const override {
     registry.insert<AffineDialect, linalg::LinalgDialect, memref::MemRefDialect,
                     scf::SCFDialect>();
@@ -235,7 +234,7 @@ struct TestLinalgGreedyFusion
   StringRef getDescription() const final {
     return "Test Linalg fusion by applying a greedy test transformation.";
   }
-  void runOnOperation() override {
+  void runOnFunction() override {
     MLIRContext *context = &getContext();
     RewritePatternSet patterns =
         linalg::getLinalgTilingCanonicalizationPatterns(context);
@@ -243,31 +242,29 @@ struct TestLinalgGreedyFusion
     scf::populateSCFForLoopCanonicalizationPatterns(patterns);
     FrozenRewritePatternSet frozenPatterns(std::move(patterns));
     do {
-      (void)applyPatternsAndFoldGreedily(getOperation(), frozenPatterns);
+      (void)applyPatternsAndFoldGreedily(getFunction(), frozenPatterns);
       PassManager pm(context);
       pm.addPass(createLoopInvariantCodeMotionPass());
       pm.addPass(createCanonicalizerPass());
       pm.addPass(createCSEPass());
-      LogicalResult res = pm.run(getOperation()->getParentOfType<ModuleOp>());
+      LogicalResult res = pm.run(getFunction()->getParentOfType<ModuleOp>());
       if (failed(res))
         this->signalPassFailure();
-    } while (succeeded(fuseLinalgOpsGreedily(getOperation())));
+    } while (succeeded(fuseLinalgOpsGreedily(getFunction())));
   }
 };
 
 /// Pass to test tile and fuse of sequence of operations. Intended only for
 /// testing.
 struct TestLinalgTileAndFuseSequencePass
-    : public PassWrapper<TestLinalgTileAndFuseSequencePass,
-                         OperationPass<FuncOp>> {
+    : public PassWrapper<TestLinalgTileAndFuseSequencePass, FunctionPass> {
   StringRef getArgument() const final { return "test-linalg-tile-and-fuse"; }
   StringRef getDescription() const final {
     return "Test Linalg tiling and fusion of a sequence of Linalg operations.";
   }
   TestLinalgTileAndFuseSequencePass() = default;
   TestLinalgTileAndFuseSequencePass(
-      const TestLinalgTileAndFuseSequencePass &pass)
-      : PassWrapper(pass){};
+      const TestLinalgTileAndFuseSequencePass &pass){};
 
   ListOption<int64_t> tileSizes{
       *this, "tile-sizes", llvm::cl::desc("Tile sizes to use for ops"),
@@ -278,7 +275,7 @@ struct TestLinalgTileAndFuseSequencePass
                     scf::SCFDialect>();
   }
 
-  void runOnOperation() override {
+  void runOnFunction() override {
     FuncOp funcOp = getOperation();
     auto &blocks = funcOp.getBody().getBlocks();
     if (!llvm::hasSingleElement(blocks)) {

@@ -24,6 +24,7 @@
 #include "llvm/Support/Format.h"
 #include "llvm/Support/InitLLVM.h"
 #include "llvm/Support/MemoryBuffer.h"
+#include "llvm/Support/Path.h"
 #include "llvm/Support/Regex.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/ToolOutputFile.h"
@@ -264,13 +265,6 @@ static cl::extrahelp
 /// @}
 //===----------------------------------------------------------------------===//
 
-static void error(Error Err) {
-  if (!Err)
-    return;
-  WithColor::error() << toString(std::move(Err)) << "\n";
-  exit(1);
-}
-
 static void error(StringRef Prefix, Error Err) {
   if (!Err)
     return;
@@ -295,10 +289,8 @@ static DIDumpOptions getDumpOpts(DWARFContext &C) {
   DumpOpts.Verbose = Verbose;
   DumpOpts.RecoverableErrorHandler = C.getRecoverableErrorHandler();
   // In -verify mode, print DIEs without children in error messages.
-  if (Verify) {
-    DumpOpts.Verbose = true;
+  if (Verify)
     return DumpOpts.noImplicitRecursion();
-  }
   return DumpOpts;
 }
 
@@ -589,6 +581,41 @@ static bool handleFile(StringRef Filename, HandlerFn HandleObj,
   return handleBuffer(Filename, *Buffer, HandleObj, OS);
 }
 
+/// If the input path is a .dSYM bundle (as created by the dsymutil tool),
+/// replace it with individual entries for each of the object files inside the
+/// bundle otherwise return the input path.
+static std::vector<std::string> expandBundle(const std::string &InputPath) {
+  std::vector<std::string> BundlePaths;
+  SmallString<256> BundlePath(InputPath);
+  // Normalize input path. This is necessary to accept `bundle.dSYM/`.
+  sys::path::remove_dots(BundlePath);
+  // Manually open up the bundle to avoid introducing additional dependencies.
+  if (sys::fs::is_directory(BundlePath) &&
+      sys::path::extension(BundlePath) == ".dSYM") {
+    std::error_code EC;
+    sys::path::append(BundlePath, "Contents", "Resources", "DWARF");
+    for (sys::fs::directory_iterator Dir(BundlePath, EC), DirEnd;
+         Dir != DirEnd && !EC; Dir.increment(EC)) {
+      const std::string &Path = Dir->path();
+      sys::fs::file_status Status;
+      EC = sys::fs::status(Path, Status);
+      error(Path, EC);
+      switch (Status.type()) {
+      case sys::fs::file_type::regular_file:
+      case sys::fs::file_type::symlink_file:
+      case sys::fs::file_type::type_unknown:
+        BundlePaths.push_back(Path);
+        break;
+      default: /*ignore*/;
+      }
+    }
+    error(BundlePath, EC);
+  }
+  if (!BundlePaths.size())
+    BundlePaths.push_back(InputPath);
+  return BundlePaths;
+}
+
 int main(int argc, char **argv) {
   InitLLVM X(argc, argv);
 
@@ -657,14 +684,8 @@ int main(int argc, char **argv) {
   // Expand any .dSYM bundles to the individual object files contained therein.
   std::vector<std::string> Objects;
   for (const auto &F : InputFilenames) {
-    if (auto DsymObjectsOrErr = MachOObjectFile::findDsymObjectMembers(F)) {
-      if (DsymObjectsOrErr->empty())
-        Objects.push_back(F);
-      else
-        llvm::append_range(Objects, *DsymObjectsOrErr);
-    } else {
-      error(DsymObjectsOrErr.takeError());
-    }
+    auto Objs = expandBundle(F);
+    llvm::append_range(Objects, Objs);
   }
 
   bool Success = true;

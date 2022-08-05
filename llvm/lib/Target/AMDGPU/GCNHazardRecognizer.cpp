@@ -1438,13 +1438,15 @@ int GCNHazardRecognizer::checkMAIHazards90A(MachineInstr *MI) {
 
     if (!Use.isReg())
       continue;
-    Register Reg = Use.getReg();
+    unsigned Reg = Use.getReg();
     bool FullReg;
     const MachineInstr *MI1;
 
-    auto IsOverlappedMFMAFn = [Reg, &IsMFMAFn, &FullReg, &MI1,
-                               this](const MachineInstr &MI) {
+    auto IsOverlappedDGEMMorXDLFn = [Reg, &IsMFMAFn, &FullReg, &MI1,
+                                     this](const MachineInstr &MI) {
       if (!IsMFMAFn(MI))
+        return false;
+      if (!isDGEMM(MI.getOpcode()) && !isXDL(ST, MI))
         return false;
       Register DstReg = MI.getOperand(0).getReg();
       FullReg = (DstReg == Reg);
@@ -1456,8 +1458,8 @@ int GCNHazardRecognizer::checkMAIHazards90A(MachineInstr *MI) {
       getWaitStatesSinceDef(Reg, IsLegacyVALUNotDotFn, MaxWaitStates);
     WaitStatesNeeded = std::max(WaitStatesNeeded, WaitStatesNeededForUse);
 
-    int NumWaitStates =
-        getWaitStatesSinceDef(Reg, IsOverlappedMFMAFn, MaxWaitStates);
+    int NumWaitStates = getWaitStatesSinceDef(Reg, IsOverlappedDGEMMorXDLFn,
+                                              MaxWaitStates);
     if (NumWaitStates == std::numeric_limits<int>::max())
       continue;
 
@@ -1543,7 +1545,7 @@ int GCNHazardRecognizer::checkMAIHazards90A(MachineInstr *MI) {
 }
 
 int GCNHazardRecognizer::checkMAILdStHazards(MachineInstr *MI) {
-  // On gfx90a+ relevant hazards are checked in checkMAIVALUHazards()
+  // On gfx90a+ releveant hazards are checked in checkMAIVALUHazards()
   if (!ST.hasMAIInsts() || ST.hasGFX90AInsts())
     return 0;
 
@@ -1617,8 +1619,11 @@ int GCNHazardRecognizer::checkMAIVALUHazards(MachineInstr *MI) {
 
   const MachineInstr *MFMA = nullptr;
   unsigned Reg;
-  auto IsMFMAWriteFn = [&Reg, &IsMFMAFn, &MFMA, this](const MachineInstr &MI) {
+  auto IsDGEMMorXDLWriteFn = [&Reg, &IsMFMAFn, &MFMA,
+                              this](const MachineInstr &MI) {
     if (!IsMFMAFn(MI) || !TRI.regsOverlap(MI.getOperand(0).getReg(), Reg))
+      return false;
+    if (!isDGEMM(MI.getOpcode()) && !isXDL(ST, MI))
       return false;
     MFMA = &MI;
     return true;
@@ -1670,8 +1675,8 @@ int GCNHazardRecognizer::checkMAIVALUHazards(MachineInstr *MI) {
       }
 
       MFMA = nullptr;
-      WaitStatesSinceDef =
-          getWaitStatesSinceDef(Reg, IsMFMAWriteFn, MaxWaitStates);
+      WaitStatesSinceDef = getWaitStatesSinceDef(Reg, IsDGEMMorXDLWriteFn,
+                                                 MaxWaitStates);
       if (!MFMA)
         continue;
 
@@ -1745,8 +1750,8 @@ int GCNHazardRecognizer::checkMAIVALUHazards(MachineInstr *MI) {
                                                     WaitStatesSinceDef);
 
     MFMA = nullptr;
-    WaitStatesSinceDef =
-        getWaitStatesSinceDef(Reg, IsMFMAWriteFn, MaxWaitStates);
+    WaitStatesSinceDef = getWaitStatesSinceDef(Reg, IsDGEMMorXDLWriteFn,
+                                               MaxWaitStates);
     if (MFMA) {
       int NeedWaitStates = MaxWaitStates;
       switch (TSchedModel.computeInstrLatency(MFMA)) {

@@ -238,12 +238,12 @@ void SetPrintfAndReportCallback(void (*callback)(const char *));
 // Lock sanitizer error reporting and protects against nested errors.
 class ScopedErrorReportLock {
  public:
-  ScopedErrorReportLock() SANITIZER_ACQUIRE(mutex_) { Lock(); }
-  ~ScopedErrorReportLock() SANITIZER_RELEASE(mutex_) { Unlock(); }
+  ScopedErrorReportLock() ACQUIRE(mutex_) { Lock(); }
+  ~ScopedErrorReportLock() RELEASE(mutex_) { Unlock(); }
 
-  static void Lock() SANITIZER_ACQUIRE(mutex_);
-  static void Unlock() SANITIZER_RELEASE(mutex_);
-  static void CheckLocked() SANITIZER_CHECK_LOCKED(mutex_);
+  static void Lock() ACQUIRE(mutex_);
+  static void Unlock() RELEASE(mutex_);
+  static void CheckLocked() CHECK_LOCKED(mutex_);
 
  private:
   static atomic_uintptr_t reporting_thread_;
@@ -325,6 +325,12 @@ bool RemoveDieCallback(DieCallbackType callback);
 void SetUserDieCallback(DieCallbackType callback);
 
 void SetCheckUnwindCallback(void (*callback)());
+
+// Callback will be called if soft_rss_limit_mb is given and the limit is
+// exceeded (exceeded==true) or if rss went down below the limit
+// (exceeded==false).
+// The callback should be registered once at the tool init time.
+void SetSoftRssLimitExceededCallback(void (*Callback)(bool exceeded));
 
 // Functions related to signal handling.
 typedef void (*SignalHandlerType)(int, void *, void *);
@@ -453,10 +459,6 @@ constexpr T Min(T a, T b) {
 template <class T>
 constexpr T Max(T a, T b) {
   return a > b ? a : b;
-}
-template <class T>
-constexpr T Abs(T a) {
-  return a < 0 ? -a : a;
 }
 template<class T> void Swap(T& a, T& b) {
   T tmp = a;
@@ -667,9 +669,11 @@ void Sort(T *v, uptr size, Compare comp = {}) {
 
 // Works like std::lower_bound: finds the first element that is not less
 // than the val.
-template <class Container, class T,
+template <class Container,
           class Compare = CompareLess<typename Container::value_type>>
-uptr InternalLowerBound(const Container &v, const T &val, Compare comp = {}) {
+uptr InternalLowerBound(const Container &v,
+                        const typename Container::value_type &val,
+                        Compare comp = {}) {
   uptr first = 0;
   uptr last = v.size();
   while (last > first) {
@@ -770,7 +774,7 @@ inline const char *ModuleArchToString(ModuleArch arch) {
   return "";
 }
 
-const uptr kModuleUUIDSize = 32;
+const uptr kModuleUUIDSize = 16;
 const uptr kMaxSegName = 16;
 
 // Represents a binary loaded into virtual memory (e.g. this can be an
@@ -782,7 +786,6 @@ class LoadedModule {
         base_address_(0),
         max_executable_address_(0),
         arch_(kModuleArchUnknown),
-        uuid_size_(0),
         instrumented_(false) {
     internal_memset(uuid_, 0, kModuleUUIDSize);
     ranges_.clear();
@@ -790,7 +793,6 @@ class LoadedModule {
   void set(const char *module_name, uptr base_address);
   void set(const char *module_name, uptr base_address, ModuleArch arch,
            u8 uuid[kModuleUUIDSize], bool instrumented);
-  void setUuid(const char *uuid, uptr size);
   void clear();
   void addAddressRange(uptr beg, uptr end, bool executable, bool writable,
                        const char *name = nullptr);
@@ -801,7 +803,6 @@ class LoadedModule {
   uptr max_executable_address() const { return max_executable_address_; }
   ModuleArch arch() const { return arch_; }
   const u8 *uuid() const { return uuid_; }
-  uptr uuid_size() const { return uuid_size_; }
   bool instrumented() const { return instrumented_; }
 
   struct AddressRange {
@@ -830,7 +831,6 @@ class LoadedModule {
   uptr base_address_;
   uptr max_executable_address_;
   ModuleArch arch_;
-  uptr uuid_size_;
   u8 uuid_[kModuleUUIDSize];
   bool instrumented_;
   IntrusiveList<AddressRange> ranges_;

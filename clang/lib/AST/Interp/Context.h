@@ -23,6 +23,7 @@
 namespace clang {
 class ASTContext;
 class LangOptions;
+class Stmt;
 class FunctionDecl;
 class VarDecl;
 

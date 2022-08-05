@@ -35,6 +35,7 @@ namespace llvm {
   class APInt;
   class hash_code;
   template <typename T> class SmallVectorImpl;
+  template <typename T> struct DenseMapInfo;
   class StringRef;
 
   /// Helper functions for StringRef::getAsInteger.
@@ -149,11 +150,11 @@ namespace llvm {
 
     /// empty - Check if the string is empty.
     LLVM_NODISCARD
-    constexpr bool empty() const { return Length == 0; }
+    bool empty() const { return Length == 0; }
 
     /// size - Get the string size.
     LLVM_NODISCARD
-    constexpr size_t size() const { return Length; }
+    size_t size() const { return Length; }
 
     /// front - Get the first character in the string.
     LLVM_NODISCARD
@@ -948,7 +949,7 @@ namespace llvm {
   hash_code hash_value(StringRef S);
 
   // Provide DenseMapInfo for StringRefs.
-  template <> struct DenseMapInfo<StringRef, void> {
+  template <> struct DenseMapInfo<StringRef> {
     static inline StringRef getEmptyKey() {
       return StringRef(
           reinterpret_cast<const char *>(~static_cast<uintptr_t>(0)), 0);

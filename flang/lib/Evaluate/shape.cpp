@@ -10,7 +10,6 @@
 #include "flang/Common/idioms.h"
 #include "flang/Common/template.h"
 #include "flang/Evaluate/characteristics.h"
-#include "flang/Evaluate/check-expression.h"
 #include "flang/Evaluate/fold.h"
 #include "flang/Evaluate/intrinsics.h"
 #include "flang/Evaluate/tools.h"
@@ -27,7 +26,7 @@ bool IsImpliedShape(const Symbol &original) {
   const Symbol &symbol{ResolveAssociations(original)};
   const auto *details{symbol.detailsIf<semantics::ObjectEntityDetails>()};
   return details && symbol.attrs().test(semantics::Attr::PARAMETER) &&
-      details->shape().CanBeImpliedShape();
+      details->shape().IsImpliedShape();
 }
 
 bool IsExplicitShape(const Symbol &original) {
@@ -250,8 +249,7 @@ auto GetLowerBoundHelper::operator()(const Symbol &symbol0) -> Result {
     int j{0};
     for (const auto &shapeSpec : details->shape()) {
       if (j++ == dimension_) {
-        const auto &bound{shapeSpec.lbound().GetExplicit()};
-        if (bound && IsScopeInvariantExpr(*bound)) {
+        if (const auto &bound{shapeSpec.lbound().GetExplicit()}) {
           return *bound;
         } else if (IsDescriptor(symbol)) {
           return ExtentExpr{DescriptorInquiry{NamedEntity{symbol0},
@@ -284,8 +282,7 @@ auto GetLowerBoundHelper::operator()(const Component &component) -> Result {
       int j{0};
       for (const auto &shapeSpec : details->shape()) {
         if (j++ == dimension_) {
-          const auto &bound{shapeSpec.lbound().GetExplicit()};
-          if (bound && IsScopeInvariantExpr(*bound)) {
+          if (const auto &bound{shapeSpec.lbound().GetExplicit()}) {
             return *bound;
           } else if (IsDescriptor(symbol)) {
             return ExtentExpr{
@@ -343,21 +340,9 @@ static MaybeExtentExpr GetNonNegativeExtent(
     } else {
       return ExtentExpr{*uval - *lval + 1};
     }
-  } else if (lbound && ubound && IsScopeInvariantExpr(*lbound) &&
-      IsScopeInvariantExpr(*ubound)) {
-    // Apply effective IDIM (MAX calculation with 0) so thet the
-    // result is never negative
-    if (lval.value_or(0) == 1) {
-      return ExtentExpr{Extremum<SubscriptInteger>{
-          Ordering::Greater, ExtentExpr{0}, common::Clone(*ubound)}};
-    } else {
-      return ExtentExpr{
-          Extremum<SubscriptInteger>{Ordering::Greater, ExtentExpr{0},
-              common::Clone(*ubound) - common::Clone(*lbound) + ExtentExpr{1}}};
-    }
-  } else {
-    return std::nullopt;
   }
+  return common::Clone(ubound.value()) - common::Clone(lbound.value()) +
+      ExtentExpr{1};
 }
 
 MaybeExtentExpr GetExtent(const NamedEntity &base, int dimension) {
@@ -387,15 +372,21 @@ MaybeExtentExpr GetExtent(const NamedEntity &base, int dimension) {
       int j{0};
       for (const auto &shapeSpec : details->shape()) {
         if (j++ == dimension) {
-          if (auto extent{GetNonNegativeExtent(shapeSpec)}) {
-            return extent;
+          if (const auto &ubound{shapeSpec.ubound().GetExplicit()}) {
+            if (shapeSpec.ubound().GetExplicit()) {
+              // 8.5.8.2, paragraph 3.  If the upper bound is less than the
+              // lower bound, the extent is zero.
+              if (shapeSpec.lbound().GetExplicit()) {
+                return GetNonNegativeExtent(shapeSpec);
+              } else {
+                return ubound.value();
+              }
+            }
           } else if (details->IsAssumedSize() && j == symbol.Rank()) {
             return std::nullopt;
           } else if (semantics::IsDescriptor(symbol)) {
             return ExtentExpr{DescriptorInquiry{NamedEntity{base},
                 DescriptorInquiry::Field::Extent, dimension}};
-          } else {
-            break;
           }
         }
       }
@@ -446,11 +437,7 @@ MaybeExtentExpr GetExtent(FoldingContext &context, const Subscript &subscript,
 MaybeExtentExpr ComputeUpperBound(
     ExtentExpr &&lower, MaybeExtentExpr &&extent) {
   if (extent) {
-    if (ToInt64(lower).value_or(0) == 1) {
-      return std::move(*extent);
-    } else {
-      return std::move(*extent) + std::move(lower) - ExtentExpr{1};
-    }
+    return std::move(*extent) + std::move(lower) - ExtentExpr{1};
   } else {
     return std::nullopt;
   }
@@ -467,8 +454,7 @@ MaybeExtentExpr GetUpperBound(const NamedEntity &base, int dimension) {
     int j{0};
     for (const auto &shapeSpec : details->shape()) {
       if (j++ == dimension) {
-        const auto &bound{shapeSpec.ubound().GetExplicit()};
-        if (bound && IsScopeInvariantExpr(*bound)) {
+        if (const auto &bound{shapeSpec.ubound().GetExplicit()}) {
           return *bound;
         } else if (details->IsAssumedSize() && dimension + 1 == symbol.Rank()) {
           break;
@@ -501,10 +487,10 @@ Shape GetUpperBounds(const NamedEntity &base) {
     Shape result;
     int dim{0};
     for (const auto &shapeSpec : details->shape()) {
-      const auto &bound{shapeSpec.ubound().GetExplicit()};
-      if (bound && IsScopeInvariantExpr(*bound)) {
+      if (const auto &bound{shapeSpec.ubound().GetExplicit()}) {
         result.push_back(*bound);
-      } else if (details->IsAssumedSize() && dim + 1 == base.Rank()) {
+      } else if (details->IsAssumedSize()) {
+        CHECK(dim + 1 == base.Rank());
         result.emplace_back(std::nullopt); // UBOUND folding replaces with -1
       } else {
         result.emplace_back(
@@ -556,21 +542,9 @@ auto GetShapeHelper::operator()(const Symbol &symbol) const -> Result {
               return (*this)(assoc.expr());
             }
           },
-          [&](const semantics::SubprogramDetails &subp) -> Result {
+          [&](const semantics::SubprogramDetails &subp) {
             if (subp.isFunction()) {
-              auto resultShape{(*this)(subp.result())};
-              if (resultShape && !useResultSymbolShape_) {
-                // Ensure the shape is constant. Otherwise, it may be referring
-                // to symbols that belong to the subroutine scope and are
-                // meaningless on the caller side without the related call
-                // expression.
-                for (auto extent : *resultShape) {
-                  if (extent && !IsConstantExpr(*extent)) {
-                    return std::nullopt;
-                  }
-                }
-              }
-              return resultShape;
+              return (*this)(subp.result());
             } else {
               return Result{};
             }

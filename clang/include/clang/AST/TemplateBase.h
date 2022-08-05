@@ -52,6 +52,7 @@ template <> struct PointerLikeTypeTraits<clang::Expr *> {
 namespace clang {
 
 class ASTContext;
+class DiagnosticBuilder;
 class Expr;
 struct PrintingPolicy;
 class TypeSourceInfo;

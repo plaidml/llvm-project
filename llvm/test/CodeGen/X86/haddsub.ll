@@ -1777,8 +1777,8 @@ define float @hadd32_4(<4 x float> %x225) {
 ; SSE3-SLOW:       # %bb.0:
 ; SSE3-SLOW-NEXT:    movaps %xmm0, %xmm1
 ; SSE3-SLOW-NEXT:    unpckhpd {{.*#+}} xmm1 = xmm1[1],xmm0[1]
-; SSE3-SLOW-NEXT:    addps %xmm1, %xmm0
-; SSE3-SLOW-NEXT:    movshdup {{.*#+}} xmm1 = xmm0[1,1,3,3]
+; SSE3-SLOW-NEXT:    addps %xmm0, %xmm1
+; SSE3-SLOW-NEXT:    movshdup {{.*#+}} xmm0 = xmm1[1,1,3,3]
 ; SSE3-SLOW-NEXT:    addss %xmm1, %xmm0
 ; SSE3-SLOW-NEXT:    retq
 ;
@@ -1786,8 +1786,9 @@ define float @hadd32_4(<4 x float> %x225) {
 ; SSE3-FAST:       # %bb.0:
 ; SSE3-FAST-NEXT:    movaps %xmm0, %xmm1
 ; SSE3-FAST-NEXT:    unpckhpd {{.*#+}} xmm1 = xmm1[1],xmm0[1]
-; SSE3-FAST-NEXT:    addps %xmm1, %xmm0
-; SSE3-FAST-NEXT:    haddps %xmm0, %xmm0
+; SSE3-FAST-NEXT:    addps %xmm0, %xmm1
+; SSE3-FAST-NEXT:    haddps %xmm1, %xmm1
+; SSE3-FAST-NEXT:    movaps %xmm1, %xmm0
 ; SSE3-FAST-NEXT:    retq
 ;
 ; AVX-SLOW-LABEL: hadd32_4:
@@ -1817,8 +1818,8 @@ define float @hadd32_8(<8 x float> %x225) {
 ; SSE3-SLOW:       # %bb.0:
 ; SSE3-SLOW-NEXT:    movaps %xmm0, %xmm1
 ; SSE3-SLOW-NEXT:    unpckhpd {{.*#+}} xmm1 = xmm1[1],xmm0[1]
-; SSE3-SLOW-NEXT:    addps %xmm1, %xmm0
-; SSE3-SLOW-NEXT:    movshdup {{.*#+}} xmm1 = xmm0[1,1,3,3]
+; SSE3-SLOW-NEXT:    addps %xmm0, %xmm1
+; SSE3-SLOW-NEXT:    movshdup {{.*#+}} xmm0 = xmm1[1,1,3,3]
 ; SSE3-SLOW-NEXT:    addss %xmm1, %xmm0
 ; SSE3-SLOW-NEXT:    retq
 ;
@@ -1826,8 +1827,9 @@ define float @hadd32_8(<8 x float> %x225) {
 ; SSE3-FAST:       # %bb.0:
 ; SSE3-FAST-NEXT:    movaps %xmm0, %xmm1
 ; SSE3-FAST-NEXT:    unpckhpd {{.*#+}} xmm1 = xmm1[1],xmm0[1]
-; SSE3-FAST-NEXT:    addps %xmm1, %xmm0
-; SSE3-FAST-NEXT:    haddps %xmm0, %xmm0
+; SSE3-FAST-NEXT:    addps %xmm0, %xmm1
+; SSE3-FAST-NEXT:    haddps %xmm1, %xmm1
+; SSE3-FAST-NEXT:    movaps %xmm1, %xmm0
 ; SSE3-FAST-NEXT:    retq
 ;
 ; AVX-SLOW-LABEL: hadd32_8:
@@ -1859,8 +1861,8 @@ define float @hadd32_16(<16 x float> %x225) {
 ; SSE3-SLOW:       # %bb.0:
 ; SSE3-SLOW-NEXT:    movaps %xmm0, %xmm1
 ; SSE3-SLOW-NEXT:    unpckhpd {{.*#+}} xmm1 = xmm1[1],xmm0[1]
-; SSE3-SLOW-NEXT:    addps %xmm1, %xmm0
-; SSE3-SLOW-NEXT:    movshdup {{.*#+}} xmm1 = xmm0[1,1,3,3]
+; SSE3-SLOW-NEXT:    addps %xmm0, %xmm1
+; SSE3-SLOW-NEXT:    movshdup {{.*#+}} xmm0 = xmm1[1,1,3,3]
 ; SSE3-SLOW-NEXT:    addss %xmm1, %xmm0
 ; SSE3-SLOW-NEXT:    retq
 ;
@@ -1868,8 +1870,9 @@ define float @hadd32_16(<16 x float> %x225) {
 ; SSE3-FAST:       # %bb.0:
 ; SSE3-FAST-NEXT:    movaps %xmm0, %xmm1
 ; SSE3-FAST-NEXT:    unpckhpd {{.*#+}} xmm1 = xmm1[1],xmm0[1]
-; SSE3-FAST-NEXT:    addps %xmm1, %xmm0
-; SSE3-FAST-NEXT:    haddps %xmm0, %xmm0
+; SSE3-FAST-NEXT:    addps %xmm0, %xmm1
+; SSE3-FAST-NEXT:    haddps %xmm1, %xmm1
+; SSE3-FAST-NEXT:    movaps %xmm1, %xmm0
 ; SSE3-FAST-NEXT:    retq
 ;
 ; AVX-SLOW-LABEL: hadd32_16:
@@ -1901,8 +1904,9 @@ define float @hadd32_4_optsize(<4 x float> %x225) optsize {
 ; SSE3:       # %bb.0:
 ; SSE3-NEXT:    movaps %xmm0, %xmm1
 ; SSE3-NEXT:    unpckhpd {{.*#+}} xmm1 = xmm1[1],xmm0[1]
-; SSE3-NEXT:    addps %xmm1, %xmm0
-; SSE3-NEXT:    haddps %xmm0, %xmm0
+; SSE3-NEXT:    addps %xmm0, %xmm1
+; SSE3-NEXT:    haddps %xmm1, %xmm1
+; SSE3-NEXT:    movaps %xmm1, %xmm0
 ; SSE3-NEXT:    retq
 ;
 ; AVX-LABEL: hadd32_4_optsize:
@@ -1924,8 +1928,9 @@ define float @hadd32_8_optsize(<8 x float> %x225) optsize {
 ; SSE3:       # %bb.0:
 ; SSE3-NEXT:    movaps %xmm0, %xmm1
 ; SSE3-NEXT:    unpckhpd {{.*#+}} xmm1 = xmm1[1],xmm0[1]
-; SSE3-NEXT:    addps %xmm1, %xmm0
-; SSE3-NEXT:    haddps %xmm0, %xmm0
+; SSE3-NEXT:    addps %xmm0, %xmm1
+; SSE3-NEXT:    haddps %xmm1, %xmm1
+; SSE3-NEXT:    movaps %xmm1, %xmm0
 ; SSE3-NEXT:    retq
 ;
 ; AVX-LABEL: hadd32_8_optsize:
@@ -1948,8 +1953,9 @@ define float @hadd32_16_optsize(<16 x float> %x225) optsize {
 ; SSE3:       # %bb.0:
 ; SSE3-NEXT:    movaps %xmm0, %xmm1
 ; SSE3-NEXT:    unpckhpd {{.*#+}} xmm1 = xmm1[1],xmm0[1]
-; SSE3-NEXT:    addps %xmm1, %xmm0
-; SSE3-NEXT:    haddps %xmm0, %xmm0
+; SSE3-NEXT:    addps %xmm0, %xmm1
+; SSE3-NEXT:    haddps %xmm1, %xmm1
+; SSE3-NEXT:    movaps %xmm1, %xmm0
 ; SSE3-NEXT:    retq
 ;
 ; AVX-LABEL: hadd32_16_optsize:
@@ -1972,8 +1978,9 @@ define float @hadd32_4_pgso(<4 x float> %x225) !prof !14 {
 ; SSE3:       # %bb.0:
 ; SSE3-NEXT:    movaps %xmm0, %xmm1
 ; SSE3-NEXT:    unpckhpd {{.*#+}} xmm1 = xmm1[1],xmm0[1]
-; SSE3-NEXT:    addps %xmm1, %xmm0
-; SSE3-NEXT:    haddps %xmm0, %xmm0
+; SSE3-NEXT:    addps %xmm0, %xmm1
+; SSE3-NEXT:    haddps %xmm1, %xmm1
+; SSE3-NEXT:    movaps %xmm1, %xmm0
 ; SSE3-NEXT:    retq
 ;
 ; AVX-LABEL: hadd32_4_pgso:
@@ -1995,8 +2002,9 @@ define float @hadd32_8_pgso(<8 x float> %x225) !prof !14 {
 ; SSE3:       # %bb.0:
 ; SSE3-NEXT:    movaps %xmm0, %xmm1
 ; SSE3-NEXT:    unpckhpd {{.*#+}} xmm1 = xmm1[1],xmm0[1]
-; SSE3-NEXT:    addps %xmm1, %xmm0
-; SSE3-NEXT:    haddps %xmm0, %xmm0
+; SSE3-NEXT:    addps %xmm0, %xmm1
+; SSE3-NEXT:    haddps %xmm1, %xmm1
+; SSE3-NEXT:    movaps %xmm1, %xmm0
 ; SSE3-NEXT:    retq
 ;
 ; AVX-LABEL: hadd32_8_pgso:
@@ -2019,8 +2027,9 @@ define float @hadd32_16_pgso(<16 x float> %x225) !prof !14 {
 ; SSE3:       # %bb.0:
 ; SSE3-NEXT:    movaps %xmm0, %xmm1
 ; SSE3-NEXT:    unpckhpd {{.*#+}} xmm1 = xmm1[1],xmm0[1]
-; SSE3-NEXT:    addps %xmm1, %xmm0
-; SSE3-NEXT:    haddps %xmm0, %xmm0
+; SSE3-NEXT:    addps %xmm0, %xmm1
+; SSE3-NEXT:    haddps %xmm1, %xmm1
+; SSE3-NEXT:    movaps %xmm1, %xmm0
 ; SSE3-NEXT:    retq
 ;
 ; AVX-LABEL: hadd32_16_pgso:
@@ -2043,8 +2052,8 @@ define float @partial_reduction_fadd_v8f32(<8 x float> %x) {
 ; SSE3-SLOW:       # %bb.0:
 ; SSE3-SLOW-NEXT:    movaps %xmm0, %xmm1
 ; SSE3-SLOW-NEXT:    unpckhpd {{.*#+}} xmm1 = xmm1[1],xmm0[1]
-; SSE3-SLOW-NEXT:    addps %xmm1, %xmm0
-; SSE3-SLOW-NEXT:    movshdup {{.*#+}} xmm1 = xmm0[1,1,3,3]
+; SSE3-SLOW-NEXT:    addps %xmm0, %xmm1
+; SSE3-SLOW-NEXT:    movshdup {{.*#+}} xmm0 = xmm1[1,1,3,3]
 ; SSE3-SLOW-NEXT:    addss %xmm1, %xmm0
 ; SSE3-SLOW-NEXT:    retq
 ;
@@ -2052,8 +2061,9 @@ define float @partial_reduction_fadd_v8f32(<8 x float> %x) {
 ; SSE3-FAST:       # %bb.0:
 ; SSE3-FAST-NEXT:    movaps %xmm0, %xmm1
 ; SSE3-FAST-NEXT:    unpckhpd {{.*#+}} xmm1 = xmm1[1],xmm0[1]
-; SSE3-FAST-NEXT:    addps %xmm1, %xmm0
-; SSE3-FAST-NEXT:    haddps %xmm0, %xmm0
+; SSE3-FAST-NEXT:    addps %xmm0, %xmm1
+; SSE3-FAST-NEXT:    haddps %xmm1, %xmm1
+; SSE3-FAST-NEXT:    movaps %xmm1, %xmm0
 ; SSE3-FAST-NEXT:    retq
 ;
 ; AVX-SLOW-LABEL: partial_reduction_fadd_v8f32:
@@ -2087,8 +2097,8 @@ define float @partial_reduction_fadd_v8f32_wrong_flags(<8 x float> %x) {
 ; SSE3-SLOW:       # %bb.0:
 ; SSE3-SLOW-NEXT:    movaps %xmm0, %xmm1
 ; SSE3-SLOW-NEXT:    unpckhpd {{.*#+}} xmm1 = xmm1[1],xmm0[1]
-; SSE3-SLOW-NEXT:    addps %xmm1, %xmm0
-; SSE3-SLOW-NEXT:    movshdup {{.*#+}} xmm1 = xmm0[1,1,3,3]
+; SSE3-SLOW-NEXT:    addps %xmm0, %xmm1
+; SSE3-SLOW-NEXT:    movshdup {{.*#+}} xmm0 = xmm1[1,1,3,3]
 ; SSE3-SLOW-NEXT:    addss %xmm1, %xmm0
 ; SSE3-SLOW-NEXT:    retq
 ;
@@ -2096,8 +2106,9 @@ define float @partial_reduction_fadd_v8f32_wrong_flags(<8 x float> %x) {
 ; SSE3-FAST:       # %bb.0:
 ; SSE3-FAST-NEXT:    movaps %xmm0, %xmm1
 ; SSE3-FAST-NEXT:    unpckhpd {{.*#+}} xmm1 = xmm1[1],xmm0[1]
-; SSE3-FAST-NEXT:    addps %xmm1, %xmm0
-; SSE3-FAST-NEXT:    haddps %xmm0, %xmm0
+; SSE3-FAST-NEXT:    addps %xmm0, %xmm1
+; SSE3-FAST-NEXT:    haddps %xmm1, %xmm1
+; SSE3-FAST-NEXT:    movaps %xmm1, %xmm0
 ; SSE3-FAST-NEXT:    retq
 ;
 ; AVX-SLOW-LABEL: partial_reduction_fadd_v8f32_wrong_flags:
@@ -2129,8 +2140,8 @@ define float @partial_reduction_fadd_v16f32(<16 x float> %x) {
 ; SSE3-SLOW:       # %bb.0:
 ; SSE3-SLOW-NEXT:    movaps %xmm0, %xmm1
 ; SSE3-SLOW-NEXT:    unpckhpd {{.*#+}} xmm1 = xmm1[1],xmm0[1]
-; SSE3-SLOW-NEXT:    addps %xmm1, %xmm0
-; SSE3-SLOW-NEXT:    movshdup {{.*#+}} xmm1 = xmm0[1,1,3,3]
+; SSE3-SLOW-NEXT:    addps %xmm0, %xmm1
+; SSE3-SLOW-NEXT:    movshdup {{.*#+}} xmm0 = xmm1[1,1,3,3]
 ; SSE3-SLOW-NEXT:    addss %xmm1, %xmm0
 ; SSE3-SLOW-NEXT:    retq
 ;
@@ -2138,8 +2149,9 @@ define float @partial_reduction_fadd_v16f32(<16 x float> %x) {
 ; SSE3-FAST:       # %bb.0:
 ; SSE3-FAST-NEXT:    movaps %xmm0, %xmm1
 ; SSE3-FAST-NEXT:    unpckhpd {{.*#+}} xmm1 = xmm1[1],xmm0[1]
-; SSE3-FAST-NEXT:    addps %xmm1, %xmm0
-; SSE3-FAST-NEXT:    haddps %xmm0, %xmm0
+; SSE3-FAST-NEXT:    addps %xmm0, %xmm1
+; SSE3-FAST-NEXT:    haddps %xmm1, %xmm1
+; SSE3-FAST-NEXT:    movaps %xmm1, %xmm0
 ; SSE3-FAST-NEXT:    retq
 ;
 ; AVX-SLOW-LABEL: partial_reduction_fadd_v16f32:

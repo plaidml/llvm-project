@@ -37,8 +37,7 @@ public:
     UndefinedKind,
     CommonKind,
     DylibKind,
-    LazyArchiveKind,
-    LazyObjectKind,
+    LazyKind,
   };
 
   virtual ~Symbol() {}
@@ -52,9 +51,6 @@ public:
   }
 
   bool isLive() const { return used; }
-  bool isLazy() const {
-    return symbolKind == LazyArchiveKind || symbolKind == LazyObjectKind;
-  }
 
   virtual uint64_t getVA() const { return 0; }
 
@@ -96,14 +92,14 @@ public:
 
 protected:
   Symbol(Kind k, StringRefZ name, InputFile *file)
-      : symbolKind(k), nameData(name.data), file(file), nameSize(name.size),
+      : symbolKind(k), nameData(name.data), nameSize(name.size), file(file),
         isUsedInRegularObj(!file || isa<ObjFile>(file)),
         used(!config->deadStrip) {}
 
   Kind symbolKind;
   const char *nameData;
-  InputFile *file;
   mutable uint32_t nameSize;
+  InputFile *file;
 
 public:
   // True if this symbol was referenced by a regular (non-bitcode) object.
@@ -117,8 +113,7 @@ class Defined : public Symbol {
 public:
   Defined(StringRefZ name, InputFile *file, InputSection *isec, uint64_t value,
           uint64_t size, bool isWeakDef, bool isExternal, bool isPrivateExtern,
-          bool isThumb, bool isReferencedDynamically, bool noDeadStrip,
-          bool canOverrideWeakDef = false, bool isWeakDefCanBeHidden = false);
+          bool isThumb, bool isReferencedDynamically, bool noDeadStrip);
 
   bool isWeakDef() const override { return weakDef; }
   bool isExternalWeakDef() const {
@@ -137,8 +132,14 @@ public:
 
   static bool classof(const Symbol *s) { return s->kind() == DefinedKind; }
 
-  // Place the bitfields first so that they can get placed in the tail padding
-  // of the parent class, on platforms which support it.
+  InputSection *isec;
+  // Contains the offset from the containing subsection. Note that this is
+  // different from nlist::n_value, which is the absolute address of the symbol.
+  uint64_t value;
+  // size is only calculated for regular (non-bitcode) symbols.
+  uint64_t size;
+  ConcatInputSection *compactUnwind = nullptr;
+
   bool overridesWeakDef : 1;
   // Whether this symbol should appear in the output binary's export trie.
   bool privateExtern : 1;
@@ -159,20 +160,9 @@ public:
   // to the output.
   bool noDeadStrip : 1;
 
-  bool weakDefCanBeHidden : 1;
-
 private:
   const bool weakDef : 1;
   const bool external : 1;
-
-public:
-  InputSection *isec;
-  // Contains the offset from the containing subsection. Note that this is
-  // different from nlist::n_value, which is the absolute address of the symbol.
-  uint64_t value;
-  // size is only calculated for regular (non-bitcode) symbols.
-  uint64_t size;
-  ConcatInputSection *unwindEntry = nullptr;
 };
 
 // This enum does double-duty: as a symbol property, it indicates whether & how
@@ -240,12 +230,7 @@ public:
 
   uint64_t getVA() const override;
   bool isWeakDef() const override { return weakDef; }
-
-  // Symbols from weak libraries/frameworks are also weakly-referenced.
-  bool isWeakRef() const override {
-    return refState == RefState::Weak ||
-           (file && getFile()->umbrella->forceWeakImport);
-  }
+  bool isWeakRef() const override { return refState == RefState::Weak; }
   bool isReferenced() const { return refState != RefState::Unreferenced; }
   bool isTlv() const override { return tlv; }
   bool isDynamicLookup() const { return file == nullptr; }
@@ -284,30 +269,18 @@ private:
   const bool tlv : 1;
 };
 
-class LazyArchive : public Symbol {
+class LazySymbol : public Symbol {
 public:
-  LazyArchive(ArchiveFile *file, const llvm::object::Archive::Symbol &sym)
-      : Symbol(LazyArchiveKind, sym.getName(), file), sym(sym) {}
+  LazySymbol(ArchiveFile *file, const llvm::object::Archive::Symbol &sym)
+      : Symbol(LazyKind, sym.getName(), file), sym(sym) {}
 
   ArchiveFile *getFile() const { return cast<ArchiveFile>(file); }
   void fetchArchiveMember();
 
-  static bool classof(const Symbol *s) { return s->kind() == LazyArchiveKind; }
+  static bool classof(const Symbol *s) { return s->kind() == LazyKind; }
 
 private:
   const llvm::object::Archive::Symbol sym;
-};
-
-// A defined symbol in an ObjFile/BitcodeFile surrounded by --start-lib and
-// --end-lib.
-class LazyObject : public Symbol {
-public:
-  LazyObject(InputFile &file, StringRef name)
-      : Symbol(LazyObjectKind, name, &file) {
-    isUsedInRegularObj = false;
-  }
-
-  static bool classof(const Symbol *s) { return s->kind() == LazyObjectKind; }
 };
 
 union SymbolUnion {
@@ -315,8 +288,7 @@ union SymbolUnion {
   alignas(Undefined) char b[sizeof(Undefined)];
   alignas(CommonSymbol) char c[sizeof(CommonSymbol)];
   alignas(DylibSymbol) char d[sizeof(DylibSymbol)];
-  alignas(LazyArchive) char e[sizeof(LazyArchive)];
-  alignas(LazyObject) char f[sizeof(LazyObject)];
+  alignas(LazySymbol) char e[sizeof(LazySymbol)];
 };
 
 template <typename T, typename... ArgT>

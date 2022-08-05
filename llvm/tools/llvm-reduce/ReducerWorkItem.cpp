@@ -88,7 +88,7 @@ static std::unique_ptr<MachineFunction> cloneMF(MachineFunction *SrcMF) {
     }
   }
 
-  DstMF->verify(nullptr, "", /*AbortOnError=*/true);
+  DstMF->verify(nullptr, "", /*AbortOnErrors=*/true);
   return DstMF;
 }
 
@@ -159,7 +159,7 @@ cloneReducerWorkItem(const ReducerWorkItem &MMM) {
 bool verifyReducerWorkItem(const ReducerWorkItem &MMM, raw_fd_ostream *OS) {
   if (verifyModule(*MMM.M, OS))
     return true;
-  if (MMM.MF && !MMM.MF->verify(nullptr, "", /*AbortOnError=*/false))
+  if (MMM.MF && !MMM.MF->verify(nullptr, "", /*AbortOnErrors=*/false))
     return true;
   return false;
 }

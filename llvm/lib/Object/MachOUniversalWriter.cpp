@@ -19,6 +19,7 @@
 #include "llvm/Object/IRObjectFile.h"
 #include "llvm/Object/MachO.h"
 #include "llvm/Object/MachOUniversal.h"
+#include "llvm/Support/SmallVectorMemoryBuffer.h"
 
 using namespace llvm;
 using namespace object;

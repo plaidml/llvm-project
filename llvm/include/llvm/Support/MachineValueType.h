@@ -848,11 +848,7 @@ namespace llvm {
     }
 
     unsigned getVectorNumElements() const {
-      if (isScalableVector())
-        llvm::reportInvalidSizeRequest(
-            "Possible incorrect use of MVT::getVectorNumElements() for "
-            "scalable vector. Scalable flag may be dropped, use "
-            "MVT::getVectorElementCount() instead");
+      // TODO: Check that this isn't a scalable vector.
       return getVectorMinNumElements();
     }
 

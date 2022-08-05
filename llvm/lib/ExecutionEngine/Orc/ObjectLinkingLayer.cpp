@@ -23,6 +23,12 @@ using namespace llvm::orc;
 namespace {
 
 class LinkGraphMaterializationUnit : public MaterializationUnit {
+private:
+  struct LinkGraphInterface {
+    SymbolFlagsMap SymbolFlags;
+    SymbolStringPtr InitSymbol;
+  };
+
 public:
   static std::unique_ptr<LinkGraphMaterializationUnit>
   Create(ObjectLinkingLayer &ObjLinkingLayer, std::unique_ptr<LinkGraph> G) {
@@ -38,9 +44,9 @@ public:
   }
 
 private:
-  static Interface scanLinkGraph(ExecutionSession &ES, LinkGraph &G) {
+  static LinkGraphInterface scanLinkGraph(ExecutionSession &ES, LinkGraph &G) {
 
-    Interface LGI;
+    LinkGraphInterface LGI;
 
     for (auto *Sym : G.defined_symbols()) {
       // Skip local symbols.
@@ -71,7 +77,6 @@ private:
           Sec.getName() == "__DATA,__objc_classlist" ||
           Sec.getName() == "__TEXT,__swift5_protos" ||
           Sec.getName() == "__TEXT,__swift5_proto" ||
-          Sec.getName() == "__TEXT,__swift5_types" ||
           Sec.getName() == "__DATA,__mod_init_func")
         return true;
     return false;
@@ -92,9 +97,11 @@ private:
   }
 
   LinkGraphMaterializationUnit(ObjectLinkingLayer &ObjLinkingLayer,
-                               std::unique_ptr<LinkGraph> G, Interface LGI)
-      : MaterializationUnit(std::move(LGI)), ObjLinkingLayer(ObjLinkingLayer),
-        G(std::move(G)) {}
+                               std::unique_ptr<LinkGraph> G,
+                               LinkGraphInterface LGI)
+      : MaterializationUnit(std::move(LGI.SymbolFlags),
+                            std::move(LGI.InitSymbol)),
+        ObjLinkingLayer(ObjLinkingLayer), G(std::move(G)) {}
 
   void discard(const JITDylib &JD, const SymbolStringPtr &Name) override {
     for (auto *Sym : G->defined_symbols())
@@ -217,7 +224,7 @@ public:
           Flags |= JITSymbolFlags::Exported;
 
         InternedResult[InternedName] =
-            JITEvaluatedSymbol(Sym->getAddress().getValue(), Flags);
+            JITEvaluatedSymbol(Sym->getAddress(), Flags);
         if (AutoClaim && !MR->getSymbols().count(InternedName)) {
           assert(!ExtraSymbolsToClaim.count(InternedName) &&
                  "Duplicate symbol to claim?");
@@ -235,7 +242,7 @@ public:
         if (Sym->getLinkage() == Linkage::Weak)
           Flags |= JITSymbolFlags::Weak;
         InternedResult[InternedName] =
-            JITEvaluatedSymbol(Sym->getAddress().getValue(), Flags);
+            JITEvaluatedSymbol(Sym->getAddress(), Flags);
         if (AutoClaim && !MR->getSymbols().count(InternedName)) {
           assert(!ExtraSymbolsToClaim.count(InternedName) &&
                  "Duplicate symbol to claim?");
@@ -249,8 +256,7 @@ public:
 
     {
 
-      // Check that InternedResult matches up with MR->getSymbols(), overriding
-      // flags if requested.
+      // Check that InternedResult matches up with MR->getSymbols().
       // This guards against faulty transformations / compilers / object caches.
 
       // First check that there aren't any missing symbols.
@@ -259,20 +265,16 @@ public:
       SymbolNameVector MissingSymbols;
       for (auto &KV : MR->getSymbols()) {
 
-        auto I = InternedResult.find(KV.first);
-
         // If this is a materialization-side-effects only symbol then bump
         // the counter and make sure it's *not* defined, otherwise make
         // sure that it is defined.
         if (KV.second.hasMaterializationSideEffectsOnly()) {
           ++NumMaterializationSideEffectsOnlySymbols;
-          if (I != InternedResult.end())
+          if (InternedResult.count(KV.first))
             ExtraSymbols.push_back(KV.first);
           continue;
-        } else if (I == InternedResult.end())
+        } else if (!InternedResult.count(KV.first))
           MissingSymbols.push_back(KV.first);
-        else if (Layer.OverrideObjectFlags)
-          I->second.setFlags(KV.second);
       }
 
       // If there were missing symbols then report the error.
@@ -420,8 +422,7 @@ private:
     std::vector<std::pair<SymbolStringPtr, Symbol *>> NameToSym;
 
     auto ProcessSymbol = [&](Symbol *Sym) {
-      if (Sym->hasName() && Sym->getLinkage() == Linkage::Weak &&
-          Sym->getScope() != Scope::Local) {
+      if (Sym->hasName() && Sym->getLinkage() == Linkage::Weak) {
         auto Name = ES.intern(Sym->getName());
         if (!MR->getSymbols().count(ES.intern(Sym->getName()))) {
           JITSymbolFlags SF = JITSymbolFlags::Weak;
@@ -743,7 +744,7 @@ void EHFrameRegistrationPlugin::modifyPassConfig(
     PassConfiguration &PassConfig) {
 
   PassConfig.PostFixupPasses.push_back(createEHFrameRecorderPass(
-      G.getTargetTriple(), [this, &MR](ExecutorAddr Addr, size_t Size) {
+      G.getTargetTriple(), [this, &MR](JITTargetAddress Addr, size_t Size) {
         if (Addr) {
           std::lock_guard<std::mutex> Lock(EHFramePluginMutex);
           assert(!InProcessLinks.count(&MR) &&
@@ -756,7 +757,7 @@ void EHFrameRegistrationPlugin::modifyPassConfig(
 Error EHFrameRegistrationPlugin::notifyEmitted(
     MaterializationResponsibility &MR) {
 
-  ExecutorAddrRange EmittedRange;
+  EHFrameRange EmittedRange;
   {
     std::lock_guard<std::mutex> Lock(EHFramePluginMutex);
 
@@ -765,7 +766,7 @@ Error EHFrameRegistrationPlugin::notifyEmitted(
       return Error::success();
 
     EmittedRange = EHFrameRangeItr->second;
-    assert(EmittedRange.Start && "eh-frame addr to register can not be null");
+    assert(EmittedRange.Addr && "eh-frame addr to register can not be null");
     InProcessLinks.erase(EHFrameRangeItr);
   }
 
@@ -773,7 +774,7 @@ Error EHFrameRegistrationPlugin::notifyEmitted(
           [&](ResourceKey K) { EHFrameRanges[K].push_back(EmittedRange); }))
     return Err;
 
-  return Registrar->registerEHFrames(EmittedRange);
+  return Registrar->registerEHFrames(EmittedRange.Addr, EmittedRange.Size);
 }
 
 Error EHFrameRegistrationPlugin::notifyFailed(
@@ -784,7 +785,7 @@ Error EHFrameRegistrationPlugin::notifyFailed(
 }
 
 Error EHFrameRegistrationPlugin::notifyRemovingResources(ResourceKey K) {
-  std::vector<ExecutorAddrRange> RangesToRemove;
+  std::vector<EHFrameRange> RangesToRemove;
 
   ES.runSessionLocked([&] {
     auto I = EHFrameRanges.find(K);
@@ -798,9 +799,10 @@ Error EHFrameRegistrationPlugin::notifyRemovingResources(ResourceKey K) {
   while (!RangesToRemove.empty()) {
     auto RangeToRemove = RangesToRemove.back();
     RangesToRemove.pop_back();
-    assert(RangeToRemove.Start && "Untracked eh-frame range must not be null");
-    Err = joinErrors(std::move(Err),
-                     Registrar->deregisterEHFrames(RangeToRemove));
+    assert(RangeToRemove.Addr && "Untracked eh-frame range must not be null");
+    Err = joinErrors(
+        std::move(Err),
+        Registrar->deregisterEHFrames(RangeToRemove.Addr, RangeToRemove.Size));
   }
 
   return Err;

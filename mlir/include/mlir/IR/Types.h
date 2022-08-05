@@ -81,7 +81,7 @@ public:
 
   using AbstractTy = AbstractType;
 
-  constexpr Type() {}
+  constexpr Type() : impl(nullptr) {}
   /* implicit */ Type(const ImplType *impl)
       : impl(const_cast<ImplType *>(impl)) {}
 
@@ -179,7 +179,7 @@ public:
   const AbstractTy &getAbstractType() { return impl->getAbstractType(); }
 
 protected:
-  ImplType *impl{nullptr};
+  ImplType *impl;
 };
 
 inline raw_ostream &operator<<(raw_ostream &os, Type type) {
@@ -228,7 +228,7 @@ private:
 
 // Make Type hashable.
 inline ::llvm::hash_code hash_value(Type arg) {
-  return DenseMapInfo<const Type::ImplType *>::getHashValue(arg.impl);
+  return ::llvm::hash_value(arg.impl);
 }
 
 template <typename U> bool Type::isa() const {
@@ -252,34 +252,22 @@ template <typename U> U Type::cast() const {
   return U(impl);
 }
 
-} // namespace mlir
+} // end namespace mlir
 
 namespace llvm {
 
 // Type hash just like pointers.
 template <> struct DenseMapInfo<mlir::Type> {
   static mlir::Type getEmptyKey() {
-    auto *pointer = llvm::DenseMapInfo<void *>::getEmptyKey();
+    auto pointer = llvm::DenseMapInfo<void *>::getEmptyKey();
     return mlir::Type(static_cast<mlir::Type::ImplType *>(pointer));
   }
   static mlir::Type getTombstoneKey() {
-    auto *pointer = llvm::DenseMapInfo<void *>::getTombstoneKey();
+    auto pointer = llvm::DenseMapInfo<void *>::getTombstoneKey();
     return mlir::Type(static_cast<mlir::Type::ImplType *>(pointer));
   }
   static unsigned getHashValue(mlir::Type val) { return mlir::hash_value(val); }
   static bool isEqual(mlir::Type LHS, mlir::Type RHS) { return LHS == RHS; }
-};
-template <typename T>
-struct DenseMapInfo<T, std::enable_if_t<std::is_base_of<mlir::Type, T>::value>>
-    : public DenseMapInfo<mlir::Type> {
-  static T getEmptyKey() {
-    const void *pointer = llvm::DenseMapInfo<const void *>::getEmptyKey();
-    return T::getFromOpaquePointer(pointer);
-  }
-  static T getTombstoneKey() {
-    const void *pointer = llvm::DenseMapInfo<const void *>::getTombstoneKey();
-    return T::getFromOpaquePointer(pointer);
-  }
 };
 
 /// We align TypeStorage by 8, so allow LLVM to steal the low bits.

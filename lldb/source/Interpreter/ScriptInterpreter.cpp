@@ -46,10 +46,6 @@ void ScriptInterpreter::CollectDataForWatchpointCommandCallback(
       "This script interpreter does not support watchpoint callbacks.");
 }
 
-StructuredData::DictionarySP ScriptInterpreter::GetInterpreterInfo() {
-  return nullptr;
-}
-
 bool ScriptInterpreter::LoadScriptingModule(const char *filename,
                                             const LoadScriptOptions &options,
                                             lldb_private::Status &error,

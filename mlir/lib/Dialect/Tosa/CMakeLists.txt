@@ -1,5 +1,4 @@
 add_mlir_dialect_library(MLIRTosa
-  Utils/ConversionUtils.cpp
   Utils/QuantUtils.cpp
   IR/TosaOps.cpp
 

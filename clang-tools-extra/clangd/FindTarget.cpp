@@ -33,16 +33,13 @@
 #include "clang/Basic/LangOptions.h"
 #include "clang/Basic/OperatorKinds.h"
 #include "clang/Basic/SourceLocation.h"
-#include "clang/Basic/SourceManager.h"
 #include "clang/Basic/Specifiers.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
-#include "llvm/ADT/StringExtras.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/raw_ostream.h"
 #include <iterator>
-#include <string>
 #include <utility>
 #include <vector>
 
@@ -367,10 +364,6 @@ public:
         Outer.add(ET->desugar(), Flags);
       }
 
-      void VisitUsingType(const UsingType *ET) {
-        Outer.add(ET->getFoundDecl(), Flags);
-      }
-
       void VisitInjectedClassNameType(const InjectedClassNameType *ICNT) {
         Outer.add(ICNT->getDecl(), Flags);
       }
@@ -381,7 +374,7 @@ public:
       void VisitDeducedType(const DeducedType *DT) {
         // FIXME: In practice this doesn't work: the AutoType you find inside
         // TypeLoc never has a deduced type. https://llvm.org/PR42914
-        Outer.add(DT->getDeducedType(), Flags);
+        Outer.add(DT->getDeducedType(), Flags | Rel::Underlying);
       }
       void VisitDeducedTemplateSpecializationType(
           const DeducedTemplateSpecializationType *DTST) {
@@ -862,13 +855,6 @@ refInTypeLoc(TypeLoc L, const HeuristicResolver *Resolver) {
       }
     }
 
-    void VisitUsingTypeLoc(UsingTypeLoc L) {
-      Refs.push_back(ReferenceLoc{NestedNameSpecifierLoc(),
-                                  L.getLocalSourceRange().getBegin(),
-                                  /*IsDecl=*/false,
-                                  {L.getFoundDecl()}});
-    }
-
     void VisitTagTypeLoc(TagTypeLoc L) {
       Refs.push_back(ReferenceLoc{NestedNameSpecifierLoc(),
                                   L.getNameLoc(),
@@ -1172,13 +1158,14 @@ llvm::raw_ostream &operator<<(llvm::raw_ostream &OS, DeclRelationSet RS) {
 llvm::raw_ostream &operator<<(llvm::raw_ostream &OS, ReferenceLoc R) {
   // note we cannot print R.NameLoc without a source manager.
   OS << "targets = {";
-  llvm::SmallVector<std::string> Targets;
+  bool First = true;
   for (const NamedDecl *T : R.Targets) {
-    llvm::raw_string_ostream Target(Targets.emplace_back());
-    Target << printQualifiedName(*T) << printTemplateSpecializationArgs(*T);
+    if (!First)
+      OS << ", ";
+    else
+      First = false;
+    OS << printQualifiedName(*T) << printTemplateSpecializationArgs(*T);
   }
-  llvm::sort(Targets);
-  OS << llvm::join(Targets, ", ");
   OS << "}";
   if (R.Qualifier) {
     OS << ", qualifier = '";

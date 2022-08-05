@@ -15,7 +15,6 @@
 #define BUILTIN_OPS
 
 include "mlir/IR/BuiltinDialect.td"
-include "mlir/IR/FunctionInterfaces.td"
 include "mlir/IR/OpAsmInterface.td"
 include "mlir/IR/RegionKindInterface.td"
 include "mlir/IR/SymbolInterfaces.td"
@@ -33,8 +32,8 @@ class Builtin_Op<string mnemonic, list<OpTrait> traits = []> :
 //===----------------------------------------------------------------------===//
 
 def FuncOp : Builtin_Op<"func", [
-  AffineScope, AutomaticAllocationScope, CallableOpInterface,
-  FunctionOpInterface, IsolatedFromAbove, Symbol
+  AffineScope, AutomaticAllocationScope, CallableOpInterface, FunctionLike,
+  IsolatedFromAbove, Symbol
 ]> {
   let summary = "An operation with a name containing a single `SSACFG` region";
   let description = [{
@@ -110,12 +109,6 @@ def FuncOp : Builtin_Op<"func", [
     /// compatible.
     void cloneInto(FuncOp dest, BlockAndValueMapping &mapper);
 
-    /// Returns the type of this function.
-    /// FIXME: We should drive this via the ODS `type` param.
-    FunctionType getType() { 
-      return getTypeAttr().getValue().cast<FunctionType>();
-    }
-
     //===------------------------------------------------------------------===//
     // CallableOpInterface
     //===------------------------------------------------------------------===//
@@ -130,17 +123,26 @@ def FuncOp : Builtin_Op<"func", [
     ArrayRef<Type> getCallableResults() { return getType().getResults(); }
 
     //===------------------------------------------------------------------===//
-    // FunctionOpInterface Methods
+    // SymbolOpInterface Methods
     //===------------------------------------------------------------------===//
 
-    /// Returns the argument types of this function.
-    ArrayRef<Type> getArgumentTypes() { return getType().getInputs(); }
+    bool isDeclaration() { return isExternal(); }
 
-    /// Returns the result types of this function.
-    ArrayRef<Type> getResultTypes() { return getType().getResults(); }
+  private:
+    // This trait needs access to the hooks defined below.
+    friend class OpTrait::FunctionLike<FuncOp>;
 
-    /// Verify the type attribute of this function. Returns failure and emits
-    /// an error if the attribute is invalid.
+    /// Returns the number of arguments. This is a hook for
+    /// OpTrait::FunctionLike.
+    unsigned getNumFuncArguments() { return getType().getInputs().size(); }
+
+    /// Returns the number of results. This is a hook for OpTrait::FunctionLike.
+    unsigned getNumFuncResults() { return getType().getResults().size(); }
+
+    /// Hook for OpTrait::FunctionLike, called after verifying that the 'type'
+    /// attribute is present and checks if it holds a function type. Ensures
+    /// getType, getNumFuncArguments, and getNumFuncResults can be called
+    /// safely.
     LogicalResult verifyType() {
       auto type = getTypeAttr().getValue();
       if (!type.isa<FunctionType>())
@@ -148,12 +150,6 @@ def FuncOp : Builtin_Op<"func", [
                            "' attribute of function type");
       return success();
     }
-
-    //===------------------------------------------------------------------===//
-    // SymbolOpInterface Methods
-    //===------------------------------------------------------------------===//
-
-    bool isDeclaration() { return isExternal(); }
   }];
   let parser = [{ return ::parseFuncOp(parser, result); }];
   let printer = [{ return ::print(*this, p); }];

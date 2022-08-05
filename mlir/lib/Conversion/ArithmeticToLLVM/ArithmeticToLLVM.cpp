@@ -108,7 +108,7 @@ struct CmpFOpLowering : public ConvertOpToLLVMPattern<arith::CmpFOp> {
                   ConversionPatternRewriter &rewriter) const override;
 };
 
-} // namespace
+} // end anonymous namespace
 
 //===----------------------------------------------------------------------===//
 // ConstantOpLowering
@@ -187,6 +187,8 @@ CmpIOpLowering::matchAndRewrite(arith::CmpIOp op, OpAdaptor adaptor,
             adaptor.getLhs(), adaptor.getRhs());
       },
       rewriter);
+
+  return success();
 }
 
 //===----------------------------------------------------------------------===//
@@ -233,7 +235,7 @@ struct ConvertArithmeticToLLVMPass
     : public ConvertArithmeticToLLVMBase<ConvertArithmeticToLLVMPass> {
   ConvertArithmeticToLLVMPass() = default;
 
-  void runOnOperation() override {
+  void runOnFunction() override {
     LLVMConversionTarget target(getContext());
     RewritePatternSet patterns(&getContext());
 
@@ -245,12 +247,12 @@ struct ConvertArithmeticToLLVMPass
     mlir::arith::populateArithmeticToLLVMConversionPatterns(converter,
                                                             patterns);
 
-    if (failed(applyPartialConversion(getOperation(), target,
-                                      std::move(patterns))))
+    if (failed(
+            applyPartialConversion(getFunction(), target, std::move(patterns))))
       signalPassFailure();
   }
 };
-} // namespace
+} // end anonymous namespace
 
 //===----------------------------------------------------------------------===//
 // Pattern Population

@@ -139,7 +139,7 @@ static std::string OptLLVM(const std::string &IR, CodeGenOpt::Level OLvl) {
 
   Passes.run(*M);
 
-  return outString;
+  return OS.str();
 }
 
 // Takes a function and runs it on a set of inputs
@@ -227,4 +227,6 @@ void clang_fuzzer::HandleLLVM(const std::string &IR,
 
   if (memcmp(OptArrays, UnoptArrays, kTotalSize))
     ErrorAndExit("!!!BUG!!!");
+
+  return;
 }

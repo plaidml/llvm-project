@@ -33,13 +33,14 @@ Location Region::getLoc() {
   return container->getLoc();
 }
 
+/// Return a range containing the types of the arguments for this region.
 auto Region::getArgumentTypes() -> ValueTypeRange<BlockArgListType> {
   return ValueTypeRange<BlockArgListType>(getArguments());
 }
 
-iterator_range<Region::args_iterator>
-Region::addArguments(TypeRange types, ArrayRef<Location> locs) {
-  return front().addArguments(types, locs);
+/// Add one argument to the argument list for each type specified in the list.
+iterator_range<Region::args_iterator> Region::addArguments(TypeRange types) {
+  return front().addArguments(types);
 }
 
 Region *Region::getParentRegion() {
@@ -91,7 +92,7 @@ void Region::cloneInto(Region *dest, Region::iterator destPos,
     // argument to the cloned block.
     for (auto arg : block.getArguments())
       if (!mapper.contains(arg))
-        mapper.map(arg, newBlock->addArgument(arg.getType(), arg.getLoc()));
+        mapper.map(arg, newBlock->addArgument(arg.getType()));
 
     // Clone and remap the operations within this block.
     for (auto &op : block)
@@ -151,10 +152,10 @@ void Region::dropAllReferences() {
 }
 
 Region *llvm::ilist_traits<::mlir::Block>::getParentRegion() {
-  size_t offset(
+  size_t Offset(
       size_t(&((Region *)nullptr->*Region::getSublistAccess(nullptr))));
-  iplist<Block> *anchor(static_cast<iplist<Block> *>(this));
-  return reinterpret_cast<Region *>(reinterpret_cast<char *>(anchor) - offset);
+  iplist<Block> *Anchor(static_cast<iplist<Block> *>(this));
+  return reinterpret_cast<Region *>(reinterpret_cast<char *>(Anchor) - Offset);
 }
 
 /// This is a trait method invoked when a basic block is added to a region.

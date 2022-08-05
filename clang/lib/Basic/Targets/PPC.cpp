@@ -561,9 +561,9 @@ bool PPCTargetInfo::initFeatureMap(
   if (!ppcUserFeaturesCheck(Diags, FeaturesVec))
     return false;
 
-  if (!(ArchDefs & ArchDefinePwr7) && (ArchDefs & ArchDefinePpcgr) &&
+  if (!(ArchDefs & ArchDefinePwr9) && (ArchDefs & ArchDefinePpcgr) &&
       llvm::is_contained(FeaturesVec, "+float128")) {
-    // We have __float128 on PPC but not pre-VSX targets.
+    // We have __float128 on PPC but not power 9 and above.
     Diags.Report(diag::err_opt_not_valid_with_opt) << "-mfloat128" << CPU;
     return false;
   }
@@ -623,11 +623,14 @@ void PPCTargetInfo::addP10SpecificFeatures(
   Features["pcrelative-memops"] = true;
   Features["prefix-instrs"] = true;
   Features["isa-v31-instructions"] = true;
+  return;
 }
 
 // Add features specific to the "Future" CPU.
 void PPCTargetInfo::addFutureSpecificFeatures(
-    llvm::StringMap<bool> &Features) const {}
+    llvm::StringMap<bool> &Features) const {
+  return;
+}
 
 bool PPCTargetInfo::hasFeature(StringRef Feature) const {
   return llvm::StringSwitch<bool>(Feature)

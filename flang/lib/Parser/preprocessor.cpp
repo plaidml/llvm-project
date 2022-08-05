@@ -169,9 +169,8 @@ TokenSequence Definition::Apply(
           replacement_.TokenAt(prev - 1)[0] ==
               '#') { // stringify argument without macro replacement
         std::size_t resultSize{result.SizeInTokens()};
-        while (resultSize > 0 && result.TokenAt(resultSize - 1).IsBlank()) {
+        while (resultSize > 0 && result.TokenAt(resultSize - 1).empty()) {
           result.pop_back();
-          --resultSize;
         }
         CHECK(resultSize > 0 &&
             result.TokenAt(resultSize - 1) == replacement_.TokenAt(prev - 1));

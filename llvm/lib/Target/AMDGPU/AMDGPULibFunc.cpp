@@ -455,8 +455,7 @@ AMDGPULibFunc::Param ParamIterator::getNextParam() {
       break;
     }
 
-    default:
-      llvm_unreachable("Unhandled param rule");
+    default: llvm_unreachable("Unhandeled param rule");
     }
   }
   ++Index;
@@ -748,8 +747,7 @@ static const char *getItaniumTypeName(AMDGPULibFunc::EType T) {
   case AMDGPULibFunc::IMG3D:   return "11ocl_image3d";
   case AMDGPULibFunc::SAMPLER: return "11ocl_sampler";
   case AMDGPULibFunc::EVENT:   return "9ocl_event";
-  default:
-    llvm_unreachable("Unhandled param type");
+  default: llvm_unreachable("Unhandeled param type");
   }
   return nullptr;
 }
@@ -763,7 +761,7 @@ namespace {
 // substitution candidates from the grammar, but are explicitly excluded:
 // 1. <builtin-type> other than vendor extended types ..."
 
-// For the purpose of functions the following productions make sense for the
+// For the purpose of functions the following productions make sence for the
 // substitution:
 //  <type> ::= <builtin-type>
 //    ::= <class-enum-type>
@@ -776,8 +774,8 @@ namespace {
 // using <class-enum-type> production rule they're not used for substitution
 // because clang consider them as builtin types.
 //
-// DvNN_ type is GCC extension for vectors and is a subject for the
-// substitution.
+// DvNN_ type is GCC extension for vectors and is a subject for the substitution.
+
 
 class ItaniumMangler {
   SmallVector<AMDGPULibFunc::Param, 10> Str; // list of accumulated substitutions
@@ -904,7 +902,7 @@ static Type* getIntrinsicParamType(
   case AMDGPULibFunc::EVENT:
     T = StructType::create(C,"ocl_event")->getPointerTo(); break;
   default:
-    llvm_unreachable("Unhandled param type");
+    llvm_unreachable("Unhandeled param type");
     return nullptr;
   }
   if (P.VectorSize > 1)

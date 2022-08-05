@@ -43,7 +43,7 @@ static std::string doModulesHost(llvm::ArrayRef<llvm::StringRef> mods,
   return result;
 }
 
-inline llvm::SmallVector<llvm::StringRef>
+inline llvm::SmallVector<llvm::StringRef, 2>
 convertToStringRef(llvm::ArrayRef<std::string> from) {
   return {from.begin(), from.end()};
 }

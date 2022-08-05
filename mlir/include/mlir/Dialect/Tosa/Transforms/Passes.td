@@ -1,4 +1,4 @@
-//===-- Passes.td - TOSA pass declarations ----*- tablegen -*-===//
+//===-- Passes.td - TOSA optimization pass declarations ----*- tablegen -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,7 +6,7 @@
 //
 //===----------------------------------------------------------------------===//
 //
-// This file declares the passes for the TOSA Dialect in MLIR.
+// This file declares the optimization passes for the TOSA Dialect in MLIR.
 //
 //===----------------------------------------------------------------------===//
 
@@ -15,7 +15,7 @@
 
 include "mlir/Pass/PassBase.td"
 
-def TosaInferShapes : Pass<"tosa-infer-shapes", "FuncOp"> {
+def TosaInferShapes : FunctionPass<"tosa-infer-shapes"> {
   let summary = "Propagate shapes across TOSA operations";
   let description = [{
     Pass that uses operand types and propagates shapes to TOSA operations.
@@ -30,7 +30,7 @@ def TosaInferShapes : Pass<"tosa-infer-shapes", "FuncOp"> {
   ];
 }
 
-def TosaMakeBroadcastable : Pass<"tosa-make-broadcastable", "FuncOp"> {
+def TosaMakeBroadcastable : FunctionPass<"tosa-make-broadcastable"> {
   let summary = "TOSA rank Reshape to enable Broadcasting";
   let description = [{
     Pass that enables broadcast by making all input arrays have the same
@@ -41,17 +41,6 @@ def TosaMakeBroadcastable : Pass<"tosa-make-broadcastable", "FuncOp"> {
   }];
 
   let constructor = "createTosaMakeBroadcastablePass()";
-}
-
-def TosaOptionalDecompositions
-  : Pass<"tosa-optional-decompositions", "FuncOp"> {
-  let summary = "Applies Tosa operations optional decompositions";
-  let description = [{
-    Pass to apply the Tosa operations decompositions 
-    exposed as populate functions in include/mlir/Dialect/Tosa/Transforms/Passes.h
-  }];
-
-  let constructor = "tosa::createTosaOptionalDecompositions()";
 }
 
 #endif // MLIR_DIALECT_TOSA_TRANSFORMS_PASSES

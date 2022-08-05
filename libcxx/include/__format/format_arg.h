@@ -37,20 +37,21 @@ _LIBCPP_BEGIN_NAMESPACE_STD
 #if !defined(_LIBCPP_HAS_NO_CONCEPTS)
 
 namespace __format {
-/// The type stored in @ref basic_format_arg.
-///
-/// @note The 128-bit types are unconditionally in the list to avoid the values
-/// of the enums to depend on the availability of 128-bit integers.
+/** The type stored in @ref basic_format_arg. */
 enum class _LIBCPP_ENUM_VIS __arg_t : uint8_t {
   __none,
   __boolean,
   __char_type,
   __int,
   __long_long,
+#ifndef _LIBCPP_HAS_NO_INT128
   __i128,
+#endif
   __unsigned,
   __unsigned_long_long,
+#ifndef _LIBCPP_HAS_NO_INT128
   __u128,
+#endif
   __float,
   __double,
   __long_double,
@@ -74,22 +75,18 @@ visit_format_arg(_Visitor&& __vis, basic_format_arg<_Context> __arg) {
     return _VSTD::invoke(_VSTD::forward<_Visitor>(__vis), __arg.__int);
   case __format::__arg_t::__long_long:
     return _VSTD::invoke(_VSTD::forward<_Visitor>(__vis), __arg.__long_long);
-  case __format::__arg_t::__i128:
 #ifndef _LIBCPP_HAS_NO_INT128
+  case __format::__arg_t::__i128:
     return _VSTD::invoke(_VSTD::forward<_Visitor>(__vis), __arg.__i128);
-#else
-    _LIBCPP_UNREACHABLE();
 #endif
   case __format::__arg_t::__unsigned:
     return _VSTD::invoke(_VSTD::forward<_Visitor>(__vis), __arg.__unsigned);
   case __format::__arg_t::__unsigned_long_long:
     return _VSTD::invoke(_VSTD::forward<_Visitor>(__vis),
                          __arg.__unsigned_long_long);
-  case __format::__arg_t::__u128:
 #ifndef _LIBCPP_HAS_NO_INT128
+  case __format::__arg_t::__u128:
     return _VSTD::invoke(_VSTD::forward<_Visitor>(__vis), __arg.__u128);
-#else
-   _LIBCPP_UNREACHABLE();
 #endif
   case __format::__arg_t::__float:
     return _VSTD::invoke(_VSTD::forward<_Visitor>(__vis), __arg.__float);

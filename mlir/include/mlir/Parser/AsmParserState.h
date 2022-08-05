@@ -47,9 +47,6 @@ public:
   /// an input file.
   struct OperationDefinition {
     struct ResultGroupDefinition {
-      ResultGroupDefinition(unsigned index, llvm::SMRange loc)
-          : startIndex(index), definition(loc) {}
-
       /// The result number that starts this group.
       unsigned startIndex;
       /// The source definition of the result group.
@@ -70,7 +67,7 @@ public:
     llvm::SMRange scopeLoc;
 
     /// Source definitions for any result groups of this operation.
-    SmallVector<ResultGroupDefinition> resultGroups;
+    SmallVector<std::pair<unsigned, SMDefinition>> resultGroups;
 
     /// If this operation is a symbol operation, this vector contains symbol
     /// uses of this operation.
@@ -177,6 +174,6 @@ private:
   std::unique_ptr<Impl> impl;
 };
 
-} // namespace mlir
+} // end namespace mlir
 
 #endif // MLIR_PARSER_ASMPARSERSTATE_H

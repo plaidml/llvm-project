@@ -8,10 +8,7 @@
 #ifndef TEST_STD_UTILITIES_FORMAT_FORMAT_FUNCTIONS_FORMAT_TESTS_H
 #define TEST_STD_UTILITIES_FORMAT_FORMAT_FUNCTIONS_FORMAT_TESTS_H
 
-#include <format>
-
 #include "make_string.h"
-#include "test_macros.h"
 
 // In this file the following template types are used:
 // TestFunction must be callable as check(expected-result, string-to-format, args-to-format...)
@@ -19,24 +16,6 @@
 
 #define STR(S) MAKE_STRING(CharT, S)
 #define CSTR(S) MAKE_CSTRING(CharT, S)
-
-template <class T>
-struct context {};
-
-template <>
-struct context<char> {
-  using type = std::format_context;
-};
-
-#ifndef TEST_HAS_NO_WIDE_CHARACTERS
-template <>
-struct context<wchar_t> {
-  using type = std::wformat_context;
-};
-#endif
-
-template <class T>
-using context_t = typename context<T>::type;
 
 template <class CharT>
 std::vector<std::basic_string<CharT>> invalid_types(std::string valid) {
@@ -145,7 +124,7 @@ void format_test_string(T world, T universe, TestFunction check,
                   STR("hello {:0}"), world);
 
   // *** width ***
-#ifdef _LIBCPP_VERSION
+#if _LIBCPP_VERSION
   // This limit isn't specified in the Standard.
   static_assert(std::__format::__number_max == 2'147'483'647,
                 "Update the assert and the test.");
@@ -165,7 +144,7 @@ void format_test_string(T world, T universe, TestFunction check,
       STR("hello {:{}}"), world, -1);
   check_exception(
       "A format-spec arg-id replacement exceeds the maximum supported value",
-      STR("hello {:{}}"), world, unsigned(-1));
+      STR("hello {:{}}"), world, -1u);
   check_exception("Argument index out of bounds", STR("hello {:{}}"), world);
   check_exception(
       "A format-spec arg-id replacement argument isn't an integral type",
@@ -176,11 +155,12 @@ void format_test_string(T world, T universe, TestFunction check,
   check_exception(
       "Using automatic argument numbering in manual argument numbering mode",
       STR("hello {0:{}}"), world, 1);
-  // Arg-id may not have leading zeros.
-  check_exception("Invalid arg-id", STR("hello {0:{01}}"), world, 1);
 
   // *** precision ***
-#ifdef _LIBCPP_VERSION
+  check_exception("A format-spec precision field shouldn't have a leading zero",
+                  STR("hello {:.01}"), world);
+
+#if _LIBCPP_VERSION
   // This limit isn't specified in the Standard.
   static_assert(std::__format::__number_max == 2'147'483'647,
                 "Update the assert and the test.");
@@ -194,14 +174,12 @@ void format_test_string(T world, T universe, TestFunction check,
 
   // Precision 0 allowed, but not useful for string arguments.
   check(STR("hello "), STR("hello {:.{}}"), world, 0);
-  // Precision may have leading zeros. Secondly tests the value is still base 10.
-  check(STR("hello 0123456789"), STR("hello {:.000010}"), STR("0123456789abcdef"));
   check_exception(
       "A format-spec arg-id replacement shouldn't have a negative value",
       STR("hello {:.{}}"), world, -1);
   check_exception(
       "A format-spec arg-id replacement exceeds the maximum supported value",
-      STR("hello {:.{}}"), world, ~0u);
+      STR("hello {:.{}}"), world, -1u);
   check_exception("Argument index out of bounds", STR("hello {:.{}}"), world);
   check_exception(
       "A format-spec arg-id replacement argument isn't an integral type",
@@ -212,8 +190,6 @@ void format_test_string(T world, T universe, TestFunction check,
   check_exception(
       "Using automatic argument numbering in manual argument numbering mode",
       STR("hello {0:.{}}"), world, 1);
-  // Arg-id may not have leading zeros.
-  check_exception("Invalid arg-id", STR("hello {0:.{01}}"), world, 1);
 
   // *** locale-specific form ***
   check_exception("The format-spec should consume the input or end with a '}'",
@@ -228,8 +204,7 @@ void format_test_string(T world, T universe, TestFunction check,
 
 template <class CharT, class TestFunction>
 void format_test_string_unicode(TestFunction check) {
-  (void)check;
-#ifndef TEST_HAS_NO_UNICODE
+#ifndef _LIBCPP_HAS_NO_UNICODE
   // ß requires one column
   check(STR("aßc"), STR("{}"), STR("aßc"));
 
@@ -261,7 +236,9 @@ void format_test_string_unicode(TestFunction check) {
   check(STR("a\u1110c---"), STR("{:-<7}"), STR("a\u1110c"));
   check(STR("-a\u1110c--"), STR("{:-^7}"), STR("a\u1110c"));
   check(STR("---a\u1110c"), STR("{:->7}"), STR("a\u1110c"));
-#endif // TEST_HAS_NO_UNICODE
+#else
+  (void)check;
+#endif
 }
 
 template <class CharT, class TestFunction, class ExceptionTest>

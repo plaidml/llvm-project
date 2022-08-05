@@ -8,12 +8,11 @@
 // UNSUPPORTED: c++03, c++11, c++14, c++17
 // UNSUPPORTED: libcpp-no-concepts
 // UNSUPPORTED: libcpp-has-no-incomplete-format
-// XFAIL: LIBCXX-AIX-FIXME
 
 // <format>
 
 // Tests the parsing of the format string as specified in [format.string.std].
-// It validates whether the std-format-spec is valid for an integer type.
+// It validates whether the std-format-spec is valid for a string type.
 
 #include <format>
 #include <cassert>
@@ -209,14 +208,19 @@ constexpr void test() {
 
   test_exception<Parser<CharT>>("End of input while parsing format-spec arg-id",
                                 CSTR("{"));
-  test_exception<Parser<CharT>>("Invalid arg-id", CSTR("{0"));
+  test_exception<Parser<CharT>>(
+      "A format-spec arg-id should terminate at a '}'", CSTR("{0"));
   test_exception<Parser<CharT>>(
       "The arg-id of the format-spec starts with an invalid character",
       CSTR("{a"));
-  test_exception<Parser<CharT>>("Invalid arg-id", CSTR("{1"));
-  test_exception<Parser<CharT>>("Invalid arg-id", CSTR("{9"));
-  test_exception<Parser<CharT>>("Invalid arg-id", CSTR("{9:"));
-  test_exception<Parser<CharT>>("Invalid arg-id", CSTR("{9a"));
+  test_exception<Parser<CharT>>(
+      "A format-spec arg-id should terminate at a '}'", CSTR("{1"));
+  test_exception<Parser<CharT>>(
+      "A format-spec arg-id should terminate at a '}'", CSTR("{9"));
+  test_exception<Parser<CharT>>(
+      "A format-spec arg-id should terminate at a '}'", CSTR("{9:"));
+  test_exception<Parser<CharT>>(
+      "A format-spec arg-id should terminate at a '}'", CSTR("{9a"));
 
   static_assert(std::__format::__number_max == 2'147'483'647,
                 "Update the assert and the test.");

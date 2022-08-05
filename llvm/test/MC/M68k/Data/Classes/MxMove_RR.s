@@ -18,3 +18,4 @@ move.l	%d2, %d1
 ; CHECK:      move.l  %a2, %a1
 ; CHECK-SAME: encoding: [0x22,0x4a]
 move.l	%a2, %a1
+

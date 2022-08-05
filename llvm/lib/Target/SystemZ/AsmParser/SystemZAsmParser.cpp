@@ -40,15 +40,13 @@
 
 using namespace llvm;
 
-// Return true if Expr is in the range [MinValue, MaxValue]. If AllowSymbol
-// is true any MCExpr is accepted (address displacement).
-static bool inRange(const MCExpr *Expr, int64_t MinValue, int64_t MaxValue,
-                    bool AllowSymbol = false) {
+// Return true if Expr is in the range [MinValue, MaxValue].
+static bool inRange(const MCExpr *Expr, int64_t MinValue, int64_t MaxValue) {
   if (auto *CE = dyn_cast<MCConstantExpr>(Expr)) {
     int64_t Value = CE->getValue();
     return Value >= MinValue && Value <= MaxValue;
   }
-  return AllowSymbol;
+  return false;
 }
 
 namespace {
@@ -267,10 +265,10 @@ public:
     return isMem(MemKind) && Mem.RegKind == RegKind;
   }
   bool isMemDisp12(MemoryKind MemKind, RegisterKind RegKind) const {
-    return isMem(MemKind, RegKind) && inRange(Mem.Disp, 0, 0xfff, true);
+    return isMem(MemKind, RegKind) && inRange(Mem.Disp, 0, 0xfff);
   }
   bool isMemDisp20(MemoryKind MemKind, RegisterKind RegKind) const {
-    return isMem(MemKind, RegKind) && inRange(Mem.Disp, -524288, 524287, true);
+    return isMem(MemKind, RegKind) && inRange(Mem.Disp, -524288, 524287);
   }
   bool isMemDisp12Len4(RegisterKind RegKind) const {
     return isMemDisp12(BDLMem, RegKind) && inRange(Mem.Length.Imm, 1, 0x10);

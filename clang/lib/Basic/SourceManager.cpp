@@ -59,10 +59,12 @@ unsigned ContentCache::getSizeBytesMapped() const {
 /// Returns the kind of memory used to back the memory buffer for
 /// this content cache.  This is used for performance analysis.
 llvm::MemoryBuffer::BufferKind ContentCache::getMemoryBufferKind() const {
-  if (Buffer == nullptr) {
-    assert(0 && "Buffer should never be null");
+  assert(Buffer);
+
+  // Should be unreachable, but keep for sanity.
+  if (!Buffer)
     return llvm::MemoryBuffer::MemoryBuffer_Malloc;
-  }
+
   return Buffer->getBufferKind();
 }
 
@@ -205,30 +207,28 @@ void LineTableInfo::AddLineNote(FileID FID, unsigned Offset, unsigned LineNo,
                                 SrcMgr::CharacteristicKind FileKind) {
   std::vector<LineEntry> &Entries = LineEntries[FID];
 
+  // An unspecified FilenameID means use the last filename if available, or the
+  // main source file otherwise.
+  if (FilenameID == -1 && !Entries.empty())
+    FilenameID = Entries.back().FilenameID;
+
   assert((Entries.empty() || Entries.back().FileOffset < Offset) &&
          "Adding line entries out of order!");
 
   unsigned IncludeOffset = 0;
-  if (EntryExit == 1) {
-    // Push #include
+  if (EntryExit == 0) {  // No #include stack change.
+    IncludeOffset = Entries.empty() ? 0 : Entries.back().IncludeOffset;
+  } else if (EntryExit == 1) {
     IncludeOffset = Offset-1;
-  } else {
-    const auto *PrevEntry = Entries.empty() ? nullptr : &Entries.back();
-    if (EntryExit == 2) {
-      // Pop #include
-      assert(PrevEntry && PrevEntry->IncludeOffset &&
-             "PPDirectives should have caught case when popping empty include "
-             "stack");
-      PrevEntry = FindNearestLineEntry(FID, PrevEntry->IncludeOffset);
-    }
-    if (PrevEntry) {
+  } else if (EntryExit == 2) {
+    assert(!Entries.empty() && Entries.back().IncludeOffset &&
+       "PPDirectives should have caught case when popping empty include stack");
+
+    // Get the include loc of the last entries' include loc as our include loc.
+    IncludeOffset = 0;
+    if (const LineEntry *PrevEntry =
+          FindNearestLineEntry(FID, Entries.back().IncludeOffset))
       IncludeOffset = PrevEntry->IncludeOffset;
-      if (FilenameID == -1) {
-        // An unspecified FilenameID means use the previous (or containing)
-        // filename if available, or the main source file otherwise.
-        FilenameID = PrevEntry->FilenameID;
-      }
-    }
   }
 
   Entries.push_back(LineEntry::get(Offset, LineNo, FilenameID, FileKind,
@@ -862,6 +862,7 @@ FileID SourceManager::getFileIDLocal(SourceLocation::UIntTy SLocOffset) const {
 /// This function knows that the SourceLocation is in a loaded buffer, not a
 /// local one.
 FileID SourceManager::getFileIDLoaded(SourceLocation::UIntTy SLocOffset) const {
+  // Sanity checking, otherwise a bug may lead to hanging in release build.
   if (SLocOffset < CurrentLoadedOffset) {
     assert(0 && "Invalid SLocOffset or bad function choice");
     return FileID();
@@ -906,6 +907,7 @@ FileID SourceManager::getFileIDLoaded(SourceLocation::UIntTy SLocOffset) const {
     ++NumProbes;
 
     if (E.getOffset() > SLocOffset) {
+      // Sanity checking, otherwise a bug may lead to hanging in release build.
       if (GreaterIndex == MiddleIndex) {
         assert(0 && "binary search missed the entry");
         return FileID();
@@ -921,6 +923,7 @@ FileID SourceManager::getFileIDLoaded(SourceLocation::UIntTy SLocOffset) const {
       return Res;
     }
 
+    // Sanity checking, otherwise a bug may lead to hanging in release build.
     if (LessIndex == MiddleIndex) {
       assert(0 && "binary search missed the entry");
       return FileID();

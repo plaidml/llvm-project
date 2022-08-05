@@ -13,7 +13,6 @@
 
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
-#include "mlir/Dialect/Tensor/IR/Tensor.h"
 #include "mlir/Dialect/Vector/VectorTransforms.h"
 #include "mlir/Interfaces/VectorInterfaces.h"
 
@@ -31,7 +30,6 @@ transposeInBoundsAttr(OpBuilder &builder, ArrayAttr attr,
         attr.getValue()[pos].cast<BoolAttr>().getValue());
   return builder.getBoolArrayAttr(newInBoundsValues);
 }
-
 /// Lower transfer_read op with permutation into a transfer_read with a
 /// permutation map composed of leading zeros followed by a minor identiy +
 /// vector.transpose op.
@@ -57,10 +55,6 @@ struct TransferReadPermutationLowering
 
   LogicalResult matchAndRewrite(vector::TransferReadOp op,
                                 PatternRewriter &rewriter) const override {
-    // TODO: support 0-d corner case.
-    if (op.getTransferRank() == 0)
-      return failure();
-
     SmallVector<unsigned> permutation;
     AffineMap map = op.permutation_map();
     if (map.getNumResults() == 0)
@@ -79,7 +73,7 @@ struct TransferReadPermutationLowering
     // Apply the reverse transpose to deduce the type of the transfer_read.
     ArrayRef<int64_t> originalShape = op.getVectorType().getShape();
     SmallVector<int64_t> newVectorShape(originalShape.size());
-    for (const auto &pos : llvm::enumerate(permutation)) {
+    for (auto pos : llvm::enumerate(permutation)) {
       newVectorShape[pos.value()] = originalShape[pos.index()];
     }
 
@@ -104,7 +98,7 @@ struct TransferReadPermutationLowering
     }
 
     // Transpose in_bounds attribute.
-    ArrayAttr newInBoundsAttr =
+    ArrayAttr newInBounds =
         op.in_bounds() ? transposeInBoundsAttr(
                              rewriter, op.in_bounds().getValue(), permutation)
                        : ArrayAttr();
@@ -113,8 +107,8 @@ struct TransferReadPermutationLowering
     VectorType newReadType =
         VectorType::get(newVectorShape, op.getVectorType().getElementType());
     Value newRead = rewriter.create<vector::TransferReadOp>(
-        op.getLoc(), newReadType, op.source(), op.indices(),
-        AffineMapAttr::get(newMap), op.padding(), newMask, newInBoundsAttr);
+        op.getLoc(), newReadType, op.source(), op.indices(), newMap,
+        op.padding(), newMask, newInBounds);
 
     // Transpose result of transfer_read.
     SmallVector<int64_t> transposePerm(permutation.begin(), permutation.end());
@@ -146,8 +140,7 @@ struct TransferWritePermutationLowering
 
   LogicalResult matchAndRewrite(vector::TransferWriteOp op,
                                 PatternRewriter &rewriter) const override {
-    // TODO: support 0-d corner case.
-    if (op.getTransferRank() == 0)
+    if (op.isZeroD())
       return failure();
 
     SmallVector<unsigned> permutation;
@@ -174,7 +167,7 @@ struct TransferWritePermutationLowering
                               : Value();
 
     // Transpose in_bounds attribute.
-    ArrayAttr newInBoundsAttr =
+    ArrayAttr newInBounds =
         op.in_bounds() ? transposeInBoundsAttr(
                              rewriter, op.in_bounds().getValue(), permutation)
                        : ArrayAttr();
@@ -185,8 +178,8 @@ struct TransferWritePermutationLowering
     auto newMap = AffineMap::getMinorIdentityMap(
         map.getNumDims(), map.getNumResults(), rewriter.getContext());
     rewriter.replaceOpWithNewOp<vector::TransferWriteOp>(
-        op, Type(), newVec, op.source(), op.indices(),
-        AffineMapAttr::get(newMap), newMask, newInBoundsAttr);
+        op, Type(), newVec, op.source(), op.indices(), newMap, newMask,
+        newInBounds);
 
     return success();
   }
@@ -205,10 +198,6 @@ struct TransferOpReduceRank : public OpRewritePattern<vector::TransferReadOp> {
 
   LogicalResult matchAndRewrite(vector::TransferReadOp op,
                                 PatternRewriter &rewriter) const override {
-    // TODO: support 0-d corner case.
-    if (op.getTransferRank() == 0)
-      return failure();
-
     AffineMap map = op.permutation_map();
     unsigned numLeadingBroadcast = 0;
     for (auto expr : map.getResults()) {
@@ -235,15 +224,9 @@ struct TransferOpReduceRank : public OpRewritePattern<vector::TransferReadOp> {
     // https://llvm.discourse.group/t/should-we-have-0-d-vectors/3097.
     // In the meantime, lower these to a scalar load when they pop up.
     if (reducedShapeRank == 0) {
-      Value newRead;
-      if (op.getShapedType().isa<TensorType>()) {
-        newRead = rewriter.create<tensor::ExtractOp>(op.getLoc(), op.source(),
-                                                     op.indices());
-      } else {
-        newRead = rewriter.create<memref::LoadOp>(
-            op.getLoc(), originalVecType.getElementType(), op.source(),
-            op.indices());
-      }
+      Value newRead = rewriter.create<memref::LoadOp>(
+          op.getLoc(), originalVecType.getElementType(), op.source(),
+          op.indices());
       rewriter.replaceOpWithNewOp<vector::BroadcastOp>(op, originalVecType,
                                                        newRead);
       return success();
@@ -255,14 +238,14 @@ struct TransferOpReduceRank : public OpRewritePattern<vector::TransferReadOp> {
       return failure();
     VectorType newReadType =
         VectorType::get(newShape, originalVecType.getElementType());
-    ArrayAttr newInBoundsAttr =
+    ArrayAttr newInBounds =
         op.in_bounds()
             ? rewriter.getArrayAttr(
                   op.in_boundsAttr().getValue().take_back(reducedShapeRank))
             : ArrayAttr();
     Value newRead = rewriter.create<vector::TransferReadOp>(
-        op.getLoc(), newReadType, op.source(), op.indices(),
-        AffineMapAttr::get(newMap), op.padding(), op.mask(), newInBoundsAttr);
+        op.getLoc(), newReadType, op.source(), op.indices(), newMap,
+        op.padding(), op.mask(), newInBounds);
     rewriter.replaceOpWithNewOp<vector::BroadcastOp>(op, originalVecType,
                                                      newRead);
     return success();

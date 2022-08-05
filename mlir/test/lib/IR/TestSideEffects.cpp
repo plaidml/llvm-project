@@ -69,7 +69,7 @@ struct SideEffectsPass
     });
   }
 };
-} // namespace
+} // end anonymous namespace
 
 namespace mlir {
 void registerSideEffectTestPasses() { PassRegistration<SideEffectsPass>(); }

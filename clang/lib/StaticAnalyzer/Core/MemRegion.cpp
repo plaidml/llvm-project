@@ -444,7 +444,7 @@ std::string MemRegion::getString() const {
   std::string s;
   llvm::raw_string_ostream os(s);
   dumpToStream(os);
-  return s;
+  return os.str();
 }
 
 void MemRegion::dumpToStream(raw_ostream &os) const {

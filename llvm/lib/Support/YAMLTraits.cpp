@@ -527,9 +527,8 @@ std::vector<StringRef> Output::keys() {
 }
 
 bool Output::preflightKey(const char *Key, bool Required, bool SameAsDefault,
-                          bool &UseDefault, void *&SaveInfo) {
+                          bool &UseDefault, void *&) {
   UseDefault = false;
-  SaveInfo = nullptr;
   if (Required || !SameAsDefault || WriteDefaultValues) {
     auto State = StateStack.back();
     if (State == inFlowMapFirstKey || State == inFlowMapOtherKey) {
@@ -600,8 +599,7 @@ void Output::endSequence() {
   StateStack.pop_back();
 }
 
-bool Output::preflightElement(unsigned, void *&SaveInfo) {
-  SaveInfo = nullptr;
+bool Output::preflightElement(unsigned, void *&) {
   return true;
 }
 
@@ -629,7 +627,7 @@ void Output::endFlowSequence() {
   outputUpToEndOfLine(" ]");
 }
 
-bool Output::preflightFlowElement(unsigned, void *&SaveInfo) {
+bool Output::preflightFlowElement(unsigned, void *&) {
   if (NeedFlowSequenceComma)
     output(", ");
   if (WrapColumn && Column > WrapColumn) {
@@ -639,7 +637,6 @@ bool Output::preflightFlowElement(unsigned, void *&SaveInfo) {
     Column = ColumnAtFlowStart;
     output("  ");
   }
-  SaveInfo = nullptr;
   return true;
 }
 

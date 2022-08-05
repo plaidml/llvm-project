@@ -33,3 +33,4 @@ jsr	(%a1)
 ; CHECK:      jsr  (%a2)
 ; CHECK-SAME: encoding: [0x4e,0x92]
 jsr	(%a2)
+
