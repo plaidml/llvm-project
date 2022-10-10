@@ -11,6 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <stdlib.h>
+
 #include "mlir/Conversion/SCFToOpenMP/SCFToOpenMP.h"
 #include "../PassDetail.h"
 #include "mlir/Analysis/SliceAnalysis.h"
@@ -413,6 +415,19 @@ struct ParallelOpLowering : public OpRewritePattern<scf::ParallelOp> {
           loop.reductionsAttr(
               ArrayAttr::get(rewriter.getContext(), reductionDeclSymbols));
           loop.reduction_varsMutable().append(reductionVariables);
+        }
+        // Hack to test hybrid (big/little core) CPUs
+        // with dynamic runtime-based scheduling
+        char* pschedule_env;
+        uint32_t sched_dynamic = 0;
+        pschedule_env = getenv("PLAIDML_SCHED_DYNAMIC");
+        if ( pschedule_env != NULL ) {
+          sched_dynamic = atoi( pschedule_env );
+        }
+        if ( sched_dynamic != 0 ) {
+          loop.schedule_valAttr(
+              omp::ClauseScheduleKindAttr::get(rewriter.getContext(),
+              omp::ClauseScheduleKind::Dynamic));
         }
       }
     }
